@@ -5018,7 +5018,8 @@
       $("authScreen").style.display = "none";
       $("app").classList.add("show");
       applyUserChip();
-      $("greet").textContent = "Halo, " + (name.split(" ")[0] || "tim");
+      const _nm = (currentProfile && currentProfile.name) || (currentUser && currentUser.email) || "tim";
+      $("greet").textContent = "Halo, " + (String(_nm).split(" ")[0] || "tim");
       try { applyRoleUI();
       try { if (window.__bindSidebarToggle) window.__bindSidebarToggle(); } catch (e) {} } catch (eR) {}
       try { bindAllThousandInputs(); } catch (eT) {}
@@ -5068,15 +5069,23 @@
       const navBtn = document.querySelector('.nav-item[data-page="' + page + '"]');
       if (navBtn && navBtn.style.display === "none") page = "home";
       document.querySelectorAll(".page").forEach(el => { el.hidden = el.id !== "page-" + page; });
-      
-    
-    // Keyboard-safe: lock modal to visualViewport (area above keyboard)
-    
+      document.querySelectorAll(".nav-item, .mobile-nav button").forEach(el => {
+        el.classList.toggle("active", el.getAttribute("data-page") === page);
+      });
+      if (page === "plans") { try { loadPlans(); } catch (e) {} }
+      if (page === "reports") { try { loadReportsPage(); } catch (e) {} }
+      if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
+      if (page === "absences") { try { loadAbsences(); } catch (e) {} }
+      if (page === "ranking") { try { loadRanking(); } catch (e) {} }
+      if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
+      if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
+      if (page === "home" && currentRole() === "operator") { try { loadOperatorHome(); } catch (e) {} }
+      if (page === "routes") { try { loadRoutes(); renderRouteProductTable(); } catch (e) {} }
+      else { try { closeRouteEditor(); } catch (e4) {} }
+      if (page === "products") { try { renderProducts(); } catch (e) {} }
+      if (page === "machines") { try { renderMachines(); } catch (e) {} }
+    }
 
-    
-
-    
-    
     function applyUserChip() {
       const name = (currentProfile && currentProfile.name) || (currentUser && currentUser.email) || "—";
       const role = (currentProfile && currentProfile.role) || "operator";
@@ -5099,16 +5108,16 @@
       const name = (currentProfile && currentProfile.name) || "";
       const role = (currentProfile && currentProfile.role) || "operator";
       const avatarUrl = (currentProfile && (currentProfile.avatar_url || currentProfile.photo_url)) || "";
-      $("profileName").value = name;
-      $("profileEmail").value = currentUser.email || "";
-      $("profileRole").value = role;
+      if ($("profileName")) $("profileName").value = name;
+      if ($("profileEmail")) $("profileEmail").value = currentUser.email || "";
+      if ($("profileRole")) $("profileRole").value = role;
       setAvatarEl($("profileAvatarPreview"), name || currentUser.email, avatarUrl);
-      $("profilePhotoInput").value = "";
-      $("profileModal").classList.add("show");
+      if ($("profilePhotoInput")) $("profilePhotoInput").value = "";
+      if ($("profileModal")) $("profileModal").classList.add("show");
       document.body.classList.add("modal-open");
     }
     function closeProfileModal() {
-      $("profileModal").classList.remove("show");
+      if ($("profileModal")) $("profileModal").classList.remove("show");
       document.body.classList.remove("modal-open");
     }
     let pendingAvatarDataUrl = null;
@@ -5120,19 +5129,18 @@
       const reader = new FileReader();
       reader.onload = function() {
         pendingAvatarDataUrl = reader.result;
-        setAvatarEl($("profileAvatarPreview"), $("profileName").value || "?", pendingAvatarDataUrl);
+        setAvatarEl($("profileAvatarPreview"), ($("profileName") && $("profileName").value) || "?", pendingAvatarDataUrl);
       };
       reader.readAsDataURL(f);
     });
     document.getElementById("btnSaveProfile") && (document.getElementById("btnSaveProfile").onclick = async function() {
       if (!currentUser || !sb) return;
-      const name = ($("profileName").value || "").trim();
+      const name = (($("profileName") && $("profileName").value) || "").trim();
       if (!name) return toast("Nama wajib diisi", true);
       const payload = { name: name, updated_at: new Date().toISOString() };
       if (pendingAvatarDataUrl) payload.avatar_url = pendingAvatarDataUrl;
       let { error } = await sb.from("profiles").update(payload).eq("id", currentUser.id);
       if (error) {
-        // try by email
         ({ error } = await sb.from("profiles").update(payload).eq("email", currentUser.email));
       }
       if (error) return toast(error.message + " — jalankan SQL: alter table profiles add column if not exists avatar_url text;", true);
@@ -5171,64 +5179,8 @@
       else bind();
     })();
 
-    (function setupVisualViewport() {
-      function apply() {
-        try {
-          const vv = window.visualViewport;
-          if (!vv) {
-            document.documentElement.style.setProperty("--vvh", window.innerHeight + "px");
-            document.documentElement.style.setProperty("--vv-top", "0px");
-            return;
-          }
-          document.documentElement.style.setProperty("--vvh", Math.round(vv.height) + "px");
-          document.documentElement.style.setProperty("--vv-top", Math.round(vv.offsetTop) + "px");
-          const open = document.querySelector(".modal-bg.show .modal-sheet, .modal-bg.show .modal");
-          if (open && document.activeElement && open.contains(document.activeElement)) {
-            const el = document.activeElement;
-            setTimeout(function() {
-              try {
-                el.scrollIntoView({ block: "nearest", inline: "nearest" });
-              } catch (e) {}
-            }, 80);
-          }
-        } catch (e) {}
-      }
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener("resize", apply);
-        window.visualViewport.addEventListener("scroll", apply);
-      }
-      window.addEventListener("resize", apply);
-      window.addEventListener("focusin", function(e) {
-        if (!e.target) return;
-        const tag = e.target.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-          setTimeout(apply, 120);
-        }
-      });
-      window.addEventListener("focusout", function() { setTimeout(apply, 120); });
-      apply();
-    })();
 
-
-
-    document.querySelectorAll(".nav-item, .mobile-nav button").forEach(el => {
-        el.classList.toggle("active", el.getAttribute("data-page") === page);
-      });
-      if (page === "plans") { try { loadPlans(); } catch (e) {} }
-      if (page === "reports") { try { loadReportsPage(); } catch (e) {} }
-      if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
-      if (page === "absences") { try { loadAbsences(); } catch (e) {} }
-      if (page === "ranking") { try { loadRanking(); } catch (e) {} }
-      if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
-      if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
-      if (page === "home" && currentRole() === "operator") { try { loadOperatorHome(); } catch (e) {} }
-      if (page === "routes") { try { loadRoutes(); renderRouteProductTable(); } catch (e) {} }
-      else { try { closeRouteEditor(); } catch (e4) {} }
-      if (page === "products") { try { renderProducts(); } catch (e) {} }
-      if (page === "machines") { try { renderMachines(); } catch (e) {} }
-    }
-    
-    // Mobile keyboard: resize modal to visual viewport (area above keyboard)
+// Mobile keyboard: resize modal to visual viewport (area above keyboard)
     
 
     (function setupVisualViewport() {
