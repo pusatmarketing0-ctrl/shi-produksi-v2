@@ -709,6 +709,9 @@
         <button class="nav-item" data-page="plans" data-roles="admin,ppic,korlap,marketing,operator">Plan</button>
         <button class="nav-item" data-page="reports" data-roles="admin,ppic,korlap,operator">Laporan</button>
         <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap">Sales Order</button>
+        <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap">Marketing</button>
+        <button class="nav-item" data-page="absences" data-roles="admin,ppic,korlap,operator">Cuti / Ijin</button>
+        <button class="nav-item" data-page="ranking" data-roles="admin,ppic,korlap">Ranking OP</button>
         <div class="nav-label" data-nav-group="master">Master data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap">Produk</button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap">Proses</button>
@@ -988,6 +991,69 @@
             </table>
           </div>
         </section>
+      
+        <section id="page-marketing" class="page" hidden>
+          <div class="page-head">
+            <div><h1>Marketing</h1><p>Finish Good (packing masterbox) vs Ruahan — hari ini / kemarin / besok.</p></div>
+            <input type="date" id="mktDate" onchange="loadMarketing()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem" />
+          </div>
+          <div class="grid-kpi">
+            <div class="kpi"><div class="label">FG plan</div><div class="value" id="mktFgPlan">—</div></div>
+            <div class="kpi"><div class="label">FG actual</div><div class="value" id="mktFgAct">—</div></div>
+            <div class="kpi"><div class="label">Ruahan plan</div><div class="value" id="mktRuPlan">—</div></div>
+            <div class="kpi"><div class="label">Ruahan actual</div><div class="value" id="mktRuAct">—</div></div>
+          </div>
+          <div class="card" style="margin-bottom:1rem">
+            <h3>Finish Good (packing masterbox)</h3>
+            <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktFgBody"></tbody></table></div>
+          </div>
+          <div class="card">
+            <h3>Ruahan (proses lain)</h3>
+            <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Proses</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktRuBody"></tbody></table></div>
+          </div>
+        </section>
+
+        <section id="page-absences" class="page" hidden>
+          <div class="page-head">
+            <div><h1>Cuti / Ijin</h1><p>Operator ajukan tidak masuk; PPIC/korlap melihat untuk ubah plan.</p></div>
+            <button class="btn btn-primary" type="button" onclick="openAbsenceModal()">+ Ajukan</button>
+          </div>
+          <div class="toolbar">
+            <input type="date" id="absFrom" onchange="loadAbsences()" />
+            <input type="date" id="absTo" onchange="loadAbsences()" />
+            <select id="absFilter" onchange="loadAbsences()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem">
+              <option value="">Semua status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div id="absCards" class="mobile-cards mobile-only"></div>
+          <div class="table-wrap desk-only-table">
+            <table>
+              <thead><tr><th>Tanggal</th><th>Operator</th><th>Jenis</th><th>Alasan</th><th>Status</th><th></th></tr></thead>
+              <tbody id="absBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="page-ranking" class="page" hidden>
+          <div class="page-head">
+            <div><h1>Ranking operator</h1><p>Berdasarkan actual vs target adj laporan.</p></div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <input type="date" id="rankFrom" />
+              <input type="date" id="rankTo" />
+              <button class="btn btn-primary" type="button" onclick="loadRanking()">Hitung</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Operator</th><th>Plan</th><th>Actual</th><th>Target adj</th><th>%</th><th>Grade</th></tr></thead>
+              <tbody id="rankBody"></tbody>
+            </table>
+          </div>
+        </section>
+
       </main>
     </div>
     <nav class="mobile-nav" id="mobileNav">
@@ -995,6 +1061,8 @@
       <button data-page="reports" data-roles="admin,ppic,korlap,operator"><span>✓</span>Lapor</button>
       <button data-page="plans" data-roles="all"><span>☰</span>Plan</button>
       <button data-page="orders" data-roles="admin,ppic,marketing,korlap"><span>◇</span>SO</button>
+      <button data-page="marketing" data-roles="admin,ppic,marketing,korlap"><span>◈</span>Mkt</button>
+      <button data-page="absences" data-roles="admin,ppic,korlap,operator"><span>○</span>Cuti</button>
       <button data-page="products" data-roles="admin,ppic,korlap"><span>▣</span>Produk</button>
       <button data-page="routes" data-roles="admin,ppic"><span>⚙</span>Routes</button>
     </nav>
@@ -1050,10 +1118,57 @@
 
   
   
+  
+  <div id="absenceModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:440px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Ajukan cuti / ijin</h2></div>
+      <div class="sheet-body">
+        <div class="field"><label>Tanggal</label><input id="absDate" type="date" /></div>
+        <div class="field"><label>Jenis</label>
+          <select id="absType">
+            <option value="cuti">Cuti</option>
+            <option value="ijin">Ijin</option>
+            <option value="sakit">Sakit</option>
+            <option value="lainnya">Lainnya</option>
+          </select>
+        </div>
+        <div class="field"><label>Alasan</label><input id="absReason" placeholder="opsional" /></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeAbsenceModal()">Batal</button>
+        <button class="btn btn-primary" type="button" id="btnSaveAbsence">Kirim</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="planProductModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:560px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Plan by produk (auto routes)</h2></div>
+      <div class="sheet-body">
+        <div class="field"><label>Tanggal</label><input id="ppDate" type="date" /></div>
+        <div class="field"><label>Shift</label>
+          <select id="ppShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+        </div>
+        <div class="field"><label>Produk</label>
+          <input id="ppProduct" list="plProductList" placeholder="Kode atau nama..." autocomplete="off" onchange="onPpProductChange()" oninput="onPpProductChange()" />
+        </div>
+        <p id="ppHint" style="font-size:0.78rem;color:var(--text-muted);margin:0.25rem 0 0.75rem">Pilih produk yang punya routes — step muncul otomatis.</p>
+        <div id="ppSteps"></div>
+        <button type="button" class="btn btn-ghost btn-sm" style="width:100%;margin-top:0.5rem;border-style:dashed" onclick="addPpManualStep()">+ Step manual</button>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closePlanProductModal()">Batal</button>
+        <button class="btn btn-primary" type="button" id="btnSavePlanProduct">Simpan semua step</button>
+      </div>
+    </div>
+  </div>
+
   <div id="planChooser" class="modal-bg">
     <div class="modal" style="max-width:420px">
       <h2>Buat plan</h2>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem">Pilih cara membuat plan.</p>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem">By produk = auto step dari routes. By SO = dari sales order. Masal = tempel Excel.</p>
       <button class="btn btn-primary" type="button" style="width:100%;margin-bottom:0.5rem" onclick="choosePlanMode('product')">By produk</button>
       <button class="btn btn-primary" type="button" style="width:100%;margin-bottom:0.5rem;background:linear-gradient(180deg,#3d9b6a,#1f7a52)" onclick="choosePlanMode('so')">By SO</button>
       <button class="btn btn-primary" type="button" style="width:100%;margin-bottom:0.75rem;background:linear-gradient(180deg,#2a8f72,#1a6b55)" onclick="choosePlanMode('mass')">Plan masal</button>
@@ -1529,7 +1644,7 @@
     }
     function choosePlanMode(mode) {
       closePlanChooser();
-      if (mode === "product") openPlanModal();
+      if (mode === "product") openPlanProductModal();
       else if (mode === "so") openPlanSoModal();
       else if (mode === "mass") openPlanMassModal();
     }
@@ -2956,6 +3071,319 @@
 
 
     
+    
+    // ===== Plan by product (auto routes) =====
+    function openPlanProductModal() {
+      fillPlanDatalists();
+      try { loadOperators(); } catch (e) {}
+      $("ppDate").value = ($("planFilterDate") && $("planFilterDate").value) || todayStr();
+      $("ppShift").value = "1";
+      $("ppProduct").value = "";
+      $("ppSteps").innerHTML = "";
+      $("ppHint").textContent = "Pilih produk yang punya routes — step muncul otomatis.";
+      $("planProductModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closePlanProductModal() {
+      $("planProductModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+    function onPpProductChange() {
+      const pid = resolveProductId($("ppProduct").value);
+      const box = $("ppSteps");
+      if (!box) return;
+      if (!pid) { box.innerHTML = ""; return; }
+      const steps = (routes || []).filter(r => String(r.product_id) === String(pid))
+        .sort((a,b) => (Number(a.step)||0) - (Number(b.step)||0));
+      if (!steps.length) {
+        $("ppHint").textContent = "Produk ini belum punya routes. Tambah step manual atau atur di menu Routes.";
+        box.innerHTML = "";
+        return;
+      }
+      $("ppHint").textContent = steps.length + " step dari routes — isi target & operator per step.";
+      box.innerHTML = steps.map(function(s, i) {
+        return ppStepRowHtml(s.machine_id, s.step, "", "pcs", "");
+      }).join("");
+      box.querySelectorAll(".pp-qty").forEach(function(el) { try { bindThousandInput(el, true); } catch (e) {} });
+      fillPpOperatorSelects();
+    }
+    function ppStepRowHtml(machineId, step, target, unit, opEmail) {
+      const mid = machineId || "";
+      return '<div class="pp-step" style="border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.5rem;background:#fafdfb">' +
+        '<div style="font-size:0.8rem;font-weight:600;margin-bottom:0.45rem">Step ' + esc(step || "?") + ' · ' + esc(machineLabel(mid)) + '</div>' +
+        '<input type="hidden" class="pp-machine" value="' + esc(mid) + '" />' +
+        '<input type="hidden" class="pp-stepno" value="' + esc(step || "") + '" />' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem">' +
+        '<div class="field" style="margin:0"><label>Target</label><input class="pp-qty" type="text" inputmode="decimal" value="' + esc(target ? formatInputNum(target, true) : "") + '" /></div>' +
+        '<div class="field" style="margin:0"><label>Satuan</label><input class="pp-unit" value="' + esc(unit || "pcs") + '" /></div></div>' +
+        '<div class="field" style="margin:0.45rem 0 0"><label>Operator</label><select class="pp-op"><option value="">— draft —</option></select></div>' +
+        '<button type="button" class="btn btn-danger btn-sm" style="margin-top:0.35rem" onclick="this.closest(\'.pp-step\').remove()">Hapus step</button></div>';
+    }
+    function fillPpOperatorSelects() {
+      document.querySelectorAll(".pp-op").forEach(function(sel) {
+        const cur = sel.value;
+        let opts = '<option value="">— draft —</option>';
+        (operators || []).forEach(function(o) {
+          opts += '<option value="' + esc(o.email) + '">' + esc((o.name || o.email)) + "</option>";
+        });
+        sel.innerHTML = opts;
+        if (cur) sel.value = cur;
+      });
+    }
+    function addPpManualStep() {
+      const box = $("ppSteps");
+      if (!box) return;
+      const n = box.querySelectorAll(".pp-step").length + 1;
+      // machine free text row
+      const wrap = document.createElement("div");
+      wrap.innerHTML = '<div class="pp-step" style="border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.5rem">' +
+        '<div class="field"><label>Proses</label><input class="pp-machine-input" list="plMachineList" placeholder="Kode proses" /></div>' +
+        '<input type="hidden" class="pp-machine" value="" />' +
+        '<input type="hidden" class="pp-stepno" value="' + n + '" />' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem">' +
+        '<div class="field" style="margin:0"><label>Target</label><input class="pp-qty" type="text" inputmode="decimal" /></div>' +
+        '<div class="field" style="margin:0"><label>Satuan</label><input class="pp-unit" value="pcs" /></div></div>' +
+        '<div class="field" style="margin:0.45rem 0 0"><label>Operator</label><select class="pp-op"><option value="">— draft —</option></select></div>' +
+        '<button type="button" class="btn btn-danger btn-sm" style="margin-top:0.35rem" onclick="this.closest(\'.pp-step\').remove()">Hapus</button></div>';
+      box.appendChild(wrap.firstChild);
+      fillPpOperatorSelects();
+      box.querySelectorAll(".pp-qty").forEach(function(el) { try { bindThousandInput(el, true); } catch (e) {} });
+    }
+    document.getElementById("btnSavePlanProduct") && (document.getElementById("btnSavePlanProduct").onclick = async () => {
+      const product_id = resolveProductId($("ppProduct").value);
+      const plan_date = $("ppDate").value;
+      const shift = $("ppShift").value || "1";
+      if (!product_id || !plan_date) return toast("Produk & tanggal wajib", true);
+      const rows = [];
+      document.querySelectorAll("#ppSteps .pp-step").forEach(function(el) {
+        let machine_id = (el.querySelector(".pp-machine") && el.querySelector(".pp-machine").value) || "";
+        const mi = el.querySelector(".pp-machine-input");
+        if (mi && mi.value) machine_id = resolveMachineId(mi.value);
+        const target_qty = parseInputNum(el.querySelector(".pp-qty") && el.querySelector(".pp-qty").value);
+        const unit = ((el.querySelector(".pp-unit") && el.querySelector(".pp-unit").value) || "pcs").trim();
+        const op = resolveOperatorEmail((el.querySelector(".pp-op") && el.querySelector(".pp-op").value) || "");
+        if (!machine_id || target_qty <= 0) return;
+        rows.push({
+          plan_id: newPlanId(),
+          plan_date, shift, product_id, machine_id, target_qty, unit,
+          assigned_operator: op,
+          status: op ? "open" : "draft",
+          created_by: (currentUser && currentUser.email) || "",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      });
+      if (!rows.length) return toast("Isi minimal 1 step dengan proses & target > 0", true);
+      const { error } = await sb.from("plans").insert(rows);
+      if (error) return toast(error.message, true);
+      toast(rows.length + " plan step disimpan");
+      closePlanProductModal();
+      if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+      await loadPlans();
+    });
+
+    // ===== Absences =====
+    let absenceRows = [];
+    function openAbsenceModal() {
+      $("absDate").value = todayStr();
+      $("absType").value = "ijin";
+      $("absReason").value = "";
+      $("absenceModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closeAbsenceModal() {
+      $("absenceModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+    async function loadAbsences() {
+      if (!sb) return;
+      let q = sb.from("absences").select("*").order("absence_date", { ascending: false }).limit(200);
+      const role = currentRole();
+      if (role === "operator" && currentUser) {
+        q = q.eq("operator_email", currentUser.email);
+      }
+      const st = ($("absFilter") && $("absFilter").value) || "";
+      if (st) q = q.eq("status", st);
+      const from = $("absFrom") && $("absFrom").value;
+      const to = $("absTo") && $("absTo").value;
+      if (from) q = q.gte("absence_date", from);
+      if (to) q = q.lte("absence_date", to);
+      const { data, error } = await q;
+      if (error) {
+        // table might use different columns - try soft
+        console.warn(error);
+        toast("Absensi: " + error.message, true);
+        absenceRows = [];
+      } else absenceRows = data || [];
+      renderAbsences();
+    }
+    function renderAbsences() {
+      const body = $("absBody");
+      const cards = $("absCards");
+      const staff = ["admin","ppic","korlap"].includes(currentRole());
+      if (body) {
+        if (!absenceRows.length) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada data</td></tr>';
+        else body.innerHTML = absenceRows.map(a => {
+          return '<tr><td class="mono">' + esc(a.absence_date) + '</td><td>' + esc(a.operator_email || a.operator_name || "") +
+            '</td><td>' + esc(a.type || a.absence_type || "") + '</td><td>' + esc(a.reason || "") +
+            '</td><td>' + statusPill(a.status || "pending") + '</td><td>' +
+            (staff && (a.status || "pending") === "pending" ?
+              '<button class="btn btn-sm btn-primary" data-aid="' + encodeURIComponent(a.id || a.absence_id || "") + '" data-st="approved">Setuju</button> ' +
+              '<button class="btn btn-sm btn-danger" data-aid="' + encodeURIComponent(a.id || a.absence_id || "") + '" data-st="rejected">Tolak</button>' : "") +
+            '</td></tr>';
+        }).join("");
+        body.querySelectorAll("[data-aid]").forEach(btn => {
+          btn.onclick = () => setAbsenceStatus(decodeURIComponent(btn.getAttribute("data-aid")), btn.getAttribute("data-st"));
+        });
+      }
+      if (cards) {
+        cards.innerHTML = !absenceRows.length
+          ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada data</div></div>'
+          : absenceRows.map(a =>
+            '<div class="m-card"><div class="m-title">' + esc(a.absence_date) + ' · ' + esc(a.type || a.absence_type || "") +
+            '</div><div class="m-sub">' + esc(a.operator_email || "") + '</div><div class="m-row">' + statusPill(a.status || "pending") +
+            '</div></div>').join("");
+      }
+    }
+    async function setAbsenceStatus(id, status) {
+      if (!id) return;
+      const { error } = await sb.from("absences").update({ status: status, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) {
+        const r2 = await sb.from("absences").update({ status: status }).eq("absence_id", id);
+        if (r2.error) return toast(r2.error.message, true);
+      }
+      toast("Status diubah: " + status);
+      await loadAbsences();
+    }
+    document.getElementById("btnSaveAbsence") && (document.getElementById("btnSaveAbsence").onclick = async () => {
+      const absence_date = $("absDate").value;
+      const type = $("absType").value;
+      const reason = ($("absReason").value || "").trim();
+      if (!absence_date) return toast("Tanggal wajib", true);
+      const email = (currentUser && currentUser.email) || "";
+      const reasonFull = ("[" + type + "] " + reason).trim();
+      // schema dasar: operator_email, absence_date, reason, created_by
+      let payload = {
+        operator_email: email,
+        absence_date,
+        reason: reasonFull,
+        created_by: email,
+        created_at: new Date().toISOString()
+      };
+      let { error } = await sb.from("absences").insert(payload);
+      if (error) {
+        // coba dengan kolom type/status jika sudah di-alter
+        payload = {
+          operator_email: email,
+          absence_date,
+          type: type,
+          reason: reason,
+          status: "pending",
+          created_by: email
+        };
+        ({ error } = await sb.from("absences").insert(payload));
+      }
+      if (error) return toast(error.message, true);
+      toast("Pengajuan terkirim");
+      closeAbsenceModal();
+      await loadAbsences();
+    });
+
+    // ===== Ranking =====
+    function opGrade(pct) {
+      if (pct >= 95) return { name: "Pionir", icon: "🏆" };
+      if (pct >= 90) return { name: "Penggerak", icon: "⚡" };
+      if (pct >= 80) return { name: "Pejuang", icon: "💪" };
+      return { name: "Tunas", icon: "🌱" };
+    }
+    async function loadRanking() {
+      if (!sb) return;
+      const from = ($("rankFrom") && $("rankFrom").value) || (todayStr().slice(0, 8) + "01");
+      const to = ($("rankTo") && $("rankTo").value) || todayStr();
+      if ($("rankFrom") && !$("rankFrom").value) $("rankFrom").value = from;
+      if ($("rankTo") && !$("rankTo").value) $("rankTo").value = to;
+      const { data: reps, error } = await sb.from("reports").select("*").gte("report_date", from).lte("report_date", to).limit(2000);
+      if (error) return toast(error.message, true);
+      const by = {};
+      (reps || []).forEach(r => {
+        const em = r.reported_by || "";
+        if (!em) return;
+        if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0 };
+        by[em].actual += Number(r.actual_qty) || 0;
+        by[em].target += Number(r.target_adj != null ? r.target_adj : r.target_qty) || 0;
+        by[em].n += 1;
+      });
+      const list = Object.values(by).map(x => {
+        const pct = x.target > 0 ? (x.actual / x.target) * 100 : 0;
+        return Object.assign(x, { pct: Math.round(pct * 10) / 10, grade: opGrade(pct) });
+      }).sort((a,b) => b.pct - a.pct);
+      const body = $("rankBody");
+      if (!body) return;
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada data di rentang tanggal</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map((x, i) =>
+        '<tr><td><strong>' + (i + 1) + '</strong></td><td>' + esc(x.email) + '</td><td>' + formatNum(x.n) +
+        '</td><td>' + formatNum(x.actual) + '</td><td>' + formatNum(x.target) + '</td><td><strong>' +
+        formatNum(x.pct, 1) + '%</strong></td><td>' + x.grade.icon + ' ' + esc(x.grade.name) + '</td></tr>'
+      ).join("");
+    }
+
+    // ===== Marketing =====
+    function isFgMachine(machineId) {
+      const m = (machines || []).find(x => String(x.machine_id) === String(machineId));
+      const name = ((m && m.name) || machineId || "").toLowerCase();
+      return name.includes("masterbox") || name.includes("master box") || name.includes("packing master") || name.includes("fg");
+    }
+    async function loadMarketing() {
+      if (!sb) return;
+      const d = ($("mktDate") && $("mktDate").value) || todayStr();
+      if ($("mktDate") && !$("mktDate").value) $("mktDate").value = d;
+      const { data: pls } = await sb.from("plans").select("*").eq("plan_date", d);
+      const plansD = pls || [];
+      const ids = plansD.map(p => p.plan_id);
+      let reps = [];
+      if (ids.length) {
+        const { data: r } = await sb.from("reports").select("*").in("plan_id", ids.slice(0, 200));
+        reps = r || [];
+      }
+      const actBy = {};
+      reps.forEach(r => { actBy[r.plan_id] = (actBy[r.plan_id] || 0) + (Number(r.actual_qty) || 0); });
+      // aggregate by product for FG, by product+process for ruahan
+      const fg = {}, ru = {};
+      plansD.forEach(p => {
+        const act = actBy[p.plan_id] || 0;
+        if (isFgMachine(p.machine_id)) {
+          if (!fg[p.product_id]) fg[p.product_id] = { product_id: p.product_id, target: 0, actual: 0, status: p.status };
+          fg[p.product_id].target += Number(p.target_qty) || 0;
+          fg[p.product_id].actual += act;
+        } else {
+          const k = p.product_id + "|" + p.machine_id;
+          if (!ru[k]) ru[k] = { product_id: p.product_id, machine_id: p.machine_id, target: 0, actual: 0, status: p.status };
+          ru[k].target += Number(p.target_qty) || 0;
+          ru[k].actual += act;
+        }
+      });
+      const fgList = Object.values(fg);
+      const ruList = Object.values(ru);
+      const sum = (arr, f) => arr.reduce((s, x) => s + (Number(x[f]) || 0), 0);
+      if ($("mktFgPlan")) $("mktFgPlan").textContent = formatNum(sum(fgList, "target"));
+      if ($("mktFgAct")) $("mktFgAct").textContent = formatNum(sum(fgList, "actual"));
+      if ($("mktRuPlan")) $("mktRuPlan").textContent = formatNum(sum(ruList, "target"));
+      if ($("mktRuAct")) $("mktRuAct").textContent = formatNum(sum(ruList, "actual"));
+      const fgB = $("mktFgBody");
+      const ruB = $("mktRuBody");
+      if (fgB) fgB.innerHTML = !fgList.length ? '<tr><td colspan="4" class="empty">Tidak ada FG hari ini</td></tr>' :
+        fgList.map(x => '<tr><td>' + esc(productLabel(x.product_id)) + '</td><td>' + formatNum(x.target) +
+          '</td><td><strong>' + formatNum(x.actual) + '</strong></td><td>' + statusPill(x.status) + '</td></tr>').join("");
+      if (ruB) ruB.innerHTML = !ruList.length ? '<tr><td colspan="5" class="empty">Tidak ada ruahan hari ini</td></tr>' :
+        ruList.map(x => '<tr><td>' + esc(productLabel(x.product_id)) + '</td><td>' + esc(machineLabel(x.machine_id)) +
+          '</td><td>' + formatNum(x.target) + '</td><td><strong>' + formatNum(x.actual) + '</strong></td><td>' +
+          statusPill(x.status) + '</td></tr>').join("");
+    }
+
+
     async function loadOperatorHome() {
       if (!sb || !currentUser) return;
       const email = currentUser.email;
@@ -3544,6 +3972,9 @@
       if (page === "plans") { try { loadPlans(); } catch (e) {} }
       if (page === "reports") { try { loadReportsPage(); } catch (e) {} }
       if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
+      if (page === "absences") { try { loadAbsences(); } catch (e) {} }
+      if (page === "ranking") { try { loadRanking(); } catch (e) {} }
+      if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
       if (page === "home" && currentRole() === "operator") { try { loadOperatorHome(); } catch (e) {} }
       if (page === "routes") { try { loadRoutes(); renderRouteProductTable(); } catch (e) {} }
       else { try { closeRouteEditor(); } catch (e4) {} }
