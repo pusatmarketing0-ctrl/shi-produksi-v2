@@ -915,18 +915,22 @@
 
     .ops-table .sc-prod { left: 0; min-width: 162px; max-width: 180px; }
     .ops-table .sc-cust { left: 162px; min-width: 114px; max-width: 132px; }
-    .ops-table .sc-so { left: 276px; min-width: 92px; font-family: ui-monospace, monospace; font-size: 0.66rem; }
-    .ops-table .sc-tgl { left: 368px; min-width: 76px; font-family: ui-monospace, monospace; font-size: 0.66rem; }
-    .ops-table .sc-po { left: 444px; min-width: 56px; text-align: right; font-weight: 600; }
-    .ops-table .sc-pl { left: 500px; min-width: 56px; text-align: right; background: #f0fdf4 !important; font-weight: 700; color: #166534; }
-    .ops-table .sc-ac { left: 556px; min-width: 56px; text-align: right; background: #eff6ff !important; font-weight: 700; color: #1e40af; }
-    .ops-table .sc-op { left: 612px; min-width: 44px; text-align: right; background: #fff7ed !important; font-weight: 700; color: #c2410c; }
-    .ops-table .sc-st { left: 656px; min-width: 72px; text-align: center; }
-    .ops-table .sc-jp { left: 728px; min-width: 50px; }
+    .ops-table .sc-so {
+      left: 276px; min-width: 92px; font-family: ui-monospace, monospace; font-size: 0.66rem;
+      box-shadow: 4px 0 12px rgba(15, 23, 42, 0.08);
+    }
+    .ops-table .sc-tgl { min-width: 76px; font-family: ui-monospace, monospace; font-size: 0.66rem; position: static; left: auto; box-shadow: none; }
+    .ops-table .sc-po { min-width: 56px; text-align: right; font-weight: 600; position: static; left: auto; box-shadow: none; }
+    .ops-table .sc-pl { min-width: 56px; text-align: right; background: #f0fdf4 !important; font-weight: 700; color: #166534; position: static; left: auto; box-shadow: none; }
+    .ops-table .sc-ac { min-width: 56px; text-align: right; background: #eff6ff !important; font-weight: 700; color: #1e40af; position: static; left: auto; box-shadow: none; }
+    .ops-table .sc-op { min-width: 44px; text-align: right; background: #fff7ed !important; font-weight: 700; color: #c2410c; position: static; left: auto; box-shadow: none; }
+    .ops-table .sc-st { min-width: 72px; text-align: center; position: static; left: auto; box-shadow: none; }
+    .ops-table .sc-jp { min-width: 50px; position: static; left: auto; box-shadow: none; }
     .ops-table .sc-ket {
-      left: 778px; min-width: 54px; text-align: center;
+      min-width: 54px; text-align: center;
       background: #f8fafc !important; font-weight: 700; color: #64748b;
       font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em;
+      position: static; left: auto; box-shadow: none;
     }
     .ops-table thead tr.ops-day-row .sc-pl,
     .ops-table thead tr.ops-day-row .sc-ac,
@@ -986,13 +990,8 @@
       color: #0f7a4f !important; font-weight: 700 !important;
     }
     @media (max-width: 899px) {
-      .ops-table .sc-cust, .ops-table .sc-so, .ops-table .sc-tgl, .ops-table .sc-jp { display: none; }
-      .ops-table .sc-po { left: 162px; }
-      .ops-table .sc-pl { left: 218px; }
-      .ops-table .sc-ac { left: 274px; }
-      .ops-table .sc-op { left: 330px; }
-      .ops-table .sc-st { left: 374px; }
-      .ops-table .sc-ket { left: 446px; }
+      .ops-table .sc-cust { display: none; }
+      .ops-table .sc-so { left: 162px; }
       .ops-dash { grid-template-columns: 1fr; }
       .ops-today-panel { max-height: 180px; }
     }
@@ -1018,6 +1017,75 @@
     }
     .topbar {
       box-shadow: 0 1px 0 rgba(15, 122, 79, 0.06);
+    }
+
+
+    /* ===== Sidebar icon-only ===== */
+    .sidebar {
+      transition: width 0.22s ease, padding 0.22s ease;
+      width: var(--sidebar-w);
+    }
+    .layout.sidebar-collapsed .sidebar {
+      width: 72px;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    .layout.sidebar-collapsed {
+      grid-template-columns: 72px 1fr;
+    }
+    .sidebar .nav-label {
+      transition: opacity 0.15s, height 0.15s, margin 0.15s, padding 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .sidebar .nav-item {
+      position: relative;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .sidebar .nav-item .nav-ico {
+      width: 22px; min-width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1rem; line-height: 1;
+    }
+    .sidebar .nav-item .nav-txt {
+      overflow: hidden; text-overflow: ellipsis;
+      transition: opacity 0.15s, width 0.15s, margin 0.15s;
+    }
+    .layout.sidebar-collapsed .sidebar .nav-label {
+      opacity: 0; height: 0; margin: 0; padding: 0.35rem 0 0; overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar .nav-item {
+      justify-content: center;
+      padding-left: 0.55rem; padding-right: 0.55rem;
+    }
+    .layout.sidebar-collapsed .sidebar .nav-item .nav-txt {
+      opacity: 0; width: 0; margin: 0; overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar .nav-item .nav-ico {
+      margin: 0;
+    }
+    /* tooltip when collapsed */
+    .layout.sidebar-collapsed .sidebar .nav-item:hover::after {
+      content: attr(data-tip);
+      position: absolute; left: calc(100% + 8px); top: 50%;
+      transform: translateY(-50%);
+      background: #0f172a; color: #fff; font-size: 0.75rem; font-weight: 600;
+      padding: 0.35rem 0.65rem; border-radius: 8px; white-space: nowrap;
+      z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+    .sidebar-toggle {
+      width: 100%; margin-bottom: 0.5rem;
+      border: 1px solid var(--border); background: #fff;
+      border-radius: 10px; padding: 0.5rem;
+      cursor: pointer; color: var(--text-muted); font-size: 0.85rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+    }
+    .sidebar-toggle:hover { background: var(--green-light); color: var(--green); }
+    .layout.sidebar-collapsed .sidebar-toggle .st-txt { display: none; }
+    @media (max-width: 899px) {
+      .layout.sidebar-collapsed { grid-template-columns: 1fr; }
     }
 
   </style>
@@ -1070,19 +1138,22 @@
     </header>
     <div class="layout">
       <aside class="sidebar">
+        <button type="button" class="sidebar-toggle" id="btnSidebarToggle" title="Lipat / buka menu">
+          <span id="sidebarToggleIco">«</span><span class="st-txt"> Sembunyikan</span>
+        </button>
         <div class="nav-label" data-nav-group="ops">Operasional</div>
-        <button class="nav-item active" data-page="home" data-roles="all">Beranda</button>
-        <button class="nav-item" data-page="operasional" data-roles="admin,ppic,korlap,marketing">Grid operasional</button>
-        <button class="nav-item" data-page="plans" data-roles="admin,ppic,korlap,marketing,operator">Plan</button>
-        <button class="nav-item" data-page="reports" data-roles="admin,ppic,korlap,operator">Laporan</button>
-        <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap">Sales Order</button>
-        <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap">Marketing</button>
-        <button class="nav-item" data-page="absences" data-roles="admin,ppic,korlap,operator">Cuti / Ijin</button>
-        <button class="nav-item" data-page="ranking" data-roles="admin,ppic,korlap">Ranking OP</button>
+        <button class="nav-item active" data-page="home" data-roles="all" data-tip="Beranda"><span class="nav-ico">⌂</span><span class="nav-txt"> Beranda</span></button>
+        <button class="nav-item" data-page="operasional" data-roles="admin,ppic,korlap,marketing" data-tip="Grid operasional"><span class="nav-ico">▦</span><span class="nav-txt"> Grid operasional</span></button>
+        <button class="nav-item" data-page="plans" data-roles="admin,ppic,korlap,marketing,operator" data-tip="Plan"><span class="nav-ico">☰</span><span class="nav-txt"> Plan</span></button>
+        <button class="nav-item" data-page="reports" data-roles="admin,ppic,korlap,operator" data-tip="Laporan"><span class="nav-ico">✓</span><span class="nav-txt"> Laporan</span></button>
+        <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap" data-tip="Sales Order"><span class="nav-ico">◇</span><span class="nav-txt"> Sales Order</span></button>
+        <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap" data-tip="Marketing"><span class="nav-ico">◈</span><span class="nav-txt"> Marketing</span></button>
+        <button class="nav-item" data-page="absences" data-roles="admin,ppic,korlap,operator" data-tip="Cuti / Ijin"><span class="nav-ico">○</span><span class="nav-txt"> Cuti / Ijin</span></button>
+        <button class="nav-item" data-page="ranking" data-roles="admin,ppic,korlap" data-tip="Ranking OP"><span class="nav-ico">★</span><span class="nav-txt"> Ranking OP</span></button>
         <div class="nav-label" data-nav-group="master">Master data</div>
-        <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap">Produk</button>
-        <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap">Proses</button>
-        <button class="nav-item" data-page="routes" data-roles="admin,ppic">Routes</button>
+        <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico">▣</span><span class="nav-txt"> Produk</span></button>
+        <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico">⚙</span><span class="nav-txt"> Proses</span></button>
+        <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico">⛓</span><span class="nav-txt"> Routes</span></button>
       </aside>
       <main class="main">
         <section id="page-home" class="page">
@@ -4150,14 +4221,14 @@
         '<th class="sticky-col sc-prod">Produk</th>' +
         '<th class="sticky-col sc-cust">Customer</th>' +
         '<th class="sticky-col sc-so">No SO</th>' +
-        '<th class="sticky-col sc-tgl">Tgl SO</th>' +
-        '<th class="sticky-col sc-po">Qty PO</th>' +
-        '<th class="sticky-col sc-pl">Qty Plan</th>' +
-        '<th class="sticky-col sc-ac">Qty Actual</th>' +
-        '<th class="sticky-col sc-op">Qty OP</th>' +
-        '<th class="sticky-col sc-st">Status</th>' +
-        '<th class="sticky-col sc-jp">Jenis</th>' +
-        '<th class="sticky-col sc-ket">Ket</th>';
+        '<th class="sc-tgl">Tgl SO</th>' +
+        '<th class="sc-po">Qty PO</th>' +
+        '<th class="sc-pl">Qty Plan</th>' +
+        '<th class="sc-ac">Qty Actual</th>' +
+        '<th class="sc-op">Qty OP</th>' +
+        '<th class="sc-st">Status</th>' +
+        '<th class="sc-jp">Jenis</th>' +
+        '<th class="sc-ket">Ket</th>';
       opsDays.forEach(d => {
         const day = Number(d.slice(8, 10));
         const wd = opsWeekday(d);
@@ -4183,15 +4254,15 @@
             body += '<td class="sticky-col sc-prod" rowspan="3"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
             body += '<td class="sticky-col sc-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
             body += '<td class="sticky-col sc-so" rowspan="3">' + esc(g.no_so || "—") + '</td>';
-            body += '<td class="sticky-col sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
-            body += '<td class="sticky-col sc-po" rowspan="3">' + formatNum(g.po_qty) + '</td>';
-            body += '<td class="sticky-col sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
-            body += '<td class="sticky-col sc-ac" rowspan="3">' + formatNum(g.act_total) + '</td>';
-            body += '<td class="sticky-col sc-op" rowspan="3">' + formatNum(g.op_total) + '</td>';
-            body += '<td class="sticky-col sc-st" rowspan="3">' + opsStatusBadge(g.status) + '</td>';
+            body += '<td class="sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
+            body += '<td class="sc-po" rowspan="3">' + formatNum(g.po_qty) + '</td>';
+            body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
+            body += '<td class="sc-ac" rowspan="3">' + formatNum(g.act_total) + '</td>';
+            body += '<td class="sc-op" rowspan="3">' + formatNum(g.op_total) + '</td>';
+            body += '<td class="sc-st" rowspan="3">' + opsStatusBadge(g.status) + '</td>';
             body += '<td class="sticky-col sc-jp" rowspan="3">—</td>';
           }
-          body += '<td class="sticky-col sc-ket">' + row.ket + '</td>';
+          body += '<td class="sc-ket">' + row.ket + '</td>';
           opsDays.forEach(d => {
             const wk = opsIsWeekend(d) ? " weekend" : "";
             const td = d === today ? " today-col" : "";
@@ -4773,6 +4844,32 @@
       
     
     // Keyboard-safe: lock modal to visualViewport (area above keyboard)
+    
+    (function setupSidebarToggle() {
+      function bind() {
+        const layout = document.querySelector(".layout");
+        const btn = document.getElementById("btnSidebarToggle");
+        if (!layout || !btn) return;
+        const key = "shi_sidebar_collapsed";
+        function apply(collapsed) {
+          layout.classList.toggle("sidebar-collapsed", !!collapsed);
+          const ico = document.getElementById("sidebarToggleIco");
+          const txt = btn.querySelector(".st-txt");
+          if (ico) ico.textContent = collapsed ? "»" : "«";
+          if (txt) txt.textContent = collapsed ? "" : " Sembunyikan";
+          try { localStorage.setItem(key, collapsed ? "1" : "0"); } catch (e) {}
+        }
+        // default: collapsed (icon only) unless user expanded before
+        const saved = localStorage.getItem(key);
+        apply(saved === null ? true : saved === "1");
+        btn.addEventListener("click", function() {
+          apply(!layout.classList.contains("sidebar-collapsed"));
+        });
+      }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+      else bind();
+    })();
+
     (function setupVisualViewport() {
       function apply() {
         try {
@@ -4831,6 +4928,32 @@
     }
     
     // Mobile keyboard: resize modal to visual viewport (area above keyboard)
+    
+    (function setupSidebarToggle() {
+      function bind() {
+        const layout = document.querySelector(".layout");
+        const btn = document.getElementById("btnSidebarToggle");
+        if (!layout || !btn) return;
+        const key = "shi_sidebar_collapsed";
+        function apply(collapsed) {
+          layout.classList.toggle("sidebar-collapsed", !!collapsed);
+          const ico = document.getElementById("sidebarToggleIco");
+          const txt = btn.querySelector(".st-txt");
+          if (ico) ico.textContent = collapsed ? "»" : "«";
+          if (txt) txt.textContent = collapsed ? "" : " Sembunyikan";
+          try { localStorage.setItem(key, collapsed ? "1" : "0"); } catch (e) {}
+        }
+        // default: collapsed (icon only) unless user expanded before
+        const saved = localStorage.getItem(key);
+        apply(saved === null ? true : saved === "1");
+        btn.addEventListener("click", function() {
+          apply(!layout.classList.contains("sidebar-collapsed"));
+        });
+      }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+      else bind();
+    })();
+
     (function setupVisualViewport() {
       function apply() {
         try {
