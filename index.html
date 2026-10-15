@@ -1088,6 +1088,89 @@
       .layout.sidebar-collapsed { grid-template-columns: 1fr; }
     }
 
+
+    /* Full width content when sidebar collapsed / operasional */
+    .layout.sidebar-collapsed .main {
+      max-width: none !important;
+      width: 100%;
+    }
+    #page-operasional {
+      max-width: none;
+      width: 100%;
+    }
+    .layout:has(#page-operasional:not([hidden])) .main {
+      max-width: none;
+      width: 100%;
+    }
+    @media (min-width: 900px) {
+      .layout {
+        grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+      }
+      .layout.sidebar-collapsed {
+        grid-template-columns: 72px minmax(0, 1fr);
+      }
+      .main {
+        min-width: 0;
+        max-width: 100%;
+      }
+    }
+
+
+    /* Sticky freeze: Produk + Customer + No SO only */
+    .ops-wrap {
+      overflow: auto;
+      position: relative;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ops-table {
+      border-collapse: separate !important;
+      border-spacing: 0;
+    }
+    .ops-table .fz {
+      position: sticky !important;
+      z-index: 7;
+      background: #fff !important;
+    }
+    .ops-table thead .fz {
+      z-index: 13 !important;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+      color: #f8fafc !important;
+    }
+    .ops-table thead tr.ops-sum-row .fz {
+      background: linear-gradient(180deg, #f8fafc, #f1f5f9) !important;
+      color: #334155 !important;
+      z-index: 12 !important;
+    }
+    .ops-table tbody tr:hover .fz {
+      background: #f0faf5 !important;
+    }
+    .ops-table .fz-prod { left: 0 !important; min-width: 168px; max-width: 188px; width: 168px; }
+    .ops-table .fz-cust { left: 168px !important; min-width: 120px; max-width: 140px; width: 120px; }
+    .ops-table .fz-so {
+      left: 288px !important; min-width: 100px; width: 100px;
+      box-shadow: 6px 0 14px rgba(15, 23, 42, 0.1) !important;
+    }
+    .ops-table td.fz, .ops-table th.fz {
+      text-align: left;
+    }
+    /* non-freeze left meta cols — scroll normally */
+    .ops-table .sc-tgl,
+    .ops-table .sc-po,
+    .ops-table .sc-pl,
+    .ops-table .sc-ac,
+    .ops-table .sc-op,
+    .ops-table .sc-st,
+    .ops-table .sc-jp,
+    .ops-table .sc-ket {
+      position: static !important;
+      left: auto !important;
+      box-shadow: none !important;
+    }
+    @media (max-width: 899px) {
+      .ops-table .fz-cust { display: none; }
+      .ops-table .fz-so { left: 168px !important; }
+    }
+
   </style>
 </head>
 <body>
@@ -4191,7 +4274,7 @@
 
       // summary row above dates
       let sumRow = '<tr class="ops-sum-row">' +
-        '<th class="sticky-col sc-prod" colspan="11"></th>';
+        '';
       // actually sticky cols separate - use empty sticky + metric labels via 4 mini rows approach
       // Simpler: first thead row = daily Plan totals, second Actual, third %, fourth OP, fifth day numbers
       // Prototipe: one block of Plan/Actual/%/OP then day header
@@ -4208,19 +4291,23 @@
       }
 
       let head = '<thead>';
-      head += '<tr class="ops-sum-row"><th class="sticky-col sc-prod" colspan="10"></th><th class="sc-ket ops-sum-label">Plan</th>' +
+            function sumLead(label) {
+        return '<th class="fz fz-prod"></th><th class="fz fz-cust"></th><th class="fz fz-so"></th>' +
+          '<th colspan="7"></th><th class="sc-ket ops-sum-label">' + label + '</th>';
+      }
+      head += '<tr class="ops-sum-row">' + sumLead('Plan') +
         dayCells(d => { const v = (opsDayMeta[d]||{}).plan; return v ? formatNum(v) : ""; }, "") + '</tr>';
-      head += '<tr class="ops-sum-row"><th class="sticky-col sc-prod" colspan="10"></th><th class="sc-ket ops-sum-label">Actual</th>' +
+      head += '<tr class="ops-sum-row">' + sumLead('Actual') +
         dayCells(d => { const v = (opsDayMeta[d]||{}).act; return v ? formatNum(v) : ""; }, "") + '</tr>';
-      head += '<tr class="ops-sum-row"><th class="sticky-col sc-prod" colspan="10"></th><th class="sc-ket ops-sum-label">%</th>' +
+      head += '<tr class="ops-sum-row">' + sumLead('%') +
         dayCells(d => { const v = (opsDayMeta[d]||{}).pct; return v ? (v + "%") : ""; }, "") + '</tr>';
-      head += '<tr class="ops-sum-row"><th class="sticky-col sc-prod" colspan="10"></th><th class="sc-ket ops-sum-label">OP</th>' +
+      head += '<tr class="ops-sum-row">' + sumLead('OP') +
         dayCells(d => { const v = (opsDayMeta[d]||{}).op; return v ? formatNum(v) : ""; }, "") + '</tr>';
 
       head += '<tr class="ops-day-row">' +
-        '<th class="sticky-col sc-prod">Produk</th>' +
-        '<th class="sticky-col sc-cust">Customer</th>' +
-        '<th class="sticky-col sc-so">No SO</th>' +
+        '<th class="fz fz-prod">Produk</th>' +
+        '<th class="fz fz-cust">Customer</th>' +
+        '<th class="fz fz-so">No SO</th>' +
         '<th class="sc-tgl">Tgl SO</th>' +
         '<th class="sc-po">Qty PO</th>' +
         '<th class="sc-pl">Qty Plan</th>' +
@@ -4251,16 +4338,16 @@
         rows.forEach((row, ri) => {
           body += '<tr class="' + row.cls + '">';
           if (ri === 0) {
-            body += '<td class="sticky-col sc-prod" rowspan="3"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
-            body += '<td class="sticky-col sc-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
-            body += '<td class="sticky-col sc-so" rowspan="3">' + esc(g.no_so || "—") + '</td>';
+            body += '<td class="fz fz-prod" rowspan="3"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
+            body += '<td class="fz fz-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
+            body += '<td class="fz fz-so" rowspan="3">' + esc(g.no_so || "—") + '</td>';
             body += '<td class="sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
             body += '<td class="sc-po" rowspan="3">' + formatNum(g.po_qty) + '</td>';
             body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
             body += '<td class="sc-ac" rowspan="3">' + formatNum(g.act_total) + '</td>';
             body += '<td class="sc-op" rowspan="3">' + formatNum(g.op_total) + '</td>';
             body += '<td class="sc-st" rowspan="3">' + opsStatusBadge(g.status) + '</td>';
-            body += '<td class="sticky-col sc-jp" rowspan="3">—</td>';
+            body += '<td class="sc-jp" rowspan="3">—</td>';
           }
           body += '<td class="sc-ket">' + row.ket + '</td>';
           opsDays.forEach(d => {
