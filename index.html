@@ -1339,7 +1339,32 @@
           </div>
         </div>
         <button class="btn-login" id="btnLogin" type="button">Login</button>
-        <div class="auth-links"><button type="button" id="btnShowSignup">Belum punya akun? Daftar</button></div>
+        <div class="auth-links">
+          <button type="button" id="btnShowForgot">Lupa password?</button>
+          <span style="color:var(--border);margin:0 0.35rem">·</span>
+          <button type="button" id="btnShowSignup">Belum punya akun? Daftar</button>
+        </div>
+      </div>
+      <div id="forgotForm" style="display:none">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Masukkan email akun Anda. Link reset password akan dikirim ke email tersebut.</p>
+        <div class="field"><label>Email</label><input id="forgotEmail" type="email" placeholder="nama@perusahaan.com" autocomplete="username" /></div>
+        <button class="btn-login" id="btnForgot" type="button">Kirim link reset</button>
+        <div class="auth-links"><button type="button" id="btnForgotBack">← Kembali ke login</button></div>
+      </div>
+      <div id="resetForm" style="display:none">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Buat password baru untuk akun Anda (min. 6 karakter).</p>
+        <div class="field"><label>Password baru</label>
+          <div class="pwd-wrap">
+            <input id="resetPassword" type="password" autocomplete="new-password" placeholder="••••••••" />
+          </div>
+        </div>
+        <div class="field"><label>Ulangi password</label>
+          <div class="pwd-wrap">
+            <input id="resetPassword2" type="password" autocomplete="new-password" placeholder="••••••••" />
+          </div>
+        </div>
+        <button class="btn-login" id="btnReset" type="button">Simpan password baru</button>
+        <div class="auth-links"><button type="button" id="btnResetBack">← Kembali ke login</button></div>
       </div>
       <div id="signupForm" style="display:none">
         <div class="field"><label>Nama lengkap</label><input id="suName" type="text" placeholder="Nama Anda" /></div>
@@ -2192,13 +2217,69 @@
       el.textContent = text;
       el.className = "auth-msg show " + (isErr ? "err" : "ok");
     }
-    function setAuthMode(signup) {
-      $("loginForm").style.display = signup ? "none" : "block";
-      $("signupForm").style.display = signup ? "block" : "none";
+    function setAuthMode(mode) {
+      // mode: "login" | "signup" | "forgot" | "reset" | true/false (legacy)
+      if (mode === true) mode = "signup";
+      if (mode === false) mode = "login";
+      if (!mode) mode = "login";
+      const map = { login: "loginForm", signup: "signupForm", forgot: "forgotForm", reset: "resetForm" };
+      Object.keys(map).forEach(function(k) {
+        const el = $(map[k]);
+        if (el) el.style.display = (k === mode) ? "block" : "none";
+      });
       $("authMsg").className = "auth-msg";
+      $("authMsg").textContent = "";
     }
-    $("btnShowSignup").onclick = () => setAuthMode(true);
-    $("btnShowLogin").onclick = () => setAuthMode(false);
+    $("btnShowSignup").onclick = () => setAuthMode("signup");
+    $("btnShowLogin").onclick = () => setAuthMode("login");
+    $("btnShowForgot") && ($("btnShowForgot").onclick = () => {
+      setAuthMode("forgot");
+      if ($("forgotEmail") && $("email")) $("forgotEmail").value = $("email").value || "";
+    });
+    $("btnForgotBack") && ($("btnForgotBack").onclick = () => setAuthMode("login"));
+    $("btnResetBack") && ($("btnResetBack").onclick = () => setAuthMode("login"));
+
+    $("btnForgot") && ($("btnForgot").onclick = async () => {
+      if (!sb) return showMsg("Config belum aktif", true);
+      const email = ($("forgotEmail").value || "").trim();
+      if (!email) return showMsg("Email wajib diisi", true);
+      $("btnForgot").disabled = true;
+      try {
+        const redirectTo = window.location.origin + window.location.pathname + (window.location.search || "");
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
+        if (error) throw error;
+        showMsg("Link reset sudah dikirim ke " + email + ". Cek inbox (dan folder spam).", false);
+      } catch (e) {
+        showMsg(e.message || "Gagal mengirim email reset", true);
+      } finally {
+        $("btnForgot").disabled = false;
+      }
+    });
+
+    $("btnReset") && ($("btnReset").onclick = async () => {
+      if (!sb) return showMsg("Config belum aktif", true);
+      const p1 = ($("resetPassword").value || "");
+      const p2 = ($("resetPassword2").value || "");
+      if (p1.length < 6) return showMsg("Password min. 6 karakter", true);
+      if (p1 !== p2) return showMsg("Password tidak sama", true);
+      $("btnReset").disabled = true;
+      try {
+        const { error } = await sb.auth.updateUser({ password: p1 });
+        if (error) throw error;
+        showMsg("Password berhasil diubah. Silakan login.", false);
+        $("resetPassword").value = "";
+        $("resetPassword2").value = "";
+        setAuthMode("login");
+        // clear recovery session optional — user can login with new password
+        try { await sb.auth.signOut(); } catch (e2) {}
+        $("app").classList.remove("show");
+        $("authScreen").style.display = "flex";
+      } catch (e) {
+        showMsg(e.message || "Gagal mengubah password", true);
+      } finally {
+        $("btnReset").disabled = false;
+      }
+    });
     $("togglePwd").onclick = () => {
       const inp = $("password");
       inp.type = inp.type === "password" ? "text" : "password";
@@ -5435,14 +5516,39 @@
 
     (async () => {
       if (!sb) return;
+      // Deteksi link reset password dari email (hash type=recovery)
+      try {
+        const hash = window.location.hash || "";
+        if (hash.indexOf("type=recovery") >= 0 || hash.indexOf("type%3Drecovery") >= 0) {
+          // biarkan supabase parse session dari URL
+        }
+      } catch (e) {}
       const { data } = await sb.auth.getSession();
-      if (data.session) await enterApp(data.session);
-      sb.auth.onAuthStateChange((_ev, session) => {
+      sb.auth.onAuthStateChange(async (ev, session) => {
+        if (ev === "PASSWORD_RECOVERY") {
+          $("app").classList.remove("show");
+          $("authScreen").style.display = "flex";
+          setAuthMode("reset");
+          showMsg("Silakan buat password baru.", false);
+          return;
+        }
         if (!session) {
           $("app").classList.remove("show");
           $("authScreen").style.display = "flex";
         }
       });
+      // Jika session recovery sudah ada di hash, cek setelah getSession
+      if (data.session) {
+        const hash = (window.location.hash || "").toLowerCase();
+        if (hash.indexOf("type=recovery") >= 0) {
+          $("authScreen").style.display = "flex";
+          $("app").classList.remove("show");
+          setAuthMode("reset");
+          showMsg("Silakan buat password baru.", false);
+        } else {
+          await enterApp(data.session);
+        }
+      }
     })();
   </script>
 </body>
