@@ -1076,7 +1076,7 @@
       pointer-events: none;
     }
     .sidebar-toggle {
-      width: 100%; margin-bottom: 0.5rem;
+      width: 100%; margin-bottom: 0.5rem; pointer-events: auto; z-index: 5; position: relative;
       border: 1px solid var(--border); background: #fff;
       border-radius: 10px; padding: 0.5rem;
       cursor: pointer; color: var(--text-muted); font-size: 0.85rem; font-weight: 600;
@@ -3972,8 +3972,9 @@
       return ["Min","Sen","Sel","Rab","Kam","Jum","Sab"][d.getDay()];
     }
     function opsIsWeekend(dateStr) {
+      // Kerja Senin–Sabtu → hanya Minggu non-kerja
       const d = new Date(dateStr + "T12:00:00").getDay();
-      return d === 0 || d === 6;
+      return d === 0;
     }
     function opsStatusOf(g) {
       if (g.po_qty > 0 && g.act_total >= g.po_qty) return "DONE";
@@ -4199,7 +4200,7 @@
         });
       });
       const opUnique = Object.keys(opSet).length;
-      const hariKerja = opsDays.length;
+      const hariKerja = opsDays.filter(function(d) { return !opsIsWeekend(d); }).length;
 
       el.innerHTML =
         '<div class="ops-kpi-stack">' +
@@ -4880,7 +4881,8 @@
       $("userRole").textContent = currentProfile.role || "operator";
       $("userAvatar").textContent = (name || "?").slice(0, 1).toUpperCase();
       $("greet").textContent = "Halo, " + (name.split(" ")[0] || "tim");
-      try { applyRoleUI(); } catch (eR) {}
+      try { applyRoleUI();
+      try { if (window.__bindSidebarToggle) window.__bindSidebarToggle(); } catch (e) {} } catch (eR) {}
       try { bindAllThousandInputs(); } catch (eT) {}
       try {
         await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats()]);
@@ -4932,11 +4934,17 @@
     
     // Keyboard-safe: lock modal to visualViewport (area above keyboard)
     
+
+    
+
+    
     (function setupSidebarToggle() {
       function bind() {
         const layout = document.querySelector(".layout");
         const btn = document.getElementById("btnSidebarToggle");
         if (!layout || !btn) return;
+        if (btn.dataset.bound === "1") return;
+        btn.dataset.bound = "1";
         const key = "shi_sidebar_collapsed";
         function apply(collapsed) {
           layout.classList.toggle("sidebar-collapsed", !!collapsed);
@@ -4946,13 +4954,14 @@
           if (txt) txt.textContent = collapsed ? "" : " Sembunyikan";
           try { localStorage.setItem(key, collapsed ? "1" : "0"); } catch (e) {}
         }
-        // default: collapsed (icon only) unless user expanded before
-        const saved = localStorage.getItem(key);
-        apply(saved === null ? true : saved === "1");
-        btn.addEventListener("click", function() {
+        apply(localStorage.getItem(key) === "1");
+        btn.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
           apply(!layout.classList.contains("sidebar-collapsed"));
         });
       }
+      window.__bindSidebarToggle = bind;
       if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
       else bind();
     })();
@@ -5016,30 +5025,6 @@
     
     // Mobile keyboard: resize modal to visual viewport (area above keyboard)
     
-    (function setupSidebarToggle() {
-      function bind() {
-        const layout = document.querySelector(".layout");
-        const btn = document.getElementById("btnSidebarToggle");
-        if (!layout || !btn) return;
-        const key = "shi_sidebar_collapsed";
-        function apply(collapsed) {
-          layout.classList.toggle("sidebar-collapsed", !!collapsed);
-          const ico = document.getElementById("sidebarToggleIco");
-          const txt = btn.querySelector(".st-txt");
-          if (ico) ico.textContent = collapsed ? "»" : "«";
-          if (txt) txt.textContent = collapsed ? "" : " Sembunyikan";
-          try { localStorage.setItem(key, collapsed ? "1" : "0"); } catch (e) {}
-        }
-        // default: collapsed (icon only) unless user expanded before
-        const saved = localStorage.getItem(key);
-        apply(saved === null ? true : saved === "1");
-        btn.addEventListener("click", function() {
-          apply(!layout.classList.contains("sidebar-collapsed"));
-        });
-      }
-      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
-      else bind();
-    })();
 
     (function setupVisualViewport() {
       function apply() {
