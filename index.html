@@ -1081,7 +1081,12 @@
       </div>
       <div class="field"><label>Target</label><input id="plSoTarget" type="number" min="0" step="any" /></div>
       <div class="field"><label>Satuan</label><input id="plSoUnit" value="pcs" /></div>
-      <div class="field"><label>Operator (opsional)</label><input id="plSoOperator" type="email" placeholder="email" /></div>
+      <div class="field"><label>Operator (dari database)</label>
+        <select id="plSoOperator">
+          <option value="">— Belum assign (draft) —</option>
+        </select>
+        <p id="plSoOperatorHint" style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0"></p>
+      </div>
       <p id="plSoHint" style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem"></p>
       <div class="modal-actions">
         <button class="btn btn-ghost" type="button" onclick="closePlanSoModal()">Batal</button>
@@ -1772,14 +1777,15 @@
         allOrders = [];
       }
     }
-    function openPlanSoModal() {
+    async function openPlanSoModal() {
       fillPlanDatalists();
+      try { await loadOperators(); } catch (e) { console.warn(e); }
       $("plSoDate").value = ($("planFilterDate") && $("planFilterDate").value) || todayStr();
       $("plSoShift").value = "1";
       $("plSoMachine").value = "";
       $("plSoTarget").value = "";
       $("plSoUnit").value = "pcs";
-      $("plSoOperator").value = "";
+      fillOperatorSelect("plSoOperator", "plSoOperatorHint", "");
       $("plSoHint").textContent = "";
       const sel = $("plSoSelect");
       sel.innerHTML = '<option value="">— Pilih SO —</option>';
@@ -1810,7 +1816,7 @@
         }
       });
     }
-    function closePlanSoModal() { $("planSoModal").classList.remove("show"); }
+    function closePlanSoModal() { $("planSoModal").classList.remove("show"); document.body.classList.remove("modal-open"); }
     function onPlanSoChange() {
       const oid = $("plSoSelect").value;
       const order = (allOrders || []).find(o => o.order_id === oid);
@@ -1845,7 +1851,7 @@
       const machine_id = resolveMachineId($("plSoMachine").value);
       const target_qty = parseInputNum($("plSoTarget").value);
       const unit = ($("plSoUnit").value || "pcs").trim();
-      let assigned_operator = ($("plSoOperator").value || "").trim();
+      let assigned_operator = resolveOperatorEmail($("plSoOperator").value || "");
       let status = assigned_operator ? "open" : "draft";
       if (!order_id || !product_id || !plan_date || !machine_id) return toast("SO, produk, tanggal, proses wajib", true);
       const order = (allOrders || []).find(o => o.order_id === order_id);
@@ -2374,11 +2380,11 @@
       fillOperatorList();
       return operators;
     }
-    function fillOperatorList(selectedEmail) {
-      const sel = $("plOperator");
-      const hint = $("plOperatorHint");
+    function fillOperatorSelect(selId, hintId, selectedEmail) {
+      const sel = $(selId);
+      const hint = hintId ? $(hintId) : null;
       if (!sel) return;
-      const cur = selectedEmail != null ? selectedEmail : sel.value;
+      const cur = selectedEmail != null ? selectedEmail : (sel.value || "");
       let opts = '<option value="">— Belum assign (draft) —</option>';
       if (!operators.length) {
         opts += '<option value="" disabled>Belum ada data operator di profiles</option>';
@@ -2393,7 +2399,7 @@
           "</option>"
         ).join("");
         if (hint) {
-          hint.textContent = operators.length + " operator dari database profiles";
+          hint.textContent = operators.length + " operator dari database";
           hint.style.color = "";
         }
       }
@@ -2401,7 +2407,6 @@
       if (cur) {
         sel.value = cur;
         if (sel.value !== cur) {
-          // email not in list — keep as extra option
           const extra = document.createElement("option");
           extra.value = cur;
           extra.textContent = cur + " (tersimpan)";
@@ -2409,6 +2414,10 @@
           sel.value = cur;
         }
       }
+    }
+    function fillOperatorList(selectedEmail) {
+      fillOperatorSelect("plOperator", "plOperatorHint", selectedEmail);
+      fillOperatorSelect("plSoOperator", "plSoOperatorHint", selectedEmail);
     }
     function resolveOperatorEmail(text) {
       const t = String(text || "").trim();
