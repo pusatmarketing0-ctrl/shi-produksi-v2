@@ -654,6 +654,94 @@
       }
     }
 
+
+    /* ===== Operasional grid ===== */
+    .ops-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: auto;
+      max-height: calc(100vh - 220px);
+      -webkit-overflow-scrolling: touch;
+    }
+    .ops-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.72rem;
+      min-width: max-content;
+    }
+    .ops-table th, .ops-table td {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 0.28rem 0.35rem;
+      white-space: nowrap;
+      text-align: center;
+      min-width: 42px;
+    }
+    .ops-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #eef6f1;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .ops-table .ops-day-head.today {
+      background: #bbf7d0;
+      color: var(--green);
+      font-weight: 700;
+    }
+    .ops-table .sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 4;
+      background: #fff;
+      text-align: left;
+      min-width: 120px;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+    }
+    .ops-table thead .sticky-col { z-index: 6; background: #eef6f1; }
+    .ops-table .sc1 { left: 0; min-width: 140px; }
+    .ops-table .sc2 { left: 140px; min-width: 100px; }
+    .ops-table .sc3 { left: 240px; min-width: 56px; text-align: right; }
+    .ops-table .sc4 { left: 296px; min-width: 56px; text-align: right; }
+    .ops-table .sc5 { left: 352px; min-width: 56px; text-align: right; }
+    .ops-table .sc6 { left: 408px; min-width: 48px; text-align: right; }
+    .ops-table .sc-metric {
+      position: sticky;
+      left: 456px;
+      z-index: 4;
+      background: #f8faf9;
+      min-width: 52px;
+      font-weight: 600;
+      color: var(--text-muted);
+      box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+    }
+    .ops-table thead .sc-metric { z-index: 6; background: #eef6f1; }
+    .ops-table tr.ops-plan td.day-cell { color: #1d4ed8; font-weight: 600; }
+    .ops-table tr.ops-op td.day-cell { color: #a16207; font-weight: 600; }
+    .ops-table tr.ops-act td.day-cell { color: #047857; font-weight: 700; }
+    .ops-table td.day-cell.today-col { background: rgba(187, 247, 208, 0.35); }
+    .ops-table td.day-cell.has-val { background: rgba(15, 122, 79, 0.04); }
+    .ops-table tr.ops-group-start td { border-top: 2px solid var(--green-soft); }
+    .ops-sum-bar {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem;
+    }
+    .ops-sum-chip {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 0.55rem 0.85rem; min-width: 100px;
+    }
+    .ops-sum-chip .lbl { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    .ops-sum-chip .val { font-size: 1.05rem; font-weight: 700; color: var(--green); }
+    @media (max-width: 899px) {
+      .ops-wrap { max-height: calc(100vh - 180px); }
+      .ops-table .sc2, .ops-table .sc3, .ops-table .sc4, .ops-table .sc5, .ops-table .sc6 { display: none; }
+      .ops-table .sc-metric { left: 140px; }
+    }
+
   </style>
 </head>
 <body>
@@ -706,6 +794,7 @@
       <aside class="sidebar">
         <div class="nav-label" data-nav-group="ops">Operasional</div>
         <button class="nav-item active" data-page="home" data-roles="all">Beranda</button>
+        <button class="nav-item" data-page="operasional" data-roles="admin,ppic,korlap,marketing">Grid operasional</button>
         <button class="nav-item" data-page="plans" data-roles="admin,ppic,korlap,marketing,operator">Plan</button>
         <button class="nav-item" data-page="reports" data-roles="admin,ppic,korlap,operator">Laporan</button>
         <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap">Sales Order</button>
@@ -1037,6 +1126,33 @@
           </div>
         </section>
 
+        
+        <section id="page-operasional" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Grid operasional</h1>
+              <p>Plan · OP · Actual per produk per tanggal (bulan berjalan).</p>
+            </div>
+            <div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-ghost" type="button" onclick="opsShiftMonth(-1)">‹</button>
+              <strong id="opsMonthLabel" style="min-width:8rem;text-align:center">—</strong>
+              <button class="btn btn-ghost" type="button" onclick="opsShiftMonth(1)">›</button>
+              <button class="btn btn-primary" type="button" onclick="loadOperasional()">Refresh</button>
+            </div>
+          </div>
+          <div class="ops-sum-bar" id="opsSumBar"></div>
+          <div class="toolbar">
+            <input type="search" id="opsSearch" placeholder="Cari produk / customer / SO..." oninput="renderOperasional()" />
+            <label style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.35rem">
+              <input type="checkbox" id="opsHideDone" checked onchange="renderOperasional()" /> Sembunyikan completed
+            </label>
+          </div>
+          <div class="ops-wrap" id="opsGridWrap">
+            <div class="empty" id="opsEmpty">Pilih bulan lalu muat data…</div>
+            <table class="ops-table" id="opsTable" style="display:none"></table>
+          </div>
+        </section>
+
         <section id="page-ranking" class="page" hidden>
           <div class="page-head">
             <div><h1>Ranking operator</h1><p>Berdasarkan actual vs target adj laporan.</p></div>
@@ -1059,6 +1175,7 @@
     <nav class="mobile-nav" id="mobileNav">
       <button class="active" data-page="home" data-roles="all"><span>⌂</span>Home</button>
       <button data-page="reports" data-roles="admin,ppic,korlap,operator"><span>✓</span>Lapor</button>
+      <button data-page="operasional" data-roles="admin,ppic,korlap,marketing"><span>▦</span>Grid</button>
       <button data-page="plans" data-roles="all"><span>☰</span>Plan</button>
       <button data-page="orders" data-roles="admin,ppic,marketing,korlap"><span>◇</span>SO</button>
       <button data-page="marketing" data-roles="admin,ppic,marketing,korlap"><span>◈</span>Mkt</button>
@@ -3384,6 +3501,218 @@
     }
 
 
+    
+    // ===== Grid operasional =====
+    let opsYear = new Date().getFullYear();
+    let opsMonth = new Date().getMonth(); // 0-11
+    let opsRows = []; // aggregated product groups
+    let opsDays = [];
+
+    function opsMonthStartEnd() {
+      const start = new Date(opsYear, opsMonth, 1);
+      const end = new Date(opsYear, opsMonth + 1, 0);
+      const z = n => String(n).padStart(2, "0");
+      const fmt = d => d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+      return { start: fmt(start), end: fmt(end), daysInMonth: end.getDate() };
+    }
+    function opsShiftMonth(delta) {
+      opsMonth += delta;
+      if (opsMonth < 0) { opsMonth = 11; opsYear--; }
+      if (opsMonth > 11) { opsMonth = 0; opsYear++; }
+      loadOperasional();
+    }
+    function isFgPlan(p) {
+      return isFgMachine(p.machine_id);
+    }
+    async function loadOperasional() {
+      if (!sb) return;
+      const { start, end, daysInMonth } = opsMonthStartEnd();
+      opsDays = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const z = String(d).padStart(2, "0");
+        const m = String(opsMonth + 1).padStart(2, "0");
+        opsDays.push(opsYear + "-" + m + "-" + z);
+      }
+      const bulan = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+      if ($("opsMonthLabel")) $("opsMonthLabel").textContent = bulan[opsMonth] + " " + opsYear;
+
+      if ($("opsEmpty")) $("opsEmpty").textContent = "Memuat…";
+      if ($("opsTable")) $("opsTable").style.display = "none";
+
+      const [{ data: plans, error: e1 }, { data: orders }] = await Promise.all([
+        sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(5000),
+        sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty)").limit(500)
+      ]);
+      if (e1) {
+        toast(e1.message, true);
+        if ($("opsEmpty")) $("opsEmpty").textContent = e1.message;
+        return;
+      }
+      const planList = plans || [];
+      const orderMap = {};
+      (orders || []).forEach(o => { orderMap[o.order_id] = o; });
+
+      // reports for month
+      const planIds = planList.map(p => p.plan_id);
+      let reports = [];
+      // chunk in_ids
+      for (let i = 0; i < planIds.length; i += 150) {
+        const chunk = planIds.slice(i, i + 150);
+        if (!chunk.length) break;
+        const { data: r } = await sb.from("reports").select("plan_id,actual_qty,report_date").in("plan_id", chunk);
+        if (r) reports = reports.concat(r);
+      }
+      // also by report_date range as fallback
+      const { data: r2 } = await sb.from("reports").select("plan_id,actual_qty,report_date").gte("report_date", start).lte("report_date", end).limit(5000);
+      const seen = {};
+      reports.forEach(r => { seen[r.plan_id + "|" + r.report_date + "|" + r.actual_qty] = r; });
+      (r2 || []).forEach(r => { seen[r.plan_id + "|" + r.report_date + "|" + r.actual_qty] = r; });
+      reports = Object.values(seen);
+
+      const planById = {};
+      planList.forEach(p => { planById[p.plan_id] = p; });
+
+      // actual by plan_id and by product+date for FG-ish: use plan's product and plan_date
+      const actualByPlan = {};
+      reports.forEach(r => {
+        actualByPlan[r.plan_id] = (actualByPlan[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
+      });
+
+      // Group key: product + no_so (or order)
+      const groups = {};
+      planList.forEach(p => {
+        // Only count FG packing for "qty" grid like management view, OR all products with FG preference
+        // Show all products; qty cells use target for FG processes only for plan row, else sum all targets
+        const key = String(p.product_id) + "||" + String(p.no_so || p.order_id || "");
+        if (!groups[key]) {
+          const ord = p.order_id ? orderMap[p.order_id] : null;
+          let poQty = 0;
+          if (ord && ord.order_lines) {
+            (ord.order_lines || []).forEach(l => {
+              if (String(l.product_id) === String(p.product_id)) poQty += Number(l.qty) || 0;
+            });
+          }
+          groups[key] = {
+            product_id: p.product_id,
+            no_so: p.no_so || (ord && ord.no_so) || "",
+            order_id: p.order_id || "",
+            customer: (ord && ord.customer_name) || "",
+            order_status: (ord && ord.status) || "",
+            po_qty: poQty,
+            // per day: plan, op count, actual
+            planDay: {},
+            opDay: {},
+            actDay: {},
+            opSetDay: {}
+          };
+        }
+        const g = groups[key];
+        const day = String(p.plan_date).slice(0, 10);
+        const tqty = Number(p.target_qty) || 0;
+        // Plan qty: for management view use FG (packing masterbox) targets; if no FG that day, use all
+        g.planDay[day] = (g.planDay[day] || 0) + tqty;
+        if (!g.opSetDay[day]) g.opSetDay[day] = {};
+        if (p.assigned_operator) g.opSetDay[day][p.assigned_operator] = true;
+        g.actDay[day] = (g.actDay[day] || 0) + (actualByPlan[p.plan_id] || 0);
+      });
+      Object.keys(groups).forEach(k => {
+        const g = groups[k];
+        Object.keys(g.opSetDay).forEach(day => {
+          g.opDay[day] = Object.keys(g.opSetDay[day]).length;
+        });
+        g.plan_total = Object.values(g.planDay).reduce((s, v) => s + v, 0);
+        g.act_total = Object.values(g.actDay).reduce((s, v) => s + v, 0);
+        g.op_total = Object.values(g.opDay).reduce((s, v) => s + v, 0); // sum daily OP (bukan unik)
+        g.done = g.po_qty > 0 && g.act_total >= g.po_qty;
+      });
+      opsRows = Object.values(groups).sort((a, b) => String(a.product_id).localeCompare(String(b.product_id)));
+      renderOperasional();
+    }
+    function renderOperasional() {
+      const table = $("opsTable");
+      const empty = $("opsEmpty");
+      if (!table) return;
+      const q = (($("opsSearch") && $("opsSearch").value) || "").toLowerCase().trim();
+      const hideDone = $("opsHideDone") && $("opsHideDone").checked;
+      let list = opsRows.slice();
+      if (hideDone) list = list.filter(g => !g.done && g.order_status !== "completed" && g.order_status !== "closed");
+      if (q) {
+        list = list.filter(g =>
+          productLabel(g.product_id).toLowerCase().includes(q) ||
+          String(g.customer).toLowerCase().includes(q) ||
+          String(g.no_so).toLowerCase().includes(q)
+        );
+      }
+      // summary
+      const bar = $("opsSumBar");
+      if (bar) {
+        const po = list.reduce((s, g) => s + (g.po_qty || 0), 0);
+        const plan = list.reduce((s, g) => s + (g.plan_total || 0), 0);
+        const act = list.reduce((s, g) => s + (g.act_total || 0), 0);
+        const op = list.reduce((s, g) => s + (g.op_total || 0), 0);
+        bar.innerHTML =
+          '<div class="ops-sum-chip"><div class="lbl">Produk</div><div class="val">' + formatNum(list.length) + '</div></div>' +
+          '<div class="ops-sum-chip"><div class="lbl">Qty PO</div><div class="val">' + formatNum(po) + '</div></div>' +
+          '<div class="ops-sum-chip"><div class="lbl">Qty Plan</div><div class="val">' + formatNum(plan) + '</div></div>' +
+          '<div class="ops-sum-chip"><div class="lbl">Qty Actual</div><div class="val">' + formatNum(act) + '</div></div>' +
+          '<div class="ops-sum-chip"><div class="lbl">OP (sum harian)</div><div class="val">' + formatNum(op) + '</div></div>';
+      }
+      if (!list.length) {
+        table.style.display = "none";
+        if (empty) { empty.style.display = "block"; empty.textContent = "Tidak ada data plan di bulan ini"; }
+        return;
+      }
+      if (empty) empty.style.display = "none";
+      table.style.display = "table";
+      const today = todayStr();
+      let head = '<thead><tr>' +
+        '<th class="sticky-col sc1">Produk</th>' +
+        '<th class="sticky-col sc2">Customer</th>' +
+        '<th class="sticky-col sc3">PO</th>' +
+        '<th class="sticky-col sc4">Plan</th>' +
+        '<th class="sticky-col sc5">Actual</th>' +
+        '<th class="sticky-col sc6">OP</th>' +
+        '<th class="sc-metric">Metric</th>';
+      opsDays.forEach(d => {
+        const day = Number(d.slice(8, 10));
+        const cls = d === today ? " ops-day-head today" : " ops-day-head";
+        head += '<th class="' + cls + '">' + day + '</th>';
+      });
+      head += '</tr></thead><tbody>';
+      let body = "";
+      list.forEach(g => {
+        const name = productLabel(g.product_id);
+        const meta = [
+          { cls: "ops-plan", metric: "Plan", dayMap: g.planDay },
+          { cls: "ops-op", metric: "OP", dayMap: g.opDay },
+          { cls: "ops-act", metric: "Actual", dayMap: g.actDay }
+        ];
+        meta.forEach((row, ri) => {
+          body += '<tr class="' + row.cls + (ri === 0 ? " ops-group-start" : "") + '">';
+          if (ri === 0) {
+            body += '<td class="sticky-col sc1" rowspan="3" title="' + esc(name) + '"><strong>' + esc(g.product_id) + '</strong><div style="font-size:0.65rem;color:var(--text-muted);font-weight:400">' +
+              esc((products.find(p => p.product_id === g.product_id) || {}).name || "") +
+              (g.no_so ? '<br/>' + esc(g.no_so) : "") + '</div></td>';
+            body += '<td class="sticky-col sc2" rowspan="3">' + esc(g.customer || "—") + '</td>';
+            body += '<td class="sticky-col sc3" rowspan="3">' + formatNum(g.po_qty) + '</td>';
+            body += '<td class="sticky-col sc4" rowspan="3">' + formatNum(g.plan_total) + '</td>';
+            body += '<td class="sticky-col sc5" rowspan="3">' + formatNum(g.act_total) + '</td>';
+            body += '<td class="sticky-col sc6" rowspan="3">' + formatNum(g.op_total) + '</td>';
+          }
+          body += '<td class="sc-metric">' + row.metric + '</td>';
+          opsDays.forEach(d => {
+            const v = row.dayMap[d];
+            const has = v != null && Number(v) !== 0;
+            const tdCls = "day-cell" + (d === today ? " today-col" : "") + (has ? " has-val" : "");
+            body += '<td class="' + tdCls + '">' + (has ? formatNum(v) : "") + '</td>';
+          });
+          body += '</tr>';
+        });
+      });
+      table.innerHTML = head + body + '</tbody>';
+    }
+
+
     async function loadOperatorHome() {
       if (!sb || !currentUser) return;
       const email = currentUser.email;
@@ -3975,6 +4304,7 @@
       if (page === "absences") { try { loadAbsences(); } catch (e) {} }
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
+      if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
       if (page === "home" && currentRole() === "operator") { try { loadOperatorHome(); } catch (e) {} }
       if (page === "routes") { try { loadRoutes(); renderRouteProductTable(); } catch (e) {} }
       else { try { closeRouteEditor(); } catch (e4) {} }
