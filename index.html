@@ -1330,7 +1330,7 @@
         <h1>SHI Produksi</h1>
         <p>PT. Sentra Herbal Internasional</p>
       </div>
-      <div id="loginForm">
+      <form id="loginForm" onsubmit="return false;">
         <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="nama@perusahaan.com" /></div>
         <div class="field"><label>Password</label>
           <div class="pwd-wrap">
@@ -1338,20 +1338,20 @@
             <button type="button" class="pwd-toggle" id="togglePwd">👁</button>
           </div>
         </div>
-        <button class="btn-login" id="btnLogin" type="button">Login</button>
+        <button class="btn-login" id="btnLogin" type="submit">Login</button>
         <div class="auth-links">
           <button type="button" id="btnShowForgot">Lupa password?</button>
           <span style="color:var(--border);margin:0 0.35rem">·</span>
           <button type="button" id="btnShowSignup">Belum punya akun? Daftar</button>
         </div>
-      </div>
-      <div id="forgotForm" style="display:none">
+      </form>
+      <form id="forgotForm" style="display:none" onsubmit="return false;">
         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Masukkan email akun. Kode PIN 6 digit akan dikirim ke email (cek juga folder spam).</p>
         <div class="field"><label>Email</label><input id="forgotEmail" type="email" placeholder="nama@perusahaan.com" autocomplete="username" /></div>
-        <button class="btn-login" id="btnForgot" type="button">Kirim kode PIN</button>
+        <button class="btn-login" id="btnForgot" type="submit">Kirim kode PIN</button>
         <div class="auth-links"><button type="button" id="btnForgotBack">← Kembali ke login</button></div>
-      </div>
-      <div id="resetForm" style="display:none">
+      </form>
+      <form id="resetForm" style="display:none" onsubmit="return false;">
         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Masukkan kode PIN dari email, lalu buat password baru.</p>
         <div class="field"><label>Email</label><input id="resetEmail" type="email" placeholder="nama@perusahaan.com" autocomplete="username" /></div>
         <div class="field"><label>Kode PIN (6 digit)</label><input id="resetPin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="123456" autocomplete="one-time-code" /></div>
@@ -1365,20 +1365,20 @@
             <input id="resetPassword2" type="password" autocomplete="new-password" placeholder="••••••••" />
           </div>
         </div>
-        <button class="btn-login" id="btnReset" type="button">Verifikasi & simpan password</button>
+        <button class="btn-login" id="btnReset" type="submit">Verifikasi & simpan password</button>
         <div class="auth-links">
           <button type="button" id="btnResendPin">Kirim ulang PIN</button>
           <span style="color:var(--border);margin:0 0.35rem">·</span>
           <button type="button" id="btnResetBack">← Kembali ke login</button>
         </div>
-      </div>
-      <div id="signupForm" style="display:none">
+      </form>
+      <form id="signupForm" style="display:none" onsubmit="return false;">
         <div class="field"><label>Nama lengkap</label><input id="suName" type="text" placeholder="Nama Anda" /></div>
         <div class="field"><label>Email</label><input id="suEmail" type="email" placeholder="nama@perusahaan.com" /></div>
         <div class="field"><label>Password (min. 6)</label><input id="suPassword" type="password" placeholder="••••••••" /></div>
-        <button class="btn-login" id="btnSignup" type="button">Buat akun</button>
+        <button class="btn-login" id="btnSignup" type="submit">Buat akun</button>
         <div class="auth-links"><button type="button" id="btnShowLogin">Sudah punya akun? Masuk</button></div>
-      </div>
+      </form>
       <div id="authMsg" class="auth-msg"></div>
       <p class="login-foot">Sistem v2 · paralel dengan produksi lama</p>
     </div>
@@ -2287,18 +2287,23 @@
       const token = (($("resetPin") && $("resetPin").value) || "").replace(/\s+/g, "");
       const p1 = ($("resetPassword").value || "");
       const p2 = ($("resetPassword2").value || "");
-      if (!email) return showMsg("Email wajib diisi", true);
-      if (!token || token.length < 6) return showMsg("Masukkan kode PIN dari email", true);
       if (p1.length < 6) return showMsg("Password min. 6 karakter", true);
       if (p1 !== p2) return showMsg("Password tidak sama", true);
       $("btnReset").disabled = true;
       try {
-        const { data, error } = await sb.auth.verifyOtp({
-          email: email,
-          token: token,
-          type: "recovery"
-        });
-        if (error) throw error;
+        // Jika belum ada session recovery, wajib PIN
+        const sess = await sb.auth.getSession();
+        const hasSession = !!(sess.data && sess.data.session);
+        if (!hasSession) {
+          if (!email) return showMsg("Email wajib diisi", true);
+          if (!token || token.length < 6) return showMsg("Masukkan kode PIN dari email", true);
+          const { error } = await sb.auth.verifyOtp({
+            email: email,
+            token: token,
+            type: "recovery"
+          });
+          if (error) throw error;
+        }
         const { error: err2 } = await sb.auth.updateUser({ password: p1 });
         if (err2) throw err2;
         showMsg("Password berhasil diubah. Silakan login.", false);
@@ -2309,8 +2314,9 @@
         if ($("resetPassword")) $("resetPassword").value = "";
         if ($("resetPassword2")) $("resetPassword2").value = "";
         setAuthMode("login");
+        clearAuthHash();
       } catch (e) {
-        showMsg(e.message || "Kode PIN salah / kadaluarsa. Kirim ulang PIN.", true);
+        showMsg(e.message || "Gagal menyimpan password. Kirim ulang link/PIN.", true);
       } finally {
         $("btnReset").disabled = false;
       }
@@ -5549,40 +5555,76 @@
       el.addEventListener("click", () => goPage(el.getAttribute("data-page")));
     });
 
-    (async () => {
-      if (!sb) return;
-      // Deteksi link reset password dari email (hash type=recovery)
+    function parseAuthHash() {
+      const raw = (window.location.hash || "").replace(/^#/, "");
+      const params = new URLSearchParams(raw);
+      // also query string (some setups)
+      const q = new URLSearchParams(window.location.search || "");
+      q.forEach(function(v, k) { if (!params.has(k)) params.set(k, v); });
+      return params;
+    }
+    function clearAuthHash() {
       try {
-        const hash = window.location.hash || "";
-        if (hash.indexOf("type=recovery") >= 0 || hash.indexOf("type%3Drecovery") >= 0) {
-          // biarkan supabase parse session dari URL
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
         }
       } catch (e) {}
-      const { data } = await sb.auth.getSession();
+    }
+    function showRecoveryResetForm(msg) {
+      $("app").classList.remove("show");
+      $("authScreen").style.display = "flex";
+      setAuthMode("reset");
+      // link recovery: PIN optional (session already verified)
+      if ($("resetPin")) {
+        $("resetPin").placeholder = "Opsional jika sudah lewat link email";
+      }
+      showMsg(msg || "Link valid. Isi password baru lalu simpan. (PIN tidak wajib jika masuk lewat link.)", false);
+    }
+
+    (async () => {
+      if (!sb) return;
+
+      const params = parseAuthHash();
+      const err = params.get("error") || params.get("error_code");
+      const errDesc = params.get("error_description") || "";
+      if (err) {
+        $("authScreen").style.display = "flex";
+        $("app").classList.remove("show");
+        setAuthMode("forgot");
+        const expired = String(err).indexOf("expired") >= 0 || String(errDesc).toLowerCase().indexOf("expired") >= 0;
+        showMsg(
+          expired
+            ? "Link reset sudah kadaluarsa. Kirim ulang kode/link dari form ini."
+            : ("Link reset gagal: " + decodeURIComponent(errDesc || err).replace(/\+/g, " ")),
+          true
+        );
+        clearAuthHash();
+      }
+
       sb.auth.onAuthStateChange(async (ev, session) => {
         if (ev === "PASSWORD_RECOVERY") {
-          $("app").classList.remove("show");
-          $("authScreen").style.display = "flex";
-          setAuthMode("reset");
-          showMsg("Masukkan kode PIN dari email (atau link sudah memverifikasi). Lalu set password baru.", false);
+          showRecoveryResetForm("Link reset berhasil. Buat password baru di bawah.");
+          // password only path when session is recovery
           return;
         }
-        if (!session) {
-          $("app").classList.remove("show");
-          $("authScreen").style.display = "flex";
+        if (ev === "SIGNED_OUT" || !session) {
+          if (ev === "SIGNED_OUT") {
+            $("app").classList.remove("show");
+            $("authScreen").style.display = "flex";
+          }
         }
       });
-      // Jika session recovery sudah ada di hash, cek setelah getSession
-      if (data.session) {
-        const hash = (window.location.hash || "").toLowerCase();
-        if (hash.indexOf("type=recovery") >= 0) {
-          $("authScreen").style.display = "flex";
-          $("app").classList.remove("show");
-          setAuthMode("reset");
-          showMsg("Masukkan kode PIN dari email (atau link sudah memverifikasi). Lalu set password baru.", false);
-        } else {
-          await enterApp(data.session);
-        }
+
+      // Biarkan client parse token dari URL (detectSessionInUrl default true)
+      const { data } = await sb.auth.getSession();
+      const type = (params.get("type") || "").toLowerCase();
+      if (type === "recovery" && data.session) {
+        showRecoveryResetForm("Link reset berhasil. Buat password baru di bawah.");
+        clearAuthHash();
+        return;
+      }
+      if (data.session && !err) {
+        await enterApp(data.session);
       }
     })();
   </script>
