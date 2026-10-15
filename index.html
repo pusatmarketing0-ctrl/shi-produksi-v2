@@ -2831,12 +2831,29 @@
       }
     }
 
-    function openReportModal(planId, existing) {
+    async function openReportModal(planId, existing) {
       const plan = reportPlanMap[planId] || reportPlans.find(p => p.plan_id === planId);
       if (!plan && !existing) return toast("Plan tidak ditemukan", true);
       const pl = plan || {};
+      // 1 report per plan: ambil dari memori, kalau belum cek database
       if (!existing) {
         existing = reportRows.find(r => r.plan_id === planId) || null;
+      }
+      if (!existing && sb && planId) {
+        try {
+          const { data: found } = await sb.from("reports")
+            .select("*")
+            .eq("plan_id", planId)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          if (found && found.length) {
+            existing = found[0];
+            // sync ke memori
+            const ix = reportRows.findIndex(r => r.report_id === existing.report_id);
+            if (ix >= 0) reportRows[ix] = existing;
+            else reportRows.unshift(existing);
+          }
+        } catch (e) { console.warn(e); }
       }
       $("rpPlanId").value = planId;
       $("rpReportId").value = existing ? existing.report_id : "";
@@ -2848,7 +2865,9 @@
       $("rpDt").value = existing ? formatInputNum(existing.downtime_min || 0, false) : "0";
       $("rpDtReason").value = existing ? (existing.downtime_reason || "") : "";
       $("rpNotes").value = existing ? (existing.notes || "") : "";
-      $("rpHint").textContent = "Target adj dihitung otomatis dari downtime (basis 480 menit/shift).";
+      $("rpHint").textContent = existing
+        ? "Sudah ada laporan untuk plan ini — simpan akan memperbarui (bukan buat baru)."
+        : "Target adj dihitung otomatis dari downtime (basis 480 menit/shift). 1 plan = 1 laporan.";
       $("reportModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { bindAllThousandInputs(); } catch (e) {}
@@ -2869,9 +2888,28 @@
       const notes = ($("rpNotes").value || "").trim();
       const target_qty = plan ? Number(plan.target_qty) || 0 : 0;
       const target_adj = calcTargetAdj(target_qty, downtime_min);
-      const report_date = ($("reportFilterDate") && $("reportFilterDate").value) || todayStr();
+      const report_date = plan && plan.plan_date ? plan.plan_date : ((($("reportFilterDate") && $("reportFilterDate").value) || todayStr()));
       const reported_by = (currentUser && currentUser.email) || "";
-      let report_id = $("rpReportId").value;
+      let report_id = ($("rpReportId").value || "").trim();
+
+      // WAJIB: 1 plan = 1 laporan — cek DB dulu sebelum insert
+      try {
+        const { data: existingRows } = await sb.from("reports")
+          .select("report_id")
+          .eq("plan_id", plan_id)
+          .order("created_at", { ascending: true })
+          .limit(5);
+        if (existingRows && existingRows.length) {
+          report_id = existingRows[0].report_id;
+          $("rpReportId").value = report_id;
+          // hapus duplikat lama jika ada
+          if (existingRows.length > 1) {
+            const dupIds = existingRows.slice(1).map(r => r.report_id);
+            try { await sb.from("reports").delete().in("report_id", dupIds); } catch (eD) {}
+          }
+        }
+      } catch (eChk) { console.warn(eChk); }
+
       const payload = {
         plan_id, actual_qty, ng_qty, downtime_min, downtime_reason, notes,
         target_qty, target_adj, reported_by, report_date,
@@ -2885,15 +2923,25 @@
         payload.report_id = report_id;
         payload.created_at = new Date().toISOString();
         ({ error } = await sb.from("reports").insert(payload));
+        // race: jika unique constraint atau insert ganda, update saja
+        if (error && /duplicate|unique|already/i.test(String(error.message || ""))) {
+          const { data: again } = await sb.from("reports").select("report_id").eq("plan_id", plan_id).limit(1);
+          if (again && again[0]) {
+            report_id = again[0].report_id;
+            ({ error } = await sb.from("reports").update(payload).eq("report_id", report_id));
+          }
+        }
       }
       if (error) return toast(error.message, true);
-      // mark plan in_progress/done soft
-      if (plan && plan.status === "open") {
-        try { await sb.from("plans").update({ status: "in_progress", updated_at: new Date().toISOString() }).eq("plan_id", plan_id); } catch (e) {}
+      if (plan && (plan.status === "open" || plan.status === "draft")) {
+        try {
+          await sb.from("plans").update({ status: "in_progress", updated_at: new Date().toISOString() }).eq("plan_id", plan_id);
+        } catch (e) {}
       }
-      toast("Laporan disimpan");
+      toast(report_id ? "Laporan diperbarui" : "Laporan disimpan");
       closeReportModal();
       await loadReportsPage();
+      try { if (currentRole() === "operator") loadOperatorHome(); } catch (e) {}
       try { loadHomeStats(); } catch (e) {}
     });
 
