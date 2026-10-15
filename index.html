@@ -656,90 +656,256 @@
 
 
 
-    /* ===== Operasional grid (parity prototipe) ===== */
-    .ops-dash { display: grid; grid-template-columns: 1fr; gap: 0.85rem; margin-bottom: 1rem; }
-    @media (min-width: 1100px) {
-      .ops-dash { grid-template-columns: 220px 200px 160px minmax(220px, 1fr); align-items: start; }
+
+    /* ===== Operasional grid — UI polished ===== */
+    #page-operasional .page-head {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem 1.15rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow-sm);
     }
-    .ops-kpi-stack { display: flex; flex-direction: column; gap: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #fff; }
-    .ops-kpi-row { display: flex; justify-content: space-between; align-items: center; padding: 0.38rem 0.65rem; border-bottom: 1px solid var(--border); font-size: 0.72rem; }
+    #page-operasional .page-head h1 {
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    #page-operasional .page-head p { margin-top: 0.15rem; }
+    .ops-toolbar {
+      display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center;
+    }
+    .ops-toolbar .btn, .ops-toolbar select, .ops-toolbar input {
+      border-radius: 999px !important;
+      height: 36px;
+      padding: 0 0.85rem !important;
+      font-size: 0.8rem !important;
+    }
+    .ops-toolbar input[type="search"] {
+      min-width: 180px; border: 1px solid var(--border); background: #fff;
+    }
+    .ops-month-nav {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      background: var(--green-light); border: 1px solid var(--green-soft);
+      border-radius: 999px; padding: 0.15rem;
+    }
+    .ops-month-nav strong {
+      min-width: 8.5rem; text-align: center; font-size: 0.85rem;
+      color: var(--green); font-weight: 700;
+    }
+    .ops-month-nav .btn { width: 32px; height: 32px; padding: 0 !important; border-radius: 999px !important; }
+
+    .ops-dash {
+      display: grid; grid-template-columns: 1fr; gap: 0.75rem; margin-bottom: 1rem;
+    }
+    @media (min-width: 1100px) {
+      .ops-dash {
+        grid-template-columns: 240px 210px 180px minmax(240px, 1fr);
+        align-items: stretch;
+      }
+    }
+    .ops-kpi-stack {
+      display: flex; flex-direction: column; gap: 0;
+      border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border); background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+    .ops-kpi-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.42rem 0.55rem 0.42rem 0.45rem;
+      border-bottom: 1px solid #f0f4f2;
+      gap: 0.5rem;
+    }
     .ops-kpi-row:last-child { border-bottom: 0; }
-    .ops-kpi-row .k { font-weight: 600; color: #fff; background: #5c4033; padding: 0.2rem 0.45rem; border-radius: 4px; min-width: 7.2rem; }
-    .ops-kpi-row .k.k2 { background: #6b5a2a; }
-    .ops-kpi-row .k.k3 { background: #3d5a80; }
-    .ops-kpi-row .k.k4 { background: #2c4a6e; }
-    .ops-kpi-row .v { font-weight: 700; color: var(--text); margin-left: 0.5rem; text-align: right; flex: 1; }
-    .ops-card-blue { background: linear-gradient(180deg, #1e3a5f, #152a45); color: #fff; border-radius: 12px; padding: 0.65rem; font-size: 0.72rem; }
-    .ops-card-blue .ttl { font-weight: 700; margin-bottom: 0.35rem; opacity: 0.9; }
-    .ops-card-blue .big { font-size: 1.15rem; font-weight: 700; }
-    .ops-card-blue .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; margin-top: 0.45rem; }
-    .ops-card-blue .mini { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.35rem; text-align: center; }
-    .ops-today-panel { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 0.65rem 0.75rem; max-height: 200px; overflow: auto; }
-    .ops-today-panel h4 { font-size: 0.8rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
-    .ops-today-item { padding: 0.45rem 0; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
-    .ops-today-item:last-child { border-bottom: 0; }
-    .ops-today-item .t { font-weight: 600; }
-    .ops-today-item .s { color: var(--text-muted); font-size: 0.68rem; }
-    .ops-pill { display: inline-block; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 6px; font-weight: 600; margin-right: 0.25rem; }
+    .ops-kpi-row:hover { background: #fafdfb; }
+    .ops-kpi-row .k {
+      font-weight: 600; color: #fff; font-size: 0.68rem;
+      padding: 0.28rem 0.5rem; border-radius: 8px;
+      min-width: 7.4rem; letter-spacing: 0.01em;
+      background: linear-gradient(135deg, #6b4f3a, #5a4030);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .ops-kpi-row .k.k2 { background: linear-gradient(135deg, #8a7340, #6b5a2a); }
+    .ops-kpi-row .k.k3 { background: linear-gradient(135deg, #4a6fa5, #3d5a80); }
+    .ops-kpi-row .k.k4 { background: linear-gradient(135deg, #3a5f8a, #2c4a6e); }
+    .ops-kpi-row .v {
+      font-weight: 700; color: var(--text); font-size: 0.82rem;
+      text-align: right; flex: 1; letter-spacing: -0.01em;
+    }
+
+    .ops-card-blue {
+      background: linear-gradient(160deg, #1e4d7b 0%, #152a45 100%);
+      color: #fff; border-radius: 16px; padding: 0.85rem;
+      font-size: 0.72rem; box-shadow: 0 8px 24px rgba(21, 42, 69, 0.25);
+      display: flex; flex-direction: column; gap: 0.55rem;
+    }
+    .ops-card-blue .pair {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;
+    }
+    .ops-card-blue .mini {
+      background: rgba(255,255,255,0.1); border-radius: 10px;
+      padding: 0.45rem 0.4rem; text-align: center;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .ops-card-blue .ttl {
+      font-weight: 600; margin-bottom: 0.2rem; opacity: 0.8;
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .ops-card-blue .big { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+    .ops-card-blue .rt {
+      background: rgba(255,255,255,0.12); border-radius: 12px;
+      padding: 0.55rem 0.65rem; text-align: center;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .ops-card-blue .rt .big { font-size: 1.25rem; color: #86efac; }
+
+    .ops-today-panel {
+      background: #fff; border: 1px solid var(--border); border-radius: 16px;
+      padding: 0.75rem 0.85rem; max-height: 220px; overflow: auto;
+      box-shadow: var(--shadow-sm);
+    }
+    .ops-today-panel h4 {
+      font-size: 0.82rem; margin-bottom: 0.55rem;
+      display: flex; justify-content: space-between; align-items: center;
+      color: var(--text); font-weight: 700;
+    }
+    .ops-today-panel h4 .badge {
+      background: linear-gradient(135deg, #1e4d7b, #152a45);
+      color: #fff; border: none; font-size: 0.7rem;
+    }
+    .ops-today-item {
+      padding: 0.55rem 0.5rem; border-radius: 10px;
+      border: 1px solid transparent; margin-bottom: 0.35rem;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .ops-today-item:hover {
+      background: var(--green-light); border-color: var(--green-soft);
+    }
+    .ops-today-item .t { font-weight: 600; font-size: 0.78rem; line-height: 1.3; }
+    .ops-today-item .s { color: var(--text-muted); font-size: 0.68rem; margin-top: 0.1rem; }
+    .ops-today-item .tags { margin-top: 0.3rem; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .ops-pill {
+      display: inline-flex; align-items: center;
+      font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 999px; font-weight: 600;
+    }
     .ops-pill-plan { background: #d1fae5; color: #047857; }
     .ops-pill-op { background: #ffedd5; color: #c2410c; }
     .ops-pill-primer { background: #fef3c7; color: #a16207; }
+
+    .ops-hint {
+      font-size: 0.72rem; color: var(--text-dim); margin: 0 0 0.55rem;
+      padding: 0.45rem 0.75rem; background: #f0fdf6; border-radius: 10px;
+      border: 1px dashed var(--green-soft);
+    }
+
     .ops-wrap {
-      border: 1px solid var(--border); border-radius: var(--radius); background: #fff;
-      overflow: auto; max-height: calc(100vh - 280px); -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--border); border-radius: 16px; background: #fff;
+      overflow: auto; max-height: calc(100vh - 300px);
+      -webkit-overflow-scrolling: touch;
+      box-shadow: var(--shadow-sm);
     }
-    .ops-table { border-collapse: separate; border-spacing: 0; font-size: 0.68rem; min-width: max-content; }
+    .ops-table {
+      border-collapse: separate; border-spacing: 0;
+      font-size: 0.7rem; min-width: max-content;
+    }
     .ops-table th, .ops-table td {
-      border-right: 1px solid #e5ebe7; border-bottom: 1px solid #e5ebe7;
-      padding: 0.22rem 0.3rem; white-space: nowrap; text-align: center; min-width: 40px;
-    }
-    .ops-table thead th {
-      position: sticky; top: 0; z-index: 8; background: #1e293b; color: #f1f5f9; font-weight: 600;
+      border-right: 1px solid #e8eeea; border-bottom: 1px solid #e8eeea;
+      padding: 0.32rem 0.4rem; white-space: nowrap; text-align: center;
+      min-width: 44px; vertical-align: middle;
     }
     .ops-table thead tr.ops-sum-row th {
-      top: 0; background: #f8fafc; color: var(--text); font-weight: 700; z-index: 9;
+      position: sticky; z-index: 9;
+      background: #f8fafc; color: var(--text); font-weight: 700;
+      font-size: 0.68rem; border-bottom: 1px solid #e2e8f0;
     }
-    .ops-table thead tr.ops-day-row th { top: 28px; z-index: 8; }
+    .ops-table thead tr.ops-sum-row:nth-child(1) th { top: 0; }
+    .ops-table thead tr.ops-sum-row:nth-child(2) th { top: 26px; }
+    .ops-table thead tr.ops-sum-row:nth-child(3) th { top: 52px; }
+    .ops-table thead tr.ops-sum-row:nth-child(4) th { top: 78px; }
+    .ops-table thead tr.ops-day-row th {
+      position: sticky; top: 104px; z-index: 10;
+      background: linear-gradient(180deg, #1e293b, #0f172a);
+      color: #f1f5f9; font-weight: 600; font-size: 0.68rem;
+      padding: 0.45rem 0.35rem; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
     .ops-table .sticky-col {
       position: sticky; z-index: 6; background: #fff; text-align: left;
-      box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+      box-shadow: 3px 0 8px rgba(15, 23, 42, 0.04);
     }
-    .ops-table thead .sticky-col { z-index: 10; background: #1e293b; color: #f1f5f9; }
-    .ops-table thead tr.ops-sum-row .sticky-col { background: #f8fafc; color: var(--text); }
-    .ops-table .sc-prod { left: 0; min-width: 150px; max-width: 170px; }
-    .ops-table .sc-cust { left: 150px; min-width: 110px; max-width: 130px; }
-    .ops-table .sc-so { left: 260px; min-width: 88px; }
-    .ops-table .sc-tgl { left: 348px; min-width: 72px; }
-    .ops-table .sc-po { left: 420px; min-width: 52px; text-align: right; }
-    .ops-table .sc-pl { left: 472px; min-width: 52px; text-align: right; }
-    .ops-table .sc-ac { left: 524px; min-width: 52px; text-align: right; }
-    .ops-table .sc-op { left: 576px; min-width: 40px; text-align: right; }
-    .ops-table .sc-st { left: 616px; min-width: 64px; }
-    .ops-table .sc-jp { left: 680px; min-width: 48px; }
-    .ops-table .sc-ket { left: 728px; min-width: 44px; background: #f8fafc; font-weight: 700; }
-    .ops-table thead .sc-ket { background: #1e293b; }
-    .ops-table thead tr.ops-sum-row .sc-ket { background: #f8fafc; }
-    .ops-table td.weekend, .ops-table th.weekend { background: #fce7f3 !important; }
-    .ops-table th.today, .ops-table td.today-col { background: #bbf7d0 !important; }
-    .ops-table tr.ops-plan td.day-cell.has-val { background: #d1fae5; color: #065f46; font-weight: 700; }
-    .ops-table tr.ops-op td.day-cell.has-val { background: #ffedd5; color: #9a3412; font-weight: 700; }
-    .ops-table tr.ops-act td.day-cell.has-val { background: #dbeafe; color: #1e40af; font-weight: 700; }
-    .ops-table tr.ops-plan td.day-cell.primer { background: #fef9c3; color: #854d0e; font-size: 0.62rem; }
+    .ops-table thead .sticky-col { z-index: 12; }
+    .ops-table thead tr.ops-day-row .sticky-col {
+      background: linear-gradient(180deg, #1e293b, #0f172a); color: #f1f5f9;
+    }
+    .ops-table thead tr.ops-sum-row .sticky-col { background: #f8fafc; color: var(--text); z-index: 11; }
+    .ops-table tbody tr:hover td { background: #fafdfb; }
+    .ops-table tbody tr:hover td.sticky-col { background: #f4faf7; }
+
+    .ops-table .sc-prod { left: 0; min-width: 158px; max-width: 178px; }
+    .ops-table .sc-cust { left: 158px; min-width: 112px; max-width: 130px; }
+    .ops-table .sc-so { left: 270px; min-width: 90px; }
+    .ops-table .sc-tgl { left: 360px; min-width: 74px; }
+    .ops-table .sc-po { left: 434px; min-width: 54px; text-align: right; }
+    .ops-table .sc-pl { left: 488px; min-width: 54px; text-align: right; background: #f0fdf4; }
+    .ops-table .sc-ac { left: 542px; min-width: 54px; text-align: right; background: #eff6ff; }
+    .ops-table .sc-op { left: 596px; min-width: 42px; text-align: right; background: #fff7ed; }
+    .ops-table .sc-st { left: 638px; min-width: 68px; text-align: center; }
+    .ops-table .sc-jp { left: 706px; min-width: 48px; }
+    .ops-table .sc-ket {
+      left: 754px; min-width: 52px; text-align: center;
+      background: #f8fafc; font-weight: 700; color: var(--text-muted);
+    }
+    .ops-table thead tr.ops-day-row .sc-pl,
+    .ops-table thead tr.ops-day-row .sc-ac,
+    .ops-table thead tr.ops-day-row .sc-op,
+    .ops-table thead tr.ops-day-row .sc-ket {
+      background: linear-gradient(180deg, #1e293b, #0f172a);
+    }
+
+    .ops-table td.weekend, .ops-table th.weekend { background: #fdf2f8 !important; }
+    .ops-table th.today, .ops-table td.today-col {
+      background: #dcfce7 !important;
+      box-shadow: inset 0 0 0 2px #22c55e;
+    }
+    .ops-table tr.ops-plan td.day-cell.has-val {
+      background: #bbf7d0; color: #14532d; font-weight: 700; border-radius: 4px;
+    }
+    .ops-table tr.ops-op td.day-cell.has-val {
+      background: #fed7aa; color: #9a3412; font-weight: 700; border-radius: 4px;
+    }
+    .ops-table tr.ops-act td.day-cell.has-val {
+      background: #bfdbfe; color: #1e3a8a; font-weight: 700; border-radius: 4px;
+    }
+    .ops-table tr.ops-plan td.day-cell.primer {
+      background: #fef08a; color: #713f12; font-size: 0.62rem; font-weight: 700;
+    }
+    .ops-table tr.ops-plan td.day-cell[data-day] { cursor: pointer; }
+    .ops-table tr.ops-plan td.day-cell[data-day]:hover {
+      outline: 2px solid var(--green); outline-offset: -2px;
+    }
     .ops-table .badge-st {
-      display: inline-block; padding: 0.1rem 0.4rem; border-radius: 999px; font-size: 0.62rem; font-weight: 700;
+      display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px;
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em;
     }
     .badge-partial { background: #fef3c7; color: #a16207; }
-    .badge-done { background: #d1fae5; color: #047857; }
+    .badge-done { background: #bbf7d0; color: #14532d; }
     .badge-open { background: #e0e7ff; color: #3730a3; }
-    .ops-sum-label { text-align: right !important; font-weight: 600; color: var(--text-muted); min-width: 52px; }
+    .ops-sum-label {
+      text-align: right !important; font-weight: 700 !important;
+      color: var(--text-muted) !important; min-width: 52px;
+      font-size: 0.65rem !important; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .ops-sum-row th.has-sum {
+      color: var(--green) !important; font-weight: 700 !important;
+    }
     @media (max-width: 899px) {
       .ops-table .sc-cust, .ops-table .sc-so, .ops-table .sc-tgl, .ops-table .sc-jp { display: none; }
-      .ops-table .sc-po { left: 150px; }
-      .ops-table .sc-pl { left: 202px; }
-      .ops-table .sc-ac { left: 254px; }
-      .ops-table .sc-op { left: 306px; }
-      .ops-table .sc-st { left: 346px; }
-      .ops-table .sc-ket { left: 410px; }
+      .ops-table .sc-po { left: 158px; }
+      .ops-table .sc-pl { left: 212px; }
+      .ops-table .sc-ac { left: 266px; }
+      .ops-table .sc-op { left: 320px; }
+      .ops-table .sc-st { left: 362px; }
+      .ops-table .sc-ket { left: 430px; }
+      .ops-dash { grid-template-columns: 1fr 1fr; }
+      .ops-today-panel { grid-column: 1 / -1; }
     }
   </style>
 </head>
@@ -1132,23 +1298,25 @@
               <h1>Plan Operasional</h1>
               <p>Ringkasan harian di atas tanggal · kolom kiri beku · klik sel Plan untuk edit.</p>
             </div>
-            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
-              <button class="btn btn-ghost btn-sm" type="button" onclick="opsShiftMonth(-1)">‹</button>
-              <strong id="opsMonthLabel" style="min-width:7.5rem;text-align:center">—</strong>
-              <button class="btn btn-ghost btn-sm" type="button" onclick="opsShiftMonth(1)">›</button>
+            <div class="ops-toolbar">
+              <div class="ops-month-nav">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="opsShiftMonth(-1)">‹</button>
+                <strong id="opsMonthLabel">—</strong>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="opsShiftMonth(1)">›</button>
+              </div>
               <button class="btn btn-ghost btn-sm" type="button" onclick="opsGoThisMonth()">Bulan ini</button>
-              <select id="opsStatusFilter" onchange="renderOperasional()" style="border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.55rem;font-size:0.8rem">
+              <select id="opsStatusFilter" onchange="renderOperasional()">
                 <option value="aktif">Aktif (hide done)</option>
                 <option value="all">Semua status</option>
                 <option value="done">Done saja</option>
                 <option value="partial">Partial</option>
               </select>
-              <input type="search" id="opsSearch" placeholder="Cari produk / customer / SO..." oninput="renderOperasional()" style="min-width:140px" />
+              <input type="search" id="opsSearch" placeholder="Cari produk / customer / SO..." oninput="renderOperasional()" />
               <button class="btn btn-primary btn-sm" type="button" onclick="loadOperasional()">Refresh</button>
             </div>
           </div>
           <div class="ops-dash" id="opsDash"></div>
-          <p style="font-size:0.72rem;color:var(--text-dim);margin:0 0 0.5rem">Ringkasan harian (Plan / Actual / % / OP) di atas baris tanggal. Weekend merah muda · hari ini hijau.</p>
+          <p class="ops-hint">Ringkasan harian (Plan / Actual / % / OP) di atas baris tanggal · Weekend merah muda · Hari ini hijau · Sel Plan bisa diklik untuk edit</p>
           <div class="ops-wrap" id="opsGridWrap">
             <div class="empty" id="opsEmpty">Memuat grid…</div>
             <table class="ops-table" id="opsTable" style="display:none"></table>
@@ -3784,12 +3952,12 @@
           kpiRow("Actual OP / Bulan", formatNum(actualOpBulan) + " Pcs/OP", "k3") +
         '</div>' +
         '<div class="ops-card-blue">' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;margin-bottom:0.45rem">' +
+          '<div class="pair">' +
             '<div class="mini"><div class="ttl">Plan kemarin</div><div class="big">' + formatNum(planYest) + '</div></div>' +
             '<div class="mini"><div class="ttl">Actual kemarin</div><div class="big">' + (actYest ? formatNum(actYest) : "—") + '</div></div>' +
           '</div>' +
-          '<div class="ttl">Realtime OP/Hari</div><div class="big">' + formatNum(realtimeOp) + ' Pcs/OP</div>' +
-          '<div class="row2">' +
+          '<div class="rt"><div class="ttl">Realtime OP / Hari</div><div class="big">' + formatNum(realtimeOp) + ' Pcs/OP</div></div>' +
+          '<div class="pair">' +
             '<div class="mini"><div class="ttl">Jml Op</div><div class="big">' + (opMtd ? formatNum(opMtd) : "—") + '</div></div>' +
             '<div class="mini"><div class="ttl">Hari Kerja</div><div class="big">' + formatNum(hariKerja) + '</div></div>' +
           '</div>' +
@@ -3798,11 +3966,11 @@
           '<h4>Jalan hari ini <span class="badge">' + opsTodayList.length + '</span></h4>' +
           (opsTodayList.length ? opsTodayList.map(function(x) {
             return '<div class="ops-today-item"><div class="t">[' + esc(x.product_id) + '] ' + esc((products.find(function(p){return p.product_id===x.product_id;})||{}).name||"") +
-              '</div><div class="s">' + esc(x.customer || "") + '</div><div style="margin-top:0.2rem">' +
+              '</div><div class="s">' + esc(x.customer || "") + '</div><div class="tags">' +
               (x.primer ? '<span class="ops-pill ops-pill-primer">PRIMER</span>' :
                 '<span class="ops-pill ops-pill-plan">Plan ' + formatNum(x.plan) + '</span>') +
               '<span class="ops-pill ops-pill-op">OP ' + formatNum(x.op) + '</span></div></div>';
-          }).join("") : '<div class="s">Tidak ada plan hari ini</div>') +
+          }).join("") : '<div class="s" style="padding:0.5rem 0;color:var(--text-dim)">Tidak ada plan hari ini</div>') +
         '</div>';
 
       function kpiRow(label, val, kcls) {
@@ -3844,12 +4012,14 @@
       // Simpler: first thead row = daily Plan totals, second Actual, third %, fourth OP, fifth day numbers
       // Prototipe: one block of Plan/Actual/%/OP then day header
 
-      function dayCells(getter, cls) {
+      function dayCells(getter, extraCls) {
         return opsDays.map(d => {
           const v = getter(d);
           const wk = opsIsWeekend(d) ? " weekend" : "";
           const td = d === today ? " today" : "";
-          return '<th class="' + cls + wk + td + '">' + (v === "" || v == null ? "" : v) + '</th>';
+          const has = (v !== "" && v != null) ? " has-sum" : "";
+          const ex = typeof extraCls === "function" ? (extraCls(d) || "") : (extraCls || "");
+          return '<th class="' + ex + wk + td + has + '">' + (v === "" || v == null ? "" : v) + '</th>';
         }).join("");
       }
 
