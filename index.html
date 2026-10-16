@@ -2227,7 +2227,7 @@
           <select id="ppShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
         </div>
         <div class="field"><label>Produk</label>
-          <input id="ppProduct" list="plProductList" placeholder="Kode atau nama..." autocomplete="off" onchange="onPpProductChange()" oninput="onPpProductChange()" />
+          <input id="ppProduct" placeholder="Kode atau nama..." autocomplete="off" onchange="onPpProductChange()" oninput="onPpProductChange()" />
         </div>
         <p id="ppHint" style="font-size:0.78rem;color:var(--text-muted);margin:0.25rem 0 0.75rem">Pilih produk yang punya routes — step muncul otomatis.</p>
         <div id="ppSteps"></div>
@@ -2294,9 +2294,9 @@
       <div class="sheet-head"><h2>BOM bahan</h2></div>
       <div class="sheet-body">
         <input type="hidden" id="bomEditId" />
-        <div class="field"><label>Produk FG</label><input id="bomFg" list="bomFgList" placeholder="Kode FG" /></div>
+        <div class="field"><label>Produk FG</label><input id="bomFg" placeholder="Kode FG" /></div>
         <datalist id="bomFgList"></datalist>
-        <div class="field"><label>Bahan baku</label><input id="bomMat" list="bomMatList" placeholder="Kode bahan" /></div>
+        <div class="field"><label>Bahan baku</label><input id="bomMat" placeholder="Kode bahan" /></div>
         <datalist id="bomMatList"></datalist>
         <div class="field"><label>Qty per 1 FG</label><input id="bomQty" class="num-input" inputmode="decimal" value="1" /></div>
         <div class="field"><label>Satuan</label><input id="bomUnit" value="gr" /></div>
@@ -2322,9 +2322,9 @@
         <div class="field"><label>Shift</label>
           <select id="hrShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
         </div>
-        <div class="field"><label>Produk (kode)</label><input id="hrProduct" placeholder="FG001" list="hrProductList" /></div>
+        <div class="field"><label>Produk (kode)</label><input id="hrProduct" placeholder="FG001" /></div>
         <datalist id="hrProductList"></datalist>
-        <div class="field"><label>Proses / mesin</label><input id="hrMachine" placeholder="M03" list="hrMachineList" /></div>
+        <div class="field"><label>Proses / mesin</label><input id="hrMachine" placeholder="M03" /></div>
         <datalist id="hrMachineList"></datalist>
         <div class="field"><label>Plan ID (opsional)</label><input id="hrPlanId" placeholder="PLN-..." /></div>
         <div class="field"><label>Actual qty (jam ini)</label><input id="hrActual" class="num-input" inputmode="decimal" placeholder="0" /></div>
@@ -2490,7 +2490,7 @@
         <select id="plSoShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
       </div>
       <div class="field"><label>Proses</label>
-        <input id="plSoMachine" list="plMachineList" placeholder="Kode atau nama proses" />
+        <input id="plSoMachine" placeholder="Kode atau nama proses" />
       </div>
       <div class="field"><label>Target</label><input id="plSoTarget" type="number" min="0" step="any" /></div>
       <div class="field"><label>Satuan</label><input id="plSoUnit" value="pcs" /></div>
@@ -2528,11 +2528,11 @@
       <h2 id="routeModalTitle">Tambah step route</h2>
       <input type="hidden" id="routeEditId" />
       <div class="field"><label>Produk</label>
-        <input id="rtProduct" list="plProductList" placeholder="Kode produk" />
+        <input id="rtProduct" placeholder="Kode produk" />
       </div>
       <div class="field"><label>Step (urutan)</label><input id="rtStep" type="number" min="1" value="1" /></div>
       <div class="field"><label>Proses</label>
-        <input id="rtMachine" list="plMachineList" placeholder="Kode proses" />
+        <input id="rtMachine" placeholder="Kode proses" />
       </div>
       <div class="field"><label>Depends on (step sebelumnya, pisah koma)</label>
         <input id="rtDepends" placeholder="contoh: 1 atau 1,2 — kosong = tidak menunggu" />
@@ -2559,7 +2559,7 @@
         <input type="hidden" id="ordEditId" />
         <div class="field"><label>No SO</label><input id="ordNoSo" placeholder="SO/2026/..." autocomplete="off" /></div>
         <div class="field"><label>Customer</label>
-          <input id="ordCustomer" list="customerList" placeholder="Pilih atau ketik nama customer..." autocomplete="off" />
+          <input id="ordCustomer" placeholder="Pilih atau ketik nama customer..." autocomplete="off" />
           <datalist id="customerList"></datalist>
         </div>
         <div class="field"><label>Tanggal SO</label><input id="ordDate" type="date" /></div>
@@ -2604,11 +2604,11 @@
           </select>
         </div>
         <div class="field"><label>Produk</label>
-          <input id="plProduct" list="plProductList" placeholder="Ketik kode atau nama..." autocomplete="off" />
+          <input id="plProduct" placeholder="Ketik kode atau nama..." autocomplete="off" />
           <datalist id="plProductList"></datalist>
         </div>
         <div class="field"><label>Proses</label>
-          <input id="plMachine" list="plMachineList" placeholder="Ketik kode atau nama..." autocomplete="off" />
+          <input id="plMachine" placeholder="Ketik kode atau nama..." autocomplete="off" />
           <datalist id="plMachineList"></datalist>
         </div>
         <div class="field"><label>Target</label><input id="plTarget" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
@@ -3056,9 +3056,9 @@
     }
 
     function mountAllSearchCombos() {
-      // products
+      // products (static ids)
       [
-        ["plProduct", scItemsProduct, { valueMode: "id", onPick: null }],
+        ["plProduct", scItemsProduct, { valueMode: "id" }],
         ["ppProduct", scItemsProduct, { valueMode: "id", onPick: function() { try { onPpProductChange(); } catch (e) {} } }],
         ["bomFg", scItemsProduct, { valueMode: "id" }],
         ["bomMat", scItemsProduct, { valueMode: "id" }],
@@ -3067,9 +3067,9 @@
         ["rtProduct", scItemsProduct, { valueMode: "id" }]
       ].forEach(function(cfg) {
         const el = $(cfg[0]);
-        if (el) attachSearchCombo(el, cfg[1], cfg[2] || {});
+        if (el) { el.dataset.scBound = ""; attachSearchCombo(el, cfg[1], cfg[2] || {}); }
       });
-      // machines / proses
+      // machines
       [
         ["plMachine", scItemsMachine, { valueMode: "id" }],
         ["plSoMachine", scItemsMachine, { valueMode: "id" }],
@@ -3078,18 +3078,40 @@
         ["rtMachine", scItemsMachine, { valueMode: "id" }]
       ].forEach(function(cfg) {
         const el = $(cfg[0]);
-        if (el) attachSearchCombo(el, cfg[1], cfg[2] || {});
+        if (el) { el.dataset.scBound = ""; attachSearchCombo(el, cfg[1], cfg[2] || {}); }
       });
-      // customer
-      if ($("ordCustomer")) attachSearchCombo($("ordCustomer"), scItemsCustomer, { valueMode: "label", allowFree: true });
-      // supplier / vendor
-      if ($("poSupplier")) attachSearchCombo($("poSupplier"), scItemsSupplier, { valueMode: "label", allowFree: true, placeholder: "Ketik / pilih supplier..." });
-      // operator text fields if any
-      ["plOperator", "plSoOperator", "ppOperator"].forEach(function(id) {
-        const el = $(id);
-        if (el && el.tagName === "INPUT") {
-          attachSearchCombo(el, scItemsOperator, { valueMode: "id", placeholder: "Ketik nama / email operator..." });
-        }
+      // customer / supplier
+      if ($("ordCustomer")) { $("ordCustomer").dataset.scBound = ""; attachSearchCombo($("ordCustomer"), scItemsCustomer, { valueMode: "label", allowFree: true }); }
+      if ($("poSupplier")) { $("poSupplier").dataset.scBound = ""; attachSearchCombo($("poSupplier"), scItemsSupplier, { valueMode: "label", allowFree: true, placeholder: "Ketik / pilih supplier..." }); }
+      // dynamic: order lines products
+      document.querySelectorAll(".ol-product").forEach(function(el) {
+        el.dataset.scBound = "";
+        attachSearchCombo(el, scItemsProduct, {
+          valueMode: "id",
+          placeholder: "Ketik kode / nama produk...",
+          onPick: function(id, label, input) {
+            const p = (products || []).find(function(x) { return String(x.product_id) === String(id); });
+            if (input) input.value = id + (p && p.name ? " — " + p.name : "");
+            const row = input && input.closest(".ord-line");
+            const u = row && row.querySelector(".ol-unit");
+            if (p && p.unit && u && !u.dataset.touched) u.value = p.unit;
+          }
+        });
+      });
+      // dynamic: plan-by-product machine inputs
+      document.querySelectorAll(".pp-machine-input").forEach(function(el) {
+        el.dataset.scBound = "";
+        attachSearchCombo(el, scItemsMachine, { valueMode: "id", placeholder: "Ketik kode / nama proses..." });
+      });
+      // operator inputs (converted selects)
+      document.querySelectorAll(".op-search, #plOperator, #plSoOperator").forEach(function(el) {
+        if (el.tagName === "SELECT") return;
+        el.dataset.scBound = "";
+        attachSearchCombo(el, scItemsOperator, { valueMode: "id", placeholder: "Ketik nama / email operator..." });
+      });
+      document.querySelectorAll(".pp-op-search").forEach(function(el) {
+        el.dataset.scBound = "";
+        attachSearchCombo(el, scItemsOperator, { valueMode: "id", placeholder: "Ketik operator..." });
       });
     }
 
@@ -3379,18 +3401,38 @@
       const row = document.createElement("div");
       row.className = "ord-line";
       row.style.cssText = "border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.5rem;background:#fafdfb";
+      const pid = line && line.product_id ? line.product_id : "";
+      const pObj = (products || []).find(function(x) { return String(x.product_id) === String(pid); });
+      const display = pid ? (pid + (pObj && pObj.name ? " — " + pObj.name : "")) : "";
       row.innerHTML =
         '<div class="field" style="margin-bottom:0.5rem"><label>Produk</label>' +
-        '<input class="ol-product" list="plProductList" placeholder="Kode / nama" value="' + esc(line && line.product_id ? productLabel(line.product_id) : "") + '" /></div>' +
+        '<input type="text" class="ol-product" placeholder="Ketik kode / nama produk..." value="' + esc(display) + '" autocomplete="off" /></div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.45rem;align-items:end">' +
         '<div class="field" style="margin:0"><label>Qty</label><input class="ol-qty" type="text" inputmode="decimal" value="' +
         (line ? formatInputNum(line.qty, true) : "") + '" /></div>' +
-        '<div class="field" style="margin:0"><label>Satuan</label><input class="ol-unit" value="' + esc((line && line.unit) || "pcs") + '" /></div>' +
+        '<div class="field" style="margin:0"><label>Satuan</label><input class="ol-unit" value="' + esc((line && line.unit) || (pObj && pObj.unit) || "pcs") + '" /></div>' +
         '<button type="button" class="btn btn-danger btn-sm ol-del" style="margin-bottom:2px">Hapus</button></div>';
       box.appendChild(row);
       row.querySelector(".ol-del").onclick = function() { row.remove(); };
       const qtyEl = row.querySelector(".ol-qty");
       if (qtyEl) bindThousandInput(qtyEl, true);
+      const prodInp = row.querySelector(".ol-product");
+      if (prodInp) {
+        // reset so attach can bind again
+        prodInp.dataset.scBound = "";
+        attachSearchCombo(prodInp, scItemsProduct, {
+          valueMode: "id",
+          placeholder: "Ketik kode / nama produk...",
+          onPick: function(id) {
+            const p = (products || []).find(function(x) { return String(x.product_id) === String(id); });
+            const u = row.querySelector(".ol-unit");
+            if (p && p.unit && u && !u.dataset.touched) u.value = p.unit;
+            if (prodInp) prodInp.value = id + (p && p.name ? " — " + p.name : "");
+          }
+        });
+      }
+      const unitInp = row.querySelector(".ol-unit");
+      if (unitInp) unitInp.addEventListener("input", function() { unitInp.dataset.touched = "1"; });
     }
 
     function openOrderModal(orderId) {
@@ -4104,48 +4146,65 @@
       fillOperatorList();
       return operators;
     }
-    function fillOperatorSelect(selId, hintId, selectedEmail) {
+        function fillOperatorSelect(selId, hintId, selectedEmail) {
       const sel = $(selId);
       const hint = hintId ? $(hintId) : null;
       if (!sel) return;
       const cur = selectedEmail != null ? selectedEmail : (sel.value || "");
+      if (sel.tagName === "INPUT") {
+        if (cur) {
+          const o = (operators || []).find(function(x) { return String(x.email).toLowerCase() === String(cur).toLowerCase(); });
+          sel.value = o ? ((o.name || "") + " — " + o.email) : cur;
+          sel.dataset.scId = cur;
+        } else {
+          sel.value = "";
+          sel.dataset.scId = "";
+        }
+        sel.dataset.scBound = "";
+        try {
+          attachSearchCombo(sel, scItemsOperator, {
+            valueMode: "id",
+            placeholder: "Ketik nama / email operator...",
+            onPick: function(id, label, input) {
+              const o = (operators || []).find(function(x) { return String(x.email) === String(id); });
+              if (input) input.value = o ? ((o.name || id) + " — " + id) : id;
+            }
+          });
+        } catch (e) {}
+        if (hint) {
+          hint.textContent = operators.length
+            ? (operators.length + " operator di master")
+            : "Belum ada operator di profiles (role operator)";
+        }
+        return;
+      }
       let opts = '<option value="">— Belum assign (draft) —</option>';
       if (!operators.length) {
         opts += '<option value="" disabled>Belum ada data operator di profiles</option>';
         if (hint) {
-          hint.textContent = "Tidak ada operator. Di Supabase → profiles, set role = operator dan active = true.";
-          hint.style.color = "#b45309";
+          hint.textContent = "Tidak ada operator. Di Data Akun set role = operator.";
         }
       } else {
-        opts += operators.map(o =>
-          '<option value="' + esc(o.email) + '">' +
-          esc((o.name || o.email) + " · " + (o.role || "user") + " · " + o.email) +
-          "</option>"
-        ).join("");
-        if (hint) {
-          hint.textContent = operators.length + " operator dari database";
-          hint.style.color = "";
-        }
+        operators.forEach(function(o) {
+          const em = o.email || "";
+          const nm = o.name || em;
+          opts += '<option value="' + esc(em) + '"' + (em === cur ? " selected" : "") + '>' + esc(nm + " · " + em) + '</option>';
+        });
+        if (hint) hint.textContent = operators.length + " operator";
       }
       sel.innerHTML = opts;
-      if (cur) {
-        sel.value = cur;
-        if (sel.value !== cur) {
-          const extra = document.createElement("option");
-          extra.value = cur;
-          extra.textContent = cur + " (tersimpan)";
-          sel.appendChild(extra);
-          sel.value = cur;
-        }
-      }
+      if (cur) sel.value = cur;
     }
-    function fillOperatorList(selectedEmail) {
+
+function fillOperatorList(selectedEmail) {
       fillOperatorSelect("plOperator", "plOperatorHint", selectedEmail);
       fillOperatorSelect("plSoOperator", "plSoOperatorHint", selectedEmail);
     }
     function resolveOperatorEmail(text) {
-      const t = String(text || "").trim();
+      let t = String(text || "").trim();
       if (!t) return "";
+      if (t.indexOf(" — ") >= 0) t = t.split(" — ").pop().trim();
+      if (t.indexOf(" · ") >= 0) t = t.split(" · ").pop().trim();
       const byEmail = operators.find(o => String(o.email).toLowerCase() === t.toLowerCase());
       if (byEmail) return byEmail.email;
       const byName = operators.find(o => String(o.name).toLowerCase() === t.toLowerCase());
@@ -4807,18 +4866,30 @@
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem">' +
         '<div class="field" style="margin:0"><label>Target</label><input class="pp-qty" type="text" inputmode="decimal" value="' + esc(target ? formatInputNum(target, true) : "") + '" /></div>' +
         '<div class="field" style="margin:0"><label>Satuan</label><input class="pp-unit" value="' + esc(unit || "pcs") + '" /></div></div>' +
-        '<div class="field" style="margin:0.45rem 0 0"><label>Operator</label><select class="pp-op"><option value="">— draft —</option></select></div>' +
+        '<div class="field" style="margin:0.45rem 0 0"><label>Operator</label><input type="text" class="pp-op pp-op-search" placeholder="Ketik operator..." autocomplete="off" /></div>' +
         '<button type="button" class="btn btn-danger btn-sm" style="margin-top:0.35rem" onclick="this.closest(\'.pp-step\').remove()">Hapus step</button></div>';
     }
     function fillPpOperatorSelects() {
-      document.querySelectorAll(".pp-op").forEach(function(sel) {
-        const cur = sel.value;
-        let opts = '<option value="">— draft —</option>';
-        (operators || []).forEach(function(o) {
-          opts += '<option value="' + esc(o.email) + '">' + esc((o.name || o.email)) + "</option>";
-        });
-        sel.innerHTML = opts;
-        if (cur) sel.value = cur;
+      document.querySelectorAll(".pp-op").forEach(function(el) {
+        if (el.tagName === "SELECT") {
+          let opts = '<option value="">— draft —</option>';
+          (operators || []).forEach(function(o) {
+            opts += '<option value="' + esc(o.email) + '">' + esc((o.name || "") + " · " + o.email) + '</option>';
+          });
+          el.innerHTML = opts;
+        } else {
+          el.dataset.scBound = "";
+          try {
+            attachSearchCombo(el, scItemsOperator, {
+              valueMode: "id",
+              placeholder: "Ketik operator...",
+              onPick: function(id, label, input) {
+                const o = (operators || []).find(function(x) { return String(x.email) === String(id); });
+                if (input) input.value = o ? ((o.name || id) + " — " + id) : id;
+              }
+            });
+          } catch (e) {}
+        }
       });
     }
     function addPpManualStep() {
@@ -4828,13 +4899,13 @@
       // machine free text row
       const wrap = document.createElement("div");
       wrap.innerHTML = '<div class="pp-step" style="border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.5rem">' +
-        '<div class="field"><label>Proses</label><input class="pp-machine-input" list="plMachineList" placeholder="Kode proses" /></div>' +
+        '<div class="field"><label>Proses</label><input class="pp-machine-input" placeholder="Kode proses" /></div>' +
         '<input type="hidden" class="pp-machine" value="" />' +
         '<input type="hidden" class="pp-stepno" value="' + n + '" />' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem">' +
         '<div class="field" style="margin:0"><label>Target</label><input class="pp-qty" type="text" inputmode="decimal" /></div>' +
         '<div class="field" style="margin:0"><label>Satuan</label><input class="pp-unit" value="pcs" /></div></div>' +
-        '<div class="field" style="margin:0.45rem 0 0"><label>Operator</label><select class="pp-op"><option value="">— draft —</option></select></div>' +
+        '<div class="field" style="margin:0.45rem 0 0"><label>Operator</label><input type="text" class="pp-op pp-op-search" placeholder="Ketik operator..." autocomplete="off" /></div>' +
         '<button type="button" class="btn btn-danger btn-sm" style="margin-top:0.35rem" onclick="this.closest(\'.pp-step\').remove()">Hapus</button></div>';
       box.appendChild(wrap.firstChild);
       fillPpOperatorSelects();
