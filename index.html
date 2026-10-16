@@ -1443,6 +1443,48 @@
     .po-combo-item .pid { font-weight: 700; }
     .po-combo-item .pname { color: var(--text-muted); font-size: 0.75rem; }
     .po-combo-empty { padding: 0.65rem; font-size: 0.8rem; color: var(--text-muted); }
+
+    /* Global searchable combo (semua role) */
+    .search-combo { position: relative; width: 100%; }
+    .search-combo input[type="text"],
+    .search-combo .search-combo-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem 0.7rem;
+      font-size: 0.9rem;
+      background: #fff;
+      box-sizing: border-box;
+    }
+    .search-combo input:focus {
+      outline: none;
+      border-color: var(--green-soft);
+      box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+    }
+    .search-combo-list {
+      display: none;
+      position: absolute;
+      left: 0; right: 0;
+      top: calc(100% + 4px);
+      max-height: 240px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 10px 28px rgba(15,40,30,0.14);
+      z-index: 80;
+    }
+    .search-combo-list.show { display: block; }
+    .search-combo-item {
+      padding: 0.55rem 0.75rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f4;
+    }
+    .search-combo-item:hover,
+    .search-combo-item.active { background: #ecfdf5; }
+    .search-combo-item .sc-id { font-weight: 700; font-size: 0.85rem; color: var(--text); }
+    .search-combo-item .sc-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .search-combo-empty { padding: 0.7rem; font-size: 0.82rem; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -2848,9 +2890,218 @@
       const rnd = Math.floor(Math.random() * 9000) + 1000;
       return "PLN-" + day + "-" + rnd;
     }
+    
+    // ===== Universal searchable combo (produk / proses / customer / operator / vendor) =====
+    function scItemsProduct() {
+      return (products || []).map(function(p) {
+        return {
+          id: p.product_id,
+          label: p.product_id,
+          sub: (p.name || "") + (p.category ? " · " + p.category : ""),
+          search: [p.product_id, p.name, p.category].join(" ")
+        };
+      });
+    }
+    function scItemsMachine() {
+      return (machines || []).map(function(m) {
+        return {
+          id: m.machine_id,
+          label: m.machine_id,
+          sub: m.name || "",
+          search: [m.machine_id, m.name].join(" ")
+        };
+      });
+    }
+    function scItemsCustomer() {
+      const fromMaster = (customers || []).map(function(c) {
+        const name = c.name || c.customer_name || "";
+        return { id: name, label: name, sub: c.phone || c.notes || "customer", search: name };
+      });
+      // also from orders
+      const seen = {};
+      fromMaster.forEach(function(x) { seen[String(x.id).toLowerCase()] = true; });
+      (window.__orderCustomers || []).forEach(function(name) {
+        if (!name || seen[String(name).toLowerCase()]) return;
+        fromMaster.push({ id: name, label: name, sub: "dari SO", search: name });
+      });
+      return fromMaster;
+    }
+    function scItemsOperator() {
+      return (operators || []).map(function(o) {
+        return {
+          id: o.email,
+          label: o.name || o.email,
+          sub: o.email,
+          search: [o.name, o.email].join(" ")
+        };
+      });
+    }
+    function scItemsSupplier() {
+      const seen = {};
+      const list = [];
+      function add(name) {
+        const k = String(name || "").trim();
+        if (!k || seen[k.toLowerCase()]) return;
+        seen[k.toLowerCase()] = true;
+        list.push({ id: k, label: k, sub: "supplier", search: k });
+      }
+      (poList || []).forEach(function(p) { add(p.supplier_name); });
+      (window.__suppliersExtra || []).forEach(add);
+      return list;
+    }
+    function attachSearchCombo(input, getItems, opts) {
+      if (!input || input.dataset.scBound === "1") return;
+      opts = opts || {};
+      input.dataset.scBound = "1";
+      input.setAttribute("autocomplete", "off");
+      if (!input.placeholder) input.placeholder = opts.placeholder || "Ketik untuk mencari...";
+
+      let wrap = input.closest(".search-combo");
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.className = "search-combo";
+        input.parentNode.insertBefore(wrap, input);
+        wrap.appendChild(input);
+      }
+      let list = wrap.querySelector(".search-combo-list");
+      if (!list) {
+        list = document.createElement("div");
+        list.className = "search-combo-list";
+        wrap.appendChild(list);
+      }
+
+      function filter(q) {
+        q = String(q || "").toLowerCase().trim();
+        let items = (typeof getItems === "function" ? getItems() : []) || [];
+        if (q) items = items.filter(function(it) {
+          return String(it.search || it.label || it.id).toLowerCase().indexOf(q) >= 0;
+        });
+        // sort: starts with first
+        items.sort(function(a, b) {
+          const as = String(a.id).toLowerCase().indexOf(q) === 0 ? 0 : 1;
+          const bs = String(b.id).toLowerCase().indexOf(q) === 0 ? 0 : 1;
+          if (as !== bs) return as - bs;
+          return String(a.id).localeCompare(String(b.id));
+        });
+        return items.slice(0, 50);
+      }
+      function render(q) {
+        const items = filter(q);
+        if (!items.length) {
+          list.innerHTML = '<div class="search-combo-empty">Tidak ada hasil' +
+            (opts.allowFree !== false ? " — Enter untuk pakai teks ini" : "") + "</div>";
+        } else {
+          list.innerHTML = items.map(function(it, i) {
+            return '<div class="search-combo-item' + (i === 0 ? " active" : "") + '" data-id="' + esc(it.id) + '" data-label="' + esc(it.label) + '">' +
+              '<div class="sc-id">' + esc(it.label) + '</div>' +
+              (it.sub ? '<div class="sc-sub">' + esc(it.sub) + '</div>' : '') +
+              '</div>';
+          }).join("");
+        }
+        list.classList.add("show");
+        list.querySelectorAll(".search-combo-item").forEach(function(el) {
+          el.onmousedown = function(e) {
+            e.preventDefault();
+            pick(el.getAttribute("data-id"), el.getAttribute("data-label"));
+          };
+        });
+      }
+      function pick(id, label) {
+        // value format: id (resolve* handles pure id) or "id — name"
+        if (opts.valueMode === "label") {
+          input.value = label || id || "";
+        } else if (opts.valueMode === "id-name" && label && label !== id) {
+          input.value = id + " — " + label;
+        } else {
+          input.value = id || label || "";
+        }
+        input.dataset.scId = id || "";
+        list.classList.remove("show");
+        if (typeof opts.onPick === "function") {
+          try { opts.onPick(id, label, input); } catch (e) {}
+        }
+        try {
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        } catch (e2) {}
+      }
+      input.addEventListener("focus", function() { render(input.value); });
+      input.addEventListener("input", function() { render(input.value); });
+      input.addEventListener("keydown", function(e) {
+        const items = list.querySelectorAll(".search-combo-item");
+        let idx = Array.prototype.findIndex.call(items, function(el) { return el.classList.contains("active"); });
+        if (e.key === "ArrowDown" && items.length) {
+          e.preventDefault();
+          idx = Math.min(items.length - 1, (idx < 0 ? -1 : idx) + 1);
+          items.forEach(function(el, i) { el.classList.toggle("active", i === idx); });
+          items[idx].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "ArrowUp" && items.length) {
+          e.preventDefault();
+          idx = Math.max(0, idx - 1);
+          items.forEach(function(el, i) { el.classList.toggle("active", i === idx); });
+          items[idx].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter") {
+          const act = list.querySelector(".search-combo-item.active") || items[0];
+          if (act && list.classList.contains("show")) {
+            e.preventDefault();
+            pick(act.getAttribute("data-id"), act.getAttribute("data-label"));
+          }
+        } else if (e.key === "Escape") {
+          list.classList.remove("show");
+        }
+      });
+      input.addEventListener("blur", function() {
+        setTimeout(function() { list.classList.remove("show"); }, 160);
+      });
+    }
+
+    function mountAllSearchCombos() {
+      // products
+      [
+        ["plProduct", scItemsProduct, { valueMode: "id", onPick: null }],
+        ["ppProduct", scItemsProduct, { valueMode: "id", onPick: function() { try { onPpProductChange(); } catch (e) {} } }],
+        ["bomFg", scItemsProduct, { valueMode: "id" }],
+        ["bomMat", scItemsProduct, { valueMode: "id" }],
+        ["hrProduct", scItemsProduct, { valueMode: "id" }],
+        ["waProduct", scItemsProduct, { valueMode: "id" }],
+        ["rtProduct", scItemsProduct, { valueMode: "id" }]
+      ].forEach(function(cfg) {
+        const el = $(cfg[0]);
+        if (el) attachSearchCombo(el, cfg[1], cfg[2] || {});
+      });
+      // machines / proses
+      [
+        ["plMachine", scItemsMachine, { valueMode: "id" }],
+        ["plSoMachine", scItemsMachine, { valueMode: "id" }],
+        ["hrMachine", scItemsMachine, { valueMode: "id" }],
+        ["waMachine", scItemsMachine, { valueMode: "id" }],
+        ["rtMachine", scItemsMachine, { valueMode: "id" }]
+      ].forEach(function(cfg) {
+        const el = $(cfg[0]);
+        if (el) attachSearchCombo(el, cfg[1], cfg[2] || {});
+      });
+      // customer
+      if ($("ordCustomer")) attachSearchCombo($("ordCustomer"), scItemsCustomer, { valueMode: "label", allowFree: true });
+      // supplier / vendor
+      if ($("poSupplier")) attachSearchCombo($("poSupplier"), scItemsSupplier, { valueMode: "label", allowFree: true, placeholder: "Ketik / pilih supplier..." });
+      // operator text fields if any
+      ["plOperator", "plSoOperator", "ppOperator"].forEach(function(id) {
+        const el = $(id);
+        if (el && el.tagName === "INPUT") {
+          attachSearchCombo(el, scItemsOperator, { valueMode: "id", placeholder: "Ketik nama / email operator..." });
+        }
+      });
+    }
+
+
     function resolveProductId(text) {
-      const t = String(text || "").trim();
+      let t = String(text || "").trim();
       if (!t) return "";
+      // "ID — name" from search combo
+      if (t.indexOf(" — ") >= 0) t = t.split(" — ")[0].trim();
+      if (t.indexOf(" - ") >= 0 && products.find(p => String(p.product_id).toLowerCase() === t.split(" - ")[0].trim().toLowerCase())) {
+        t = t.split(" - ")[0].trim();
+      }
       const byId = products.find(p => String(p.product_id).toLowerCase() === t.toLowerCase());
       if (byId) return byId.product_id;
       const byName = products.find(p => String(p.name).toLowerCase() === t.toLowerCase());
@@ -2862,8 +3113,9 @@
       return partial ? partial.product_id : t;
     }
     function resolveMachineId(text) {
-      const t = String(text || "").trim();
+      let t = String(text || "").trim();
       if (!t) return "";
+      if (t.indexOf(" — ") >= 0) t = t.split(" — ")[0].trim();
       const byId = machines.find(m => String(m.machine_id).toLowerCase() === t.toLowerCase());
       if (byId) return byId.machine_id;
       const byName = machines.find(m => String(m.name).toLowerCase() === t.toLowerCase());
@@ -3160,6 +3412,7 @@
       if (lines.length) lines.forEach(l => addOrderLineRow(l));
       else addOrderLineRow();
       $("orderModal").classList.add("show");
+      try { mountAllSearchCombos(); } catch (e) {}
       document.body.classList.add("modal-open");
       try { bindAllThousandInputs(); } catch (e) {}
     }
@@ -3365,6 +3618,7 @@
       fillOperatorList(row ? (row.assigned_operator || "") : "");
       $("planModal").classList.add("show");
       document.body.classList.add("modal-open");
+      try { mountAllSearchCombos(); } catch (e) {}
       try { bindAllThousandInputs(); } catch (e) {}
     }
     function closePlanModal() { $("planModal").classList.remove("show"); document.body.classList.remove("modal-open"); document.body.classList.remove("modal-open"); editingPlanId = null; }
@@ -4434,6 +4688,7 @@
       $("ppHint").textContent = "Pilih produk yang punya routes — step muncul otomatis.";
       $("planProductModal").classList.add("show");
       document.body.classList.add("modal-open");
+      try { mountAllSearchCombos(); } catch (e) {}
     }
     function closePlanProductModal() {
       $("planProductModal").classList.remove("show");
@@ -5402,6 +5657,7 @@
       ).join("");
       $("hourlyModal").classList.add("show");
       document.body.classList.add("modal-open");
+      try { mountAllSearchCombos(); } catch (e) {}
     }
     function closeHourlyModal() {
       $("hourlyModal").classList.remove("show");
@@ -5477,6 +5733,7 @@
       if ($("waMode")) $("waMode").value = "set";
       $("wipAdjustModal").classList.add("show");
       document.body.classList.add("modal-open");
+      try { mountAllSearchCombos(); } catch (e) {}
     }
     function closeWipAdjust() {
       $("wipAdjustModal").classList.remove("show");
@@ -5643,6 +5900,7 @@
       ).join("");
       $("bomModal").classList.add("show");
       document.body.classList.add("modal-open");
+      try { mountAllSearchCombos(); } catch (e) {}
     }
     function closeBomModal() {
       $("bomModal").classList.remove("show");
@@ -6021,6 +6279,7 @@
       }
       $("poModal").classList.add("show");
       document.body.classList.add("modal-open");
+      try { mountAllSearchCombos(); } catch (e) {}
     }
     function closePoModal() {
       $("poModal").classList.remove("show");
