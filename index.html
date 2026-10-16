@@ -1839,7 +1839,7 @@
           <div class="page-head">
             <div>
               <h1>Purchasing</h1>
-              <p>Purchase order bahan baku / kemas / penunjang. Status: draft → ordered → received.</p>
+              <p>Pembelian <strong>berdasarkan Sales Order</strong> customer. Pilih SO dulu, lalu isi bahan yang dibeli.</p>
             </div>
             <button class="btn btn-primary" type="button" onclick="openPoModal()">+ PO baru</button>
           </div>
@@ -1858,7 +1858,7 @@
           <div class="card" style="padding:0;overflow:hidden">
             <div class="table-wrap">
               <table>
-                <thead><tr><th>PO</th><th>Tanggal</th><th>Supplier</th><th>Status</th><th>Item</th><th></th></tr></thead>
+                <thead><tr><th>PO</th><th>No SO</th><th>Tanggal</th><th>Supplier</th><th>Status</th><th>Item</th><th></th></tr></thead>
                 <tbody id="poBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
@@ -2096,7 +2096,13 @@
       <div class="sheet-head"><h2 id="poModalTitle">PO baru</h2></div>
       <div class="sheet-body">
         <input type="hidden" id="poEditId" />
-        <div class="field"><label>Tanggal</label><input type="date" id="poDate" /></div>
+        <div class="field"><label>Sales Order (wajib)</label>
+          <select id="poSoSelect">
+            <option value="">— Pilih SO —</option>
+          </select>
+          <p id="poSoHint" style="font-size:0.75rem;color:var(--text-muted);margin:0.3rem 0 0"></p>
+        </div>
+        <div class="field"><label>Tanggal PO</label><input type="date" id="poDate" /></div>
         <div class="field"><label>Supplier</label><input id="poSupplier" placeholder="Nama supplier" /></div>
         <div class="field"><label>Status</label>
           <select id="poStatus">
@@ -5602,7 +5608,7 @@
       const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id)").order("po_date", { ascending: false }).limit(200);
       const body = $("poBody");
       if (error) {
-        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Jalankan batch4_purchasing.sql — ' + esc(error.message) + '</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Jalankan batch4_purchasing.sql + batch4b_po_by_so.sql — ' + esc(error.message) + '</td></tr>';
         poList = [];
         return;
       }
@@ -5618,16 +5624,19 @@
       if (st) list = list.filter(p => p.status === st);
       if (q) list = list.filter(p =>
         String(p.po_id).toLowerCase().includes(q) ||
-        String(p.supplier_name || "").toLowerCase().includes(q)
+        String(p.supplier_name || "").toLowerCase().includes(q) ||
+        String(p.no_so || "").toLowerCase().includes(q) ||
+        String(p.order_id || "").toLowerCase().includes(q)
       );
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada PO</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada PO</td></tr>';
         return;
       }
       body.innerHTML = list.map(p => {
         const n = (p.purchase_lines && p.purchase_lines.length) || 0;
         return '<tr>' +
           '<td class="mono"><strong>' + esc(p.po_id) + '</strong></td>' +
+          '<td>' + esc(p.no_so || p.order_id || "—") + '</td>' +
           '<td>' + esc(p.po_date) + '</td>' +
           '<td>' + esc(p.supplier_name || "—") + '</td>' +
           '<td><span class="badge">' + esc(p.status) + '</span></td>' +
@@ -5653,9 +5662,90 @@
       box.insertAdjacentHTML("beforeend", poLineHtml(line));
       box.querySelectorAll(".num-input").forEach(el => { try { bindThousandInput(el, true); } catch (e) {} });
     }
+    async function fillPoSoSelect(selectedId) {
+      const sel = $("poSoSelect");
+      if (!sel) return;
+      // load recent open/partial SO
+      let orders = [];
+      try {
+        const { data } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(100);
+        orders = data || [];
+      } catch (e) {}
+      sel.innerHTML = '<option value="">— Pilih SO —</option>';
+      orders.forEach(o => {
+        const st = String(o.status || "").toLowerCase();
+        if (st === "cancelled" || st === "done") return; // skip closed optional - allow done too for late buy
+        const opt = document.createElement("option");
+        opt.value = o.order_id;
+        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "") + " · " + (o.status || "");
+        opt.dataset.noso = o.no_so || "";
+        opt.dataset.customer = o.customer_name || "";
+        sel.appendChild(opt);
+      });
+      // also include done if needed
+      orders.filter(o => String(o.status).toLowerCase() === "done").slice(0, 20).forEach(o => {
+        if ([].some.call(sel.options, x => x.value === o.order_id)) return;
+        const opt = document.createElement("option");
+        opt.value = o.order_id;
+        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "") + " · done";
+        opt.dataset.noso = o.no_so || "";
+        sel.appendChild(opt);
+      });
+      if (selectedId) sel.value = selectedId;
+      sel.onchange = onPoSoChange;
+    }
+
+    async function onPoSoChange() {
+      const sel = $("poSoSelect");
+      if (!sel || !sel.value) {
+        if ($("poSoHint")) $("poSoHint").textContent = "";
+        return;
+      }
+      const opt = sel.options[sel.selectedIndex];
+      const noso = (opt && opt.dataset.noso) || "";
+      if ($("poSoHint")) $("poSoHint").textContent = "SO: " + (noso || sel.value) + " — bahan diisi dari BOM produk SO (bisa diedit).";
+      // only auto-fill lines when creating new PO (empty lines or single empty)
+      const box = $("poLines");
+      if (!box) return;
+      // fetch order lines
+      const { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty,unit)").eq("order_id", sel.value).maybeSingle();
+      if (!ord || !ord.order_lines || !ord.order_lines.length) {
+        if ($("poSoHint")) $("poSoHint").textContent += " SO tanpa baris produk.";
+        return;
+      }
+      if (!window.__bomRows || !window.__bomRows.length) {
+        try { await loadBom(true); } catch (e) {}
+      }
+      const materialMap = {}; // mat -> { qty, unit }
+      ord.order_lines.forEach(L => {
+        const fg = L.product_id;
+        const fgQty = Number(L.qty) || 0;
+        const boms = (window.__bomRows || []).filter(b => String(b.fg_product_id) === String(fg));
+        if (!boms.length) {
+          // no BOM: still suggest FG itself as purchase? skip FG finished goods usually
+          return;
+        }
+        boms.forEach(b => {
+          const mat = b.material_product_id;
+          const need = fgQty * (Number(b.qty_per_fg) || 0);
+          if (!materialMap[mat]) materialMap[mat] = { qty: 0, unit: b.unit || "gr" };
+          materialMap[mat].qty += need;
+          materialMap[mat].unit = b.unit || materialMap[mat].unit;
+        });
+      });
+      const mats = Object.keys(materialMap);
+      if (!mats.length) {
+        if ($("poSoHint")) $("poSoHint").textContent += " Tidak ada BOM untuk produk SO — tambah baris manual.";
+        return;
+      }
+      box.innerHTML = "";
+      mats.forEach(mat => {
+        addPoLine({ product_id: mat, qty: materialMap[mat].qty, unit: materialMap[mat].unit, qty_received: 0 });
+      });
+      if ($("poSoHint")) $("poSoHint").textContent = "SO " + (ord.no_so || ord.order_id) + " → " + mats.length + " bahan dari BOM (edit qty sesuai kebutuhan beli).";
+    }
+
     async function openPoModal(poId) {
-      const list = $("poProdList");
-      // ensure datalist
       let dl = document.getElementById("poProdList");
       if (!dl) {
         dl = document.createElement("datalist");
@@ -5668,12 +5758,14 @@
       $("poLines").innerHTML = "";
       if (!poId) {
         $("poEditId").value = "";
-        $("poModalTitle").textContent = "PO baru";
+        $("poModalTitle").textContent = "PO dari Sales Order";
         $("poDate").value = todayStr();
         $("poSupplier").value = "";
         $("poStatus").value = "draft";
         $("poNotes").value = "";
-        addPoLine();
+        await fillPoSoSelect("");
+        if ($("poSoHint")) $("poSoHint").textContent = "Pilih SO customer terlebih dahulu.";
+        // jangan addPoLine dulu — tunggu SO
       } else {
         $("poModalTitle").textContent = "Edit PO";
         $("poEditId").value = poId;
@@ -5683,6 +5775,9 @@
         $("poSupplier").value = po.supplier_name || "";
         $("poStatus").value = po.status || "draft";
         $("poNotes").value = po.notes || "";
+        await fillPoSoSelect(po.order_id || "");
+        if ($("poSoSelect")) $("poSoSelect").value = po.order_id || "";
+        if ($("poSoHint")) $("poSoHint").textContent = "SO: " + (po.no_so || po.order_id || "—");
         const { data: lines } = await sb.from("purchase_lines").select("*").eq("po_id", poId);
         if (lines && lines.length) lines.forEach(addPoLine);
         else addPoLine();
@@ -5696,11 +5791,17 @@
     }
     async function savePurchaseOrder() {
       if (!sb) return;
+      const order_id = ($("poSoSelect") && $("poSoSelect").value) || "";
+      if (!order_id) return toast("Pilih Sales Order dulu — pembelian harus by SO", true);
+      const soOpt = $("poSoSelect").options[$("poSoSelect").selectedIndex];
+      const no_so = (soOpt && soOpt.dataset.noso) || "";
       let po_id = ($("poEditId").value || "").trim();
       const isNew = !po_id;
       if (isNew) po_id = newPoId();
       const header = {
         po_id,
+        order_id,
+        no_so,
         po_date: $("poDate").value || todayStr(),
         supplier_name: ($("poSupplier").value || "").trim(),
         status: $("poStatus").value || "draft",
