@@ -3676,11 +3676,16 @@
     let routeEditSteps = []; // {step, machine_id, depends_on, qty_per_unit, notes}
 
     async function loadRoutes() {
-      if (!sb) return;
-      const { data, error } = await sb.from("product_routes").select("*").order("product_id").order("step");
-      if (error) { console.warn(error); return; }
-      routes = data || []; productRoutes = routes;
-      try { renderRouteProductTable(); } catch (e) {}
+      try {
+        routes = await fetchAllRows("product_routes", "product_id");
+      } catch (e) {
+        const { data, error } = await sb.from("product_routes").select("*");
+        if (error) throw error;
+        routes = data || [];
+      }
+      productRoutes = routes;
+      try { renderRouteProductTable(); } catch (e2) {}
+      try { fillRouteProductSelect(); } catch (e3) {}
     }
 
     function routeStepCount(productId) {
@@ -4149,21 +4154,41 @@
     }
 
 
+    
+    /** Ambil semua baris (Supabase default max 1000 per request) */
+    async function fetchAllRows(table, orderCol, selectCols) {
+      selectCols = selectCols || "*";
+      const pageSize = 1000;
+      let from = 0;
+      let all = [];
+      for (;;) {
+        let q = sb.from(table).select(selectCols).range(from, from + pageSize - 1);
+        if (orderCol) q = q.order(orderCol);
+        const { data, error } = await q;
+        if (error) throw error;
+        const batch = data || [];
+        all = all.concat(batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+        // safety cap
+        if (from > 100000) break;
+      }
+      return all;
+    }
+
     async function loadProducts() {
-      const { data, error } = await sb.from("products").select("*").order("product_id");
-      if (error) throw error;
-      products = data || [];
+      products = await fetchAllRows("products", "product_id");
       renderProducts();
       $("kpiProducts").textContent = formatNum(products.length);
       try { fillPlanDatalists(); } catch (e) {}
       try { fillRouteProductSelect(); } catch (e) {}
       try { renderRouteProductTable(); } catch (e3) {}
+      try { mountAllSearchCombos(); } catch (e4) {}
     }
     async function loadMachines() {
-      const { data, error } = await sb.from("machines").select("*").order("machine_id");
-      if (error) throw error;
-      machines = data || [];
+      machines = await fetchAllRows("machines", "machine_id");
       renderMachines();
+      try { mountAllSearchCombos(); } catch (e) {}
     }
 
     function renderProducts() {
@@ -5838,7 +5863,8 @@
     let bomRows = [];
     async function loadBom(silent) {
       if (!sb) return;
-      const { data, error } = await sb.from("product_bom").select("*").order("fg_product_id").limit(1000);
+      let data, error;
+      try { data = await fetchAllRows("product_bom", "fg_product_id"); error = null; } catch (e) { data = null; error = e; }
       if (error) {
         if (!silent) {
           const body = $("bomBody");
