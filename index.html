@@ -1327,6 +1327,82 @@
     }
     .ops-table td.day-cell[draggable="true"] { cursor: grab; }
     .ops-table td.day-cell.ops-dragging { opacity: 0.55; }
+
+    /* Purchasing lines */
+    .po-lines-head {
+      display: grid;
+      grid-template-columns: 1.4fr 0.7fr 0.55fr 0.7fr 36px;
+      gap: 0.4rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.35rem;
+      padding: 0 0.15rem;
+    }
+    .po-line-card {
+      display: grid;
+      grid-template-columns: 1.4fr 0.7fr 0.55fr 0.7fr 36px;
+      gap: 0.4rem;
+      align-items: center;
+      margin-bottom: 0.45rem;
+      padding: 0.5rem;
+      background: #f8faf9;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .po-line-card input,
+    .po-line-card select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.85rem;
+      background: #fff;
+      min-width: 0;
+    }
+    .po-line-card input:focus,
+    .po-line-card select:focus {
+      outline: none;
+      border-color: var(--green-soft);
+      box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+    }
+    .po-line-card .po-del {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #b91c1c;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .po-line-card .po-del:hover { background: #fef2f2; }
+    @media (max-width: 560px) {
+      .po-lines-head { display: none; }
+      .po-line-card {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "prod prod"
+          "qty unit"
+          "recv del";
+      }
+      .po-line-card .pol-pid { grid-area: prod; }
+      .po-line-card .pol-qty { grid-area: qty; }
+      .po-line-card .pol-unit { grid-area: unit; }
+      .po-line-card .pol-recv { grid-area: recv; }
+      .po-line-card .po-del { grid-area: del; justify-self: end; }
+    }
+
+    #poSoSelect {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem 0.7rem;
+      font-size: 0.9rem;
+      background: #fff;
+    }
   </style>
 </head>
 <body>
@@ -2091,7 +2167,7 @@
   
   
   <div id="poModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:560px">
+    <div class="modal modal-sheet" style="max-width:640px">
       <div class="sheet-handle"></div>
       <div class="sheet-head"><h2 id="poModalTitle">PO baru</h2></div>
       <div class="sheet-body">
@@ -2114,8 +2190,11 @@
           </select>
         </div>
         <div class="field"><label>Catatan</label><input id="poNotes" /></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.75rem 0 0.35rem">
-          <strong style="font-size:0.85rem">Baris produk</strong>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:1rem 0 0.5rem">
+          <div>
+            <strong style="font-size:0.9rem">Baris bahan</strong>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Dari master produk · auto dari BOM SO</div>
+          </div>
           <button type="button" class="btn btn-ghost btn-sm" onclick="addPoLine()">+ Baris</button>
         </div>
         <div id="poLines"></div>
@@ -5647,20 +5726,58 @@
         btn.onclick = function() { openPoModal(btn.getAttribute("data-poid")); };
       });
     }
+    function buildPoProductOptions(selectedId) {
+      const list = (products || []).slice().sort(function(a, b) {
+        return String(a.product_id).localeCompare(String(b.product_id));
+      });
+      let html = '<option value="">— Pilih produk —</option>';
+      list.forEach(function(p) {
+        const id = p.product_id || "";
+        const label = id + (p.name ? " — " + p.name : "");
+        const cat = p.category ? " [" + p.category + "]" : "";
+        html += '<option value="' + esc(id) + '"' + (String(id) === String(selectedId || "") ? " selected" : "") + '>' +
+          esc(label + cat) + '</option>';
+      });
+      return html;
+    }
     function poLineHtml(line) {
       line = line || {};
-      return '<div class="po-line" style="display:grid;grid-template-columns:1.2fr 90px 70px 90px;gap:0.35rem;margin-bottom:0.4rem">' +
-        '<input class="pol-pid" list="poProdList" placeholder="product_id" value="' + esc(line.product_id || "") + '" />' +
-        '<input class="pol-qty num-input" inputmode="decimal" placeholder="qty" value="' + (line.qty != null ? formatInputNum(line.qty, true) : "") + '" />' +
-        '<input class="pol-unit" value="' + esc(line.unit || "pcs") + '" />' +
-        '<input class="pol-recv num-input" inputmode="decimal" placeholder="terima" value="' + (line.qty_received != null ? formatInputNum(line.qty_received, true) : "0") + '" />' +
+      const qtyVal = line.qty != null && line.qty !== "" ? formatInputNum(line.qty, true) : "";
+      const recvVal = line.qty_received != null && line.qty_received !== "" ? formatInputNum(line.qty_received, true) : "0";
+      return '<div class="po-line po-line-card">' +
+        '<select class="pol-pid">' + buildPoProductOptions(line.product_id) + '</select>' +
+        '<input class="pol-qty num-input" inputmode="decimal" placeholder="Qty" value="' + qtyVal + '" />' +
+        '<input class="pol-unit" placeholder="Satuan" value="' + esc(line.unit || "pcs") + '" />' +
+        '<input class="pol-recv num-input" inputmode="decimal" placeholder="Diterima" value="' + recvVal + '" />' +
+        '<button type="button" class="po-del" title="Hapus baris">×</button>' +
         '</div>';
     }
     function addPoLine(line) {
       const box = $("poLines");
       if (!box) return;
+      // header once
+      if (!box.querySelector(".po-lines-head") && !box.children.length) {
+        box.insertAdjacentHTML("afterbegin",
+          '<div class="po-lines-head"><span>Produk (master)</span><span>Qty</span><span>Satuan</span><span>Diterima</span><span></span></div>');
+      }
       box.insertAdjacentHTML("beforeend", poLineHtml(line));
-      box.querySelectorAll(".num-input").forEach(el => { try { bindThousandInput(el, true); } catch (e) {} });
+      const card = box.querySelector(".po-line-card:last-of-type");
+      if (card) {
+        card.querySelectorAll(".num-input").forEach(function(el) { try { bindThousandInput(el, true); } catch (e) {} });
+        const del = card.querySelector(".po-del");
+        if (del) del.onclick = function() { card.remove(); };
+        const sel = card.querySelector(".pol-pid");
+        if (sel) {
+          sel.onchange = function() {
+            const p = (products || []).find(x => String(x.product_id) === String(sel.value));
+            if (p && p.unit && card.querySelector(".pol-unit") && !card.querySelector(".pol-unit").dataset.touched) {
+              card.querySelector(".pol-unit").value = p.unit || "pcs";
+            }
+          };
+        }
+        const unitInp = card.querySelector(".pol-unit");
+        if (unitInp) unitInp.addEventListener("input", function() { unitInp.dataset.touched = "1"; });
+      }
     }
     async function fillPoSoSelect(selectedId) {
       const sel = $("poSoSelect");
