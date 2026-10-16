@@ -1346,15 +1346,15 @@
         </div>
       </form>
       <form id="forgotForm" style="display:none" onsubmit="return false;">
-        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Masukkan email akun. Kode PIN 6 digit akan dikirim ke email (cek juga folder spam).</p>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Masukkan email akun. Link reset password akan dikirim ke email Anda (cek juga folder spam).</p>
         <div class="field"><label>Email</label><input id="forgotEmail" type="email" placeholder="nama@perusahaan.com" autocomplete="username" /></div>
-        <button class="btn-login" id="btnForgot" type="submit">Kirim kode PIN</button>
+        <button class="btn-login" id="btnForgot" type="submit">Kirim link reset</button>
         <div class="auth-links"><button type="button" id="btnForgotBack">← Kembali ke login</button></div>
       </form>
       <form id="resetForm" style="display:none" onsubmit="return false;">
-        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Masukkan kode PIN dari email, lalu buat password baru.</p>
-        <div class="field"><label>Email</label><input id="resetEmail" type="email" placeholder="nama@perusahaan.com" autocomplete="username" /></div>
-        <div class="field"><label>Kode PIN (6 digit)</label><input id="resetPin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="123456" autocomplete="one-time-code" /></div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem">Link dari email sudah diverifikasi. Buat password baru di bawah (min. 6 karakter).</p>
+        <div class="field" style="display:none"><label>Email</label><input id="resetEmail" type="email" autocomplete="username" /></div>
+        <div class="field" style="display:none"><label>Kode PIN</label><input id="resetPin" type="text" maxlength="8" autocomplete="one-time-code" /></div>
         <div class="field"><label>Password baru</label>
           <div class="pwd-wrap">
             <input id="resetPassword" type="password" autocomplete="new-password" placeholder="••••••••" />
@@ -1365,9 +1365,9 @@
             <input id="resetPassword2" type="password" autocomplete="new-password" placeholder="••••••••" />
           </div>
         </div>
-        <button class="btn-login" id="btnReset" type="submit">Verifikasi & simpan password</button>
+        <button class="btn-login" id="btnReset" type="submit">Simpan password baru</button>
         <div class="auth-links">
-          <button type="button" id="btnResendPin">Kirim ulang PIN</button>
+          <button type="button" id="btnResendPin">Kirim ulang link</button>
           <span style="color:var(--border);margin:0 0.35rem">·</span>
           <button type="button" id="btnResetBack">← Kembali ke login</button>
         </div>
@@ -2259,11 +2259,10 @@
       try {
         await sendResetPin(email);
         if ($("resetEmail")) $("resetEmail").value = email;
-        if ($("resetPin")) $("resetPin").value = "";
-        setAuthMode("reset");
-        showMsg("Kode PIN sudah dikirim ke " + email + ". Cek inbox & spam.", false);
+        showMsg("Link reset sudah dikirim ke " + email + ". Buka email Anda, lalu klik link Reset password. Form password baru akan muncul otomatis.", false);
+        // tetap di form forgot — user harus klik link di email
       } catch (e) {
-        showMsg(e.message || "Gagal mengirim kode PIN", true);
+        showMsg(e.message || "Gagal mengirim link reset", true);
       } finally {
         $("btnForgot").disabled = false;
       }
@@ -2275,7 +2274,7 @@
       if (!email) return showMsg("Isi email dulu", true);
       try {
         await sendResetPin(email);
-        showMsg("Kode PIN dikirim ulang ke " + email, false);
+        showMsg("Link reset dikirim ulang ke " + email, false);
       } catch (e) {
         showMsg(e.message || "Gagal kirim ulang", true);
       }
@@ -2296,7 +2295,7 @@
         const hasSession = !!(sess.data && sess.data.session);
         if (!hasSession) {
           if (!email) return showMsg("Email wajib diisi", true);
-          if (!token || token.length < 6) return showMsg("Masukkan kode PIN dari email", true);
+          if (!token || token.length < 6) return showMsg("Buka link dari email dulu, atau minta link baru", true);
           const { error } = await sb.auth.verifyOtp({
             email: email,
             token: token,
@@ -5576,9 +5575,9 @@
       setAuthMode("reset");
       // link recovery: PIN optional (session already verified)
       if ($("resetPin")) {
-        $("resetPin").placeholder = "Opsional jika sudah lewat link email";
+        $("resetPin").placeholder = "";
       }
-      showMsg(msg || "Link valid. Isi password baru lalu simpan. (PIN tidak wajib jika masuk lewat link.)", false);
+      showMsg(msg || "Link berhasil. Buat password baru di bawah.", false);
     }
 
     (async () => {
@@ -5594,7 +5593,7 @@
         const expired = String(err).indexOf("expired") >= 0 || String(errDesc).toLowerCase().indexOf("expired") >= 0;
         showMsg(
           expired
-            ? "Link reset sudah kadaluarsa. Kirim ulang kode/link dari form ini."
+            ? "Link reset sudah kadaluarsa. Kirim ulang link reset dari form ini."
             : ("Link reset gagal: " + decodeURIComponent(errDesc || err).replace(/\+/g, " ")),
           true
         );
