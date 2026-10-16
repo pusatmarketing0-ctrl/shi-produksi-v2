@@ -1403,6 +1403,46 @@
       font-size: 0.9rem;
       background: #fff;
     }
+
+    .po-combo { position: relative; min-width: 0; }
+    .po-combo-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.85rem;
+      background: #fff;
+    }
+    .po-combo-input:focus {
+      outline: none;
+      border-color: var(--green-soft);
+      box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+    }
+    .po-combo-list {
+      display: none;
+      position: absolute;
+      left: 0; right: 0;
+      top: calc(100% + 4px);
+      max-height: 220px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(15, 40, 30, 0.12);
+      z-index: 50;
+    }
+    .po-combo-list.show { display: block; }
+    .po-combo-item {
+      padding: 0.5rem 0.65rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f4;
+    }
+    .po-combo-item:hover,
+    .po-combo-item.active { background: #ecfdf5; color: var(--green); }
+    .po-combo-item .pid { font-weight: 700; }
+    .po-combo-item .pname { color: var(--text-muted); font-size: 0.75rem; }
+    .po-combo-empty { padding: 0.65rem; font-size: 0.8rem; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -5726,39 +5766,127 @@
         btn.onclick = function() { openPoModal(btn.getAttribute("data-poid")); };
       });
     }
-    function buildPoProductOptions(selectedId) {
-      const list = (products || []).slice().sort(function(a, b) {
+    function productSearchLabel(p) {
+      if (!p) return "";
+      return (p.product_id || "") + (p.name ? " — " + p.name : "") + (p.category ? " · " + p.category : "");
+    }
+    function filterProductsQuery(q) {
+      q = String(q || "").toLowerCase().trim();
+      let list = (products || []).slice();
+      if (q) {
+        list = list.filter(function(p) {
+          const blob = [p.product_id, p.name, p.category].join(" ").toLowerCase();
+          return blob.indexOf(q) >= 0;
+        });
+      }
+      list.sort(function(a, b) {
         return String(a.product_id).localeCompare(String(b.product_id));
       });
-      let html = '<option value="">— Pilih produk —</option>';
-      list.forEach(function(p) {
-        const id = p.product_id || "";
-        const label = id + (p.name ? " — " + p.name : "");
-        const cat = p.category ? " [" + p.category + "]" : "";
-        html += '<option value="' + esc(id) + '"' + (String(id) === String(selectedId || "") ? " selected" : "") + '>' +
-          esc(label + cat) + '</option>';
-      });
-      return html;
+      return list.slice(0, 40);
     }
     function poLineHtml(line) {
       line = line || {};
+      const pid = line.product_id || "";
+      const p = (products || []).find(x => String(x.product_id) === String(pid));
+      const display = p ? productSearchLabel(p) : pid;
       const qtyVal = line.qty != null && line.qty !== "" ? formatInputNum(line.qty, true) : "";
       const recvVal = line.qty_received != null && line.qty_received !== "" ? formatInputNum(line.qty_received, true) : "0";
       return '<div class="po-line po-line-card">' +
-        '<select class="pol-pid">' + buildPoProductOptions(line.product_id) + '</select>' +
+        '<div class="po-combo">' +
+          '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
+          '<input type="text" class="po-combo-input" placeholder="Ketik kode / nama produk..." value="' + esc(display) + '" autocomplete="off" />' +
+          '<div class="po-combo-list"></div>' +
+        '</div>' +
         '<input class="pol-qty num-input" inputmode="decimal" placeholder="Qty" value="' + qtyVal + '" />' +
-        '<input class="pol-unit" placeholder="Satuan" value="' + esc(line.unit || "pcs") + '" />' +
+        '<input class="pol-unit" placeholder="Satuan" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" />' +
         '<input class="pol-recv num-input" inputmode="decimal" placeholder="Diterima" value="' + recvVal + '" />' +
         '<button type="button" class="po-del" title="Hapus baris">×</button>' +
         '</div>';
     }
+    function bindPoProductCombo(card) {
+      if (!card) return;
+      const combo = card.querySelector(".po-combo");
+      if (!combo) return;
+      const hidden = combo.querySelector(".pol-pid");
+      const input = combo.querySelector(".po-combo-input");
+      const list = combo.querySelector(".po-combo-list");
+      if (!hidden || !input || !list) return;
+
+      function renderList(q) {
+        const items = filterProductsQuery(q);
+        if (!items.length) {
+          list.innerHTML = '<div class="po-combo-empty">Tidak ada produk cocok</div>';
+        } else {
+          list.innerHTML = items.map(function(p, i) {
+            return '<div class="po-combo-item' + (i === 0 ? " active" : "") + '" data-id="' + esc(p.product_id) + '">' +
+              '<div class="pid">' + esc(p.product_id) + '</div>' +
+              '<div class="pname">' + esc(p.name || "") + (p.category ? " · " + esc(p.category) : "") + '</div></div>';
+          }).join("");
+        }
+        list.classList.add("show");
+        list.querySelectorAll(".po-combo-item").forEach(function(item) {
+          item.onmousedown = function(e) {
+            e.preventDefault();
+            pick(item.getAttribute("data-id"));
+          };
+        });
+      }
+      function pick(id) {
+        const p = (products || []).find(x => String(x.product_id) === String(id));
+        hidden.value = id || "";
+        input.value = p ? productSearchLabel(p) : (id || "");
+        list.classList.remove("show");
+        if (p && p.unit) {
+          const u = card.querySelector(".pol-unit");
+          if (u && !u.dataset.touched) u.value = p.unit;
+        }
+      }
+      input.addEventListener("focus", function() {
+        renderList(input.value);
+      });
+      input.addEventListener("input", function() {
+        // typing = search; clear hidden until pick
+        hidden.value = "";
+        renderList(input.value);
+      });
+      input.addEventListener("keydown", function(e) {
+        const items = list.querySelectorAll(".po-combo-item");
+        if (!items.length) return;
+        let idx = Array.prototype.findIndex.call(items, function(el) { return el.classList.contains("active"); });
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          idx = Math.min(items.length - 1, idx + 1);
+          items.forEach(function(el, i) { el.classList.toggle("active", i === idx); });
+          items[idx].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          idx = Math.max(0, idx - 1);
+          items.forEach(function(el, i) { el.classList.toggle("active", i === idx); });
+          items[idx].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          const act = list.querySelector(".po-combo-item.active") || items[0];
+          if (act) pick(act.getAttribute("data-id"));
+        } else if (e.key === "Escape") {
+          list.classList.remove("show");
+        }
+      });
+      input.addEventListener("blur", function() {
+        setTimeout(function() { list.classList.remove("show"); }, 150);
+        // if exact id typed
+        if (!hidden.value && input.value.trim()) {
+          const q = input.value.trim();
+          const exact = (products || []).find(x => String(x.product_id).toLowerCase() === q.toLowerCase());
+          if (exact) pick(exact.product_id);
+        }
+      });
+    }
     function addPoLine(line) {
       const box = $("poLines");
       if (!box) return;
-      // header once
-      if (!box.querySelector(".po-lines-head") && !box.children.length) {
+      if (!box.querySelector(".po-lines-head") && !box.querySelector(".po-line-card")) {
         box.insertAdjacentHTML("afterbegin",
-          '<div class="po-lines-head"><span>Produk (master)</span><span>Qty</span><span>Satuan</span><span>Diterima</span><span></span></div>');
+          '<div class="po-lines-head"><span>Produk (ketik cari)</span><span>Qty</span><span>Satuan</span><span>Diterima</span><span></span></div>');
       }
       box.insertAdjacentHTML("beforeend", poLineHtml(line));
       const card = box.querySelector(".po-line-card:last-of-type");
@@ -5766,15 +5894,7 @@
         card.querySelectorAll(".num-input").forEach(function(el) { try { bindThousandInput(el, true); } catch (e) {} });
         const del = card.querySelector(".po-del");
         if (del) del.onclick = function() { card.remove(); };
-        const sel = card.querySelector(".pol-pid");
-        if (sel) {
-          sel.onchange = function() {
-            const p = (products || []).find(x => String(x.product_id) === String(sel.value));
-            if (p && p.unit && card.querySelector(".pol-unit") && !card.querySelector(".pol-unit").dataset.touched) {
-              card.querySelector(".pol-unit").value = p.unit || "pcs";
-            }
-          };
-        }
+        bindPoProductCombo(card);
         const unitInp = card.querySelector(".pol-unit");
         if (unitInp) unitInp.addEventListener("input", function() { unitInp.dataset.touched = "1"; });
       }
