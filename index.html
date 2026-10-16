@@ -1413,6 +1413,8 @@
         <button class="nav-item" data-page="reports" data-roles="admin,ppic,korlap,operator" data-tip="Laporan"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 5-6"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></span><span class="nav-txt"> Laporan</span></button>
         <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap" data-tip="Sales Order"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M7 7h13l-1.5 9H8.5L7 7z"/><path d="M7 7L6 4H3"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/><path d="M10 11h7"/></svg></span><span class="nav-txt"> Sales Order</span></button>
         <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap" data-tip="Marketing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 19V9l7-5 7 5v10"/><path d="M9 19v-5h4v5"/><path d="M4 19h14"/></svg></span><span class="nav-txt"> Marketing</span></button>
+        <button class="nav-item" data-page="korlap" data-roles="admin,ppic,korlap" data-tip="Monitor jam"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="nav-txt"> Monitor jam</span></button>
+        <button class="nav-item" data-page="wip" data-roles="admin,ppic,korlap" data-tip="Stok WIP"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M8 7V5h8v2M12 11v4"/></svg></span><span class="nav-txt"> Stok WIP</span></button>
         <button class="nav-item" data-page="absences" data-roles="admin,ppic,korlap,operator" data-tip="Cuti / Ijin"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 19c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/><path d="M16 4l3 3M19 4l-3 3"/></svg></span><span class="nav-txt"> Cuti / Ijin</span></button>
         <button class="nav-item" data-page="ranking" data-roles="admin,ppic,korlap" data-tip="Ranking OP"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 20V12M12 20V6M18 20v-8"/><path d="M4 20h16"/></svg></span><span class="nav-txt"> Ranking OP</span></button>
         <div class="nav-label" data-nav-group="master">Master data</div>
@@ -1821,6 +1823,71 @@
           </div>
         </section>
 
+        
+        <section id="page-korlap" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Monitor produksi (per jam)</h1>
+              <p>Korlap input actual kumulatif per jam · per proses. Cocok untuk pantau shift berjalan.</p>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+              <input type="date" id="klDate" />
+              <select id="klShift" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+                <option value="1">Shift 1</option>
+                <option value="2">Shift 2</option>
+                <option value="3">Shift 3</option>
+              </select>
+              <button class="btn btn-ghost" type="button" onclick="loadKorlapHourly()">Refresh</button>
+              <button class="btn btn-primary" type="button" onclick="openHourlyModal()">+ Input jam</button>
+            </div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Jam</th><th>Produk</th><th>Proses</th><th>Plan</th><th>Actual jam ini</th><th>Catatan</th><th>Oleh</th>
+                  </tr>
+                </thead>
+                <tbody id="klBody"><tr><td colspan="7" class="empty">Pilih tanggal</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">
+            Jalankan SQL <code>batch2_hourly_wip.sql</code> di Supabase sekali agar tabel hourly_reports tersedia.
+          </p>
+        </section>
+
+        <section id="page-wip" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Stok WIP</h1>
+              <p>Saldo work-in-process per produk & proses. Bertambah dari laporan OP, berkurang saat step berikutnya pakai.</p>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" onclick="loadWipStock()">Refresh</button>
+              <button class="btn btn-primary" type="button" onclick="openWipAdjust()">Sesuaikan stok</button>
+            </div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Produk</th><th>Proses</th><th>Qty</th><th>Satuan</th><th>Update</th><th></th></tr></thead>
+                <tbody id="wipBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card" style="margin-top:1rem">
+            <h3 style="font-size:0.9rem;margin:0 0 0.5rem">Riwayat pemakaian WIP (terbaru)</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Waktu</th><th>Produk</th><th>Proses</th><th>Qty pakai</th><th>Plan</th></tr></thead>
+                <tbody id="wipUsageBody"><tr><td colspan="5" class="empty">—</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <section id="page-ranking" class="page" hidden>
           <div class="page-head">
             <div><h1>Ranking operator</h1><p>Berdasarkan actual vs target adj laporan.</p></div>
@@ -1955,6 +2022,52 @@
   
   
   
+  
+  <div id="hourlyModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:440px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Input laporan per jam</h2></div>
+      <div class="sheet-body">
+        <div class="field"><label>Tanggal</label><input type="date" id="hrDate" /></div>
+        <div class="field"><label>Jam (0–23)</label><input type="number" id="hrHour" min="0" max="23" value="8" /></div>
+        <div class="field"><label>Shift</label>
+          <select id="hrShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+        </div>
+        <div class="field"><label>Produk (kode)</label><input id="hrProduct" placeholder="FG001" list="hrProductList" /></div>
+        <datalist id="hrProductList"></datalist>
+        <div class="field"><label>Proses / mesin</label><input id="hrMachine" placeholder="M03" list="hrMachineList" /></div>
+        <datalist id="hrMachineList"></datalist>
+        <div class="field"><label>Plan ID (opsional)</label><input id="hrPlanId" placeholder="PLN-..." /></div>
+        <div class="field"><label>Actual qty (jam ini)</label><input id="hrActual" class="num-input" inputmode="decimal" placeholder="0" /></div>
+        <div class="field"><label>Catatan</label><input id="hrNotes" placeholder="opsional" /></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeHourlyModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="saveHourlyReport()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="wipAdjustModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:420px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Sesuaikan stok WIP</h2></div>
+      <div class="sheet-body">
+        <div class="field"><label>Produk</label><input id="waProduct" placeholder="FG001" /></div>
+        <div class="field"><label>Proses / mesin</label><input id="waMachine" placeholder="M03" /></div>
+        <div class="field"><label>Qty (saldo baru atau delta)</label><input id="waQty" class="num-input" inputmode="decimal" /></div>
+        <div class="field"><label>Mode</label>
+          <select id="waMode"><option value="set">Set saldo</option><option value="add">Tambah</option><option value="sub">Kurangi</option></select>
+        </div>
+        <div class="field"><label>Satuan</label><input id="waUnit" value="pcs" /></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeWipAdjust()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="saveWipAdjust()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
   <div id="korlapAssignModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:720px">
       <div class="sheet-handle"></div>
@@ -3026,6 +3139,10 @@
       const machine_id = resolveMachineId($("plMachine").value);
       const target_qty = parseInputNum($("plTarget").value);
       const unit = ($("plUnit").value || "pcs").trim();
+      try {
+        const warn = await checkRouteStockBeforePlan(product_id, machine_id, target_qty);
+        if (warn && !confirm(warn + "\n\nLanjut simpan plan?")) return;
+      } catch (eC) {}
       let assigned_operator = resolveOperatorEmail($("plOperator").value || "");
       let status = $("plStatus").value || "open";
       if (!plan_date || !product_id || !machine_id) return toast("Tanggal, produk, proses wajib", true);
@@ -3061,7 +3178,7 @@
       if (!sb) return;
       const { data, error } = await sb.from("product_routes").select("*").order("product_id").order("step");
       if (error) { console.warn(error); return; }
-      routes = data || [];
+      routes = data || []; productRoutes = routes;
       try { renderRouteProductTable(); } catch (e) {}
     }
 
@@ -4049,6 +4166,7 @@
         } catch (e) {}
       }
       toast(report_id ? "Laporan diperbarui" : "Laporan disimpan");
+      try { await applyWipFromReport(plan, report_id, actual_qty); } catch (eW) {}
       closeReportModal();
       await loadReportsPage();
       try { if (currentRole() === "operator") loadOperatorHome(); } catch (e) {}
@@ -4903,6 +5021,230 @@
     }
 
     
+    
+    // ===== Batch 2: Korlap hourly + WIP =====
+    async function loadKorlapHourly() {
+      if (!sb) return;
+      const d = ($("klDate") && $("klDate").value) || todayStr();
+      if ($("klDate") && !$("klDate").value) $("klDate").value = d;
+      const shift = ($("klShift") && $("klShift").value) || "";
+      let q = sb.from("hourly_reports").select("*").eq("report_date", d).order("hour_slot").limit(500);
+      const { data, error } = await q;
+      const body = $("klBody");
+      if (!body) return;
+      if (error) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">Tabel hourly_reports belum ada. Jalankan batch2_hourly_wip.sql — ' + esc(error.message) + '</td></tr>';
+        return;
+      }
+      let rows = data || [];
+      if (shift) rows = rows.filter(r => String(r.shift) === String(shift));
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada input jam untuk tanggal ini</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(r =>
+        '<tr>' +
+        '<td><strong>' + String(r.hour_slot).padStart(2, "0") + ':00</strong></td>' +
+        '<td>' + esc(r.product_id) + '</td>' +
+        '<td>' + esc(r.machine_id) + '</td>' +
+        '<td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "—") + '</td>' +
+        '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
+        '<td>' + esc(r.notes || "") + '</td>' +
+        '<td style="font-size:0.75rem">' + esc(r.created_by || "") + '</td></tr>'
+      ).join("");
+    }
+    function openHourlyModal() {
+      if ($("hrDate")) $("hrDate").value = ($("klDate") && $("klDate").value) || todayStr();
+      if ($("hrShift")) $("hrShift").value = ($("klShift") && $("klShift").value) || "1";
+      if ($("hrHour")) {
+        const h = new Date().getHours();
+        $("hrHour").value = h;
+      }
+      // datalists
+      const pl = $("hrProductList");
+      if (pl) pl.innerHTML = (products || []).slice(0, 400).map(p =>
+        '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>'
+      ).join("");
+      const ml = $("hrMachineList");
+      if (ml) ml.innerHTML = (machines || []).map(m =>
+        '<option value="' + esc(m.machine_id) + '">' + esc(m.name || "") + '</option>'
+      ).join("");
+      $("hourlyModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closeHourlyModal() {
+      $("hourlyModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+    async function saveHourlyReport() {
+      if (!sb) return;
+      const report_date = ($("hrDate") && $("hrDate").value) || todayStr();
+      const hour_slot = Number(($("hrHour") && $("hrHour").value) || 0);
+      const shift = ($("hrShift") && $("hrShift").value) || "1";
+      const product_id = (($("hrProduct") && $("hrProduct").value) || "").trim();
+      const machine_id = (($("hrMachine") && $("hrMachine").value) || "").trim();
+      const plan_id = (($("hrPlanId") && $("hrPlanId").value) || "").trim();
+      const actual_qty = parseInputNum(($("hrActual") && $("hrActual").value) || 0);
+      const notes = (($("hrNotes") && $("hrNotes").value) || "").trim();
+      if (!product_id || !machine_id) return toast("Produk & proses wajib", true);
+      const { error } = await sb.from("hourly_reports").insert({
+        report_date, hour_slot, shift, product_id, machine_id, plan_id,
+        actual_qty, notes, created_by: (currentUser && currentUser.email) || ""
+      });
+      if (error) return toast(error.message + " — pastikan SQL batch2 sudah dijalankan", true);
+      toast("Laporan jam disimpan");
+      closeHourlyModal();
+      if ($("klDate")) $("klDate").value = report_date;
+      await loadKorlapHourly();
+    }
+
+    async function loadWipStock() {
+      if (!sb) return;
+      const body = $("wipBody");
+      const { data, error } = await sb.from("wip_stock").select("*").order("product_id").limit(500);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Jalankan batch2_hourly_wip.sql — ' + esc(error.message) + '</td></tr>';
+      } else {
+        const rows = data || [];
+        if (!rows.length) {
+          if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada saldo WIP. Akan terisi otomatis saat laporan OP / penyesuaian manual.</td></tr>';
+        } else if (body) {
+          body.innerHTML = rows.map(r =>
+            '<tr style="cursor:pointer" data-wp="' + esc(r.product_id) + '" data-wm="' + esc(r.machine_id || "") + '">' +
+            '<td><strong>' + esc(r.product_id) + '</strong></td>' +
+            '<td>' + esc(r.machine_id || "—") + '</td>' +
+            '<td><strong>' + formatNum(r.qty) + '</strong></td>' +
+            '<td>' + esc(r.unit || "pcs") + '</td>' +
+            '<td style="font-size:0.75rem">' + esc(String(r.updated_at || "").replace("T", " ").slice(0, 16)) + '</td>' +
+            '<td><button type="button" class="btn btn-sm btn-ghost" data-adj="' + esc(r.product_id) + '|' + esc(r.machine_id || "") + '">Edit</button></td></tr>'
+          ).join("");
+          body.querySelectorAll("[data-adj]").forEach(btn => {
+            btn.onclick = function(e) {
+              e.stopPropagation();
+              const parts = (btn.getAttribute("data-adj") || "").split("|");
+              openWipAdjust(parts[0], parts[1]);
+            };
+          });
+        }
+      }
+      const { data: usage } = await sb.from("wip_usage").select("*").order("created_at", { ascending: false }).limit(30);
+      const ub = $("wipUsageBody");
+      if (ub) {
+        const u = usage || [];
+        if (!u.length) ub.innerHTML = '<tr><td colspan="5" class="empty">Belum ada pemakaian</td></tr>';
+        else ub.innerHTML = u.map(r =>
+          '<tr><td style="font-size:0.75rem">' + esc(String(r.created_at || "").replace("T", " ").slice(0, 16)) +
+          '</td><td>' + esc(r.product_id) + '</td><td>' + esc(r.machine_id) +
+          '</td><td>' + formatNum(r.qty_used) + '</td><td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "") + '</td></tr>'
+        ).join("");
+      }
+    }
+    function openWipAdjust(pid, mid) {
+      if ($("waProduct")) $("waProduct").value = pid || "";
+      if ($("waMachine")) $("waMachine").value = mid || "";
+      if ($("waQty")) $("waQty").value = "";
+      if ($("waMode")) $("waMode").value = "set";
+      $("wipAdjustModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closeWipAdjust() {
+      $("wipAdjustModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+    async function saveWipAdjust() {
+      if (!sb) return;
+      const product_id = (($("waProduct") && $("waProduct").value) || "").trim();
+      const machine_id = (($("waMachine") && $("waMachine").value) || "").trim();
+      const qtyIn = parseInputNum(($("waQty") && $("waQty").value) || 0);
+      const mode = ($("waMode") && $("waMode").value) || "set";
+      const unit = (($("waUnit") && $("waUnit").value) || "pcs").trim();
+      if (!product_id) return toast("Produk wajib", true);
+      let qty = qtyIn;
+      if (mode !== "set") {
+        const { data: cur } = await sb.from("wip_stock").select("qty").eq("product_id", product_id).eq("machine_id", machine_id).maybeSingle();
+        const base = cur ? Number(cur.qty) || 0 : 0;
+        qty = mode === "add" ? base + qtyIn : base - qtyIn;
+      }
+      const { error } = await sb.from("wip_stock").upsert({
+        product_id, machine_id, qty, unit, updated_at: new Date().toISOString()
+      }, { onConflict: "product_id,machine_id" });
+      if (error) return toast(error.message, true);
+      toast("Stok WIP disimpan");
+      closeWipAdjust();
+      await loadWipStock();
+    }
+
+    /** Setelah laporan OP: tambah WIP di proses ini + kurangi WIP step sebelumnya (jika ada depends_on) */
+    async function applyWipFromReport(plan, report_id, actual_qty) {
+      if (!sb || !plan || !(actual_qty > 0)) return;
+      const product_id = plan.product_id;
+      const machine_id = plan.machine_id;
+      try {
+        // 1) credit WIP current process
+        const { data: cur } = await sb.from("wip_stock").select("qty,unit").eq("product_id", product_id).eq("machine_id", machine_id).maybeSingle();
+        const nextQty = (cur ? Number(cur.qty) || 0 : 0) + actual_qty;
+        await sb.from("wip_stock").upsert({
+          product_id, machine_id, qty: nextQty, unit: plan.unit || (cur && cur.unit) || "pcs",
+          updated_at: new Date().toISOString()
+        }, { onConflict: "product_id,machine_id" });
+
+        // 2) find route step + depends_on
+        const routes = (productRoutes || routesCache || []).filter(r => String(r.product_id) === String(product_id));
+        const step = routes.find(r => String(r.machine_id) === String(machine_id));
+        if (!step) return;
+        const dep = String(step.depends_on || "").trim();
+        if (!dep) return;
+        // depends_on can be step number or machine_id
+        let prevMachine = dep;
+        if (/^\\d+$/.test(dep)) {
+          const prev = routes.find(r => String(r.step) === dep);
+          if (prev) prevMachine = prev.machine_id;
+        }
+        const ratio = Number(step.qty_per_unit) || 0;
+        const used = ratio > 0 ? actual_qty * ratio : actual_qty;
+        const { data: prev } = await sb.from("wip_stock").select("qty").eq("product_id", product_id).eq("machine_id", prevMachine).maybeSingle();
+        const prevQty = prev ? Number(prev.qty) || 0 : 0;
+        const after = Math.max(0, prevQty - used);
+        await sb.from("wip_stock").upsert({
+          product_id, machine_id: prevMachine, qty: after, unit: plan.unit || "pcs",
+          updated_at: new Date().toISOString()
+        }, { onConflict: "product_id,machine_id" });
+        await sb.from("wip_usage").insert({
+          plan_id: plan.plan_id, report_id: report_id || "", product_id, machine_id: prevMachine, qty_used: used
+        });
+        if (prevQty < used) {
+          toast("Peringatan WIP: stok proses sebelumnya kurang (perlu " + formatNum(used) + ", ada " + formatNum(prevQty) + ")", true);
+        }
+      } catch (e) {
+        console.warn("WIP", e);
+      }
+    }
+
+    /** Cek stok step sebelumnya sebelum buat plan */
+    async function checkRouteStockBeforePlan(product_id, machine_id, target_qty) {
+      try {
+        const routes = (productRoutes || []).filter(r => String(r.product_id) === String(product_id));
+        const step = routes.find(r => String(r.machine_id) === String(machine_id));
+        if (!step) return null;
+        const dep = String(step.depends_on || "").trim();
+        if (!dep) return null;
+        let prevMachine = dep;
+        if (/^\\d+$/.test(dep)) {
+          const prev = routes.find(r => String(r.step) === dep);
+          if (prev) prevMachine = prev.machine_id;
+        }
+        const ratio = Number(step.qty_per_unit) || 0;
+        const need = ratio > 0 ? Number(target_qty) * ratio : Number(target_qty);
+        const { data: prev } = await sb.from("wip_stock").select("qty").eq("product_id", product_id).eq("machine_id", prevMachine).maybeSingle();
+        const have = prev ? Number(prev.qty) || 0 : 0;
+        if (need > have) {
+          return "Stok WIP proses sebelumnya (" + prevMachine + ") " + formatNum(have) + " < kebutuhan " + formatNum(need);
+        }
+      } catch (e) {}
+      return null;
+    }
+
+
     function openKorlapAssign() {
       if ($("kaDate") && !$("kaDate").value) $("kaDate").value = todayStr();
       if ($("korlapAssignModal")) {
@@ -5671,6 +6013,8 @@
       if (page === "products") { try { renderProducts(); } catch (e) {} }
       if (page === "machines") { try { renderMachines(); } catch (e) {} }
       if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
+      if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
+      if (page === "wip") { try { loadWipStock(); } catch (e) {} }
     }
 
     function applyUserChip() {
