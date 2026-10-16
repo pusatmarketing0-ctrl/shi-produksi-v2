@@ -1320,6 +1320,13 @@
       stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
     }
 
+
+    .ops-table td.day-cell.ops-drag-over {
+      outline: 2px dashed var(--green);
+      background: rgba(22, 163, 74, 0.12) !important;
+    }
+    .ops-table td.day-cell[draggable="true"] { cursor: grab; }
+    .ops-table td.day-cell.ops-dragging { opacity: 0.55; }
   </style>
 </head>
 <body>
@@ -1420,6 +1427,7 @@
         <div class="nav-label" data-nav-group="master">Master data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/></svg></span><span class="nav-txt"> Produk</span></button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span class="nav-txt"> Proses</span></button>
+        <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-3 3.5-4.5 6-4.5S13.8 16 15 19"/><circle cx="17" cy="9" r="2.5"/><path d="M17 13.5c2 0 3.8 1.2 4.5 3.5"/></svg></span><span class="nav-txt"> Data Akun</span></button>
@@ -1826,6 +1834,38 @@
 
         
         
+        
+        <section id="page-purchasing" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Purchasing</h1>
+              <p>Purchase order bahan baku / kemas / penunjang. Status: draft → ordered → received.</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="openPoModal()">+ PO baru</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="poSearch" placeholder="Cari PO / supplier..." oninput="renderPurchaseOrders()" />
+            <select id="poStatusFilter" onchange="renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua status</option>
+              <option value="draft">draft</option>
+              <option value="ordered">ordered</option>
+              <option value="partial">partial</option>
+              <option value="received">received</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseOrders()">Refresh</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>PO</th><th>Tanggal</th><th>Supplier</th><th>Status</th><th>Item</th><th></th></tr></thead>
+                <tbody id="poBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">SQL: <code>batch4_purchasing.sql</code></p>
+        </section>
+
         <section id="page-bom" class="page" hidden>
           <div class="page-head">
             <div>
@@ -2049,6 +2089,38 @@
   
   
   
+  
+  <div id="poModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:560px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2 id="poModalTitle">PO baru</h2></div>
+      <div class="sheet-body">
+        <input type="hidden" id="poEditId" />
+        <div class="field"><label>Tanggal</label><input type="date" id="poDate" /></div>
+        <div class="field"><label>Supplier</label><input id="poSupplier" placeholder="Nama supplier" /></div>
+        <div class="field"><label>Status</label>
+          <select id="poStatus">
+            <option value="draft">draft</option>
+            <option value="ordered">ordered</option>
+            <option value="partial">partial</option>
+            <option value="received">received</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+        </div>
+        <div class="field"><label>Catatan</label><input id="poNotes" /></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.75rem 0 0.35rem">
+          <strong style="font-size:0.85rem">Baris produk</strong>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addPoLine()">+ Baris</button>
+        </div>
+        <div id="poLines"></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closePoModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="savePurchaseOrder()">Simpan PO</button>
+      </div>
+    </div>
+  </div>
+
   <div id="bomModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:440px">
       <div class="sheet-handle"></div>
@@ -5120,6 +5192,7 @@
         });
       });
       table.innerHTML = head + body + '</tbody>';
+      try { bindOpsDragDrop(table); } catch (eD) {}
       // click plan cell -> edit first plan that day
       table.querySelectorAll("td.day-cell[data-day]").forEach(td => {
         td.onclick = function() {
@@ -5488,6 +5561,15 @@
           .on("postgres_changes", { event: "*", schema: "public", table: "hourly_reports" }, function() {
             try { if (!$("page-korlap").hidden) loadKorlapHourly(); } catch (e) {}
           })
+          .on("postgres_changes", { event: "*", schema: "public", table: "purchase_orders" }, function() {
+            try { if (!$("page-purchasing").hidden) loadPurchaseOrders(); } catch (e) {}
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "wip_stock" }, function() {
+            try { if (!$("page-wip").hidden) loadWipStock(); } catch (e) {}
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "absences" }, function() {
+            try { if (!$("page-absences").hidden) loadAbsences(); } catch (e) {}
+          })
           .subscribe(function(status) {
             console.info("realtime", status);
           });
@@ -5505,6 +5587,203 @@
       if (error) return toast(error.message, true);
       toast("Plan dipindah ke " + newDate);
       try { await loadPlans(); await loadOperasional(); } catch (e) {}
+    }
+
+
+    
+    // ===== Batch 4: Purchasing + drag-drop plan =====
+    let poList = [];
+    function newPoId() {
+      const d = todayStr().replace(/-/g, "");
+      return "PO-" + d + "-" + String(Math.floor(Math.random() * 9000) + 1000);
+    }
+    async function loadPurchaseOrders() {
+      if (!sb) return;
+      const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id)").order("po_date", { ascending: false }).limit(200);
+      const body = $("poBody");
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Jalankan batch4_purchasing.sql — ' + esc(error.message) + '</td></tr>';
+        poList = [];
+        return;
+      }
+      poList = data || [];
+      renderPurchaseOrders();
+    }
+    function renderPurchaseOrders() {
+      const body = $("poBody");
+      if (!body) return;
+      const q = (($("poSearch") && $("poSearch").value) || "").toLowerCase().trim();
+      const st = ($("poStatusFilter") && $("poStatusFilter").value) || "";
+      let list = poList.slice();
+      if (st) list = list.filter(p => p.status === st);
+      if (q) list = list.filter(p =>
+        String(p.po_id).toLowerCase().includes(q) ||
+        String(p.supplier_name || "").toLowerCase().includes(q)
+      );
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada PO</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(p => {
+        const n = (p.purchase_lines && p.purchase_lines.length) || 0;
+        return '<tr>' +
+          '<td class="mono"><strong>' + esc(p.po_id) + '</strong></td>' +
+          '<td>' + esc(p.po_date) + '</td>' +
+          '<td>' + esc(p.supplier_name || "—") + '</td>' +
+          '<td><span class="badge">' + esc(p.status) + '</span></td>' +
+          '<td>' + n + '</td>' +
+          '<td><button type="button" class="btn btn-sm btn-primary" data-poid="' + esc(p.po_id) + '">Edit</button></td></tr>';
+      }).join("");
+      body.querySelectorAll("[data-poid]").forEach(btn => {
+        btn.onclick = function() { openPoModal(btn.getAttribute("data-poid")); };
+      });
+    }
+    function poLineHtml(line) {
+      line = line || {};
+      return '<div class="po-line" style="display:grid;grid-template-columns:1.2fr 90px 70px 90px;gap:0.35rem;margin-bottom:0.4rem">' +
+        '<input class="pol-pid" list="poProdList" placeholder="product_id" value="' + esc(line.product_id || "") + '" />' +
+        '<input class="pol-qty num-input" inputmode="decimal" placeholder="qty" value="' + (line.qty != null ? formatInputNum(line.qty, true) : "") + '" />' +
+        '<input class="pol-unit" value="' + esc(line.unit || "pcs") + '" />' +
+        '<input class="pol-recv num-input" inputmode="decimal" placeholder="terima" value="' + (line.qty_received != null ? formatInputNum(line.qty_received, true) : "0") + '" />' +
+        '</div>';
+    }
+    function addPoLine(line) {
+      const box = $("poLines");
+      if (!box) return;
+      box.insertAdjacentHTML("beforeend", poLineHtml(line));
+      box.querySelectorAll(".num-input").forEach(el => { try { bindThousandInput(el, true); } catch (e) {} });
+    }
+    async function openPoModal(poId) {
+      const list = $("poProdList");
+      // ensure datalist
+      let dl = document.getElementById("poProdList");
+      if (!dl) {
+        dl = document.createElement("datalist");
+        dl.id = "poProdList";
+        document.body.appendChild(dl);
+      }
+      dl.innerHTML = (products || []).slice(0, 500).map(p =>
+        '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>'
+      ).join("");
+      $("poLines").innerHTML = "";
+      if (!poId) {
+        $("poEditId").value = "";
+        $("poModalTitle").textContent = "PO baru";
+        $("poDate").value = todayStr();
+        $("poSupplier").value = "";
+        $("poStatus").value = "draft";
+        $("poNotes").value = "";
+        addPoLine();
+      } else {
+        $("poModalTitle").textContent = "Edit PO";
+        $("poEditId").value = poId;
+        const { data: po, error } = await sb.from("purchase_orders").select("*").eq("po_id", poId).maybeSingle();
+        if (error || !po) return toast((error && error.message) || "PO tidak ditemukan", true);
+        $("poDate").value = po.po_date || todayStr();
+        $("poSupplier").value = po.supplier_name || "";
+        $("poStatus").value = po.status || "draft";
+        $("poNotes").value = po.notes || "";
+        const { data: lines } = await sb.from("purchase_lines").select("*").eq("po_id", poId);
+        if (lines && lines.length) lines.forEach(addPoLine);
+        else addPoLine();
+      }
+      $("poModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closePoModal() {
+      $("poModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+    async function savePurchaseOrder() {
+      if (!sb) return;
+      let po_id = ($("poEditId").value || "").trim();
+      const isNew = !po_id;
+      if (isNew) po_id = newPoId();
+      const header = {
+        po_id,
+        po_date: $("poDate").value || todayStr(),
+        supplier_name: ($("poSupplier").value || "").trim(),
+        status: $("poStatus").value || "draft",
+        notes: ($("poNotes").value || "").trim(),
+        updated_at: new Date().toISOString()
+      };
+      if (isNew) {
+        header.created_by = (currentUser && currentUser.email) || "";
+        header.created_at = new Date().toISOString();
+      }
+      const lines = [];
+      document.querySelectorAll("#poLines .po-line").forEach(el => {
+        const product_id = resolveProductId((el.querySelector(".pol-pid").value || "").trim()) || (el.querySelector(".pol-pid").value || "").trim();
+        const qty = parseInputNum(el.querySelector(".pol-qty").value);
+        const unit = (el.querySelector(".pol-unit").value || "pcs").trim();
+        const qty_received = parseInputNum(el.querySelector(".pol-recv").value);
+        if (product_id && qty > 0) lines.push({ po_id, product_id, qty, unit, qty_received });
+      });
+      if (!lines.length) return toast("Minimal 1 baris produk dengan qty > 0", true);
+      let error;
+      if (isNew) {
+        ({ error } = await sb.from("purchase_orders").insert(header));
+      } else {
+        ({ error } = await sb.from("purchase_orders").update(header).eq("po_id", po_id));
+        await sb.from("purchase_lines").delete().eq("po_id", po_id);
+      }
+      if (error) return toast(error.message, true);
+      const { error: e2 } = await sb.from("purchase_lines").insert(lines);
+      if (e2) return toast(e2.message, true);
+      toast(isNew ? "PO dibuat" : "PO diperbarui");
+      closePoModal();
+      await loadPurchaseOrders();
+    }
+
+    // Drag-drop: pindah plan antar tanggal di grid operasional
+    function bindOpsDragDrop(table) {
+      if (!table) return;
+      table.querySelectorAll("td.day-cell[data-day][data-gkey]").forEach(td => {
+        const day = td.getAttribute("data-day");
+        const gkey = decodeURIComponent(td.getAttribute("data-gkey") || "");
+        const g = (opsRows || []).find(x => (x.product_id + "||" + (x.no_so || x.order_id || "")) === gkey);
+        const hasPlan = g && g.planIdsByDay && g.planIdsByDay[day] && g.planIdsByDay[day].length;
+        if (hasPlan) {
+          td.setAttribute("draggable", "true");
+          td.ondragstart = function(ev) {
+            td.classList.add("ops-dragging");
+            const ids = g.planIdsByDay[day];
+            ev.dataTransfer.setData("text/plain", JSON.stringify({
+              planIds: ids,
+              fromDay: day,
+              gkey: gkey
+            }));
+            ev.dataTransfer.effectAllowed = "move";
+          };
+          td.ondragend = function() { td.classList.remove("ops-dragging"); };
+        }
+        // drop target: any day cell for same product row ideally, or any day
+        td.ondragover = function(ev) {
+          ev.preventDefault();
+          td.classList.add("ops-drag-over");
+        };
+        td.ondragleave = function() { td.classList.remove("ops-drag-over"); };
+        td.ondrop = async function(ev) {
+          ev.preventDefault();
+          td.classList.remove("ops-drag-over");
+          let payload = null;
+          try { payload = JSON.parse(ev.dataTransfer.getData("text/plain") || "{}"); } catch (e) {}
+          if (!payload || !payload.planIds || !payload.planIds.length) return;
+          const toDay = td.getAttribute("data-day");
+          if (!toDay || toDay === payload.fromDay) return;
+          if (!confirm("Pindah " + payload.planIds.length + " plan ke " + toDay + "?")) return;
+          let ok = 0, fail = 0;
+          for (const pid of payload.planIds) {
+            const { error } = await sb.from("plans").update({
+              plan_date: toDay,
+              updated_at: new Date().toISOString()
+            }).eq("plan_id", pid);
+            if (error) fail++; else ok++;
+          }
+          toast(ok + " plan dipindah" + (fail ? ", " + fail + " gagal" : ""));
+          try { await loadOperasional(); } catch (e) {}
+        };
+      });
     }
 
 
@@ -6293,6 +6572,7 @@
       if (page === "products") { try { renderProducts(); } catch (e) {} }
       if (page === "machines") { try { renderMachines(); } catch (e) {} }
       if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
+      if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
       if (page === "bom") { try { loadBom(); } catch (e) {} }
       if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
       if (page === "wip") { try { loadWipStock(); } catch (e) {} }
