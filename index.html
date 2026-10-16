@@ -1644,6 +1644,7 @@
               <input type="file" accept=".csv,.txt" hidden onchange="importPlansFile(this)" />
             </label>
             <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanPaste()">Tempel Excel</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="openKorlapAssign()" data-roles="admin,ppic,korlap">Assign OP (Korlap)</button>
           </div>
           <div id="planCards" class="mobile-cards mobile-only"></div>
           <div class="table-wrap desk-only-table">
@@ -1951,6 +1952,60 @@
 
   
   
+  
+  
+  
+  <div id="korlapAssignModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:720px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Assign operator (Korlap)</h2></div>
+      <div class="sheet-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
+          Pilih tanggal. Plan berstatus <strong>draft / open tanpa operator</strong> bisa diisi operator massal.
+          Format tempel: <code>plan_id &#9; email_operator</code> atau isi dropdown per baris.
+        </p>
+        <div class="toolbar">
+          <input type="date" id="kaDate" />
+          <button class="btn btn-ghost btn-sm" type="button" onclick="loadKorlapAssign()">Muat plan</button>
+        </div>
+        <div class="table-wrap" style="max-height:360px;overflow:auto">
+          <table>
+            <thead><tr><th>Plan</th><th>Produk</th><th>Proses</th><th>Shift</th><th>Target</th><th>Operator</th></tr></thead>
+            <tbody id="kaBody"><tr><td colspan="6" class="empty">Pilih tanggal</td></tr></tbody>
+          </table>
+        </div>
+        <div class="field" style="margin-top:0.75rem">
+          <label>Atau tempel massal (plan_id TAB email)</label>
+          <textarea id="kaPaste" rows="4" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.65rem;font-family:monospace;font-size:0.8rem" placeholder="PLN-...&#9;operator@email.com"></textarea>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeKorlapAssign()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="saveKorlapAssign()">Simpan assign</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="opsPlanPickerModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:480px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Pilih plan</h2></div>
+      <div class="sheet-body" id="opsPlanPickerBody"></div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeOpsPlanPicker()">Tutup</button>
+      </div>
+    </div>
+  </div>
+  <div id="rankDetailModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:440px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Detail ranking</h2></div>
+      <div class="sheet-body" id="rankDetailBody"></div>
+      <div class="sheet-foot">
+        <button class="btn btn-primary" type="button" onclick="closeRankDetail()">Tutup</button>
+      </div>
+    </div>
+  </div>
   <div id="accountModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:440px">
       <div class="sheet-handle"></div>
@@ -2057,7 +2112,7 @@
       <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem">
         Tempel dari Excel — kolom: <b>tanggal | shift | produk | proses | target | satuan | operator | status | no_so</b>
       </p>
-      <textarea id="planMassArea" rows="12" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.75rem;font-family:ui-monospace,monospace;font-size:0.8rem;outline:none;resize:vertical" placeholder="2026-10-14&#9;1&#9;FG001&#9;M03&#9;5000&#9;pcs"></textarea>
+      <textarea id="planMassArea" rows="12" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.75rem;font-family:ui-monospace,monospace;font-size:0.8rem;outline:none;resize:vertical" placeholder="tanggal&#9;shift&#9;product_id&#9;machine_id&#9;target&#9;unit&#9;no_so&#9;operator_email"></textarea>
       <div class="modal-actions">
         <button class="btn btn-ghost" type="button" onclick="closePlanMassModal()">Batal</button>
         <button class="btn btn-primary" type="button" id="btnSavePlanMass">Import plan</button>
@@ -4115,6 +4170,22 @@
 
     // ===== Absences =====
     let absenceRows = [];
+    async function showAbsenceImpact(email, dateStr) {
+      if (!sb || !email || !dateStr) return;
+      const { data } = await sb.from("plans").select("plan_id,product_id,machine_id,shift,target_qty,status")
+        .eq("plan_date", dateStr).eq("assigned_operator", email).limit(50);
+      const open = (data || []).filter(p => ["open","draft","in_progress"].indexOf(String(p.status||"").toLowerCase()) >= 0);
+      if (!open.length) return;
+      const msg = open.length + " plan aktif terdampak:\n" + open.slice(0, 8).map(p =>
+        p.plan_id + " · " + p.product_id + " · shift " + p.shift
+      ).join("\n") + (open.length > 8 ? "\n…" : "");
+      toast("Cuti tersimpan. " + open.length + " plan perlu dicek PPIC/Korlap", false);
+      try { console.info(msg); } catch (e) {}
+      if ($("absImpact")) {
+        $("absImpact").style.display = "block";
+        $("absImpact").textContent = msg;
+      }
+    }
     function openAbsenceModal() {
       $("absDate").value = todayStr();
       $("absType").value = "ijin";
@@ -4254,11 +4325,56 @@
         body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada data di rentang tanggal</td></tr>';
         return;
       }
+      // resolve names from operators cache / profiles
+      const nameOf = (em) => {
+        const o = (operators || []).find(x => String(x.email).toLowerCase() === String(em).toLowerCase());
+        if (o && o.name) return o.name;
+        return em;
+      };
+      list.forEach(x => { x.name = nameOf(x.email); });
+      window.__rankList = list;
+      window.__rankRange = { from: from, to: to };
       body.innerHTML = list.map((x, i) =>
-        '<tr><td><strong>' + (i + 1) + '</strong></td><td>' + esc(x.email) + '</td><td>' + formatNum(x.n) +
-        '</td><td>' + formatNum(x.actual) + '</td><td>' + formatNum(x.target) + '</td><td><strong>' +
-        formatNum(x.pct, 1) + '%</strong></td><td>' + x.grade.icon + ' ' + esc(x.grade.name) + '</td></tr>'
+        '<tr class="rank-row" data-rank-i="' + i + '" style="cursor:pointer">' +
+        '<td><strong>' + (i + 1) + '</strong></td>' +
+        '<td><strong>' + esc(x.name) + '</strong><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(x.email) + '</div></td>' +
+        '<td>' + formatNum(x.n) + '</td><td>' + formatNum(x.actual) + '</td><td>' + formatNum(x.target) +
+        '</td><td><strong>' + formatNum(x.pct, 1) + '%</strong></td>' +
+        '<td><span class="grade-pill grade-' + esc(x.grade.name.toLowerCase()) + '">' + x.grade.icon + ' ' + esc(x.grade.name) + '</span></td></tr>'
       ).join("");
+      body.querySelectorAll(".rank-row").forEach(tr => {
+        tr.onclick = function() {
+          const i = Number(tr.getAttribute("data-rank-i"));
+          openRankDetail(window.__rankList[i]);
+        };
+      });
+    }
+
+    function openRankDetail(x) {
+      if (!x) return;
+      const range = window.__rankRange || {};
+      const html =
+        '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">' +
+        '<div style="font-size:2rem">' + (x.grade && x.grade.icon ? x.grade.icon : "⭐") + '</div>' +
+        '<div><strong style="font-size:1.1rem">' + esc(x.name || x.email) + '</strong>' +
+        '<div style="font-size:0.8rem;color:var(--text-muted)">' + esc(x.email) + '</div>' +
+        '<div style="margin-top:0.25rem"><span class="grade-pill">' + esc((x.grade && x.grade.name) || "") + '</span></div></div></div>' +
+        '<div class="kpi-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">' +
+        '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Periode</div><strong>' + esc(range.from || "") + ' → ' + esc(range.to || "") + '</strong></div>' +
+        '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Pencapaian</div><strong style="font-size:1.2rem">' + formatNum(x.pct, 1) + '%</strong></div>' +
+        '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Jumlah laporan</div><strong>' + formatNum(x.n) + '</strong></div>' +
+        '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Actual / Target adj</div><strong>' + formatNum(x.actual) + ' / ' + formatNum(x.target) + '</strong></div>' +
+        '</div>' +
+        '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">Grade: 95%+ Pionir · 90–94% Penggerak · 80–89% Pejuang · &lt;80% Tunas</p>';
+      if ($("rankDetailBody")) $("rankDetailBody").innerHTML = html;
+      if ($("rankDetailModal")) {
+        $("rankDetailModal").classList.add("show");
+        document.body.classList.add("modal-open");
+      }
+    }
+    function closeRankDetail() {
+      if ($("rankDetailModal")) $("rankDetailModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
     }
 
     // ===== Marketing =====
@@ -4759,12 +4875,147 @@
           const day = td.getAttribute("data-day");
           const gkey = decodeURIComponent(td.getAttribute("data-gkey") || "");
           const g = opsRows.find(x => (x.product_id + "||" + (x.no_so || x.order_id || "")) === gkey);
-          if (!g || !g.planIdsByDay[day] || !g.planIdsByDay[day].length) return;
-          const pid = g.planIdsByDay[day][0];
+          if (!g || !g.planIdsByDay[day] || !g.planIdsByDay[day].length) {
+            // no plan → create for this product/day
+            try {
+              goPage("plans");
+              setTimeout(function() {
+                openPlanModal(null);
+                if ($("plDate")) $("plDate").value = day;
+                if ($("plProduct")) {
+                  // try set product search
+                  const inp = document.querySelector("#planModal input[id=plProduct], #plProduct");
+                }
+              }, 200);
+            } catch (e) {}
+            return;
+          }
+          const ids = g.planIdsByDay[day];
+          if (ids.length === 1) {
+            goPage("plans");
+            setTimeout(function() { editPlan(ids[0]); }, 250);
+            return;
+          }
+          // multi plan: show picker
+          openOpsPlanPicker(day, g, ids);
+        };
+      });
+    }
+
+    
+    function openKorlapAssign() {
+      if ($("kaDate") && !$("kaDate").value) $("kaDate").value = todayStr();
+      if ($("korlapAssignModal")) {
+        $("korlapAssignModal").classList.add("show");
+        document.body.classList.add("modal-open");
+      }
+      loadKorlapAssign();
+    }
+    function closeKorlapAssign() {
+      if ($("korlapAssignModal")) $("korlapAssignModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+    async function loadKorlapAssign() {
+      if (!sb) return;
+      const d = ($("kaDate") && $("kaDate").value) || todayStr();
+      const { data, error } = await sb.from("plans").select("*").eq("plan_date", d).order("shift").limit(500);
+      if (error) return toast(error.message, true);
+      const rows = (data || []).filter(p => {
+        const st = String(p.status || "").toLowerCase();
+        const op = String(p.assigned_operator || "").trim();
+        return st === "draft" || !op || st === "open";
+      });
+      const body = $("kaBody");
+      if (!body) return;
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada plan yang perlu assign di tanggal ini</td></tr>';
+        return;
+      }
+      const opOpts = (operators || []).map(o =>
+        '<option value="' + esc(o.email) + '">' + esc(o.name || o.email) + '</option>'
+      ).join("");
+      body.innerHTML = rows.map(p =>
+        '<tr data-pid="' + esc(p.plan_id) + '">' +
+        '<td class="mono" style="font-size:0.72rem">' + esc(p.plan_id) + '</td>' +
+        '<td>' + esc(p.product_id) + '</td>' +
+        '<td>' + esc(p.machine_id) + '</td>' +
+        '<td>' + esc(p.shift) + '</td>' +
+        '<td>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</td>' +
+        '<td><select class="ka-op" style="min-width:140px;border:1px solid var(--border);border-radius:8px;padding:0.35rem">' +
+        '<option value="">— pilih —</option>' + opOpts +
+        '</select></td></tr>'
+      ).join("");
+      // preselect existing
+      body.querySelectorAll("tr[data-pid]").forEach(tr => {
+        const pid = tr.getAttribute("data-pid");
+        const p = rows.find(x => x.plan_id === pid);
+        if (p && p.assigned_operator) {
+          const sel = tr.querySelector(".ka-op");
+          if (sel) sel.value = p.assigned_operator;
+        }
+      });
+    }
+    async function saveKorlapAssign() {
+      if (!sb) return;
+      const updates = [];
+      // from table
+      document.querySelectorAll("#kaBody tr[data-pid]").forEach(tr => {
+        const pid = tr.getAttribute("data-pid");
+        const sel = tr.querySelector(".ka-op");
+        const email = sel ? sel.value.trim() : "";
+        if (pid && email) updates.push({ plan_id: pid, assigned_operator: email, status: "open" });
+      });
+      // from paste
+      const paste = ($("kaPaste") && $("kaPaste").value) || "";
+      paste.split(/\r?\n/).forEach(line => {
+        const parts = line.split(/\t|;|,/).map(s => s.trim()).filter(Boolean);
+        if (parts.length >= 2) updates.push({ plan_id: parts[0], assigned_operator: parts[1], status: "open" });
+      });
+      if (!updates.length) return toast("Tidak ada perubahan", true);
+      let ok = 0, fail = 0;
+      for (const u of updates) {
+        const { error } = await sb.from("plans").update({
+          assigned_operator: u.assigned_operator,
+          status: u.status || "open"
+        }).eq("plan_id", u.plan_id);
+        if (error) fail++; else ok++;
+      }
+      toast(ok + " plan di-assign" + (fail ? ", " + fail + " gagal" : ""));
+      closeKorlapAssign();
+      try { await loadPlans(); } catch (e) {}
+    }
+
+
+    function openOpsPlanPicker(day, g, planIds) {
+      const rows = (plansCache || plans || []).filter(p => planIds.indexOf(p.plan_id) >= 0);
+      const list = rows.length ? rows : planIds.map(id => ({ plan_id: id }));
+      let html = '<p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">' +
+        esc(g.product_id) + ' · ' + esc(day) + ' · ' + list.length + ' plan</p><div style="display:flex;flex-direction:column;gap:0.5rem">';
+      list.forEach(p => {
+        html += '<button type="button" class="btn btn-ghost" style="justify-content:flex-start;text-align:left" data-pid="' +
+          esc(p.plan_id) + '"><strong>' + esc(p.plan_id) + '</strong><br/><span style="font-size:0.75rem">' +
+          'Shift ' + esc(p.shift || "-") + ' · ' + esc(p.machine_id || "") + ' · target ' + formatNum(p.target_qty) +
+          ' · ' + esc(p.assigned_operator || "(belum assign)") + ' · ' + esc(p.status || "") +
+          '</span></button>';
+      });
+      html += '</div>';
+      if ($("opsPlanPickerBody")) $("opsPlanPickerBody").innerHTML = html;
+      if ($("opsPlanPickerModal")) {
+        $("opsPlanPickerModal").classList.add("show");
+        document.body.classList.add("modal-open");
+      }
+      ($("opsPlanPickerBody") || document).querySelectorAll("[data-pid]").forEach(btn => {
+        btn.onclick = function() {
+          closeOpsPlanPicker();
+          const pid = btn.getAttribute("data-pid");
           goPage("plans");
           setTimeout(function() { editPlan(pid); }, 250);
         };
       });
+    }
+    function closeOpsPlanPicker() {
+      if ($("opsPlanPickerModal")) $("opsPlanPickerModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
     }
 
 
@@ -5310,6 +5561,11 @@
       const { data, error } = await sb.from("profiles").select("id,email,name,role,active,avatar_url,created_at").order("name").limit(500);
       if (error) {
         toast(error.message, true);
+      try {
+        const em = (payload && payload.operator_email) || (currentUser && currentUser.email);
+        const dt = (payload && payload.absence_date) || todayStr();
+        await showAbsenceImpact(em, dt);
+      } catch (eImp) {}
         accountRows = [];
       } else {
         accountRows = data || [];
