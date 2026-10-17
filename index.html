@@ -1590,6 +1590,17 @@
     .op-grade-pct { margin-left: auto; text-align: right; }
     .op-grade-pct strong { display: block; font-size: 1.25rem; color: var(--green); }
     .op-grade-pct span { font-size: 0.7rem; color: var(--text-muted); }
+
+    #planProductModal .modal {
+      overflow: visible;
+      max-height: 92vh;
+    }
+    #ppSteps {
+      max-height: min(45vh, 360px);
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .search-combo-list { z-index: 200 !important; }
   </style>
 </head>
 <body>
@@ -3378,7 +3389,17 @@
       // dynamic: plan-by-product machine inputs
       document.querySelectorAll(".pp-machine-input").forEach(function(el) {
         el.dataset.scBound = "";
-        attachSearchCombo(el, scItemsMachine, { valueMode: "id", placeholder: "Ketik kode / nama proses..." });
+        attachSearchCombo(el, scItemsMachine, {
+          valueMode: "id",
+          placeholder: "Ketik kode / nama proses...",
+          onPick: function(id, label, input) {
+            const step = input && input.closest(".pp-step");
+            const hid = step && step.querySelector(".pp-machine");
+            if (hid) hid.value = id || "";
+            const m = (machines || []).find(function(x) { return String(x.machine_id) === String(id); });
+            if (input) input.value = id + (m && m.name ? " — " + m.name : "");
+          }
+        });
       });
       // operator inputs (converted selects)
       document.querySelectorAll(".op-search, #plOperator, #plSoOperator").forEach(function(el) {
@@ -5099,6 +5120,7 @@ function fillOperatorList(selectedEmail) {
     function openPlanProductModal() {
       fillPlanDatalists();
       try { loadOperators(); } catch (e) {}
+      try { if (!(machines && machines.length)) loadMachines(); } catch (eM) {}
       $("ppDate").value = ($("planFilterDate") && $("planFilterDate").value) || todayStr();
       $("ppShift").value = "1";
       $("ppProduct").value = "";
@@ -5120,8 +5142,9 @@ function fillOperatorList(selectedEmail) {
       const steps = (routes || []).filter(r => String(r.product_id) === String(pid))
         .sort((a,b) => (Number(a.step)||0) - (Number(b.step)||0));
       if (!steps.length) {
-        $("ppHint").textContent = "Produk ini belum punya routes. Tambah step manual atau atur di menu Routes.";
+        $("ppHint").textContent = "Produk ini belum punya routes. Isi proses manual (ketik cari), atau atur di menu Routes.";
         box.innerHTML = "";
+        addPpManualStep();
         return;
       }
       $("ppHint").textContent = steps.length + " step dari routes — isi target & operator per step. Proses giling akan menampilkan bahan BOM.";
@@ -5130,6 +5153,8 @@ function fillOperatorList(selectedEmail) {
       }).join("");
       box.querySelectorAll(".pp-qty").forEach(function(el) { try { bindThousandInput(el, true); } catch (e) {} });
       fillPpOperatorSelects();
+      bindPpMachineInputs();
+      try { mountAllSearchCombos(); } catch (e) {}
       // expand giling with BOM materials (async)
       expandGilingBomInPp(pid).catch(function(){});
     }
@@ -5203,6 +5228,26 @@ function fillOperatorList(selectedEmail) {
         '<div class="field" style="margin:0.45rem 0 0"><label>Operator</label><input type="text" class="pp-op pp-op-search" placeholder="Ketik operator..." autocomplete="off" /></div>' +
         '<button type="button" class="btn btn-danger btn-sm" style="margin-top:0.35rem" onclick="this.closest(\'.pp-step\').remove()">Hapus step</button></div>';
     }
+    function bindPpMachineInputs() {
+      document.querySelectorAll(".pp-machine-input").forEach(function(el) {
+        el.dataset.scBound = "";
+        el.setAttribute("autocomplete", "off");
+        el.placeholder = "Ketik kode / nama proses...";
+        try {
+          attachSearchCombo(el, scItemsMachine, {
+            valueMode: "id",
+            placeholder: "Ketik kode / nama proses...",
+            onPick: function(id, label, input) {
+              const step = input && input.closest(".pp-step");
+              const hid = step && step.querySelector(".pp-machine");
+              if (hid) hid.value = id || "";
+              const m = (machines || []).find(function(x) { return String(x.machine_id) === String(id); });
+              if (input) input.value = id + (m && m.name ? " — " + m.name : "");
+            }
+          });
+        } catch (e) { console.warn(e); }
+      });
+    }
     function fillPpOperatorSelects() {
       document.querySelectorAll(".pp-op").forEach(function(el) {
         if (el.tagName === "SELECT") {
@@ -5243,6 +5288,8 @@ function fillOperatorList(selectedEmail) {
         '<button type="button" class="btn btn-danger btn-sm" style="margin-top:0.35rem" onclick="this.closest(\'.pp-step\').remove()">Hapus</button></div>';
       box.appendChild(wrap.firstChild);
       fillPpOperatorSelects();
+      bindPpMachineInputs();
+      try { mountAllSearchCombos(); } catch (e) {}
       box.querySelectorAll(".pp-qty").forEach(function(el) { try { bindThousandInput(el, true); } catch (e) {} });
     }
     document.getElementById("btnSavePlanProduct") && (document.getElementById("btnSavePlanProduct").onclick = async () => {
