@@ -5774,6 +5774,7 @@ function fillOperatorList(selectedEmail) {
 
     async function loadOperasional() {
       if (!sb) return;
+      try { await loadOperators(); } catch (eOp) { console.warn(eOp); }
       const { start, end, daysInMonth } = opsMonthStartEnd();
       opsDays = [];
       for (let d = 1; d <= daysInMonth; d++) {
@@ -5995,13 +5996,15 @@ function fillOperatorList(selectedEmail) {
       const planPending = Math.max(0, planMonth - actMonth);
       const poPending = 0; // belum ada flag pending di SO v2
       const poReleased = poMonth - poPending;
-      const pencapaian = planMonth > 0 ? Math.round((actMonth / planMonth) * 100) : 0;
-      const planPcsOp = opMonth > 0 ? Math.round(planMonth / opMonth) : 0;
-      const actualOpBulan = opMonth > 0 ? Math.round(actMonth / opMonth) : 0;
-      const realtimeOp = opMtd > 0 ? Math.round(actMtd / opMtd) : 0;
       const planYest = (opsDayMeta[yest] && opsDayMeta[yest].plan) || 0;
       const actYest = (opsDayMeta[yest] && opsDayMeta[yest].act) || 0;
-      // unique operators in month
+      // Jml OP = jumlah akun role operator di profiles
+      var jmlOpAkun = 0;
+      try {
+        jmlOpAkun = (operators || []).filter(function(o) {
+          return String(o.role || "").toLowerCase() === "operator" && o.active !== false;
+        }).length;
+      } catch (eJ) { jmlOpAkun = 0; }
       const opSet = {};
       opsRows.forEach(g => {
         Object.keys(g.opSetDay || {}).forEach(day => {
@@ -6009,7 +6012,29 @@ function fillOperatorList(selectedEmail) {
         });
       });
       const opUnique = Object.keys(opSet).length;
-      const hariKerja = opsDays.filter(function(d) { return !opsIsWeekend(d); }).length;
+      // OP dari plan bulan ini: jumlah operator unik yang muncul di assignment plan
+      // (bukan jumlah akun role operator)
+      const opDariPlan = opUnique;
+      // OP-hari (jumlah unik per hari, dijumlah sebulan) — alternatif kapasitas
+      var opHariPlan = 0;
+      opsDays.forEach(function(d) {
+        opHariPlan += (opsDayMeta[d] && opsDayMeta[d].op) || 0;
+      });
+      var opHariMtd = 0;
+      opsDays.forEach(function(d) {
+        if (d > today) return;
+        opHariMtd += (opsDayMeta[d] && opsDayMeta[d].op) || 0;
+      });
+      const pencapaian = planMonth > 0 ? Math.round((actMonth / planMonth) * 100) : 0;
+      // Plan Pcs/Op = Plan bulan ini / OP dari plan (unik yang di-assign)
+      const planPcsOp = opDariPlan > 0 ? Math.round(planMonth / opDariPlan) : 0;
+      const actualOpBulan = opDariPlan > 0 ? Math.round(actMonth / opDariPlan) : 0;
+      const realtimeOp = opHariMtd > 0 ? Math.round(actMtd / opHariMtd) : (opDariPlan > 0 ? Math.round(actMtd / opDariPlan) : 0);
+      // Hari Kerja = PO bulan / (Jml OP akun × Plan Pcs/Op)
+      var hariKerja = 0;
+      if (jmlOpAkun > 0 && planPcsOp > 0) {
+        hariKerja = Math.round((Number(poMonth) / (jmlOpAkun * planPcsOp)) * 10) / 10;
+      }
 
       el.innerHTML =
         '<div class="ops-kpi-stack">' +
@@ -6020,7 +6045,7 @@ function fillOperatorList(selectedEmail) {
           kpiRow("Plan Year Today", formatNum(planMtd) + " Pcs", "k3") +
           kpiRow("Actual Year Today", formatNum(actMtd) + " Pcs", "k3") +
           kpiRow("Pencapaian", pencapaian + "%", "k4") +
-          kpiRow("Op", formatNum(opUnique) + " Operator", "k4") +
+          kpiRow("Op", formatNum(jmlOpAkun || opUnique) + " Operator", "k4") +
         '</div>' +
         '<div class="ops-kpi-stack">' +
           kpiRow("PO Released Ke Produksi", formatNum(poReleased) + " Pcs", "k3") +
@@ -6035,8 +6060,8 @@ function fillOperatorList(selectedEmail) {
           '</div>' +
           '<div class="rt"><div class="ttl">Realtime OP / Hari</div><div class="big">' + formatNum(realtimeOp) + ' Pcs/OP</div></div>' +
           '<div class="pair">' +
-            '<div class="mini"><div class="ttl">Jml Op</div><div class="big">' + (opMtd ? formatNum(opMtd) : "—") + '</div></div>' +
-            '<div class="mini"><div class="ttl">Hari Kerja</div><div class="big">' + formatNum(hariKerja) + '</div></div>' +
+            '<div class="mini"><div class="ttl">Jml Op</div><div class="big">' + (jmlOpAkun ? formatNum(jmlOpAkun) : "—") + '</div></div>' +
+            '<div class="mini"><div class="ttl">Hari Kerja</div><div class="big">' + (hariKerja ? formatNum(hariKerja) : "—") + '</div></div>' +
           '</div>' +
         '</div>' +
         '<div class="ops-today-panel">' +
