@@ -1521,9 +1521,74 @@
     .pi-status.err { color: #b91c1c; }
     .pi-status.ok { color: var(--green); }
     .pi-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+
+    /* Premium toast & confirm */
+    .toast-wrap {
+      position: fixed; top: 1rem; right: 1rem; z-index: 9999;
+      display: flex; flex-direction: column; gap: 0.5rem;
+      max-width: min(380px, calc(100vw - 2rem));
+      pointer-events: none;
+    }
+    .toast-item {
+      pointer-events: auto;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      box-shadow: 0 12px 40px rgba(15,40,30,0.18);
+      border: 1px solid transparent;
+      animation: toastIn 0.25s ease;
+      display: flex; align-items: flex-start; gap: 0.65rem;
+    }
+    .toast-item.ok { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+    .toast-item.err { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .toast-item .toast-ico { font-size: 1.1rem; line-height: 1.2; }
+    .toast-item .toast-msg { flex: 1; line-height: 1.4; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .app-confirm-bg {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(15, 23, 20, 0.45);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .app-confirm-bg[hidden] { display: none !important; }
+    .app-confirm-card {
+      background: #fff;
+      border-radius: 18px;
+      width: min(400px, 100%);
+      padding: 1.35rem 1.25rem 1.15rem;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+      animation: toastIn 0.2s ease;
+    }
+    .app-confirm-card h3 {
+      margin: 0 0 0.5rem; font-size: 1.05rem; font-weight: 700; color: var(--text);
+    }
+    .app-confirm-card p {
+      margin: 0; font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .app-confirm-actions {
+      display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;
+    }
+    .app-confirm-actions .btn { min-width: 88px; }
   </style>
 </head>
 <body>
+  <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+  <div id="appConfirmBg" class="app-confirm-bg" hidden>
+    <div class="app-confirm-card" role="dialog" aria-modal="true">
+      <h3 id="appConfirmTitle">Konfirmasi</h3>
+      <p id="appConfirmMsg"></p>
+      <div class="app-confirm-actions">
+        <button type="button" class="btn btn-ghost" id="appConfirmNo">Batal</button>
+        <button type="button" class="btn btn-primary" id="appConfirmYes">OK</button>
+      </div>
+    </div>
+  </div>
   <div id="authScreen">
     <div class="login-card">
       <div class="login-logo">
@@ -2765,11 +2830,47 @@
     let editingProductId = null, editingMachineId = null, editingPlanId = null;
 
     function toast(msg, isErr) {
-      const el = $("toast");
-      el.textContent = msg;
-      el.className = "toast show" + (isErr ? " err" : "");
-      setTimeout(() => { el.className = "toast"; }, 2800);
+      const wrap = $("toastWrap") || document.body;
+      const el = document.createElement("div");
+      el.className = "toast-item " + (isErr ? "err" : "ok");
+      el.innerHTML = '<span class="toast-ico">' + (isErr ? "⚠" : "✓") + '</span><span class="toast-msg"></span>';
+      el.querySelector(".toast-msg").textContent = String(msg || "");
+      wrap.appendChild(el);
+      setTimeout(function() {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(-6px)";
+        el.style.transition = "0.3s";
+        setTimeout(function() { try { el.remove(); } catch (e) {} }, 300);
+      }, isErr ? 4500 : 2800);
     }
+
+    let _confirmResolver = null;
+    function appConfirm(message, title) {
+      return new Promise(function(resolve) {
+        const bg = $("appConfirmBg");
+        const msg = $("appConfirmMsg");
+        const tit = $("appConfirmTitle");
+        if (!bg || !msg) {
+          resolve(window.confirm(message));
+          return;
+        }
+        if (tit) tit.textContent = title || "Konfirmasi";
+        msg.textContent = String(message || "");
+        bg.hidden = false;
+        _confirmResolver = resolve;
+        const yes = $("appConfirmYes");
+        const no = $("appConfirmNo");
+        function done(val) {
+          bg.hidden = true;
+          _confirmResolver = null;
+          resolve(val);
+        }
+        if (yes) yes.onclick = function() { done(true); };
+        if (no) no.onclick = function() { done(false); };
+        bg.onclick = function(e) { if (e.target === bg) done(false); };
+      });
+    }
+
     function showMsg(text, isErr) {
       const el = $("authMsg");
       el.textContent = text;
@@ -3724,7 +3825,7 @@
       await loadPlans();
     });
 
-    function openPlanMassModal() {
+    async function openPlanMassModal() {
       $("planMassArea").value = "";
       $("planMassModal").classList.add("show");
     }
@@ -3733,7 +3834,7 @@
       const text = $("planMassArea").value;
       if (!text.trim()) return toast("Kosong", true);
       const rows = mapPlanRows(parseDelimited(text));
-      if (!confirm("Import " + rows.length + " plan masal?")) return;
+      if (!(await appConfirm("Import " + rows.length + " plan masal?", "Import plan"))) return;
       closePlanMassModal();
       await bulkInsertPlans(rows);
     });
@@ -3759,12 +3860,12 @@
       try { bindAllThousandInputs(); } catch (e) {}
     }
     function closePlanModal() { $("planModal").classList.remove("show"); document.body.classList.remove("modal-open"); document.body.classList.remove("modal-open"); editingPlanId = null; }
-    function editPlan(id) {
+    async function editPlan(id) {
       const row = plans.find(p => p.plan_id === id);
       if (row) openPlanModal(row);
     }
-    async function deletePlan(id) {
-      if (!confirm("Hapus plan " + id + "?")) return;
+    async async function deletePlan(id) {
+      if (!(await appConfirm("Hapus plan " + id + "?"))) return;
       const { error } = await sb.from("plans").delete().eq("plan_id", id);
       if (error) return toast(error.message, true);
       toast("Plan dihapus");
@@ -3779,7 +3880,7 @@
       const unit = ($("plUnit").value || "pcs").trim();
       try {
         const warn = await checkRouteStockBeforePlan(product_id, machine_id, target_qty);
-        if (warn && !confirm(warn + "\n\nLanjut simpan plan?")) return;
+        if (warn && !(await appConfirm(warn + "\n\nLanjut simpan plan?", "Peringatan stok WIP"))) return;
       } catch (eC) {}
       let assigned_operator = resolveOperatorEmail($("plOperator").value || "");
       let status = $("plStatus").value || "open";
@@ -4147,7 +4248,7 @@
       await loadRoutes();
       if (routeEditProductId) loadRouteEditor();
     }
-    function importRoutesFile(input) {
+    async function importRoutesFile(input) {
       const file = input.files && input.files[0];
       input.value = "";
       if (!file) return;
@@ -4155,7 +4256,7 @@
       reader.onload = async () => {
         try {
           const rows = mapRouteRows(parseDelimited(reader.result));
-          if (!confirm("Import " + rows.length + " step route?")) return;
+          if (!(await appConfirm("Import " + rows.length + " step route?", "Import routes"))) return;
           await bulkUpsertRoutes(rows);
         } catch (e) { toast(e.message || "Gagal parse", true); }
       };
@@ -4399,7 +4500,7 @@ function fillOperatorList(selectedEmail) {
       return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
     }
 
-    function openProductModal(row) {
+    async function openProductModal(row) {
       editingProductId = row ? row.product_id : null;
       $("productModalTitle").textContent = row ? "Edit produk" : "Tambah produk";
       $("pId").value = row ? row.product_id : "";
@@ -4414,8 +4515,8 @@ function fillOperatorList(selectedEmail) {
       const row = products.find(p => p.product_id === id);
       if (row) openProductModal(row);
     }
-    async function deleteProduct(id) {
-      if (!confirm("Hapus produk " + id + "?")) return;
+    async async function deleteProduct(id) {
+      if (!(await appConfirm("Hapus produk " + id + "?"))) return;
       const { error } = await sb.from("products").delete().eq("product_id", id);
       if (error) return toast(error.message, true);
       toast("Produk dihapus");
@@ -4440,7 +4541,7 @@ function fillOperatorList(selectedEmail) {
       await loadProducts();
     };
 
-    function openMachineModal(row) {
+    async function openMachineModal(row) {
       editingMachineId = row ? row.machine_id : null;
       $("machineModalTitle").textContent = row ? "Edit proses" : "Tambah proses";
       $("mId").value = row ? row.machine_id : "";
@@ -4456,7 +4557,7 @@ function fillOperatorList(selectedEmail) {
       if (row) openMachineModal(row);
     }
     async function deleteMachine(id) {
-      if (!confirm("Hapus proses " + id + "?")) return;
+      if (!(await appConfirm("Hapus proses " + id + "?"))) return;
       const { error } = await sb.from("machines").delete().eq("machine_id", id);
       if (error) return toast(error.message, true);
       toast("Proses dihapus");
@@ -6068,7 +6169,7 @@ function fillOperatorList(selectedEmail) {
       ).join("");
       body.querySelectorAll("[data-bid]").forEach(btn => {
         btn.onclick = async function() {
-          if (!confirm("Hapus baris BOM?")) return;
+          if (!(await appConfirm("Hapus baris BOM?"))) return;
           const { error } = await sb.from("product_bom").delete().eq("id", btn.getAttribute("data-bid"));
           if (error) return toast(error.message, true);
           await loadBom();
@@ -6560,7 +6661,7 @@ function fillOperatorList(selectedEmail) {
           if (!payload || !payload.planIds || !payload.planIds.length) return;
           const toDay = td.getAttribute("data-day");
           if (!toDay || toDay === payload.fromDay) return;
-          if (!confirm("Pindah " + payload.planIds.length + " plan ke " + toDay + "?")) return;
+          if (!(await appConfirm("Pindah " + payload.planIds.length + " plan ke " + toDay + "?"))) return;
           let ok = 0, fail = 0;
           for (const pid of payload.planIds) {
             const { error } = await sb.from("plans").update({
@@ -6970,7 +7071,7 @@ function fillOperatorList(selectedEmail) {
       await loadMachines();
     }
 
-    function importProductsFile(input) {
+    async function importProductsFile(input) {
       const file = input.files && input.files[0];
       input.value = "";
       if (!file) return;
@@ -6978,14 +7079,14 @@ function fillOperatorList(selectedEmail) {
       reader.onload = async () => {
         try {
           const rows = mapProductRows(parseDelimited(reader.result));
-          if (!confirm("Import " + rows.length + " produk?")) return;
+          if (!(await appConfirm("Import " + rows.length + " produk?"))) return;
           await bulkUpsertProducts(rows);
         } catch (e) { toast(e.message || "Gagal parse", true); }
       };
       reader.readAsText(file);
     }
 
-    function importMachinesFile(input) {
+    async function importMachinesFile(input) {
       const file = input.files && input.files[0];
       input.value = "";
       if (!file) return;
@@ -6993,7 +7094,7 @@ function fillOperatorList(selectedEmail) {
       reader.onload = async () => {
         try {
           const rows = mapMachineRows(parseDelimited(reader.result));
-          if (!confirm("Import " + rows.length + " proses?")) return;
+          if (!(await appConfirm("Import " + rows.length + " proses?"))) return;
           await bulkUpsertMachines(rows);
         } catch (e) { toast(e.message || "Gagal parse", true); }
       };
@@ -7400,7 +7501,7 @@ function fillOperatorList(selectedEmail) {
         piRenderTable();
         return toast("Tidak ada baris valid. Perbaiki No SO / produk / proses / target / tanggal.", true);
       }
-      if (bad && !confirm(validRows.length + " baris valid akan diimpor.\n" + bad + " baris error dilewati.\nLanjut?")) return;
+      if (bad && !(await appConfirm(validRows.length + " baris valid akan diimpor.\n" + bad + " baris error dilewati.\nLanjut?", "Import plan"))) return;
       const payload = validRows.map(function(r) {
         const op = resolveOperatorEmail(r.operator || "");
         return {
@@ -7436,7 +7537,7 @@ function fillOperatorList(selectedEmail) {
     }
 
 
-    function importPlansFile(input) {
+    async function importPlansFile(input) {
       const file = input.files && input.files[0];
       input.value = "";
       if (!file) return;
@@ -7444,7 +7545,7 @@ function fillOperatorList(selectedEmail) {
       reader.onload = async () => {
         try {
           const rows = mapPlanRows(parseDelimited(reader.result));
-          if (!confirm("Import " + rows.length + " plan?")) return;
+          if (!(await appConfirm("Import " + rows.length + " plan dari file?", "Import plan"))) return;
           await bulkInsertPlans(rows);
         } catch (e) { toast(e.message || "Gagal parse", true); }
       };
@@ -7466,7 +7567,7 @@ function fillOperatorList(selectedEmail) {
       $("pasteArea").value = "";
       $("pasteModal").classList.add("show");
     }
-    function openMachinePaste() {
+    async function openMachinePaste() {
       pasteMode = "machines";
       $("pasteTitle").textContent = "Tempel proses dari Excel";
       $("pasteHint").textContent = "Kolom: kode, nama, line (opsional), satuan (opsional).";
@@ -7480,22 +7581,22 @@ function fillOperatorList(selectedEmail) {
       const parsed = parseDelimited(text);
       if (pasteMode === "products") {
         const rows = mapProductRows(parsed);
-        if (!confirm("Import " + rows.length + " produk?")) return;
+        if (!(await appConfirm("Import " + rows.length + " produk?"))) return;
         closePasteModal();
         await bulkUpsertProducts(rows);
       } else if (pasteMode === "machines") {
         const rows = mapMachineRows(parsed);
-        if (!confirm("Import " + rows.length + " proses?")) return;
+        if (!(await appConfirm("Import " + rows.length + " proses?"))) return;
         closePasteModal();
         await bulkUpsertMachines(rows);
       } else if (pasteMode === "plans") {
         const rows = mapPlanRows(parsed);
-        if (!confirm("Import " + rows.length + " plan?")) return;
+        if (!(await appConfirm("Import " + rows.length + " plan dari file?", "Import plan"))) return;
         closePasteModal();
         await bulkInsertPlans(rows);
       } else if (pasteMode === "routes") {
         const rows = mapRouteRows(parsed);
-        if (!confirm("Import " + rows.length + " step route?")) return;
+        if (!(await appConfirm("Import " + rows.length + " step route?", "Import routes"))) return;
         closePasteModal();
         await bulkUpsertRoutes(rows);
       }
