@@ -4021,28 +4021,59 @@
     });
 
 
-    async function openPlanModal(row) {
+    async function openPlanModal(row, defaults) {
       if (currentRole() === "operator") {
         toast("Operator hanya mengisi laporan, tidak bisa edit plan", true);
         return;
       }
+      defaults = defaults || {};
       fillPlanDatalists();
       try { await loadOperators(); } catch (e) { console.warn(e); }
       editingPlanId = row ? row.plan_id : null;
       $("planModalTitle").textContent = row ? "Edit plan" : "Buat plan";
-      $("plDate").value = row ? row.plan_date : (($("planFilterDate") && $("planFilterDate").value) || todayStr());
-      $("plShift").value = row ? String(row.shift || "1") : "1";
-      $("plProduct").value = row ? row.product_id : "";
-      $("plMachine").value = row ? row.machine_id : "";
-      $("plTarget").value = row ? formatInputNum(row.target_qty, true) : "";
-      $("plUnit").value = row ? (row.unit || "pcs") : "pcs";
-      let st = row ? (row.status || "open") : "open";
+
+      var dateVal = row
+        ? String(row.plan_date || "").slice(0, 10)
+        : String(defaults.plan_date || ($("planFilterDate") && $("planFilterDate").value) || todayStr()).slice(0, 10);
+      $("plDate").value = dateVal;
+
+      $("plShift").value = row
+        ? String(row.shift || "1")
+        : String(defaults.shift || "1");
+
+      var prodId = row ? (row.product_id || "") : (defaults.product_id || "");
+      var machId = row ? (row.machine_id || "") : (defaults.machine_id || "");
+      if (prodId) {
+        var pObj = (products || []).find(function(x) { return String(x.product_id) === String(prodId); });
+        $("plProduct").value = prodId + (pObj && pObj.name ? " — " + pObj.name : "");
+      } else {
+        $("plProduct").value = "";
+      }
+      if (machId) {
+        var mObj = (machines || []).find(function(x) { return String(x.machine_id) === String(machId); });
+        $("plMachine").value = machId + (mObj && mObj.name ? " — " + mObj.name : "");
+      } else {
+        $("plMachine").value = "";
+      }
+
+      $("plTarget").value = row
+        ? formatInputNum(row.target_qty, true)
+        : (defaults.target_qty != null && defaults.target_qty !== "" ? formatInputNum(defaults.target_qty, true) : "");
+      $("plUnit").value = row ? (row.unit || "pcs") : (defaults.unit || "pcs");
+      var st = row ? (row.status || "open") : (defaults.status || "open");
       $("plStatus").value = st;
-      fillOperatorList(row ? (row.assigned_operator || "") : "");
+      fillOperatorList(row ? (row.assigned_operator || "") : (defaults.assigned_operator || ""));
+
       $("planModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { mountAllSearchCombos(); } catch (e) {}
       try { bindAllThousandInputs(); } catch (e) {}
+      // kunci tanggal dari grid (jangan tertimpa)
+      if ($("plDate")) $("plDate").value = dateVal;
+      if (prodId && $("plProduct")) {
+        var p2 = (products || []).find(function(x) { return String(x.product_id) === String(prodId); });
+        $("plProduct").value = prodId + (p2 && p2.name ? " — " + p2.name : "");
+      }
     }
     function closePlanModal() { $("planModal").classList.remove("show"); document.body.classList.remove("modal-open"); document.body.classList.remove("modal-open"); editingPlanId = null; }
     async function editPlan(id) {
@@ -6154,7 +6185,7 @@ function fillOperatorList(selectedEmail) {
             let click = "";
             if (row.ket === "Plan") {
               const gkeyEnc = encodeURIComponent(g.product_id + "||" + (g.no_so || g.order_id || ""));
-              click = ' data-day="' + d + '" data-gkey="' + gkeyEnc + '"';
+              click = ' data-day="' + d + '" data-gkey="' + gkeyEnc + '" data-product="' + esc(g.product_id) + '" data-noso="' + esc(g.no_so || "") + '"';
               if (g.planIdsByDay[d] && g.planIdsByDay[d].length) {
                 click += ' style="cursor:grab" draggable="true"';
               }
@@ -6177,12 +6208,12 @@ function fillOperatorList(selectedEmail) {
         td.onclick = function() {
           const day = td.getAttribute("data-day");
           const gkey = decodeURIComponent(td.getAttribute("data-gkey") || "");
-          const g = opsRows.find(x => (x.product_id + "||" + (x.no_so || x.order_id || "")) === gkey);
+          const g = (opsRows || []).find(x => (x.product_id + "||" + (x.no_so || x.order_id || "")) === gkey);
           if (!g || !g.planIdsByDay[day] || !g.planIdsByDay[day].length) {
-            // no plan → buat plan di tanggal sel yang diklik (bukan hari ini)
+            // no plan → buat plan di tanggal + produk baris grid
             try {
-              const pid = g ? g.product_id : "";
-              const noSo = g ? (g.no_so || "") : "";
+              const pid = (g && g.product_id) || td.getAttribute("data-product") || "";
+              const noSo = (g && g.no_so) || td.getAttribute("data-noso") || "";
               openPlanModal(null, {
                 plan_date: day,
                 product_id: pid,
