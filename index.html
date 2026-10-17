@@ -1485,6 +1485,42 @@
     .search-combo-item .sc-id { font-weight: 700; font-size: 0.85rem; color: var(--text); }
     .search-combo-item .sc-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem; }
     .search-combo-empty { padding: 0.7rem; font-size: 0.82rem; color: var(--text-muted); }
+
+    .pi-wrap { max-width: 1100px; margin: 0 auto; }
+    .pi-banner {
+      background: #fffbeb; border: 1px solid #fcd34d; color: #92400e;
+      border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.82rem; margin-bottom: 1rem;
+    }
+    .pi-drop {
+      border: 2px dashed var(--border); border-radius: 16px; padding: 1.75rem 1rem;
+      text-align: center; background: #fafdfb; margin-bottom: 1rem;
+    }
+    .pi-drop.drag { border-color: var(--green); background: #ecfdf5; }
+    .pi-stats { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 0.65rem; }
+    .pi-stats .ok { color: var(--green); font-weight: 700; }
+    .pi-stats .bad { color: #b91c1c; font-weight: 700; }
+    .pi-table-wrap { overflow: auto; max-height: 420px; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+    .pi-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 960px; }
+    .pi-table th {
+      position: sticky; top: 0; background: #f1f5f4; z-index: 1;
+      text-align: left; padding: 0.55rem 0.45rem; font-size: 0.68rem;
+      text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .pi-table td { padding: 0.35rem 0.35rem; border-bottom: 1px solid #f1f5f4; vertical-align: middle; }
+    .pi-table tr.pi-err { background: #fef2f2; }
+    .pi-table tr.pi-ok { background: #fff; }
+    .pi-table input, .pi-table select {
+      width: 100%; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.35rem 0.4rem; font-size: 0.8rem; background: #fff; min-width: 0;
+    }
+    .pi-table input:focus, .pi-table select:focus {
+      outline: none; border-color: var(--green-soft); box-shadow: 0 0 0 2px rgba(22,163,74,0.12);
+    }
+    .pi-status { font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .pi-status.err { color: #b91c1c; }
+    .pi-status.ok { color: var(--green); }
+    .pi-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
   </style>
 </head>
 <body>
@@ -1787,6 +1823,67 @@
         </section>
 
 
+        
+        <section id="page-plan-import" class="page" hidden>
+          <div class="pi-wrap">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="goPage('plans')" style="margin-bottom:0.75rem">← Kembali ke Daftar Plan</button>
+            <div class="page-head" style="margin-bottom:0.75rem">
+              <div>
+                <h1>Import Plan Excel</h1>
+                <p>Kolom wajib: <strong>No SO, Produk, Proses, Target, Tanggal, Shift</strong> · Opsional: Operator, Satuan (pcs/kg/gr)</p>
+              </div>
+            </div>
+            <div class="pi-banner">
+              <strong>Stok proses sebelumnya:</strong> setelah preview, sistem cek WIP/routes.
+              Jika step sebelumnya stok 0 / kurang, muncul peringatan di kolom Status — bisa tetap diedit di tabel.
+            </div>
+            <div class="pi-drop" id="piDrop">
+              <div style="font-size:0.95rem;color:var(--text-muted);margin-bottom:0.75rem">Drag & drop file Excel / CSV di sini</div>
+              <label class="btn btn-primary" style="cursor:pointer">Pilih File
+                <input type="file" id="piFile" accept=".csv,.txt,.xlsx,.xls" hidden />
+              </label>
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.65rem">Format: .csv / .txt (tab atau koma). Untuk .xlsx simpan sebagai CSV dulu, atau tempel di bawah.</div>
+              <div style="margin-top:1rem;text-align:left">
+                <label style="font-size:0.8rem;font-weight:600">Atau tempel dari Excel</label>
+                <textarea id="piPaste" rows="4" placeholder="No SO	Produk	Proses	Target	Tanggal	Shift	Operator	Satuan" style="width:100%;margin-top:0.35rem;border:1px solid var(--border);border-radius:10px;padding:0.65rem;font-family:ui-monospace,monospace;font-size:0.78rem"></textarea>
+                <button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.4rem" onclick="piParsePaste()">Preview dari tempel</button>
+              </div>
+            </div>
+            <div class="pi-stats" id="piStats">
+              <span>Preview (<span id="piValidCount" class="ok">0</span> baris valid)</span>
+              <span id="piRejectInfo" class="bad"></span>
+            </div>
+            <div class="pi-table-wrap">
+              <table class="pi-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>No SO</th>
+                    <th>Operator</th>
+                    <th>Produk</th>
+                    <th>Proses</th>
+                    <th>Target</th>
+                    <th>Satuan</th>
+                    <th>Tanggal</th>
+                    <th>Shift</th>
+                    <th>Stok prev</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="piBody">
+                  <tr><td colspan="12" class="empty" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Belum ada file — pilih atau tempel data</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem">Klik sel di tabel untuk <strong>edit langsung</strong>. Tidak perlu ubah Excel.</p>
+            <div class="pi-actions">
+              <button type="button" class="btn btn-ghost" onclick="piCheckWip()">Cek stok WIP</button>
+              <button type="button" class="btn btn-primary" id="piBtnImport" onclick="piDoImport()">Import &amp; Buat Plan</button>
+            </div>
+          </div>
+        </section>
+
         <section id="page-plans" class="page" hidden>
           <div class="page-head">
             <div><h1>Plan produksi</h1><p>Jadwal harian per shift, produk, dan proses.</p></div>
@@ -1809,10 +1906,8 @@
               <option value="cancelled">Cancelled</option>
             </select>
             <input type="search" id="planSearch" placeholder="Cari produk / proses / operator..." oninput="renderPlans()" />
-            <label class="btn btn-ghost btn-sm" style="cursor:pointer">Import CSV
-              <input type="file" accept=".csv,.txt" hidden onchange="importPlansFile(this)" />
-            </label>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanPaste()">Tempel Excel</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanImportPage()">Import Excel</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanPaste()">Tempel cepat</button>
             <button class="btn btn-ghost btn-sm" type="button" onclick="openKorlapAssign()" data-roles="admin,ppic,korlap">Assign OP (Korlap)</button>
           </div>
           <div id="planCards" class="mobile-cards mobile-only"></div>
@@ -7027,6 +7122,320 @@ function fillOperatorList(selectedEmail) {
       if ($("planFilterDate") && firstDate) $("planFilterDate").value = firstDate;
       await loadPlans();
     }
+    
+    // ===== Import Plan Excel — preview + edit + validasi =====
+    let planImportRows = []; // { raw, no_so, operator, product_id, machine_id, target_qty, unit, plan_date, shift, errors[], wipNote, valid }
+
+    function openPlanImportPage() {
+      planImportRows = [];
+      if ($("piBody")) $("piBody").innerHTML = '<tr><td colspan="12" class="empty" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Belum ada file — pilih atau tempel data</td></tr>';
+      if ($("piValidCount")) $("piValidCount").textContent = "0";
+      if ($("piRejectInfo")) $("piRejectInfo").textContent = "";
+      if ($("piPaste")) $("piPaste").value = "";
+      goPage("plan-import");
+      setTimeout(bindPlanImportUi, 50);
+    }
+
+    function bindPlanImportUi() {
+      const file = $("piFile");
+      const drop = $("piDrop");
+      if (file && !file.dataset.bound) {
+        file.dataset.bound = "1";
+        file.onchange = function() {
+          const f = file.files && file.files[0];
+          if (f) piLoadFile(f);
+          file.value = "";
+        };
+      }
+      if (drop && !drop.dataset.bound) {
+        drop.dataset.bound = "1";
+        drop.ondragover = function(e) { e.preventDefault(); drop.classList.add("drag"); };
+        drop.ondragleave = function() { drop.classList.remove("drag"); };
+        drop.ondrop = function(e) {
+          e.preventDefault();
+          drop.classList.remove("drag");
+          const f = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (f) piLoadFile(f);
+        };
+      }
+    }
+
+    function piLoadFile(file) {
+      const name = (file.name || "").toLowerCase();
+      if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+        toast("File Excel .xlsx: simpan sebagai CSV (UTF-8) atau copy-paste ke kotak tempel", true);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function() {
+        try {
+          piApplyParsed(parseDelimited(reader.result));
+        } catch (e) {
+          toast(e.message || "Gagal baca file", true);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function piParsePaste() {
+      const text = ($("piPaste") && $("piPaste").value) || "";
+      if (!text.trim()) return toast("Tempel data dulu", true);
+      try {
+        piApplyParsed(parseDelimited(text));
+      } catch (e) {
+        toast(e.message || "Gagal parse", true);
+      }
+    }
+
+    function piNormalizeDate(v) {
+      v = String(v || "").trim();
+      if (!v) return "";
+      // DD/MM/YYYY or DD-MM-YYYY
+      let m = v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+      if (m) {
+        let d = m[1].padStart(2, "0"), mo = m[2].padStart(2, "0"), y = m[3];
+        if (y.length === 2) y = "20" + y;
+        return y + "-" + mo + "-" + d;
+      }
+      // YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+      // Excel serial-ish number skip
+      return v.slice(0, 10);
+    }
+
+    function piValidateRow(r) {
+      const errors = [];
+      if (!String(r.no_so || "").trim()) errors.push("No SO wajib");
+      const pid = resolveProductId(r.product_raw || r.product_id);
+      if (!pid) errors.push("Produk tidak ditemukan");
+      else r.product_id = pid;
+      const mid = resolveMachineId(r.machine_raw || r.machine_id);
+      if (!mid) errors.push("Proses tidak ditemukan");
+      else r.machine_id = mid;
+      if (!(Number(r.target_qty) > 0)) errors.push("Target harus > 0");
+      if (!r.plan_date || !/^\d{4}-\d{2}-\d{2}$/.test(r.plan_date)) errors.push("Tanggal tidak valid");
+      const sh = String(r.shift || "").trim();
+      if (["1", "2", "3"].indexOf(sh) < 0) errors.push("Shift harus 1/2/3");
+      r.errors = errors;
+      r.valid = errors.length === 0;
+      return r;
+    }
+
+    function piMapFromParsed(parsed) {
+      const rows = mapPlanRows(parsed) || [];
+      // mapPlanRows may not keep raw labels — rebuild with more fields from parse
+      const { header, dataRows } = parsed;
+      const idx = function(keys) {
+        if (!header) return -1;
+        for (let k = 0; k < keys.length; k++) {
+          const key = keys[k];
+          const i = header.findIndex(function(h) { return h === key || (h && h.indexOf(key) >= 0); });
+          if (i >= 0) return i;
+        }
+        return -1;
+      };
+      const out = [];
+      dataRows.forEach(function(cols) {
+        if (!cols || !cols.length || cols.every(function(c) { return !String(c || "").trim(); })) return;
+        let no_so = "", operator = "", product_raw = "", machine_raw = "";
+        let target_qty = 0, unit = "pcs", plan_date = "", shift = "1";
+        if (header) {
+          const iSo = idx(["no_so", "noso", "so", "nomor_so", "no so"]);
+          const iOp = idx(["operator", "op", "assigned_operator", "email"]);
+          const iProd = idx(["product_id", "produk", "product", "kode_produk"]);
+          const iMach = idx(["machine_id", "proses", "machine", "mesin"]);
+          const iTarget = idx(["target", "target_qty", "qty"]);
+          const iUnit = idx(["unit", "satuan"]);
+          const iDate = idx(["plan_date", "tanggal", "date", "tgl"]);
+          const iShift = idx(["shift"]);
+          no_so = iSo >= 0 ? cols[iSo] : "";
+          operator = iOp >= 0 ? cols[iOp] : "";
+          product_raw = iProd >= 0 ? cols[iProd] : (cols[0] || "");
+          machine_raw = iMach >= 0 ? cols[iMach] : "";
+          target_qty = parseInputNum(iTarget >= 0 ? cols[iTarget] : 0);
+          unit = (iUnit >= 0 && cols[iUnit]) ? String(cols[iUnit]).trim() : "pcs";
+          plan_date = piNormalizeDate(iDate >= 0 ? cols[iDate] : "");
+          shift = iShift >= 0 ? String(cols[iShift] || "1").trim() : "1";
+        } else {
+          // fallback positions common: no_so, op, product, proses, target, unit, date, shift
+          no_so = cols[0] || "";
+          operator = cols[1] || "";
+          product_raw = cols[2] || "";
+          machine_raw = cols[3] || "";
+          target_qty = parseInputNum(cols[4]);
+          unit = cols[5] || "pcs";
+          plan_date = piNormalizeDate(cols[6]);
+          shift = String(cols[7] || "1").trim();
+        }
+        // if first cols look like date-first format from old paste
+        if (!header && /^\d{4}-\d{2}-\d{2}/.test(String(cols[0] || ""))) {
+          plan_date = piNormalizeDate(cols[0]);
+          shift = String(cols[1] || "1").trim();
+          product_raw = cols[2] || "";
+          machine_raw = cols[3] || "";
+          target_qty = parseInputNum(cols[4]);
+          unit = cols[5] || "pcs";
+          no_so = cols[6] || "";
+          operator = cols[7] || "";
+        }
+        const r = {
+          no_so: String(no_so || "").trim(),
+          operator: String(operator || "").trim(),
+          product_raw: String(product_raw || "").trim(),
+          machine_raw: String(machine_raw || "").trim(),
+          product_id: "",
+          machine_id: "",
+          target_qty: target_qty,
+          unit: String(unit || "pcs").trim() || "pcs",
+          plan_date: plan_date,
+          shift: shift,
+          wipNote: "—",
+          errors: [],
+          valid: false
+        };
+        out.push(piValidateRow(r));
+      });
+      return out;
+    }
+
+    function piApplyParsed(parsed) {
+      planImportRows = piMapFromParsed(parsed);
+      piRenderTable();
+      toast(planImportRows.length + " baris dibaca — perbaiki yang merah sebelum import");
+    }
+
+    function piRenderTable() {
+      const body = $("piBody");
+      if (!body) return;
+      let valid = 0, bad = 0;
+      const reasons = {};
+      if (!planImportRows.length) {
+        body.innerHTML = '<tr><td colspan="12" class="empty" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Belum ada data</td></tr>';
+        if ($("piValidCount")) $("piValidCount").textContent = "0";
+        if ($("piRejectInfo")) $("piRejectInfo").textContent = "";
+        return;
+      }
+      body.innerHTML = planImportRows.map(function(r, i) {
+        if (r.valid) valid++; else {
+          bad++;
+          (r.errors || []).forEach(function(e) { reasons[e] = (reasons[e] || 0) + 1; });
+        }
+        const st = r.valid
+          ? '<span class="pi-status ok">Siap</span>'
+          : '<span class="pi-status err">' + esc((r.errors || []).join(", ")) + '</span>';
+        return '<tr class="' + (r.valid ? "pi-ok" : "pi-err") + '" data-i="' + i + '">' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><input data-f="no_so" value="' + esc(r.no_so) + '" /></td>' +
+          '<td><input data-f="operator" value="' + esc(r.operator) + '" placeholder="opsional" /></td>' +
+          '<td><input data-f="product_raw" value="' + esc(r.product_raw || r.product_id) + '" /></td>' +
+          '<td><input data-f="machine_raw" value="' + esc(r.machine_raw || r.machine_id) + '" /></td>' +
+          '<td><input data-f="target_qty" inputmode="decimal" value="' + esc(r.target_qty) + '" /></td>' +
+          '<td><input data-f="unit" value="' + esc(r.unit || "pcs") + '" style="width:4rem" /></td>' +
+          '<td><input data-f="plan_date" type="date" value="' + esc(r.plan_date) + '" /></td>' +
+          '<td><select data-f="shift"><option value="1"' + (String(r.shift)==="1"?" selected":"") + '>1</option><option value="2"' + (String(r.shift)==="2"?" selected":"") + '>2</option><option value="3"' + (String(r.shift)==="3"?" selected":"") + '>3</option></select></td>' +
+          '<td style="font-size:0.72rem">' + esc(r.wipNote || "—") + '</td>' +
+          '<td>' + st + '</td>' +
+          '<td><button type="button" class="btn btn-ghost btn-sm pi-del" data-i="' + i + '">×</button></td></tr>';
+      }).join("");
+      if ($("piValidCount")) $("piValidCount").textContent = String(valid);
+      if ($("piRejectInfo")) {
+        const rs = Object.keys(reasons).map(function(k) { return reasons[k] + " " + k; }).join(" · ");
+        $("piRejectInfo").textContent = bad ? (bad + " baris ditolak" + (rs ? " · " + rs : "")) : "";
+      }
+      body.querySelectorAll("input, select").forEach(function(el) {
+        el.onchange = el.onblur = function() {
+          const tr = el.closest("tr");
+          const i = Number(tr.getAttribute("data-i"));
+          const f = el.getAttribute("data-f");
+          if (!planImportRows[i] || !f) return;
+          let v = el.value;
+          if (f === "target_qty") v = parseInputNum(v);
+          if (f === "plan_date") v = piNormalizeDate(v);
+          planImportRows[i][f] = v;
+          if (f === "product_raw") planImportRows[i].product_id = "";
+          if (f === "machine_raw") planImportRows[i].machine_id = "";
+          piValidateRow(planImportRows[i]);
+          piRenderTable();
+        };
+      });
+      body.querySelectorAll(".pi-del").forEach(function(btn) {
+        btn.onclick = function() {
+          const i = Number(btn.getAttribute("data-i"));
+          planImportRows.splice(i, 1);
+          piRenderTable();
+        };
+      });
+    }
+
+    async function piCheckWip() {
+      if (!planImportRows.length) return toast("Belum ada data", true);
+      for (let i = 0; i < planImportRows.length; i++) {
+        const r = planImportRows[i];
+        piValidateRow(r);
+        if (!r.valid) { r.wipNote = "—"; continue; }
+        try {
+          const msg = await checkRouteStockBeforePlan(r.product_id, r.machine_id, r.target_qty);
+          r.wipNote = msg ? "Kurang" : "OK";
+          if (msg) {
+            if (r.errors.indexOf("WIP kurang") < 0) r.errors.push("WIP: " + msg);
+            // WIP warning does not block import by default — mark soft
+            r.wipWarn = msg;
+            r.errors = r.errors.filter(function(e) { return e.indexOf("WIP") !== 0; });
+            r.valid = r.errors.length === 0;
+          }
+        } catch (e) {
+          r.wipNote = "?";
+        }
+      }
+      piRenderTable();
+      toast("Cek WIP selesai");
+    }
+
+    async function piDoImport() {
+      // revalidate all
+      planImportRows.forEach(piValidateRow);
+      const validRows = planImportRows.filter(function(r) { return r.valid; });
+      const bad = planImportRows.length - validRows.length;
+      if (!validRows.length) {
+        piRenderTable();
+        return toast("Tidak ada baris valid. Perbaiki No SO / produk / proses / target / tanggal.", true);
+      }
+      if (bad && !confirm(validRows.length + " baris valid akan diimpor.\n" + bad + " baris error dilewati.\nLanjut?")) return;
+      const payload = validRows.map(function(r) {
+        const op = resolveOperatorEmail(r.operator || "");
+        return {
+          plan_date: r.plan_date,
+          shift: String(r.shift || "1"),
+          product_id: r.product_id,
+          machine_id: r.machine_id,
+          target_qty: Number(r.target_qty) || 0,
+          unit: r.unit || "pcs",
+          assigned_operator: op,
+          status: op ? "open" : "draft",
+          no_so: r.no_so || "",
+          order_id: "",
+          created_by: (currentUser && currentUser.email) || "",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      });
+      // try match order_id from no_so
+      try {
+        const nos = payload.map(function(x) { return x.no_so; }).filter(Boolean);
+        if (nos.length) {
+          const { data: ords } = await sb.from("orders").select("order_id,no_so").in("no_so", nos);
+          const map = {};
+          (ords || []).forEach(function(o) { map[o.no_so] = o.order_id; });
+          payload.forEach(function(x) {
+            if (x.no_so && map[x.no_so]) x.order_id = map[x.no_so];
+          });
+        }
+      } catch (e) {}
+      await bulkInsertPlans(payload);
+      goPage("plans");
+    }
+
+
     function importPlansFile(input) {
       const file = input.files && input.files[0];
       input.value = "";
