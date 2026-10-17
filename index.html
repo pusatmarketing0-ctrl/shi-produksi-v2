@@ -3100,11 +3100,54 @@
       return formatNum(n, 1) + "%";
     }
 
-    function todayStr() {
-      const d = new Date();
-      const z = n => String(n).padStart(2, "0");
-      return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+
+    /** Tampilkan waktu ISO (UTC) dalam zona Asia/Jakarta (WIB) */
+    function formatDateTimeWib(iso) {
+      if (!iso) return "—";
+      try {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) {
+          return String(iso).replace("T", " ").slice(0, 16);
+        }
+        const parts = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Jakarta",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        }).formatToParts(d);
+        const get = function(t) {
+          const x = parts.find(function(p) { return p.type === t; });
+          return x ? x.value : "";
+        };
+        return get("year") + "-" + get("month") + "-" + get("day") + " " + get("hour") + ":" + get("minute");
+      } catch (e) {
+        return String(iso).replace("T", " ").slice(0, 16);
+      }
     }
+    function todayStr() {
+      // Tanggal kalender WIB (bukan UTC browser/server)
+      try {
+        const parts = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Jakarta",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit"
+        }).formatToParts(new Date());
+        const get = function(t) {
+          const x = parts.find(function(p) { return p.type === t; });
+          return x ? x.value : "";
+        };
+        return get("year") + "-" + get("month") + "-" + get("day");
+      } catch (e2) {
+        const d = new Date();
+        const z = function(n) { return String(n).padStart(2, "0"); };
+        return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+      }
+    }
+
     function newPlanId() {
       const d = new Date();
       const z = n => String(n).padStart(2, "0");
@@ -4836,7 +4879,7 @@ function fillOperatorList(selectedEmail) {
       }
       body.innerHTML = list.map(r => {
         const pl = reportPlanMap[r.plan_id] || {};
-        const t = r.created_at ? String(r.created_at).replace("T", " ").slice(0, 16) : "—";
+        const t = r.created_at ? formatDateTimeWib(r.created_at) : "—";
         return '<tr>' +
           '<td class="mono">' + esc(t) + '</td>' +
           '<td>' + esc(productLabel(pl.product_id || "")) + '</td>' +
@@ -4861,7 +4904,7 @@ function fillOperatorList(selectedEmail) {
         } else {
           cards.innerHTML = list.map(r => {
             const pl = reportPlanMap[r.plan_id] || {};
-            const tm = r.created_at ? String(r.created_at).replace("T", " ").slice(0, 16) : "—";
+            const tm = r.created_at ? formatDateTimeWib(r.created_at) : "—";
             return '<div class="m-card">' +
               '<div class="m-title">' + esc(productLabel(pl.product_id || "")) + '</div>' +
               '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ' · ' + esc(tm) + '</div>' +
@@ -6036,7 +6079,7 @@ function fillOperatorList(selectedEmail) {
             '<td>' + esc(r.machine_id || "—") + '</td>' +
             '<td><strong>' + formatNum(r.qty) + '</strong></td>' +
             '<td>' + esc(r.unit || "pcs") + '</td>' +
-            '<td style="font-size:0.75rem">' + esc(String(r.updated_at || "").replace("T", " ").slice(0, 16)) + '</td>' +
+            '<td style="font-size:0.75rem">' + esc(formatDateTimeWib(r.updated_at || "")) + '</td>' +
             '<td><button type="button" class="btn btn-sm btn-ghost" data-adj="' + esc(r.product_id) + '|' + esc(r.machine_id || "") + '">Edit</button></td></tr>'
           ).join("");
           body.querySelectorAll("[data-adj]").forEach(btn => {
