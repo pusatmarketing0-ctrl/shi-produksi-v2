@@ -2822,7 +2822,7 @@
     </div>
   </div>
 
-  <div id="reportModal"<div id="reportModal" class="modal-bg">
+  <div <div id="reportModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:480px">
       <h2 id="reportModalTitle">Isi laporan</h2>
       <p id="reportModalSub" style="font-size:0.8rem;color:var(--text-muted);margin:-0.35rem 0 1rem"></p>
@@ -2831,7 +2831,19 @@
       <div class="field"><label>Actual qty</label><input id="rpActual" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
       <div class="field"><label>NG qty</label><input id="rpNg" type="number" min="0" step="any" value="0" inputmode="decimal" /></div>
       <div class="field"><label>Downtime (menit)</label><input id="rpDt" type="number" min="0" step="1" value="0" inputmode="numeric" /></div>
-      <div class="field"><label>Alasan downtime</label><input id="rpDtReason" placeholder="opsional" /></div>
+      <div class="field" id="rpDtCatWrap">
+        <label>Kategori kendala <span style="color:#b91c1c">*</span></label>
+        <select id="rpDtCategory">
+          <option value="">— Pilih kategori —</option>
+          <option value="Machine">1. Machine</option>
+          <option value="Material">2. Material</option>
+          <option value="Metode">3. Metode</option>
+          <option value="Man Power">4. Man Power</option>
+          <option value="Plan">5. Plan</option>
+        </select>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0">Wajib diisi jika downtime &gt; 0</p>
+      </div>
+      <div class="field"><label>Detail kendala (opsional)</label><input id="rpDtReason" placeholder="Contoh: roller macet, material kosong..." /></div>
       <div class="field"><label>Catatan</label><input id="rpNotes" placeholder="opsional" /></div>
       <p id="rpHint" style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem"></p>
       <div class="modal-actions modal-actions-end">
@@ -4886,7 +4898,7 @@ function fillOperatorList(selectedEmail) {
           '<td>' + esc(machineLabel(pl.machine_id || "")) + '</td>' +
           '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
           '<td>' + formatNum(r.ng_qty || 0) + '</td>' +
-          '<td>' + formatNum(r.downtime_min || 0) + '</td>' +
+          '<td>' + formatNum(r.downtime_min || 0) + (r.downtime_reason ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(String(r.downtime_reason).split(":")[0]) + '</div>' : '') + '</td>' +
           '<td>' + formatNum(r.target_adj != null ? r.target_adj : r.target_qty) + '</td>' +
           '<td><button type="button" class="btn btn-ghost btn-sm" data-rid="' + encodeURIComponent(r.report_id) + '">Edit</button></td></tr>';
       }).join("");
@@ -4924,6 +4936,21 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+    async 
+    function syncDtCategoryUi() {
+      const dt = parseInputNum(($("rpDt") && $("rpDt").value) || 0);
+      const wrap = $("rpDtCatWrap");
+      if (wrap) {
+        wrap.style.opacity = dt > 0 ? "1" : "0.65";
+        const lab = wrap.querySelector("label");
+        if (lab) {
+          lab.innerHTML = dt > 0
+            ? 'Kategori kendala <span style="color:#b91c1c">*</span>'
+            : 'Kategori kendala';
+        }
+      }
+    }
+
     async function openReportModal(planId, existing) {
       const plan = reportPlanMap[planId] || reportPlans.find(p => p.plan_id === planId);
       if (!plan && !existing) return toast("Plan tidak ditemukan", true);
@@ -4956,14 +4983,32 @@ function fillOperatorList(selectedEmail) {
       $("rpActual").value = existing ? formatInputNum(existing.actual_qty, true) : "";
       $("rpNg").value = existing ? formatInputNum(existing.ng_qty || 0, true) : "0";
       $("rpDt").value = existing ? formatInputNum(existing.downtime_min || 0, false) : "0";
-      $("rpDtReason").value = existing ? (existing.downtime_reason || "") : "";
+      const rawReason = existing ? (existing.downtime_reason || "") : "";
+      const cats = ["Machine", "Material", "Metode", "Man Power", "Plan"];
+      let cat = "", detail = rawReason;
+      for (let i = 0; i < cats.length; i++) {
+        if (rawReason === cats[i] || rawReason.indexOf(cats[i] + ":") === 0 || rawReason.indexOf(cats[i] + " -") === 0) {
+          cat = cats[i];
+          detail = rawReason.slice(cats[i].length).replace(/^\s*[:\-]\s*/, "");
+          break;
+        }
+      }
+      if ($("rpDtCategory")) $("rpDtCategory").value = cat;
+      $("rpDtReason").value = detail;
       $("rpNotes").value = existing ? (existing.notes || "") : "";
+      try { syncDtCategoryUi(); } catch (e) {}
       $("rpHint").textContent = existing
         ? "Sudah ada laporan untuk plan ini — simpan akan memperbarui (bukan buat baru)."
         : "Target adj dihitung otomatis dari downtime (basis 480 menit/shift). 1 plan = 1 laporan.";
       $("reportModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { bindAllThousandInputs(); } catch (e) {}
+      if ($("rpDt") && !$("rpDt").dataset.dtBound) {
+        $("rpDt").dataset.dtBound = "1";
+        $("rpDt").addEventListener("input", syncDtCategoryUi);
+        $("rpDt").addEventListener("change", syncDtCategoryUi);
+      }
+      try { syncDtCategoryUi(); } catch (e2) {}
     }
     function closeReportModal() {
       $("reportModal").classList.remove("show");
@@ -4977,7 +5022,16 @@ function fillOperatorList(selectedEmail) {
       const actual_qty = parseInputNum($("rpActual").value);
       const ng_qty = parseInputNum($("rpNg").value);
       const downtime_min = parseInputNum($("rpDt").value);
-      const downtime_reason = ($("rpDtReason").value || "").trim();
+      const dtCat = (($("rpDtCategory") && $("rpDtCategory").value) || "").trim();
+      const dtDetail = ($("rpDtReason").value || "").trim();
+      if (downtime_min > 0 && !dtCat) {
+        toast("Downtime > 0 wajib pilih kategori kendala (Machine / Material / Metode / Man Power / Plan)", true);
+        if ($("rpDtCategory")) $("rpDtCategory").focus();
+        return;
+      }
+      const downtime_reason = dtCat
+        ? (dtDetail ? (dtCat + ": " + dtDetail) : dtCat)
+        : dtDetail;
       const notes = ($("rpNotes").value || "").trim();
       const target_qty = plan ? Number(plan.target_qty) || 0 : 0;
       const target_adj = calcTargetAdj(target_qty, downtime_min);
