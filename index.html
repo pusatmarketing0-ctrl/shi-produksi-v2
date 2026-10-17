@@ -2180,7 +2180,7 @@
             </div>
           </div>
           <div class="ops-dash" id="opsDash"></div>
-          <p class="ops-hint">Ringkasan harian (Plan / Actual / % / OP) di atas baris tanggal · Weekend merah muda · Hari ini hijau · Sel Plan bisa diklik untuk edit</p>
+          <p class="ops-hint">Actual = qty packing masterbox (FG). Primer = % proses sudah laporan. Drag sel Plan ke tanggal lain untuk pindah jadwal · Weekend merah muda · Hari ini hijau · Sel Plan bisa diklik untuk edit</p>
           <div class="ops-wrap" id="opsGridWrap">
             <div class="empty" id="opsEmpty">Memuat grid…</div>
             <table class="ops-table" id="opsTable" style="display:none"></table>
@@ -5738,6 +5738,8 @@ function fillOperatorList(selectedEmail) {
             opDay: {},
             actDay: {},
             primerDay: {},
+            procTotalDay: {},
+            procDoneDay: {},
             opSetDay: {},
             planIdsByDay: {}
           };
@@ -5761,7 +5763,18 @@ function fillOperatorList(selectedEmail) {
 
         if (!g.opSetDay[day]) g.opSetDay[day] = {};
         if (p.assigned_operator) g.opSetDay[day][p.assigned_operator] = true;
-        g.actDay[day] = (g.actDay[day] || 0) + (actualByPlan[p.plan_id] || 0);
+        // Actual qty hanya dari proses FG (packing masterbox) — primer tidak menambah pcs
+        const actQty = actualByPlan[p.plan_id] || 0;
+        if (fg) {
+          g.actDay[day] = (g.actDay[day] || 0) + actQty;
+        } else {
+          g.primerDay[day] = true;
+        }
+        // Progress laporan per proses (semua step hari itu)
+        if (!g.procTotalDay) g.procTotalDay = {};
+        if (!g.procDoneDay) g.procDoneDay = {};
+        g.procTotalDay[day] = (g.procTotalDay[day] || 0) + 1;
+        if (actQty > 0) g.procDoneDay[day] = (g.procDoneDay[day] || 0) + 1;
         if (!g.planIdsByDay[day]) g.planIdsByDay[day] = [];
         g.planIdsByDay[day].push(p.plan_id);
       });
@@ -6018,7 +6031,7 @@ function fillOperatorList(selectedEmail) {
         const rows = [
           { cls: "ops-plan", ket: "Plan", map: g.planDay, primer: g.primerDay },
           { cls: "ops-op", ket: "OP", map: g.opDay, primer: {} },
-          { cls: "ops-act", ket: "Actual", map: g.actDay, primer: {} }
+          { cls: "ops-act", ket: "Actual", map: g.actDay, primer: g.primerDay || {} }
         ];
         rows.forEach((row, ri) => {
           body += '<tr class="' + row.cls + '">';
@@ -6043,6 +6056,21 @@ function fillOperatorList(selectedEmail) {
             if (row.ket === "Plan" && row.primer[d] && !(Number(row.map[d]) > 0)) {
               content = "PRIMER";
               extra = " primer has-val";
+            } else if (row.ket === "Actual") {
+              const vFg = row.map[d];
+              if (vFg != null && Number(vFg) > 0) {
+                content = formatNum(vFg);
+                extra = " has-val";
+              } else {
+                // primer / non-FG: tampilkan % proses yang sudah laporan
+                const tot = (g.procTotalDay && g.procTotalDay[d]) || 0;
+                const done = (g.procDoneDay && g.procDoneDay[d]) || 0;
+                if (tot > 0 && (row.primer[d] || done > 0 || (g.planIdsByDay[d] && g.planIdsByDay[d].length))) {
+                  const pct = Math.round((done / tot) * 100);
+                  content = pct + "%";
+                  extra = " has-val" + (pct >= 100 ? "" : " primer");
+                }
+              }
             } else {
               const v = row.map[d];
               if (v != null && Number(v) !== 0) {
@@ -6050,10 +6078,22 @@ function fillOperatorList(selectedEmail) {
                 extra = " has-val";
               }
             }
-            const click = (row.ket === "Plan" && g.planIdsByDay[d] && g.planIdsByDay[d].length)
-              ? ' data-day="' + d + '" data-gkey="' + encodeURIComponent(g.product_id + "||" + (g.no_so || g.order_id || "")) + '" style="cursor:pointer"'
-              : "";
-            body += '<td class="day-cell' + wk + td + extra + '"' + click + '>' + content + '</td>';
+            // Plan row: semua sel tanggal bisa drop target (+ drag jika ada plan)
+            let click = "";
+            if (row.ket === "Plan") {
+              const gkeyEnc = encodeURIComponent(g.product_id + "||" + (g.no_so || g.order_id || ""));
+              click = ' data-day="' + d + '" data-gkey="' + gkeyEnc + '"';
+              if (g.planIdsByDay[d] && g.planIdsByDay[d].length) {
+                click += ' style="cursor:grab" draggable="true"';
+              }
+            }
+            let titleExtra = "";
+            if (row.ket === "Actual" && content && String(content).indexOf("%") >= 0) {
+              const tot2 = (g.procTotalDay && g.procTotalDay[d]) || 0;
+              const done2 = (g.procDoneDay && g.procDoneDay[d]) || 0;
+              titleExtra = ' title="' + done2 + '/' + tot2 + ' proses sudah laporan"';
+            }
+            body += '<td class="day-cell' + wk + td + extra + '"' + click + titleExtra + '>' + content + '</td>';
           });
           body += '</tr>';
         });
@@ -6823,50 +6863,77 @@ function fillOperatorList(selectedEmail) {
     // Drag-drop: pindah plan antar tanggal di grid operasional
     function bindOpsDragDrop(table) {
       if (!table) return;
-      table.querySelectorAll("td.day-cell[data-day][data-gkey]").forEach(td => {
+      // Drag hanya dari sel Plan yang punya plan; drop ke semua sel Plan bertanda data-day
+      table.querySelectorAll("td.day-cell[data-day][data-gkey]").forEach(function(td) {
         const day = td.getAttribute("data-day");
         const gkey = decodeURIComponent(td.getAttribute("data-gkey") || "");
-        const g = (opsRows || []).find(x => (x.product_id + "||" + (x.no_so || x.order_id || "")) === gkey);
-        const hasPlan = g && g.planIdsByDay && g.planIdsByDay[day] && g.planIdsByDay[day].length;
-        if (hasPlan) {
+        const g = (opsRows || []).find(function(x) {
+          return (x.product_id + "||" + (x.no_so || x.order_id || "")) === gkey;
+        });
+        const ids = g && g.planIdsByDay && g.planIdsByDay[day] ? g.planIdsByDay[day] : [];
+        if (ids.length) {
           td.setAttribute("draggable", "true");
+          td.style.cursor = "grab";
           td.ondragstart = function(ev) {
             td.classList.add("ops-dragging");
-            const ids = g.planIdsByDay[day];
-            ev.dataTransfer.setData("text/plain", JSON.stringify({
+            td.style.cursor = "grabbing";
+            const payload = JSON.stringify({
               planIds: ids,
               fromDay: day,
               gkey: gkey
-            }));
+            });
+            try {
+              ev.dataTransfer.setData("text/plain", payload);
+              ev.dataTransfer.setData("application/json", payload);
+            } catch (e1) {}
             ev.dataTransfer.effectAllowed = "move";
           };
-          td.ondragend = function() { td.classList.remove("ops-dragging"); };
+          td.ondragend = function() {
+            td.classList.remove("ops-dragging");
+            td.style.cursor = "grab";
+            table.querySelectorAll(".ops-drag-over").forEach(function(x) { x.classList.remove("ops-drag-over"); });
+          };
         }
-        // drop target: any day cell for same product row ideally, or any day
         td.ondragover = function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          try { ev.dataTransfer.dropEffect = "move"; } catch (e2) {}
+          td.classList.add("ops-drag-over");
+        };
+        td.ondragenter = function(ev) {
           ev.preventDefault();
           td.classList.add("ops-drag-over");
         };
-        td.ondragleave = function() { td.classList.remove("ops-drag-over"); };
+        td.ondragleave = function(ev) {
+          if (!td.contains(ev.relatedTarget)) td.classList.remove("ops-drag-over");
+        };
         td.ondrop = async function(ev) {
           ev.preventDefault();
+          ev.stopPropagation();
           td.classList.remove("ops-drag-over");
+          let raw = "";
+          try { raw = ev.dataTransfer.getData("application/json") || ev.dataTransfer.getData("text/plain") || ""; } catch (e3) {}
           let payload = null;
-          try { payload = JSON.parse(ev.dataTransfer.getData("text/plain") || "{}"); } catch (e) {}
-          if (!payload || !payload.planIds || !payload.planIds.length) return;
+          try { payload = JSON.parse(raw || "{}"); } catch (e4) {}
+          if (!payload || !payload.planIds || !payload.planIds.length) {
+            toast("Tidak ada plan yang di-drag", true);
+            return;
+          }
           const toDay = td.getAttribute("data-day");
           if (!toDay || toDay === payload.fromDay) return;
-          if (!(await appConfirm("Pindah " + payload.planIds.length + " plan ke " + toDay + "?"))) return;
+          if (!(await appConfirm("Pindah " + payload.planIds.length + " plan ke tanggal " + toDay + "?", "Pindah jadwal"))) return;
           let ok = 0, fail = 0;
-          for (const pid of payload.planIds) {
+          for (let i = 0; i < payload.planIds.length; i++) {
+            const pid = payload.planIds[i];
             const { error } = await sb.from("plans").update({
               plan_date: toDay,
               updated_at: new Date().toISOString()
             }).eq("plan_id", pid);
-            if (error) fail++; else ok++;
+            if (error) { fail++; console.error(error); }
+            else ok++;
           }
           toast(ok + " plan dipindah" + (fail ? ", " + fail + " gagal" : ""));
-          try { await loadOperasional(); } catch (e) {}
+          try { await loadOpsDash(); } catch (e5) {}
         };
       });
     }
