@@ -5865,7 +5865,10 @@ function fillOperatorList(selectedEmail) {
         if (fg) g._planFg = (g._planFg || 0) + tqty;
 
         if (!g.opSetDay[day]) g.opSetDay[day] = {};
-        if (p.assigned_operator) g.opSetDay[day][p.assigned_operator] = true;
+        var opEm = String(p.assigned_operator || "").trim();
+        if (opEm && opEm.toLowerCase() !== "null" && opEm !== "-") {
+          g.opSetDay[day][opEm.toLowerCase()] = true;
+        }
         // Actual qty hanya dari proses FG (packing masterbox) — primer tidak menambah pcs
         const actQty = actualByPlan[p.plan_id] || 0;
         if (fg) {
@@ -5937,12 +5940,19 @@ function fillOperatorList(selectedEmail) {
       // daily summary + today panel
       opsDayMeta = {};
       opsDays.forEach(d => {
-        let plan = 0, act = 0, op = 0;
+        let plan = 0, act = 0;
+        const opSetDay = {};
         opsRows.forEach(g => {
           plan += Number(g.planDay[d]) || 0;
           act += Number(g.actDay[d]) || 0;
-          op += Number(g.opDay[d]) || 0;
+          // OP harian = operator unik (email), bukan jumlah baris produk
+          const set = (g.opSetDay && g.opSetDay[d]) || {};
+          Object.keys(set).forEach(function(em) {
+            const e = String(em || "").trim().toLowerCase();
+            if (e) opSetDay[e] = true;
+          });
         });
+        const op = Object.keys(opSetDay).length;
         const pct = plan > 0 ? Math.round((act / plan) * 100) : 0;
         opsDayMeta[d] = { plan, act, op, pct };
       });
