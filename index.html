@@ -1575,6 +1575,21 @@
       display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;
     }
     .app-confirm-actions .btn { min-width: 88px; }
+
+    .op-grade-card {
+      margin: 0.75rem 0 0.85rem;
+      padding: 0.9rem 1rem;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 50%, #fff 100%);
+      border: 1px solid #bbf7d0;
+      display: flex; align-items: center; gap: 0.85rem;
+    }
+    .op-grade-icon { font-size: 2rem; line-height: 1; }
+    .op-grade-name { font-size: 1.15rem; font-weight: 800; color: #065f46; }
+    .op-grade-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+    .op-grade-pct { margin-left: auto; text-align: right; }
+    .op-grade-pct strong { display: block; font-size: 1.25rem; color: var(--green); }
+    .op-grade-pct span { font-size: 0.7rem; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -1675,7 +1690,7 @@
         <div class="nav-label" data-nav-group="ops">Operasional</div>
         <button class="nav-item active" data-page="home" data-roles="all" data-tip="Beranda"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 11.5L12 4l9 7.5"/><path d="M6 10.5V20h12v-9.5"/><path d="M10 20v-5h4v5"/></svg></span><span class="nav-txt"> Beranda</span></button>
         <button class="nav-item" data-page="operasional" data-roles="admin,ppic,korlap,marketing" data-tip="Grid operasional"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M6.5 6.5h0.01M17.5 6.5h0.01M6.5 17.5h0.01M17.5 17.5h0.01"/></svg></span><span class="nav-txt"> Grid operasional</span></button>
-        <button class="nav-item" data-page="plans" data-roles="admin,ppic,korlap,marketing,operator" data-tip="Plan"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M8 4h9a2 2 0 012 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 012-2z"/><path d="M10 9h6M10 13h6M10 17h3"/></svg></span><span class="nav-txt"> Plan</span></button>
+        <button class="nav-item" data-page="plans" data-roles="admin,ppic,korlap,marketing" data-tip="Plan"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M8 4h9a2 2 0 012 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 012-2z"/><path d="M10 9h6M10 13h6M10 17h3"/></svg></span><span class="nav-txt"> Plan</span></button>
         <button class="nav-item" data-page="reports" data-roles="admin,ppic,korlap,operator" data-tip="Laporan"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 5-6"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></span><span class="nav-txt"> Laporan</span></button>
         <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap" data-tip="Sales Order"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M7 7h13l-1.5 9H8.5L7 7z"/><path d="M7 7L6 4H3"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/><path d="M10 11h7"/></svg></span><span class="nav-txt"> Sales Order</span></button>
         <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap" data-tip="Marketing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 19V9l7-5 7 5v10"/><path d="M9 19v-5h4v5"/><path d="M4 19h14"/></svg></span><span class="nav-txt"> Marketing</span></button>
@@ -1723,6 +1738,17 @@
                 <div><span id="opActual">0</span><small>Aktual</small></div>
                 <div><span id="opNg">0</span><small>NG</small></div>
                 <div><span id="opDt">0</span><small>DT</small></div>
+              </div>
+            </div>
+            <div class="op-grade-card" id="opGradeCard">
+              <div class="op-grade-icon" id="opGradeIcon">🌱</div>
+              <div>
+                <div class="op-grade-name" id="opGradeName">Tunas</div>
+                <div class="op-grade-sub" id="opGradeSub">Grade bulan ini (MTD) · dari laporan Anda</div>
+              </div>
+              <div class="op-grade-pct">
+                <strong id="opGradePct">—</strong>
+                <span>pencapaian</span>
               </div>
             </div>
             <div class="card" style="margin-bottom:0.85rem">
@@ -3416,7 +3442,7 @@
           <td style="font-size:0.8rem">${esc(p.assigned_operator || "—")}</td>
           <td>${statusPill(p.status)}</td>
           <td style="white-space:nowrap">
-            <button class="btn btn-ghost btn-sm" type="button" onclick='editPlan(${JSON.stringify(p.plan_id)})'>Edit</button>
+            ${currentRole() === "operator" ? "" : `<button class="btn btn-ghost btn-sm" type="button" onclick='editPlan(${JSON.stringify(p.plan_id)})'>Edit</button>`}
             <button class="btn btn-danger btn-sm" type="button" onclick='deletePlan(${JSON.stringify(p.plan_id)})'>Hapus</button>
           </td>
         </tr>
@@ -3841,6 +3867,10 @@
 
 
     async function openPlanModal(row) {
+      if (currentRole() === "operator") {
+        toast("Operator hanya mengisi laporan, tidak bisa edit plan", true);
+        return;
+      }
       fillPlanDatalists();
       try { await loadOperators(); } catch (e) { console.warn(e); }
       editingPlanId = row ? row.plan_id : null;
@@ -3861,10 +3891,18 @@
     }
     function closePlanModal() { $("planModal").classList.remove("show"); document.body.classList.remove("modal-open"); document.body.classList.remove("modal-open"); editingPlanId = null; }
     async function editPlan(id) {
+      if (currentRole() === "operator") {
+        toast("Operator hanya mengisi laporan, tidak bisa edit plan", true);
+        return;
+      }
       const row = plans.find(p => p.plan_id === id);
       if (row) openPlanModal(row);
     }
     async function deletePlan(id) {
+      if (currentRole() === "operator") {
+        toast("Operator tidak bisa hapus plan", true);
+        return;
+      }
       if (!(await appConfirm("Hapus plan " + id + "?"))) return;
       const { error } = await sb.from("plans").delete().eq("plan_id", id);
       if (error) return toast(error.message, true);
@@ -4620,8 +4658,12 @@ function fillOperatorList(selectedEmail) {
         if ($("homeOperator")) $("homeOperator").style.display = "block";
         document.querySelectorAll(".mobile-nav button").forEach(b => {
           const pg = b.getAttribute("data-page");
-          if (pg === "products") b.style.display = "none";
+          if (pg === "products" || pg === "plans" || pg === "plan-import") b.style.display = "none";
         });
+        // operator: hanya home, laporan, cuti — sembunyikan aksi plan
+        document.querySelectorAll(
+          '[onclick*="openPlanModal"], [onclick*="openPlanImportPage"], [onclick*="openPlanPaste"], [onclick*="openPlanMass"], [onclick*="openKorlapAssign"], [onclick*="openPlanProduct"]'
+        ).forEach(function(el) { el.style.display = "none"; });
         try { loadOperatorHome(); } catch (e) { console.warn(e); }
       } else {
         if ($("homeStaff")) $("homeStaff").style.display = "block";
@@ -6864,11 +6906,31 @@ function fillOperatorList(selectedEmail) {
       });
       const pct = target > 0 ? Math.round((actual / target) * 1000) / 10 : 0;
       const reject = actual > 0 ? Math.round((ng / actual) * 1000) / 10 : 0;
-      if ($("opPct")) $("opPct").textContent = target ? formatPct(pct) : "—";
+            if ($("opPct")) $("opPct").textContent = target ? formatPct(pct) : "—";
       if ($("opReject")) $("opReject").textContent = formatPct(reject);
       if ($("opTarget")) $("opTarget").textContent = formatNum(target);
       if ($("opActual")) $("opActual").textContent = formatNum(actual);
       if ($("opNg")) $("opNg").textContent = formatNum(ng);
+      // Grade MTD (bulan ini)
+      try {
+        const from = today.slice(0, 8) + "01";
+        const { data: mtdReps } = await sb.from("reports").select("actual_qty,target_qty,target_adj,reported_by,report_date")
+          .eq("reported_by", email)
+          .gte("report_date", from)
+          .lte("report_date", today)
+          .limit(500);
+        let ma = 0, mt = 0;
+        (mtdReps || []).forEach(function(r) {
+          ma += Number(r.actual_qty) || 0;
+          mt += Number(r.target_adj != null ? r.target_adj : r.target_qty) || 0;
+        });
+        const mp = mt > 0 ? Math.round((ma / mt) * 1000) / 10 : 0;
+        const g = (typeof opGrade === "function") ? opGrade(mp) : { name: "Tunas", icon: "🌱" };
+        if ($("opGradeIcon")) $("opGradeIcon").textContent = g.icon || "🌱";
+        if ($("opGradeName")) $("opGradeName").textContent = g.name || "Tunas";
+        if ($("opGradePct")) $("opGradePct").textContent = mt > 0 ? (mp + "%") : "—";
+        if ($("opGradeSub")) $("opGradeSub").textContent = "Grade bulan ini (MTD) · " + formatNum(ma) + " / " + formatNum(mt) + " · 95%+ Pionir · 90–94% Penggerak · 80–89% Pejuang · <80% Tunas";
+      } catch (eG) { console.warn(eG); }
       if ($("opDt")) $("opDt").textContent = formatNum(dt);
 
       // store for modal open
@@ -7228,6 +7290,10 @@ function fillOperatorList(selectedEmail) {
     let planImportRows = []; // { raw, no_so, operator, product_id, machine_id, target_qty, unit, plan_date, shift, errors[], wipNote, valid }
 
     function openPlanImportPage() {
+      if (currentRole() === "operator") {
+        toast("Operator tidak bisa import plan", true);
+        return;
+      }
       planImportRows = [];
       if ($("piBody")) $("piBody").innerHTML = '<tr><td colspan="12" class="empty" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Belum ada file — pilih atau tempel data</td></tr>';
       if ($("piValidCount")) $("piValidCount").textContent = "0";
@@ -7757,13 +7823,20 @@ function fillOperatorList(selectedEmail) {
 
 
     function goPage(page) {
+      if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
+        page = "home";
+      }
       const navBtn = document.querySelector('.nav-item[data-page="' + page + '"]');
       if (navBtn && navBtn.style.display === "none") page = "home";
       document.querySelectorAll(".page").forEach(el => { el.hidden = el.id !== "page-" + page; });
       document.querySelectorAll(".nav-item, .mobile-nav button").forEach(el => {
         el.classList.toggle("active", el.getAttribute("data-page") === page);
       });
-      if (page === "plans") { try { loadPlans(); } catch (e) {} }
+      if (page === "plans") {
+        if (currentRole() === "operator") { page = "home"; try { loadOperatorHome(); } catch (e) {} }
+        else { try { loadPlans(); } catch (e) {} }
+      }
+      if (page === "plan-import" && currentRole() === "operator") { page = "home"; }
       if (page === "reports") { try { loadReportsPage(); } catch (e) {} }
       if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
       if (page === "absences") { try { loadAbsences(); } catch (e) {} }
