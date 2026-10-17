@@ -3864,7 +3864,7 @@
       const row = plans.find(p => p.plan_id === id);
       if (row) openPlanModal(row);
     }
-    async async function deletePlan(id) {
+    async function deletePlan(id) {
       if (!(await appConfirm("Hapus plan " + id + "?"))) return;
       const { error } = await sb.from("plans").delete().eq("plan_id", id);
       if (error) return toast(error.message, true);
@@ -4515,7 +4515,7 @@ function fillOperatorList(selectedEmail) {
       const row = products.find(p => p.product_id === id);
       if (row) openProductModal(row);
     }
-    async async function deleteProduct(id) {
+    async function deleteProduct(id) {
       if (!(await appConfirm("Hapus produk " + id + "?"))) return;
       const { error } = await sb.from("products").delete().eq("product_id", id);
       if (error) return toast(error.message, true);
