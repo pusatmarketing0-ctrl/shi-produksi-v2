@@ -3417,34 +3417,44 @@
     function resolveProductId(text) {
       let t = String(text || "").trim();
       if (!t) return "";
+      // "[FG003] Nama produk" → FG003
+      const br = t.match(/^\[\s*([^\]]+)\s*\]/);
+      if (br) t = br[1].trim();
       // "ID — name" from search combo
       if (t.indexOf(" — ") >= 0) t = t.split(" — ")[0].trim();
-      if (t.indexOf(" - ") >= 0 && products.find(p => String(p.product_id).toLowerCase() === t.split(" - ")[0].trim().toLowerCase())) {
-        t = t.split(" - ")[0].trim();
+      if (t.indexOf(" - ") >= 0) {
+        const left = t.split(" - ")[0].trim();
+        if ((products || []).find(p => String(p.product_id).toLowerCase() === left.toLowerCase())) t = left;
       }
-      const byId = products.find(p => String(p.product_id).toLowerCase() === t.toLowerCase());
+      const list = products || [];
+      const byId = list.find(p => String(p.product_id).toLowerCase() === t.toLowerCase());
       if (byId) return byId.product_id;
-      const byName = products.find(p => String(p.name).toLowerCase() === t.toLowerCase());
+      const byName = list.find(p => String(p.name).toLowerCase() === t.toLowerCase());
       if (byName) return byName.product_id;
-      const partial = products.find(p =>
+      // starts with code
+      const byPrefix = list.find(p => String(p.product_id).toLowerCase() === t.split(/\s+/)[0].toLowerCase());
+      if (byPrefix) return byPrefix.product_id;
+      const partial = list.find(p =>
         String(p.product_id).toLowerCase().includes(t.toLowerCase()) ||
         String(p.name).toLowerCase().includes(t.toLowerCase())
       );
-      return partial ? partial.product_id : t;
+      // JANGAN return teks mentah — FK plans.product_id akan gagal
+      return partial ? partial.product_id : "";
     }
     function resolveMachineId(text) {
       let t = String(text || "").trim();
       if (!t) return "";
       if (t.indexOf(" — ") >= 0) t = t.split(" — ")[0].trim();
-      const byId = machines.find(m => String(m.machine_id).toLowerCase() === t.toLowerCase());
+      const list = machines || [];
+      const byId = list.find(m => String(m.machine_id).toLowerCase() === t.toLowerCase());
       if (byId) return byId.machine_id;
-      const byName = machines.find(m => String(m.name).toLowerCase() === t.toLowerCase());
+      const byName = list.find(m => String(m.name).toLowerCase() === t.toLowerCase());
       if (byName) return byName.machine_id;
-      const partial = machines.find(m =>
+      const partial = list.find(m =>
         String(m.machine_id).toLowerCase().includes(t.toLowerCase()) ||
         String(m.name).toLowerCase().includes(t.toLowerCase())
       );
-      return partial ? partial.machine_id : t;
+      return partial ? partial.machine_id : "";
     }
     function productLabel(id) {
       const p = products.find(x => x.product_id === id);
@@ -7324,15 +7334,34 @@ function fillOperatorList(selectedEmail) {
           return d.getUTCFullYear() + "-" + z(d.getUTCMonth() + 1) + "-" + z(d.getUTCDate());
         }
       }
+      // "18 Oktober 2026" / "18 Oktober" / "16 Okt 2026"
+      const bulanMap = {
+        januari: 1, jan: 1, february: 2, feb: 2, maret: 3, mar: 3, april: 4, apr: 4,
+        mei: 5, juni: 6, jun: 6, juli: 7, jul: 7, agustus: 8, agu: 8, ags: 8, aug: 8,
+        september: 9, sep: 9, sept: 9, oktober: 10, okt: 10, oct: 10,
+        november: 11, nov: 11, desember: 12, des: 12, dec: 12
+      };
+      let mId = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s*(\d{2,4})?$/);
+      if (mId) {
+        const day = String(mId[1]).padStart(2, "0");
+        const mon = bulanMap[String(mId[2]).toLowerCase()];
+        let y = mId[3] ? String(mId[3]) : String(new Date().getFullYear());
+        if (y.length === 2) y = "20" + y;
+        if (mon) return y + "-" + String(mon).padStart(2, "0") + "-" + day;
+      }
       // DD/MM/YYYY or DD-MM-YYYY
-      let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+      let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
       if (m) {
         const z = x => String(x).padStart(2, "0");
-        return m[3] + "-" + z(m[2]) + "-" + z(m[1]);
+        let y = m[3];
+        if (y.length === 2) y = "20" + y;
+        return y + "-" + z(m[2]) + "-" + z(m[1]);
       }
       // YYYY-MM-DD
       m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (m) return m[1] + "-" + m[2] + "-" + m[3];
+      // last resort: if already looks invalid, return ""
+      if (!/^\d{4}-\d{2}-\d{2}/.test(s)) return "";
       return s.slice(0, 10);
     }
     function normalizeShift(v) {
@@ -7410,21 +7439,80 @@ function fillOperatorList(selectedEmail) {
     }
     async function bulkInsertPlans(rows) {
       if (!rows.length) return toast("Tidak ada baris plan valid", true);
-      const chunk = 50;
+      // pastikan master produk/mesin sudah di memori
+      try {
+        if (!(products && products.length)) await loadProducts();
+        if (!(machines && machines.length)) await loadMachines();
+      } catch (eL) {}
+
+      const cleaned = [];
+      const skipped = [];
+      rows.forEach(function(r, idx) {
+        const plan_date = normalizePlanDate(r.plan_date);
+        const product_id = resolveProductId(r.product_id || r.product_raw || "");
+        const machine_id = resolveMachineId(r.machine_id || r.machine_raw || "");
+        const target_qty = Number(r.target_qty) || 0;
+        const shift = normalizeShift(r.shift || "1");
+        const reasons = [];
+        if (!plan_date || !/^\d{4}-\d{2}-\d{2}$/.test(plan_date)) reasons.push("tanggal invalid: " + (r.plan_date || "?"));
+        if (!product_id) reasons.push("produk tidak ada di master: " + (r.product_id || r.product_raw || "?"));
+        if (!machine_id) reasons.push("proses tidak ada di master: " + (r.machine_id || r.machine_raw || "?"));
+        if (!(target_qty > 0)) reasons.push("target kosong");
+        if (reasons.length) {
+          skipped.push("Baris " + (idx + 1) + ": " + reasons.join("; "));
+          return;
+        }
+        const op = resolveOperatorEmail(r.assigned_operator || r.operator || "") || "";
+        let status = String(r.status || (op ? "open" : "draft")).toLowerCase();
+        if (!["draft","open","in_progress","done","cancelled"].includes(status)) status = op ? "open" : "draft";
+        if (!op && status === "open") status = "draft";
+        cleaned.push({
+          plan_id: r.plan_id || newPlanId(),
+          plan_date: plan_date,
+          shift: shift,
+          product_id: product_id,
+          machine_id: machine_id,
+          target_qty: target_qty,
+          unit: String(r.unit || "pcs").trim() || "pcs",
+          assigned_operator: op,
+          status: status,
+          no_so: String(r.no_so || "").trim(),
+          order_id: String(r.order_id || "").trim() || null,
+          created_by: r.created_by || ((currentUser && currentUser.email) || ""),
+          created_at: r.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      });
+
+      if (!cleaned.length) {
+        console.warn(skipped);
+        toast("0 plan valid. Contoh error: " + (skipped[0] || "cek produk & tanggal"), true);
+        if (skipped.length > 1) toast(skipped.length + " baris ditolak — buka console untuk detail", true);
+        return;
+      }
+
+      const chunk = 25;
       let ok = 0, fail = 0;
-      const firstDate = rows[0].plan_date;
-      for (let i = 0; i < rows.length; i += chunk) {
-        const part = rows.slice(i, i + chunk);
-        // ensure unique plan_ids in batch
-        part.forEach((r, j) => { r.plan_id = newPlanId() + "-" + (i + j); });
+      const firstDate = cleaned[0].plan_date;
+      for (let i = 0; i < cleaned.length; i += chunk) {
+        const part = cleaned.slice(i, i + chunk).map(function(r, j) {
+          r.plan_id = newPlanId() + "-" + (i + j);
+          // order_id empty string can break FK — use null
+          if (!r.order_id) delete r.order_id;
+          return r;
+        });
         const { error } = await sb.from("plans").insert(part);
         if (error) {
           fail += part.length;
-          console.error(error);
+          console.error(error, part);
           toast(error.message, true);
         } else ok += part.length;
       }
-      toast("Plan: " + ok + " diimpor" + (fail ? ", " + fail + " gagal" : ""));
+      let msg = "Plan: " + ok + " diimpor";
+      if (fail) msg += ", " + fail + " gagal DB";
+      if (skipped.length) msg += ", " + skipped.length + " dilewati (produk/tanggal)";
+      toast(msg, fail > 0 || skipped.length > ok);
+      if (skipped.length) console.warn("Plan dilewati:", skipped.slice(0, 30));
       if ($("planFilterDate") && firstDate) $("planFilterDate").value = firstDate;
       await loadPlans();
     }
@@ -7498,19 +7586,7 @@ function fillOperatorList(selectedEmail) {
     }
 
     function piNormalizeDate(v) {
-      v = String(v || "").trim();
-      if (!v) return "";
-      // DD/MM/YYYY or DD-MM-YYYY
-      let m = v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
-      if (m) {
-        let d = m[1].padStart(2, "0"), mo = m[2].padStart(2, "0"), y = m[3];
-        if (y.length === 2) y = "20" + y;
-        return y + "-" + mo + "-" + d;
-      }
-      // YYYY-MM-DD
-      if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
-      // Excel serial-ish number skip
-      return v.slice(0, 10);
+      return normalizePlanDate(v);
     }
 
     function piValidateRow(r) {
