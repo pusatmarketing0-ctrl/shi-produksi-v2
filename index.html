@@ -1601,6 +1601,65 @@
       padding-right: 2px;
     }
     .search-combo-list { z-index: 200 !important; }
+
+    /* Freeze Produk + Customer + No SO (horizontal + ikut header vertikal) */
+    .ops-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 280px);
+      position: relative;
+    }
+    .ops-table {
+      border-collapse: separate !important;
+      border-spacing: 0;
+    }
+    .ops-table .fz-prod,
+    .ops-table .fz-cust,
+    .ops-table .fz-so {
+      position: sticky !important;
+      background: #fff !important;
+    }
+    .ops-table .fz-prod { left: 0 !important; z-index: 8 !important; min-width: 168px; max-width: 188px; width: 168px; }
+    .ops-table .fz-cust { left: 168px !important; z-index: 8 !important; min-width: 120px; max-width: 140px; width: 120px; }
+    .ops-table .fz-so {
+      left: 288px !important; z-index: 9 !important; min-width: 108px; width: 108px;
+      box-shadow: 8px 0 16px rgba(15, 23, 42, 0.12) !important;
+      border-right: 2px solid #cbd5e1 !important;
+    }
+    .ops-table thead .fz-prod,
+    .ops-table thead .fz-cust,
+    .ops-table thead .fz-so {
+      z-index: 20 !important;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+      color: #f8fafc !important;
+    }
+    .ops-table thead tr.ops-sum-row .fz-prod,
+    .ops-table thead tr.ops-sum-row .fz-cust,
+    .ops-table thead tr.ops-sum-row .fz-so {
+      z-index: 18 !important;
+      background: #f1f5f9 !important;
+      color: #334155 !important;
+    }
+    .ops-table thead tr.ops-day-row .fz-prod,
+    .ops-table thead tr.ops-day-row .fz-cust,
+    .ops-table thead tr.ops-day-row .fz-so {
+      top: 112px;
+      z-index: 20 !important;
+    }
+    .ops-table tbody td.fz-prod,
+    .ops-table tbody td.fz-cust,
+    .ops-table tbody td.fz-so {
+      background: #fff !important;
+    }
+    .ops-table tbody tr:hover td.fz-prod,
+    .ops-table tbody tr:hover td.fz-cust,
+    .ops-table tbody tr:hover td.fz-so {
+      background: #f0faf5 !important;
+    }
+    /* rowspan sticky: pastikan background solid menutupi sel tanggal saat scroll X */
+    .ops-table tbody td.fz {
+      background-clip: padding-box;
+    }
+
   </style>
 </head>
 <body>
@@ -1771,6 +1830,16 @@
                 <span class="pill">TODAY</span>
               </div>
               <div id="opTodayList" class="mobile-cards"></div>
+            </div>
+            <div class="card" style="margin-bottom:0.85rem;border-color:#bfdbfe;background:#f8fbff">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0;color:#1e40af">Jadwal besok</h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:#3b82f6" id="opTomorrowDate">Persiapan shift</p>
+                </div>
+                <span class="pill" style="background:#dbeafe;color:#1e40af;border-color:#93c5fd" id="opTomorrowCount">0</span>
+              </div>
+              <div id="opTomorrowList" class="mobile-cards"></div>
             </div>
             <div class="card" style="border-color:#fde68a;background:#fffbeb">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem">
@@ -4019,6 +4088,11 @@
       if (editingPlanId) {
         ({ error } = await sb.from("plans").update(payload).eq("plan_id", editingPlanId));
       } else {
+        const keys = await fetchExistingPlanKeys([payload.plan_date]);
+        if (keys.has(planDupKey(payload))) {
+          toast("Plan duplikat: tanggal + shift + produk + proses + operator yang sama sudah ada", true);
+          return;
+        }
         payload.plan_id = newPlanId();
         payload.created_by = (currentUser && currentUser.email) || "";
         payload.created_at = new Date().toISOString();
@@ -5350,9 +5424,7 @@ function fillOperatorList(selectedEmail) {
         });
       });
       if (!rows.length) return toast("Isi minimal 1 step dengan proses & target > 0", true);
-      const { error } = await sb.from("plans").insert(rows);
-      if (error) return toast(error.message, true);
-      toast(rows.length + " plan step disimpan");
+      await bulkInsertPlans(rows);
       closePlanProductModal();
       if ($("planFilterDate")) $("planFilterDate").value = plan_date;
       await loadPlans();
@@ -7085,6 +7157,19 @@ function fillOperatorList(selectedEmail) {
         .in("status", ["open","in_progress","draft","done"]);
       const plansToday = todayPlans || [];
 
+      // besok
+      const tmr = new Date(today + "T12:00:00");
+      tmr.setDate(tmr.getDate() + 1);
+      const z = function(n) { return String(n).padStart(2, "0"); };
+      const tomorrow = tmr.getFullYear() + "-" + z(tmr.getMonth() + 1) + "-" + z(tmr.getDate());
+      if ($("opTomorrowDate")) $("opTomorrowDate").textContent = tomorrow + " · persiapan";
+      const { data: tmrPlans } = await sb.from("plans").select("*")
+        .eq("plan_date", tomorrow)
+        .eq("assigned_operator", email)
+        .in("status", ["open","in_progress","draft","done"]);
+      const plansTomorrow = tmrPlans || [];
+      if ($("opTomorrowCount")) $("opTomorrowCount").textContent = String(plansTomorrow.length);
+
       // open plans before today (belum dilapor)
       const { data: oldPlans } = await sb.from("plans").select("*")
         .eq("assigned_operator", email)
@@ -7174,6 +7259,20 @@ function fillOperatorList(selectedEmail) {
           todayBox.querySelectorAll("[data-pid]").forEach(el => {
             el.onclick = () => { goPage("reports"); setTimeout(() => openReportModal(decodeURIComponent(el.getAttribute("data-pid"))), 200); };
           });
+        }
+      }
+      const tmrBox = $("opTomorrowList");
+      if (tmrBox) {
+        if (!plansTomorrow.length) {
+          tmrBox.innerHTML = '<div class="m-card" style="background:transparent;border-style:dashed"><div class="m-sub" style="margin:0;text-align:center">Belum ada jadwal besok</div></div>';
+        } else {
+          tmrBox.innerHTML = plansTomorrow.map(function(p) {
+            return '<div class="m-card" style="border-color:#bfdbfe">' +
+              '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
+              '<div class="m-sub">' + esc(machineLabel(p.machine_id)) + ' · Shift ' + esc(p.shift) +
+              (p.status === "draft" ? ' · <span class="pill">draft</span>' : "") + '</div>' +
+              '<div class="m-row">Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</strong></div></div>';
+          }).join("");
         }
       }
       const pendBox = $("opPendingList");
@@ -7504,6 +7603,34 @@ function fillOperatorList(selectedEmail) {
       });
       return out;
     }
+    
+    function planDupKey(r) {
+      return [
+        String(r.plan_date || "").slice(0, 10),
+        String(r.shift || "1").trim(),
+        String(r.product_id || "").trim(),
+        String(r.machine_id || "").trim(),
+        String(r.assigned_operator || "").trim().toLowerCase(),
+        String(r.no_so || "").trim()
+      ].join("|");
+    }
+    async function fetchExistingPlanKeys(dates) {
+      const set = new Set();
+      if (!sb || !dates || !dates.length) return set;
+      const uniq = Array.from(new Set(dates.filter(Boolean)));
+      for (let i = 0; i < uniq.length; i += 10) {
+        const chunk = uniq.slice(i, i + 10);
+        const { data } = await sb.from("plans").select("plan_date,shift,product_id,machine_id,assigned_operator,no_so,status")
+          .in("plan_date", chunk)
+          .not("status", "eq", "cancelled")
+          .limit(3000);
+        (data || []).forEach(function(p) {
+          set.add(planDupKey(p));
+        });
+      }
+      return set;
+    }
+
     async function bulkInsertPlans(rows) {
       if (!rows.length) return toast("Tidak ada baris plan valid", true);
       // pastikan master produk/mesin sudah di memori
@@ -7557,6 +7684,28 @@ function fillOperatorList(selectedEmail) {
         if (skipped.length > 1) toast(skipped.length + " baris ditolak — buka console untuk detail", true);
         return;
       }
+
+      // Cegah duplikat: tanggal+shift+produk+proses+operator+no_so
+      const existingKeys = await fetchExistingPlanKeys(cleaned.map(function(r) { return r.plan_date; }));
+      const seenBatch = new Set();
+      const deduped = [];
+      let dupSkip = 0;
+      cleaned.forEach(function(r) {
+        const k = planDupKey(r);
+        if (existingKeys.has(k) || seenBatch.has(k)) {
+          dupSkip++;
+          return;
+        }
+        seenBatch.add(k);
+        deduped.push(r);
+      });
+      if (!deduped.length) {
+        toast("Semua plan duplikat (sudah ada di sistem) — tidak ada yang diimpor", true);
+        return;
+      }
+      if (dupSkip) toast(dupSkip + " plan duplikat dilewati");
+      cleaned.length = 0;
+      deduped.forEach(function(r) { cleaned.push(r); });
 
       const chunk = 25;
       let ok = 0, fail = 0;
