@@ -6179,18 +6179,17 @@ function fillOperatorList(selectedEmail) {
           const gkey = decodeURIComponent(td.getAttribute("data-gkey") || "");
           const g = opsRows.find(x => (x.product_id + "||" + (x.no_so || x.order_id || "")) === gkey);
           if (!g || !g.planIdsByDay[day] || !g.planIdsByDay[day].length) {
-            // no plan → create for this product/day
+            // no plan → buat plan di tanggal sel yang diklik (bukan hari ini)
             try {
-              goPage("plans");
-              setTimeout(function() {
-                openPlanModal(null);
-                if ($("plDate")) $("plDate").value = day;
-                if ($("plProduct")) {
-                  // try set product search
-                  const inp = document.querySelector("#planModal input[id=plProduct], #plProduct");
-                }
-              }, 200);
-            } catch (e) {}
+              const pid = g ? g.product_id : "";
+              const noSo = g ? (g.no_so || "") : "";
+              openPlanModal(null, {
+                plan_date: day,
+                product_id: pid,
+                no_so: noSo,
+                shift: "1"
+              });
+            } catch (e) { console.warn(e); }
             return;
           }
           const ids = g.planIdsByDay[day];
