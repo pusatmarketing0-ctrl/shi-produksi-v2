@@ -8811,9 +8811,30 @@ function fillOperatorList(selectedEmail) {
 
     async function enterApp(session) {
       currentUser = session.user;
-      try { currentProfile = await sb.from("profiles").select("*").eq("id", session.user.id).maybeSingle().then(r => r.data); }
-      catch (e) { currentProfile = null; }
-      if (!currentProfile) currentProfile = { name: session.user.email.split("@")[0], role: "operator", email: session.user.email };
+      currentProfile = null;
+      try {
+        // 1) by auth user id
+        var r1 = await sb.from("profiles").select("id,email,name,role,active").eq("id", session.user.id).maybeSingle();
+        if (r1.error) console.warn("profiles by id:", r1.error.message);
+        currentProfile = r1.data || null;
+        // 2) fallback by email
+        if (!currentProfile && session.user.email) {
+          var r2 = await sb.from("profiles").select("id,email,name,role,active").eq("email", session.user.email).maybeSingle();
+          if (r2.error) console.warn("profiles by email:", r2.error.message);
+          currentProfile = r2.data || null;
+        }
+      } catch (e) {
+        console.warn("profiles load", e);
+        currentProfile = null;
+      }
+      if (!currentProfile) {
+        currentProfile = {
+          id: session.user.id,
+          name: (session.user.email || "user").split("@")[0],
+          role: "operator",
+          email: session.user.email || ""
+        };
+      }
       $("authScreen").style.display = "none";
       $("app").classList.add("show");
       applyUserChip();
@@ -8869,7 +8890,7 @@ function fillOperatorList(selectedEmail) {
     let accountRows = [];
     async function loadAccounts() {
       if (!sb) return;
-      const { data, error } = await sb.from("profiles").select("id,email,name,role,active,avatar_url,created_at").order("name").limit(500);
+      const { data, error } = await sb.from("profiles").select("id,email,name,role,active").order("name").limit(500);
       if (error) {
         toast(error.message, true);
       try {
