@@ -6705,6 +6705,54 @@ function fillOperatorList(selectedEmail) {
         g.status = opsStatusOf(g);
       });
 
+      // SO aktif tanpa plan tetap tampil di grid (qty plan/actual 0)
+      (orders || []).forEach(function(o) {
+        var st = String(o.status || "").toLowerCase();
+        // skip selesai/batal
+        if (st === "completed" || st === "done" || st === "cancelled" || st === "canceled") return;
+        var lines = o.order_lines || [];
+        if (!lines.length) return;
+        lines.forEach(function(l) {
+          var pid = l.product_id;
+          if (!pid) return;
+          var key = String(pid) + "||" + String(o.no_so || o.order_id || "");
+          if (groups[key]) {
+            // akumulasi qty PO jika beberapa baris produk sama
+            if (!groups[key]._poFromOrder) {
+              groups[key].po_qty = Number(l.qty) || 0;
+              groups[key]._poFromOrder = true;
+            } else {
+              groups[key].po_qty = (Number(groups[key].po_qty) || 0) + (Number(l.qty) || 0);
+            }
+            if (!groups[key].customer && o.customer_name) groups[key].customer = o.customer_name;
+            if (!groups[key].order_date && o.order_date) groups[key].order_date = o.order_date;
+            if (!groups[key].order_id && o.order_id) groups[key].order_id = o.order_id;
+            return;
+          }
+          groups[key] = {
+            product_id: pid,
+            no_so: o.no_so || "",
+            order_id: o.order_id || "",
+            order_date: o.order_date || "",
+            customer: o.customer_name || "",
+            order_status: o.status || "",
+            po_qty: Number(l.qty) || 0,
+            planDay: {},
+            opDay: {},
+            actDay: {},
+            primerDay: {},
+            procTotalDay: {},
+            procDoneDay: {},
+            opSetDay: {},
+            planIdsByDay: {},
+            plan_total: 0,
+            act_total: 0,
+            op_total: 0,
+            status: "open"
+          };
+        });
+      });
+
       opsRows = Object.values(groups).sort((a, b) => String(a.product_id).localeCompare(String(b.product_id)));
 
       // daily summary + today panel
