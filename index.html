@@ -2238,6 +2238,12 @@
       to { transform: rotate(360deg); }
     }
 
+
+    #otNewProductModal.modal-bg.show, #otNewProductModal.modal-bg[style*="flex"] {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -3425,6 +3431,35 @@
 
   
   
+  
+  <div id="otNewProductModal" class="modal-bg" style="z-index:100000">
+    <div class="modal" style="max-width:400px">
+      <h2 style="margin-bottom:0.75rem">Produk baru</h2>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem">Lengkapi kode & satuan sebelum disimpan ke master.</p>
+      <div class="field"><label>Nama produk</label><input id="otNpName" placeholder="Nama" /></div>
+      <div class="field"><label>Kode produk</label><input id="otNpCode" placeholder="Contoh: FG146" autocomplete="off" /></div>
+      <div class="field"><label>Satuan</label>
+        <select id="otNpUnit">
+          <option value="pcs">pcs</option>
+          <option value="kg">kg</option>
+          <option value="gr">gr</option>
+          <option value="liter">liter</option>
+          <option value="ml">ml</option>
+          <option value="box">box</option>
+          <option value="dus">dus</option>
+          <option value="pack">pack</option>
+          <option value="roll">roll</option>
+          <option value="unit">unit</option>
+        </select>
+      </div>
+      <div class="field"><label>Satuan lain (opsional)</label><input id="otNpUnitCustom" placeholder="Kosongkan jika pakai pilihan di atas" /></div>
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.75rem">
+        <button type="button" class="btn btn-ghost" id="otNpCancel">Batal</button>
+        <button type="button" class="btn btn-primary" id="otNpSave">Simpan produk</button>
+      </div>
+    </div>
+  </div>
+
   <div id="otModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:640px">
       <div class="sheet-handle"></div>
@@ -9214,28 +9249,69 @@ function fillOperatorList(selectedEmail) {
     }
 
         
-    async function otCreateProduct(name) {
+        async function otCreateProduct(name) {
       name = String(name || "").trim();
-      if (!name || !sb) return null;
-      var id = name.toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 12);
-      if (!id) id = "P" + Date.now().toString(36).toUpperCase();
-      // unique-ish
-      id = "FG-" + id.slice(0, 10);
-      var row = { product_id: id, name: name, active: true };
-      var { error } = await sb.from("products").insert(row);
-      if (error) {
-        // try minimal cols
-        var r2 = await sb.from("products").insert({ product_id: id, name: name });
-        if (r2.error) {
-          toast("Gagal buat produk: " + r2.error.message, true);
-          return { id: name, label: name };
+      if (!name) return null;
+      // Form kode + satuan
+      return await new Promise(function(resolve) {
+        var modal = $("otNewProductModal");
+        if (!modal) {
+          resolve({ id: name, label: name });
+          return;
         }
-      }
-      try { await loadProducts(); } catch (e) {}
-      toast("Produk baru: " + id);
-      return { id: id, label: id + " — " + name };
+        $("otNpName").value = name;
+        // saran kode dari nama
+        var suggest = name.toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 10);
+        $("otNpCode").value = suggest ? ("FG" + suggest.slice(0, 8)) : "";
+        $("otNpUnit").value = "pcs";
+        if ($("otNpUnitCustom")) $("otNpUnitCustom").value = "";
+        modal.classList.add("show");
+        modal.style.display = "flex";
+
+        function cleanup() {
+          modal.classList.remove("show");
+          modal.style.display = "none";
+          $("otNpSave").onclick = null;
+          $("otNpCancel").onclick = null;
+        }
+        $("otNpCancel").onclick = function() {
+          cleanup();
+          resolve(null);
+        };
+        $("otNpSave").onclick = async function() {
+          var nm = (($("otNpName") && $("otNpName").value) || "").trim() || name;
+          var code = (($("otNpCode") && $("otNpCode").value) || "").trim().toUpperCase();
+          var unit = (($("otNpUnitCustom") && $("otNpUnitCustom").value) || "").trim()
+            || (($("otNpUnit") && $("otNpUnit").value) || "pcs");
+          if (!code) {
+            toast("Kode produk wajib diisi", true);
+            return;
+          }
+          if (!sb) {
+            cleanup();
+            resolve({ id: code, label: code + " — " + nm });
+            return;
+          }
+          var row = { product_id: code, name: nm, active: true, unit: unit };
+          var { error } = await sb.from("products").insert(row);
+          if (error) {
+            // coba tanpa unit / active
+            var r2 = await sb.from("products").insert({ product_id: code, name: nm });
+            if (r2.error) {
+              toast("Gagal simpan produk: " + r2.error.message, true);
+              return;
+            }
+            try { await sb.from("products").update({ unit: unit }).eq("product_id", code); } catch (eU) {}
+          }
+          try { await loadProducts(); } catch (e) {}
+          toast("Produk disimpan: " + code + " (" + unit + ")");
+          cleanup();
+          resolve({ id: code, label: code + " — " + nm, unit: unit });
+        };
+      });
     }
-    async function otCreateCustomer(name) {
+
+async function otCreateCustomer(name) {
       name = String(name || "").trim();
       if (!name || !sb) return null;
       var row = { name: name, active: true };
