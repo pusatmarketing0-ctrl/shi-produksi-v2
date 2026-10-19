@@ -8920,6 +8920,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "plan-import" && currentRole() === "operator") { page = "home"; }
       if (page === "reports") { try { loadReportsPage(); } catch (e) {} }
       if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
+      if (page === "order-trading") { try { loadOrderTrading(); } catch (e) {} }
       if (page === "absences") { try { loadAbsences(); } catch (e) {} }
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
@@ -9001,7 +9002,409 @@ function fillOperatorList(selectedEmail) {
       toast("Profil disimpan");
     });
 
-            (function setupSidebarToggle() {
+            
+    // ===== Order Trading =====
+    let otCache = [];
+    let otLinesCache = {};
+
+    function newOtId() {
+      const d = new Date();
+      const z = function(n) { return String(n).padStart(2, "0"); };
+      const day = d.getFullYear() + z(d.getMonth()+1) + z(d.getDate());
+      return "OT-" + day + "-" + String(Math.floor(Math.random()*9000)+1000);
+    }
+
+    function otStatusLabel(st) {
+      const m = {
+        draft: "Draft",
+        menunggu_so_trading: "Menunggu SO Trading",
+        so_siap: "SO Siap",
+        so_dibagikan: "SO Dibagikan",
+        dp_diterima: "DP Diterima",
+        terbit_produksi: "Terbit Produksi",
+        cancelled: "Batal"
+      };
+      return m[st] || st;
+    }
+
+    async function otAddEvent(otId, event, note) {
+      if (!sb || !otId) return;
+      try {
+        await sb.from("order_trading_events").insert({
+          ot_id: otId,
+          event: event,
+          by_email: (currentUser && currentUser.email) || "",
+          note: note || ""
+        });
+      } catch (e) { console.warn(e); }
+    }
+
+    async function loadOrderTrading() {
+      if (!sb) return;
+      const box = $("otList");
+      if (box) box.innerHTML = "<div style='padding:1rem;color:var(--text-muted)'>Memuat…</div>";
+      const { data, error } = await sb.from("order_trading").select("*").order("created_at", { ascending: false }).limit(500);
+      if (error) {
+        if (box) box.innerHTML = "<div style='padding:1rem;color:#b91c1c'>Error: " + esc(error.message) + "<br><small>Jalankan SQL order_trading.sql di Supabase</small></div>";
+        toast(error.message, true);
+        return;
+      }
+      otCache = data || [];
+      const ids = otCache.map(function(r) { return r.ot_id; });
+      otLinesCache = {};
+      if (ids.length) {
+        for (let i = 0; i < ids.length; i += 80) {
+          const chunk = ids.slice(i, i + 80);
+          const { data: lines } = await sb.from("order_trading_lines").select("*").in("ot_id", chunk);
+          (lines || []).forEach(function(ln) {
+            if (!otLinesCache[ln.ot_id]) otLinesCache[ln.ot_id] = [];
+            otLinesCache[ln.ot_id].push(ln);
+          });
+        }
+      }
+      renderOrderTrading();
+      // role UI for new button
+      const role = currentRole();
+      if ($("btnOtNew")) $("btnOtNew").style.display = (role === "marketing" || role === "admin") ? "" : "none";
+    }
+
+    function renderOrderTrading() {
+      const box = $("otList");
+      if (!box) return;
+      const q = (($("otSearch") && $("otSearch").value) || "").toLowerCase().trim();
+      const st = ($("otFilterStatus") && $("otFilterStatus").value) || "";
+      let rows = otCache.slice();
+      if (st) rows = rows.filter(function(r) { return r.status === st; });
+      if (q) {
+        rows = rows.filter(function(r) {
+          const lines = otLinesCache[r.ot_id] || [];
+          const blob = [r.ot_id, r.customer_name, r.no_so, r.so_trading_no, r.status].concat(lines.map(function(l) { return l.product_id; })).join(" ").toLowerCase();
+          return blob.indexOf(q) >= 0;
+        });
+      }
+      if (!rows.length) {
+        box.innerHTML = "<div style='padding:1.25rem;color:var(--text-muted);text-align:center'>Belum ada Order Trading</div>";
+        return;
+      }
+      const showPrice = currentRole() === "marketing" || currentRole() === "trading" || currentRole() === "admin";
+      let html = "<table class='data-table' style='width:100%;font-size:0.8rem'><thead><tr>" +
+        "<th>OT</th><th>Customer</th><th>Produk</th><th>Status</th><th>Ref</th><th></th></tr></thead><tbody>";
+      rows.forEach(function(r) {
+        const lines = otLinesCache[r.ot_id] || [];
+        const prod = lines.slice(0, 3).map(function(l) {
+          return esc(l.product_id) + " × " + formatNum(l.qty);
+        }).join("<br>") + (lines.length > 3 ? "<br>…" : "");
+        const ref = [];
+        if (r.so_trading_no) ref.push("SO-TRD: " + esc(r.so_trading_no));
+        if (r.no_so) ref.push("Odoo: " + esc(r.no_so));
+        if (r.order_id) ref.push("ORD: " + esc(r.order_id));
+        html += "<tr style='cursor:pointer' onclick='openOtModal(" + JSON.stringify(r.ot_id) + ")'>" +
+          "<td><strong>" + esc(r.ot_id) + "</strong></td>" +
+          "<td>" + esc(r.customer_name || "—") + "</td>" +
+          "<td>" + (prod || "—") + "</td>" +
+          "<td><span class='pill'>" + esc(otStatusLabel(r.status)) + "</span></td>" +
+          "<td style='font-size:0.72rem;color:var(--text-muted)'>" + (ref.join("<br>") || "—") + "</td>" +
+          "<td><button type='button' class='btn btn-ghost btn-sm' onclick='event.stopPropagation();openOtModal(" + JSON.stringify(r.ot_id) + ")'>Detail</button></td></tr>";
+      });
+      html += "</tbody></table>";
+      box.innerHTML = html;
+    }
+
+    function otAddLine(line) {
+      const box = $("otLines");
+      if (!box) return;
+      const wrap = document.createElement("div");
+      wrap.className = "ot-line card";
+      wrap.style.cssText = "padding:0.65rem;margin-bottom:0.45rem;display:grid;grid-template-columns:1fr 1fr;gap:0.4rem";
+      const showPrice = currentRole() === "marketing" || currentRole() === "trading" || currentRole() === "admin";
+      wrap.innerHTML =
+        "<div class='field' style='margin:0'><label>Produk</label><input class='ot-prod' placeholder='Kode / nama' value='" + esc(line && line.product_id ? line.product_id : "") + "' /></div>" +
+        "<div class='field' style='margin:0'><label>Qty</label><input class='ot-qty' inputmode='decimal' value='" + (line && line.qty != null ? formatInputNum(line.qty, true) : "") + "' /></div>" +
+        (showPrice
+          ? "<div class='field' style='margin:0'><label>Harga</label><input class='ot-harga' inputmode='decimal' value='" + (line && line.harga != null ? formatInputNum(line.harga, true) : "") + "' /></div>" +
+            "<div class='field' style='margin:0'><label>HPP</label><input class='ot-hpp' inputmode='decimal' value='" + (line && line.hpp != null ? formatInputNum(line.hpp, true) : "") + "' /></div>"
+          : "") +
+        "<div style='grid-column:1/-1;text-align:right'><button type='button' class='btn btn-ghost btn-sm ot-del'>Hapus</button></div>";
+      box.appendChild(wrap);
+      wrap.querySelector(".ot-del").onclick = function() { wrap.remove(); };
+      try { mountAllSearchCombos(); bindAllThousandInputs(); } catch (e) {}
+      const prod = wrap.querySelector(".ot-prod");
+      if (prod) {
+        try {
+          // reuse product search if attachSearchCombo exists
+          if (typeof attachSearchCombo === "function") {
+            // mountAllSearchCombos may pick inputs with certain class
+          }
+        } catch (e2) {}
+      }
+    }
+
+    function closeOtModal() {
+      const m = $("otModal");
+      if (m) m.classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    async function openOtModal(otId) {
+      try { fillCustomerList(); } catch (e) {}
+      $("otEditId").value = otId || "";
+      $("otModalTitle").textContent = otId ? "Detail Order Trading" : "Order Trading baru";
+      $("otCustomer").value = "";
+      $("otNote").value = "";
+      $("otSoTradingNo").value = "";
+      $("otSoTradingNote").value = "";
+      $("otNoSo").value = "";
+      $("otDpNote").value = "";
+      $("otLines").innerHTML = "";
+      $("otTimeline").innerHTML = "";
+      const statusBox = $("otStatusBox");
+      const role = currentRole();
+      const canEdit = role === "marketing" || role === "admin";
+
+      if (!otId) {
+        if (statusBox) statusBox.style.display = "none";
+        otAddLine();
+        $("btnOtSave").style.display = canEdit ? "" : "none";
+      } else {
+        const row = otCache.find(function(r) { return r.ot_id === otId; });
+        if (!row) {
+          const { data } = await sb.from("order_trading").select("*").eq("ot_id", otId).maybeSingle();
+          if (!data) return toast("Order tidak ditemukan", true);
+          otCache.unshift(data);
+        }
+        const r = otCache.find(function(x) { return x.ot_id === otId; });
+        $("otCustomer").value = r.customer_name || "";
+        $("otNote").value = r.note || "";
+        $("otSoTradingNo").value = r.so_trading_no || "";
+        $("otSoTradingNote").value = r.so_trading_note || "";
+        $("otNoSo").value = r.no_so || "";
+        $("otDpNote").value = r.dp_note || "";
+        const lines = otLinesCache[otId] || [];
+        if (!lines.length) {
+          const { data: ln } = await sb.from("order_trading_lines").select("*").eq("ot_id", otId);
+          otLinesCache[otId] = ln || [];
+        }
+        (otLinesCache[otId] || []).forEach(function(ln) { otAddLine(ln); });
+        if (!(otLinesCache[otId] || []).length) otAddLine();
+        if (statusBox) statusBox.style.display = "block";
+        $("btnOtSave").style.display = (canEdit && (r.status === "draft" || r.status === "menunggu_so_trading")) ? "" : "none";
+        renderOtActions(r);
+        await loadOtTimeline(otId);
+      }
+      $("otModal").classList.add("show");
+      document.body.classList.add("modal-open");
+      try { mountAllSearchCombos(); bindAllThousandInputs(); } catch (e) {}
+    }
+
+    function renderOtActions(r) {
+      const box = $("otActionBtns");
+      if (!box) return;
+      const role = currentRole();
+      const st = r.status || "draft";
+      let btns = [];
+      if ((role === "marketing" || role === "admin") && st === "draft") {
+        btns.push(["Kirim ke CV Trading", "otSubmitTrading"]);
+      }
+      if ((role === "trading" || role === "admin") && (st === "menunggu_so_trading" || st === "draft")) {
+        btns.push(["SO Siap (Trading)", "otMarkSoReady"]);
+      }
+      if ((role === "marketing" || role === "admin") && st === "so_siap") {
+        btns.push(["SO Sudah Dibagikan (tagih DP)", "otMarkShared"]);
+      }
+      if ((role === "marketing" || role === "admin") && (st === "so_dibagikan" || st === "dp_diterima")) {
+        btns.push(["DP Diterima", "otMarkDp"]);
+        btns.push(["Terbit ke Produksi + Odoo", "otPublishProduction"]);
+      }
+      if ((role === "marketing" || role === "admin") && st === "dp_diterima") {
+        btns.push(["Terbit ke Produksi + Odoo", "otPublishProduction"]);
+      }
+      box.innerHTML = btns.map(function(b) {
+        return "<button type='button' class='btn btn-primary btn-sm' data-act='" + b[1] + "'>" + b[0] + "</button>";
+      }).join(" ");
+      // dedupe publish buttons
+      const seen = {};
+      box.querySelectorAll("button").forEach(function(btn) {
+        const a = btn.getAttribute("data-act");
+        if (seen[a]) { btn.remove(); return; }
+        seen[a] = true;
+        btn.onclick = function() { otRunAction(r.ot_id, a); };
+      });
+    }
+
+    async function loadOtTimeline(otId) {
+      const el = $("otTimeline");
+      if (!el) return;
+      const { data } = await sb.from("order_trading_events").select("*").eq("ot_id", otId).order("at", { ascending: true });
+      if (!data || !data.length) {
+        el.innerHTML = "<em>Belum ada riwayat</em>";
+        return;
+      }
+      el.innerHTML = "<strong>Riwayat track record</strong><ul style='margin:0.4rem 0 0;padding-left:1.1rem'>" +
+        data.map(function(ev) {
+          return "<li><code>" + esc(ev.event) + "</code> · " + esc(ev.by_email || "") +
+            " · " + esc(formatDateTimeWib ? formatDateTimeWib(ev.at) : (ev.at || "")) +
+            (ev.note ? " — " + esc(ev.note) : "") + "</li>";
+        }).join("") + "</ul>";
+    }
+
+    function collectOtLines() {
+      const lines = [];
+      document.querySelectorAll("#otLines .ot-line").forEach(function(el, idx) {
+        const product_id = resolveProductId((el.querySelector(".ot-prod") && el.querySelector(".ot-prod").value) || "");
+        const qty = parseInputNum(el.querySelector(".ot-qty") && el.querySelector(".ot-qty").value);
+        if (!product_id || !(qty > 0)) return;
+        const hargaEl = el.querySelector(".ot-harga");
+        const hppEl = el.querySelector(".ot-hpp");
+        lines.push({
+          product_id: product_id,
+          qty: qty,
+          harga: hargaEl ? (parseInputNum(hargaEl.value) || 0) : 0,
+          hpp: hppEl ? (parseInputNum(hppEl.value) || 0) : 0,
+          unit: "pcs",
+          sort_order: idx
+        });
+      });
+      return lines;
+    }
+
+    async function saveOrderTrading() {
+      if (!sb) return;
+      const role = currentRole();
+      if (!(role === "marketing" || role === "admin")) return toast("Hanya Marketing yang membuat Order Trading", true);
+      const customer = (($("otCustomer") && $("otCustomer").value) || "").trim();
+      if (!customer) return toast("Customer wajib", true);
+      const lines = collectOtLines();
+      if (!lines.length) return toast("Minimal 1 produk + qty", true);
+      let otId = ($("otEditId") && $("otEditId").value) || "";
+      const isNew = !otId;
+      if (!otId) otId = newOtId();
+      const payload = {
+        ot_id: otId,
+        customer_name: customer,
+        note: (($("otNote") && $("otNote").value) || "").trim(),
+        updated_at: new Date().toISOString()
+      };
+      if (isNew) {
+        payload.status = "draft";
+        payload.created_by = (currentUser && currentUser.email) || "";
+        payload.created_at = new Date().toISOString();
+        const { error } = await sb.from("order_trading").insert(payload);
+        if (error) return toast(error.message, true);
+        await otAddEvent(otId, "created", customer);
+      } else {
+        const { error } = await sb.from("order_trading").update(payload).eq("ot_id", otId);
+        if (error) return toast(error.message, true);
+        await sb.from("order_trading_lines").delete().eq("ot_id", otId);
+        await otAddEvent(otId, "updated", "");
+      }
+      const rows = lines.map(function(ln) {
+        return Object.assign({ ot_id: otId }, ln);
+      });
+      const { error: e2 } = await sb.from("order_trading_lines").insert(rows);
+      if (e2) return toast(e2.message, true);
+      toast(isNew ? "Order Trading dibuat: " + otId : "Tersimpan");
+      closeOtModal();
+      await loadOrderTrading();
+    }
+
+    async function otRunAction(otId, act) {
+      if (!sb || !otId) return;
+      const { data: r0 } = await sb.from("order_trading").select("*").eq("ot_id", otId).maybeSingle();
+      if (!r0) return toast("Data tidak ditemukan", true);
+      const email = (currentUser && currentUser.email) || "";
+      const now = new Date().toISOString();
+      let patch = { updated_at: now };
+      let event = act;
+      let note = "";
+
+      if (act === "otSubmitTrading") {
+        patch.status = "menunggu_so_trading";
+        patch.submitted_at = now;
+        event = "submitted_to_trading";
+      } else if (act === "otMarkSoReady") {
+        const no = (($("otSoTradingNo") && $("otSoTradingNo").value) || "").trim();
+        const nte = (($("otSoTradingNote") && $("otSoTradingNote").value) || "").trim();
+        if (!no && !nte) return toast("Isi nomor atau catatan SO Trading", true);
+        patch.status = "so_siap";
+        patch.so_trading_no = no;
+        patch.so_trading_note = nte;
+        patch.so_ready_by = email;
+        patch.so_ready_at = now;
+        event = "so_ready";
+        note = no || nte;
+      } else if (act === "otMarkShared") {
+        patch.status = "so_dibagikan";
+        patch.shared_by = email;
+        patch.shared_at = now;
+        event = "so_shared";
+      } else if (act === "otMarkDp") {
+        patch.status = "dp_diterima";
+        patch.dp_at = now;
+        patch.dp_note = (($("otDpNote") && $("otDpNote").value) || "").trim();
+        event = "dp_received";
+        note = patch.dp_note;
+      } else if (act === "otPublishProduction") {
+        const noSo = (($("otNoSo") && $("otNoSo").value) || "").trim();
+        if (!noSo) return toast("No SO Odoo wajib", true);
+        // create production order
+        const { data: lines } = await sb.from("order_trading_lines").select("*").eq("ot_id", otId);
+        if (!lines || !lines.length) return toast("Tidak ada baris produk", true);
+        const orderId = "ORD-" + Date.now().toString(36).toUpperCase();
+        const ord = {
+          order_id: orderId,
+          no_so: noSo,
+          customer_name: r0.customer_name || "",
+          status: "open",
+          order_date: todayStr(),
+          ot_id: otId,
+          created_by: email,
+          created_at: now
+        };
+        // insert order - columns may vary
+        let { error: eOrd } = await sb.from("orders").insert(ord);
+        if (eOrd) {
+          // retry without optional cols
+          delete ord.created_by;
+          delete ord.ot_id;
+          const r2 = await sb.from("orders").insert(ord);
+          eOrd = r2.error;
+          if (!eOrd) {
+            try { await sb.from("orders").update({ ot_id: otId }).eq("order_id", orderId); } catch (e3) {}
+          }
+        }
+        if (eOrd) return toast("Gagal buat SO produksi: " + eOrd.message, true);
+        // order lines
+        for (let i = 0; i < lines.length; i++) {
+          const ln = lines[i];
+          const row = { order_id: orderId, product_id: ln.product_id, qty: Number(ln.qty) || 0 };
+          let { error: eL } = await sb.from("order_lines").insert(row);
+          if (eL) {
+            // try alternate column names
+            const alt = { order_id: orderId, product_id: ln.product_id, quantity: Number(ln.qty) || 0 };
+            await sb.from("order_lines").insert(alt);
+          }
+        }
+        patch.status = "terbit_produksi";
+        patch.no_so = noSo;
+        patch.order_id = orderId;
+        patch.published_by = email;
+        patch.published_at = now;
+        event = "published_production";
+        note = noSo + " / " + orderId;
+      } else {
+        return;
+      }
+
+      const { error } = await sb.from("order_trading").update(patch).eq("ot_id", otId);
+      if (error) return toast(error.message, true);
+      await otAddEvent(otId, event, note);
+      toast("Status diperbarui: " + otStatusLabel(patch.status || r0.status));
+      await loadOrderTrading();
+      openOtModal(otId);
+    }
+
+
+(function setupSidebarToggle() {
       function bind() {
         const layout = document.querySelector(".layout");
         const sidebar = document.querySelector(".sidebar");
