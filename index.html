@@ -1947,7 +1947,7 @@
 </head>
 <body>
   <div id="pwaBar" class="pwa-bar" role="dialog" aria-label="Pasang aplikasi">
-    <div class="pwa-txt">Pasang SHI Produksi<small>Shortcut di HP seperti aplikasi biasa</small></div>
+    <div class="pwa-txt">📥 Pasang aplikasi di HP<small>Jadi shortcut seperti app biasa — gratis</small></div>
     <button type="button" class="btn btn-ghost btn-sm" id="pwaDismiss">Nanti</button>
     <button type="button" class="btn btn-primary btn-sm" id="pwaInstall">Pasang</button>
   </div>
@@ -2037,6 +2037,7 @@
           <div class="user-avatar" id="userAvatar">?</div>
           <div class="user-meta"><strong id="userName">—</strong><span id="userRole">—</span></div>
         </div>
+        <button class="btn-icon" id="btnInstallApp" title="Pasang di HP" type="button" style="font-size:1.05rem">📥</button>
         <button class="btn-icon" id="btnLogout" title="Keluar">⎋</button>
       </div>
     </header>
@@ -8888,19 +8889,26 @@ function fillOperatorList(selectedEmail) {
             deferredPwaPrompt.prompt();
             try {
               const ch = await deferredPwaPrompt.userChoice;
-              if (ch && ch.outcome === "accepted") showPwaBar(false);
+              if (ch && ch.outcome === "accepted") {
+                showPwaBar(false);
+                try { toast("Aplikasi terpasang"); } catch (e) {}
+              }
             } catch (e) {}
             deferredPwaPrompt = null;
             return;
           }
-          // iOS / fallback instruksi
-          const ua = navigator.userAgent || "";
-          const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+          var ua = navigator.userAgent || "";
+          var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+          var isAndroid = /Android/i.test(ua);
+          var msg;
           if (isIOS) {
-            alert("iPhone/iPad:\n1. Tap tombol Share (kotak + panah)\n2. Pilih \"Add to Home Screen\" / \"Tambah ke Layar Utama\"\n3. Tap Add");
+            msg = "Pasang di iPhone/iPad (Safari):\n\n1. Buka situs ini di Safari\n2. Tap tombol Share (kotak dengan panah)\n3. Pilih Add to Home Screen / Tambah ke Layar Utama\n4. Tap Add\n\nIkon SHI Produksi akan muncul di home screen.";
+          } else if (isAndroid) {
+            msg = "Pasang di Android (Chrome):\n\n1. Tap menu ⋮ di pojok kanan atas\n2. Pilih Install app / Tambahkan ke layar utama / Add to Home screen\n3. Konfirmasi Install\n\nJika menu Install tidak ada, pastikan manifest.webmanifest & sw.js ikut ter-upload ke hosting.";
           } else {
-            alert("Chrome Android:\n1. Tap menu ⋮\n2. Pilih \"Install app\" / \"Tambahkan ke layar utama\"\n\nAtau gunakan tombol Pasang jika muncul otomatis.");
+            msg = "Pasang di komputer (Chrome/Edge):\n\n1. Klik ikon install di bilah alamat (kanan)\n2. Atau menu ⋮ → Install SHI Produksi\n\nDi HP: buka situs ini di Chrome/Safari lalu ikuti menu Install / Add to Home Screen.";
           }
+          alert(msg);
         };
       }
       if (dis && !dis.dataset.bound) {
@@ -8908,6 +8916,16 @@ function fillOperatorList(selectedEmail) {
         dis.onclick = function() {
           localStorage.setItem("pwa_dismissed", "1");
           showPwaBar(false);
+        };
+      }
+      var topBtn = $("btnInstallApp");
+      if (topBtn && !topBtn.dataset.bound) {
+        topBtn.dataset.bound = "1";
+        topBtn.onclick = function() {
+          localStorage.removeItem("pwa_dismissed");
+          showPwaBar(true);
+          var inst = $("pwaInstall");
+          if (inst) inst.click();
         };
       }
     }
