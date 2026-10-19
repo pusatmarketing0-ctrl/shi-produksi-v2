@@ -3431,7 +3431,7 @@
       <div class="sheet-head"><h2 id="otModalTitle">Order Trading</h2></div>
       <div class="sheet-body">
         <input type="hidden" id="otEditId" />
-        <div class="field"><label>Customer akhir</label><input id="otCustomer" placeholder="Nama customer..." autocomplete="off" /></div>
+        <div class="field"><label>Customer akhir</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
         <div class="field"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0">
           <strong style="font-size:0.85rem">Produk</strong>
@@ -9190,36 +9190,46 @@ function fillOperatorList(selectedEmail) {
       box.innerHTML = html;
     }
 
-    function otAddLine(line) {
+        function otAddLine(line) {
       const box = $("otLines");
       if (!box) return;
       const wrap = document.createElement("div");
       wrap.className = "ot-line card";
       wrap.style.cssText = "padding:0.65rem;margin-bottom:0.45rem;display:grid;grid-template-columns:1fr 1fr;gap:0.4rem";
       const showPrice = currentRole() === "marketing" || currentRole() === "trading" || currentRole() === "admin";
+      const prodVal = esc((line && (line.product_id || line.product_name)) ? (line.product_id || line.product_name) : "");
+      const qtyVal = (line && line.qty != null) ? formatInputNum(line.qty, true) : "";
+      const hargaVal = (line && line.harga != null) ? formatInputNum(line.harga, true) : "";
+      const hppVal = (line && line.hpp != null) ? formatInputNum(line.hpp, true) : "";
       wrap.innerHTML =
-        "<div class='field' style='margin:0'><label>Produk</label><input class='ot-prod' placeholder='Kode / nama' value='" + esc(line && line.product_id ? line.product_id : "") + "' /></div>" +
-        "<div class='field' style='margin:0'><label>Qty</label><input class='ot-qty' inputmode='decimal' value='" + (line && line.qty != null ? formatInputNum(line.qty, true) : "") + "' /></div>" +
+        "<div class='field' style='margin:0'><label>Produk</label><input class='ot-prod search-combo' data-combo='product' placeholder='Cari produk...' value='" + prodVal + "' autocomplete='off' /></div>" +
+        "<div class='field' style='margin:0'><label>Qty</label><input class='ot-qty input-thousand' inputmode='decimal' placeholder='0' value='" + qtyVal + "' /></div>" +
         (showPrice
-          ? "<div class='field' style='margin:0'><label>Harga</label><input class='ot-harga' inputmode='decimal' value='" + (line && line.harga != null ? formatInputNum(line.harga, true) : "") + "' /></div>" +
-            "<div class='field' style='margin:0'><label>HPP</label><input class='ot-hpp' inputmode='decimal' value='" + (line && line.hpp != null ? formatInputNum(line.hpp, true) : "") + "' /></div>"
+          ? "<div class='field' style='margin:0'><label>Harga</label><input class='ot-harga input-thousand' inputmode='decimal' placeholder='0' value='" + hargaVal + "' /></div>" +
+            "<div class='field' style='margin:0'><label>HPP</label><input class='ot-hpp input-thousand' inputmode='decimal' placeholder='0' value='" + hppVal + "' /></div>"
           : "") +
         "<div style='grid-column:1/-1;text-align:right'><button type='button' class='btn btn-ghost btn-sm ot-del'>Hapus</button></div>";
       box.appendChild(wrap);
       wrap.querySelector(".ot-del").onclick = function() { wrap.remove(); };
-      try { mountAllSearchCombos(); bindAllThousandInputs(); } catch (e) {}
-      const prod = wrap.querySelector(".ot-prod");
-      if (prod) {
-        try {
-          // reuse product search if attachSearchCombo exists
-          if (typeof attachSearchCombo === "function") {
-            // mountAllSearchCombos may pick inputs with certain class
-          }
-        } catch (e2) {}
-      }
+      try {
+        bindAllThousandInputs();
+        var prodInp = wrap.querySelector(".ot-prod");
+        if (prodInp && typeof attachSearchCombo === "function") {
+          attachSearchCombo(prodInp, function() {
+            var src = (typeof products !== "undefined" && products) ? products : (window.productsCache || []);
+            return (src || []).map(function(p) {
+              var id = p.product_id || p.id || "";
+              var nm = p.name || p.product_name || "";
+              return { id: id, label: id + (nm ? " — " + nm : ""), search: id + " " + nm };
+            }).filter(function(x) { return x.id; });
+          }, { placeholder: "Cari produk..." });
+        } else {
+          try { mountAllSearchCombos(); } catch (e2) {}
+        }
+      } catch (e) { console.warn(e); }
     }
 
-    function closeOtModal() {
+function closeOtModal() {
       const m = $("otModal");
       if (m) m.classList.remove("show");
       document.body.classList.remove("modal-open");
@@ -9227,6 +9237,20 @@ function fillOperatorList(selectedEmail) {
 
     async function openOtModal(otId) {
       try { fillCustomerList(); } catch (e) {}
+      try {
+        var cust = $("otCustomer");
+        if (cust && typeof attachSearchCombo === "function" && !cust.dataset.comboBound) {
+          cust.dataset.comboBound = "1";
+          cust.classList.add("search-combo");
+          attachSearchCombo(cust, function() {
+            var list = (typeof customers !== "undefined" && customers) ? customers : (window.customersCache || window.allCustomers || []);
+            return (list || []).map(function(c) {
+              var nm = (typeof c === "string") ? c : (c.name || c.customer_name || "");
+              return { id: nm, label: nm, search: nm };
+            }).filter(function(x) { return x.id; });
+          }, { placeholder: "Cari customer..." });
+        }
+      } catch (eC) {}
       $("otEditId").value = otId || "";
       $("otModalTitle").textContent = otId ? "Detail Order Trading" : "Order Trading baru";
       $("otCustomer").value = "";
@@ -9330,13 +9354,19 @@ function fillOperatorList(selectedEmail) {
     function collectOtLines() {
       const lines = [];
       document.querySelectorAll("#otLines .ot-line").forEach(function(el, idx) {
-        const product_id = resolveProductId((el.querySelector(".ot-prod") && el.querySelector(".ot-prod").value) || "");
+        const raw = ((el.querySelector(".ot-prod") && el.querySelector(".ot-prod").value) || "").trim();
+        if (!raw) return;
+        let product_id = "";
+        try { product_id = resolveProductId(raw); } catch (e) { product_id = ""; }
+        // jika ketik nama bebas / belum match master → pakai teks mentah
+        if (!product_id) product_id = raw;
         const qty = parseInputNum(el.querySelector(".ot-qty") && el.querySelector(".ot-qty").value);
-        if (!product_id || !(qty > 0)) return;
+        if (!(qty > 0)) return;
         const hargaEl = el.querySelector(".ot-harga");
         const hppEl = el.querySelector(".ot-hpp");
         lines.push({
           product_id: product_id,
+          product_name: raw,
           qty: qty,
           harga: hargaEl ? (parseInputNum(hargaEl.value) || 0) : 0,
           hpp: hppEl ? (parseInputNum(hppEl.value) || 0) : 0,
