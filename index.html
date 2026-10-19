@@ -9249,42 +9249,162 @@ function fillOperatorList(selectedEmail) {
       toast("Customer baru: " + name);
       return { id: name, label: name };
     }
+    
+    // Combobox OT: list di document.body (tidak ketutup overflow modal)
+    var __otComboList = null;
+    function otEnsureComboList() {
+      if (__otComboList && __otComboList.parentNode) return __otComboList;
+      var el = document.createElement("div");
+      el.id = "otComboPortal";
+      el.style.cssText = "display:none;position:fixed;z-index:99999;max-height:240px;overflow-y:auto;background:#fff;border:1px solid #d1e0d8;border-radius:12px;box-shadow:0 12px 40px rgba(15,40,30,0.18);padding:4px 0;";
+      document.body.appendChild(el);
+      __otComboList = el;
+      return el;
+    }
+    function otHideCombo() {
+      var el = otEnsureComboList();
+      el.style.display = "none";
+      el.innerHTML = "";
+      el._input = null;
+    }
+    function otPositionCombo(input) {
+      var el = otEnsureComboList();
+      var r = input.getBoundingClientRect();
+      el.style.left = Math.max(8, r.left) + "px";
+      el.style.width = Math.max(r.width, 220) + "px";
+      var spaceBelow = window.innerHeight - r.bottom;
+      if (spaceBelow < 180 && r.top > 200) {
+        el.style.top = "auto";
+        el.style.bottom = (window.innerHeight - r.top + 4) + "px";
+      } else {
+        el.style.bottom = "auto";
+        el.style.top = (r.bottom + 4) + "px";
+      }
+    }
+    function otShowCombo(input, items, opts) {
+      opts = opts || {};
+      var el = otEnsureComboList();
+      el._input = input;
+      el._opts = opts;
+      otPositionCombo(input);
+      if (!items.length) {
+        el.innerHTML = '<div style="padding:0.65rem 0.85rem;font-size:0.82rem;color:#64748b">Tidak ada hasil. Ketik lalu pilih buat baru.</div>';
+      } else {
+        el.innerHTML = items.map(function(it, i) {
+          var isCreate = it.id === "__create__";
+          return '<div class="ot-combo-item" data-id="' + esc(it.id) + '" data-label="' + esc(it.label || it.id) + '" style="padding:0.55rem 0.85rem;cursor:pointer;border-bottom:1px solid #f1f5f4;' +
+            (isCreate ? "color:#059669;font-weight:700;background:rgba(16,185,129,0.08);" : "") + '">' +
+            '<div style="font-weight:600;font-size:0.85rem">' + esc(it.label || it.id) + '</div>' +
+            (it.sub ? '<div style="font-size:0.72rem;color:#64748b">' + esc(it.sub) + '</div>' : "") +
+            '</div>';
+        }).join("");
+      }
+      el.style.display = "block";
+      el.querySelectorAll(".ot-combo-item").forEach(function(row) {
+        row.onmousedown = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var id = row.getAttribute("data-id");
+          var label = row.getAttribute("data-label");
+          otPickCombo(input, id, label, opts);
+        };
+      });
+    }
+    async function otPickCombo(input, id, label, opts) {
+      opts = opts || {};
+      if (id === "__create__" && typeof opts.onCreate === "function") {
+        var raw = String(label || input.value || "").replace(/^\+\s*Buat baru:\s*/i, "").trim();
+        otHideCombo();
+        var res = await opts.onCreate(raw);
+        if (res && res.id) {
+          input.value = opts.valueMode === "label" ? (res.label || res.id) : (res.label && opts.valueMode === "id-name" ? (res.id + " — " + res.label.replace(/^.*?—\s*/, "") || res.label) : res.id);
+          if (opts.valueMode === "id-name" && res.id && res.label) {
+            var nm = res.label.indexOf(" — ") >= 0 ? res.label.split(" — ").slice(1).join(" — ") : res.label;
+            input.value = res.id + (nm && nm !== res.id ? " — " + nm : "");
+          } else if (opts.valueMode === "label") {
+            input.value = res.label || res.id;
+          } else {
+            input.value = res.id;
+          }
+        } else if (raw) {
+          input.value = raw;
+        }
+        return;
+      }
+      if (opts.valueMode === "label") input.value = label || id || "";
+      else if (opts.valueMode === "id-name" && label && label !== id) {
+        // label may already be "id — name"
+        input.value = label.indexOf(id) === 0 ? label : (id + " — " + label);
+      } else input.value = id || label || "";
+      otHideCombo();
+    }
+    function otFilterItems(all, q) {
+      q = String(q || "").toLowerCase().trim();
+      var items = all.slice();
+      if (q) {
+        items = items.filter(function(it) {
+          return String(it.search || it.label || it.id).toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      items = items.slice(0, 40);
+      if (q) {
+        var exact = items.some(function(it) {
+          return String(it.id).toLowerCase() === q || String(it.label || "").toLowerCase() === q;
+        });
+        if (!exact) {
+          items = [{ id: "__create__", label: "+ Buat baru: " + q, sub: "Tambahkan ke master" }].concat(items);
+        }
+      }
+      return items;
+    }
+    function otBindCombo(input, getItems, opts) {
+      if (!input || input.dataset.otCombo === "1") return;
+      input.dataset.otCombo = "1";
+      input.setAttribute("autocomplete", "off");
+      function refresh() {
+        var all = (typeof getItems === "function" ? getItems() : []) || [];
+        var items = otFilterItems(all, input.value);
+        otShowCombo(input, items, opts);
+      }
+      input.addEventListener("focus", function() { refresh(); });
+      input.addEventListener("input", function() { refresh(); });
+      input.addEventListener("click", function() { refresh(); });
+      input.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") otHideCombo();
+        if (e.key === "Enter") {
+          var el = otEnsureComboList();
+          var first = el.querySelector(".ot-combo-item");
+          if (first && el.style.display !== "none") {
+            e.preventDefault();
+            first.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          }
+        }
+      });
+      input.addEventListener("blur", function() {
+        setTimeout(otHideCombo, 180);
+      });
+    }
     function otBindLineProduct(input) {
       if (!input) return;
-      // allow rebind
-      delete input.dataset.scBound;
-      var wrap = input.closest(".search-combo");
-      if (wrap && wrap !== input.parentNode) {
-        // already wrapped ok
-      }
-      // remove old list sibling mess
-      try {
-        if (input.parentNode && input.parentNode.classList.contains("search-combo")) {
-          var oldList = input.parentNode.querySelector(".search-combo-list");
-          // keep structure, just reset bound
-        }
-      } catch (e) {}
-      attachSearchCombo(input, scItemsProduct, {
+      delete input.dataset.otCombo;
+      otBindCombo(input, function() {
+        return (typeof scItemsProduct === "function") ? scItemsProduct() : [];
+      }, {
         valueMode: "id-name",
-        allowCreate: true,
-        allowFree: true,
-        placeholder: "Cari produk...",
         onCreate: function(raw) { return otCreateProduct(raw); }
       });
     }
     function otBindCustomerInput() {
       var input = $("otCustomer");
       if (!input) return;
-      delete input.dataset.scBound;
-      attachSearchCombo(input, scItemsCustomer, {
+      delete input.dataset.otCombo;
+      otBindCombo(input, function() {
+        return (typeof scItemsCustomer === "function") ? scItemsCustomer() : [];
+      }, {
         valueMode: "label",
-        allowCreate: true,
-        allowFree: true,
-        placeholder: "Cari / ketik customer...",
         onCreate: function(raw) { return otCreateCustomer(raw); }
       });
     }
-
 
 function otAddLine(line) {
       const box = $("otLines");
@@ -9315,6 +9435,7 @@ function otAddLine(line) {
     }
 
 function closeOtModal() {
+      try { otHideCombo(); } catch (e) {}
       const m = $("otModal");
       if (m) m.classList.remove("show");
       document.body.classList.remove("modal-open");
