@@ -4387,7 +4387,78 @@
       }));
       renderOrders();
       try { loadHomeStats(); } catch (e) {}
+      try { applySoPageRoleUI(); } catch (e) {}
+      try { loadSoOtQueue(); } catch (e) {}
     }
+
+    function applySoPageRoleUI() {
+      var role = currentRole();
+      var btn = $("btnSoInput");
+      var desc = $("soPageDesc");
+      // Marketing & trading: tidak input SO manual
+      if (role === "marketing" || role === "trading") {
+        if (btn) btn.style.display = "none";
+        if (desc) desc.textContent = "Marketing meneruskan dari Order Trading (setelah DP). Isi No SO Odoo lalu terbit ke produksi — tidak input SO baru di sini.";
+      } else if (role === "admin" || role === "ppic") {
+        if (btn) btn.style.display = "";
+        if (desc) desc.textContent = "SO produksi. Preferensi: dari Order Trading. Admin/PPIC masih bisa input manual jika perlu.";
+      } else {
+        if (btn) btn.style.display = "none";
+      }
+    }
+
+        async function loadSoOtQueue() {
+      var box = $("soOtQueue");
+      var list = $("soOtQueueList");
+      if (!box || !list || !sb) return;
+      var role = currentRole();
+      if (!(role === "marketing" || role === "admin" || role === "ppic" || role === "trading")) {
+        box.style.display = "none";
+        return;
+      }
+      box.style.display = "block";
+      list.innerHTML = "Memuat antrian…";
+      var res = await sb.from("order_trading")
+        .select("ot_id,customer_name,status,so_trading_no,no_so,order_id,updated_at")
+        .in("status", ["so_dibagikan", "dp_diterima", "so_siap", "menunggu_so_trading"])
+        .order("updated_at", { ascending: false })
+        .limit(30);
+      if (res.error) {
+        list.innerHTML = "<span style='color:#b91c1c'>" + esc(res.error.message) + "</span>";
+        return;
+      }
+      var rows = res.data || [];
+      if (!rows.length) {
+        list.innerHTML = "Tidak ada Order Trading yang menunggu diteruskan. ";
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn btn-ghost btn-sm";
+        b.textContent = "Buka Order Trading";
+        b.onclick = function() { goPage("order-trading"); };
+        list.appendChild(b);
+        return;
+      }
+      var html = "<table class='data-table' style='width:100%;font-size:0.8rem'><thead><tr><th>OT</th><th>Customer</th><th>Status</th><th>Ref</th><th></th></tr></thead><tbody>";
+      rows.forEach(function(r) {
+        var st = (typeof otStatusLabel === "function") ? otStatusLabel(r.status) : r.status;
+        var ref = [];
+        if (r.so_trading_no) ref.push("SO-TRD " + r.so_trading_no);
+        if (r.no_so) ref.push("Odoo " + r.no_so);
+        html += "<tr><td><strong>" + esc(r.ot_id) + "</strong></td><td>" + esc(r.customer_name || "—") +
+          "</td><td>" + esc(st) + "</td><td style='font-size:0.72rem'>" + esc(ref.join(" · ") || "—") +
+          "</td><td><button type='button' class='btn btn-primary btn-sm so-ot-go' data-ot=\"" + esc(r.ot_id) + "\">Lanjutkan</button></td></tr>";
+      });
+      html += "</tbody></table>";
+      list.innerHTML = html;
+      list.querySelectorAll(".so-ot-go").forEach(function(btn) {
+        btn.onclick = function() {
+          var id = btn.getAttribute("data-ot");
+          goPage("order-trading");
+          setTimeout(function() { openOtModal(id); }, 250);
+        };
+      });
+    }
+
 
     function renderOrders() {
       const body = $("orderBody");
@@ -9741,22 +9812,30 @@ function closeOtModal() {
           order_id: orderId,
           no_so: noSo,
           customer_name: r0.customer_name || "",
-          status: "open",
-          order_date: todayStr(),
+          status: "confirmed",
+          order_date: (typeof todayStr === "function" ? todayStr() : new Date().toISOString().slice(0,10)),
           ot_id: otId,
           created_by: email,
           created_at: now
         };
         // insert order - columns may vary
-        let { error: eOrd } = await sb.from("orders").insert(ord);
+        let eOrd = (await sb.from("orders").insert(ord)).error;
         if (eOrd) {
-          // retry without optional cols
-          delete ord.created_by;
-          delete ord.ot_id;
-          const r2 = await sb.from("orders").insert(ord);
-          eOrd = r2.error;
+          // retry tanpa kolom opsional
+          var ord2 = {
+            order_id: orderId,
+            no_so: noSo,
+            customer_name: r0.customer_name || "",
+            status: "confirmed",
+            order_date: ord.order_date
+          };
+          eOrd = (await sb.from("orders").insert(ord2)).error;
+          if (eOrd && /status/i.test(eOrd.message)) {
+            ord2.status = "draft";
+            eOrd = (await sb.from("orders").insert(ord2)).error;
+          }
           if (!eOrd) {
-            try { await sb.from("orders").update({ ot_id: otId }).eq("order_id", orderId); } catch (e3) {}
+            try { await sb.from("orders").update({ ot_id: otId, created_by: email }).eq("order_id", orderId); } catch (e3) {}
           }
         }
         if (eOrd) return toast("Gagal buat SO produksi: " + eOrd.message, true);
