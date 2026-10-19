@@ -19,6 +19,7 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  // jangan cache API supabase
   if (url.hostname.includes("supabase")) return;
   event.respondWith(
     caches.match(req).then((cached) => {
