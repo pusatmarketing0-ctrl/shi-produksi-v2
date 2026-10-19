@@ -2,7 +2,52 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>SHI Produksi - loading full file next</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d9f6e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>SHI Produksi</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    body { margin:0; font-family: system-ui,sans-serif; background:#e8f0ec; color:#0f1f18;
+      display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .box { text-align:center; padding:2rem; }
+    .spin { width:36px; height:36px; border:3px solid #cfe8dc; border-top-color:#0d9f6e;
+      border-radius:50%; animation:s .8s linear infinite; margin:0 auto 1rem; }
+    @keyframes s { to { transform:rotate(360deg); } }
+  </style>
 </head>
-<body><p>Updating… please wait for next commit</p></body>
+<body>
+  <div class="box" id="boot">
+    <div class="spin"></div>
+    <div>Memuat SHI Produksi…</div>
+  </div>
+  <script>
+  (async function () {
+    try {
+      var n = 5;
+      var parts = [];
+      for (var i = 0; i < n; i++) {
+        var res = await fetch("./app.part" + i + ".txt", { cache: "no-cache" });
+        if (!res.ok) throw new Error("Gagal memuat bagian " + i + " (" + res.status + ")");
+        parts.push(await res.text());
+      }
+      var html = parts.join("");
+      document.open();
+      document.write(html);
+      document.close();
+    } catch (e) {
+      var el = document.getElementById("boot");
+      if (el) el.innerHTML = "<p><b>Gagal memuat aplikasi</b></p><p>" + (e && e.message ? e.message : e) + "</p>";
+      console.error(e);
+    }
+  })();
+  </script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    });
+  }
+  </script>
+</body>
 </html>
