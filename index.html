@@ -2467,28 +2467,9 @@
         </div>
       </div>
       <div class="topbar-right">
-        <div class="user-chip-wrap" id="userChipWrap">
-          <div class="user-chip" id="userChip" title="Profil & menu" role="button" tabindex="0" aria-haspopup="true">
-            <div class="user-avatar" id="userAvatar">?</div>
-            <div class="user-meta"><strong id="userName">—</strong><span id="userRole">—</span></div>
-            <span class="user-chip-caret" aria-hidden="true">▾</span>
-          </div>
-          <div class="user-chip-menu" id="userChipMenu" hidden>
-            <button type="button" class="user-chip-item" id="btnInstallApp">
-              <span class="uci">📥</span>
-              <span>
-                <strong>Download App</strong>
-                <small>Pasang di HP / desktop</small>
-              </span>
-            </button>
-            <button type="button" class="user-chip-item user-chip-item-danger" id="btnLogout">
-              <span class="uci">⎋</span>
-              <span>
-                <strong>Logout</strong>
-                <small>Keluar dari akun</small>
-              </span>
-            </button>
-          </div>
+        <div class="user-chip" id="userChip" title="Profil saya" role="button" tabindex="0">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-meta"><strong id="userName">—</strong><span id="userRole">—</span></div>
         </div>
       </div>
     </header>
@@ -3486,6 +3467,15 @@
         <div class="field"><label>Nama lengkap</label><input id="profileName" placeholder="Nama lengkap" /></div>
         <div class="field"><label>Email</label><input id="profileEmail" disabled /></div>
         <div class="field"><label>Role</label><input id="profileRole" disabled /></div>
+        <div style="margin-top:0.85rem;padding-top:0.85rem;border-top:1px solid var(--border)">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.04em">Aksi</div>
+          <button type="button" class="btn btn-ghost" id="btnInstallApp" style="width:100%;justify-content:flex-start;margin-bottom:0.35rem;gap:0.5rem">
+            <span>📥</span> Download App — pasang di HP / desktop
+          </button>
+          <button type="button" class="btn btn-ghost" id="btnLogout" style="width:100%;justify-content:flex-start;gap:0.5rem;color:#b91c1c">
+            <span>⎋</span> Logout — keluar dari akun
+          </button>
+        </div>
       </div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeProfileModal()">Batal</button>
@@ -9241,6 +9231,7 @@ function fillOperatorList(selectedEmail) {
       finally { $("btnSignup").disabled = false; }
     };
     $("btnLogout").onclick = async () => {
+      try { closeProfileModal(); } catch (eC) {}
       if (sb) await sb.auth.signOut();
       $("app").classList.remove("show");
       $("authScreen").style.display = "flex";
@@ -9391,29 +9382,17 @@ function fillOperatorList(selectedEmail) {
 
     function setupUserChipMenu() {
       var chip = $("userChip");
-      var menu = $("userChipMenu");
-      var wrap = $("userChipWrap");
-      if (!chip || !menu || chip.dataset.menuBound === "1") return;
+      if (!chip || chip.dataset.menuBound === "1") return;
       chip.dataset.menuBound = "1";
-      function close() {
-        menu.hidden = true;
-      }
-      function toggle(e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        menu.hidden = !menu.hidden;
-      }
-      chip.addEventListener("click", toggle);
+      chip.addEventListener("click", function() {
+        try { openProfileModal(); } catch (e) {}
+      });
       chip.addEventListener("keydown", function(e) {
-        if (e.key === "Enter" || e.key === " ") toggle(e);
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          try { openProfileModal(); } catch (e2) {}
+        }
       });
-      document.addEventListener("click", function(e) {
-        if (wrap && !wrap.contains(e.target)) close();
-      });
-      // close menu after choosing action
-      var inst = $("btnInstallApp");
-      var out = $("btnLogout");
-      if (inst) inst.addEventListener("click", function() { setTimeout(close, 50); });
-      if (out) out.addEventListener("click", function() { setTimeout(close, 50); });
     }
 
     function setAvatarEl(el, name, url) {
