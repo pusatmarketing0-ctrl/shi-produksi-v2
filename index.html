@@ -3683,10 +3683,8 @@
     const $ = (id) => document.getElementById(id);
     let currentUser = null, currentProfile = null;
     
-    // Google Drive upload via Apps Script Web App
-    // Setelah deploy Code.gs, set:
-    // localStorage.setItem("DRIVE_UPLOAD_URL", "https://script.google.com/macros/s/XXXX/exec")
-    const DRIVE_UPLOAD_URL = localStorage.getItem("DRIVE_UPLOAD_URL") || "";
+    // Google Drive upload via Apps Script Web App (permanen)
+    const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz6xRG6oft0h6GIaPTm3PU_YUX_bfwg1p0cSqz7tBp_khnCLOE5a-xR1N3HbiJSkgs/exec";
 
     let products = [], machines = [], plans = [], routes = [];
     let editingProductId = null, editingMachineId = null, editingPlanId = null;
