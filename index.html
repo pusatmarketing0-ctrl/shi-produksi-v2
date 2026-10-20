@@ -2378,6 +2378,25 @@
       background: rgba(239,68,68,0.12);
     }
 
+
+    .ops-table td.so-terbit {
+      background: rgba(59, 130, 246, 0.18) !important;
+      box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.55);
+      position: relative;
+      vertical-align: middle;
+    }
+    .ops-table td.so-terbit .so-badge {
+      display: inline-block;
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #1d4ed8;
+      background: #dbeafe;
+      border-radius: 4px;
+      padding: 0.1rem 0.28rem;
+      line-height: 1.2;
+    }
+
   </style>
 </head>
 <body>
@@ -6767,7 +6786,7 @@ function fillOperatorList(selectedEmail) {
 
       const [{ data: plans, error: e1 }, { data: orders }] = await Promise.all([
         sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000),
-        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,order_lines(product_id,qty)").limit(800)
+        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,order_lines(product_id,qty)").limit(800)
       ]);
       if (e1) {
         toast(e1.message, true);
@@ -6813,8 +6832,10 @@ function fillOperatorList(selectedEmail) {
             no_so: p.no_so || (ord && ord.no_so) || "",
             order_id: p.order_id || "",
             order_date: (ord && ord.order_date) || "",
+            so_mark_day: (ord && ord.order_date) ? String(ord.order_date).slice(0, 10) : "",
             customer: (ord && ord.customer_name) || "",
             order_status: (ord && ord.status) || "",
+            from_ot: !!(ord && ord.ot_id),
             po_qty: poQty,
             planDay: {},
             opDay: {},
@@ -6935,6 +6956,8 @@ function fillOperatorList(selectedEmail) {
             }
             if (!groups[key].customer && o.customer_name) groups[key].customer = o.customer_name;
             if (!groups[key].order_date && o.order_date) groups[key].order_date = o.order_date;
+            if (!groups[key].so_mark_day && o.order_date) groups[key].so_mark_day = String(o.order_date).slice(0, 10);
+            if (o.ot_id) groups[key].from_ot = true;
             if (!groups[key].order_id && o.order_id) groups[key].order_id = o.order_id;
             return;
           }
@@ -6943,8 +6966,10 @@ function fillOperatorList(selectedEmail) {
             no_so: o.no_so || "",
             order_id: o.order_id || "",
             order_date: o.order_date || "",
+            so_mark_day: o.order_date ? String(o.order_date).slice(0, 10) : "",
             customer: o.customer_name || "",
             order_status: o.status || "",
+            from_ot: !!(o.ot_id),
             po_qty: Number(l.qty) || 0,
             planDay: {},
             opDay: {},
@@ -7217,9 +7242,11 @@ function fillOperatorList(selectedEmail) {
             const td = d === today ? " today-col" : "";
             let content = "";
             let extra = "";
+            const isSoDay = !!(g.so_mark_day && d === g.so_mark_day);
+            if (row.ket === "Plan" && isSoDay) extra += " so-terbit";
             if (row.ket === "Plan" && row.primer[d] && !(Number(row.map[d]) > 0)) {
               content = "PRIMER";
-              extra = " primer has-val";
+              extra += " primer has-val";
             } else if (row.ket === "Actual") {
               const vFg = row.map[d];
               if (vFg != null && Number(vFg) > 0) {
@@ -7256,6 +7283,11 @@ function fillOperatorList(selectedEmail) {
               const tot2 = (g.procTotalDay && g.procTotalDay[d]) || 0;
               const done2 = (g.procDoneDay && g.procDoneDay[d]) || 0;
               titleExtra = ' title="' + done2 + '/' + tot2 + ' proses sudah laporan"';
+            }
+            if (row.ket === "Plan" && isSoDay) {
+              content = '<span class="so-badge" title="SO terbit produksi">SO</span>' +
+                (content ? '<div>' + content + '</div>' : '');
+              if (!titleExtra) titleExtra = ' title="Tanggal terbit SO produksi"';
             }
             body += '<td class="day-cell' + wk + td + extra + '"' + click + titleExtra + '>' + content + '</td>';
           });
