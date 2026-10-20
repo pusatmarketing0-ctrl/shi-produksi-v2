@@ -2281,6 +2281,12 @@
       box-shadow: 4px 0 10px rgba(15, 23, 42, 0.07) !important;
     }
 
+
+    #otFilePreviewModal.modal-bg.show {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -3469,6 +3475,23 @@
   
   
   
+  
+  <div id="otFilePreviewModal" class="modal-bg" style="z-index:100100">
+    <div class="modal" style="max-width:min(920px,96vw);width:100%;max-height:92vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;border-bottom:1px solid var(--border)">
+        <strong id="otPreviewTitle" style="font-size:0.95rem">Preview</strong>
+        <div style="display:flex;gap:0.4rem;align-items:center">
+          <a id="otPreviewOpenDrive" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Buka di Drive</a>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeOtFilePreview()">Tutup</button>
+        </div>
+      </div>
+      <div id="otPreviewBody" style="flex:1;min-height:60vh;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:0.5rem">
+        <img id="otPreviewImg" alt="Preview" style="display:none;max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px" />
+        <iframe id="otPreviewFrame" title="Preview PDF" style="display:none;width:100%;height:78vh;border:0;border-radius:8px;background:#fff"></iframe>
+      </div>
+    </div>
+  </div>
+
   <div id="otNewProductModal" class="modal-bg" style="z-index:100000">
     <div class="modal" style="max-width:400px">
       <h2 style="margin-bottom:0.75rem">Produk baru</h2>
@@ -3516,21 +3539,21 @@
             <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
               <input type="file" id="otFileSo" accept="application/pdf,.pdf" />
               <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('so_pdf')">Upload</button>
-              <a id="otLinkSo" href="#" target="_blank" rel="noopener" style="font-size:0.78rem;display:none">Lihat SO</a>
+              <button type="button" id="otLinkSo" class="btn btn-ghost btn-sm" style="display:none" onclick="otPreviewFile('so_pdf')">Preview SO</button>
             </div>
           </div>
           <div class="field"><label>PDF PO / dokumen Odoo</label>
             <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
               <input type="file" id="otFilePo" accept="application/pdf,.pdf" />
               <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('po_pdf')">Upload</button>
-              <a id="otLinkPo" href="#" target="_blank" rel="noopener" style="font-size:0.78rem;display:none">Lihat PO</a>
+              <button type="button" id="otLinkPo" class="btn btn-ghost btn-sm" style="display:none" onclick="otPreviewFile('po_pdf')">Preview PO</button>
             </div>
           </div>
           <div class="field"><label>Bukti TF DP (gambar)</label>
             <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
               <input type="file" id="otFileDp" accept="image/*" />
               <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('dp_proof')">Upload</button>
-              <a id="otLinkDp" href="#" target="_blank" rel="noopener" style="font-size:0.78rem;display:none">Lihat bukti</a>
+              <button type="button" id="otLinkDp" class="btn btn-ghost btn-sm" style="display:none" onclick="otPreviewFile('dp_proof')">Preview bukti</button>
             </div>
             <img id="otDpPreview" alt="Bukti DP" style="display:none;margin-top:0.5rem;max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);object-fit:contain;background:#f8fafc" />
           </div>
@@ -9782,44 +9805,116 @@ function closeOtModal() {
       } catch (e2) {}
     }
 
-    function otDrivePreviewUrl(url) {
+    var otFileUrls = { so_pdf: "", po_pdf: "", dp_proof: "", so_name: "", po_name: "", dp_name: "" };
+
+    function otDriveFileId(url) {
       if (!url) return "";
       var s = String(url);
       var m = s.match(/\/file\/d\/([^/]+)/);
-      if (m) return "https://drive.google.com/uc?export=view&id=" + m[1];
+      if (m) return m[1];
       m = s.match(/[?&]id=([^&]+)/);
-      if (m) return "https://drive.google.com/uc?export=view&id=" + m[1];
-      return s;
+      if (m) return m[1];
+      return "";
+    }
+    function otDrivePreviewUrl(url) {
+      var id = otDriveFileId(url);
+      if (id) return "https://drive.google.com/uc?export=view&id=" + id;
+      return url || "";
+    }
+    function otDriveEmbedUrl(url) {
+      var id = otDriveFileId(url);
+      if (id) return "https://drive.google.com/file/d/" + id + "/preview";
+      return url || "";
     }
     function otFillFileLinks(row) {
       row = row || {};
-      function setLink(id, url, name) {
+      otFileUrls.so_pdf = row.so_pdf_url || "";
+      otFileUrls.po_pdf = row.po_pdf_url || "";
+      otFileUrls.dp_proof = row.dp_proof_url || "";
+      otFileUrls.so_name = row.so_pdf_name || "SO PDF";
+      otFileUrls.po_name = row.po_pdf_name || "PO PDF";
+      otFileUrls.dp_name = row.dp_proof_name || "Bukti DP";
+
+      function setBtn(id, url, label) {
         var a = $(id);
         if (!a) return;
         if (url) {
-          a.href = url;
           a.style.display = "";
-          a.textContent = name || "Lihat file";
+          a.textContent = label || "Preview";
         } else {
-          a.removeAttribute("href");
           a.style.display = "none";
         }
       }
-      setLink("otLinkSo", row.so_pdf_url, row.so_pdf_name || "Lihat SO PDF");
-      setLink("otLinkPo", row.po_pdf_url, row.po_pdf_name || "Lihat PO PDF");
-      setLink("otLinkDp", row.dp_proof_url, row.dp_proof_name || "Lihat bukti DP");
+      setBtn("otLinkSo", otFileUrls.so_pdf, "Preview SO");
+      setBtn("otLinkPo", otFileUrls.po_pdf, "Preview PO");
+      setBtn("otLinkDp", otFileUrls.dp_proof, "Preview bukti");
+
       var prev = $("otDpPreview");
       if (prev) {
-        if (row.dp_proof_url) {
-          prev.src = otDrivePreviewUrl(row.dp_proof_url);
+        if (otFileUrls.dp_proof) {
+          prev.src = otDrivePreviewUrl(otFileUrls.dp_proof);
           prev.style.display = "block";
-          prev.alt = row.dp_proof_name || "Bukti DP";
+          prev.alt = otFileUrls.dp_name;
+          prev.style.cursor = "pointer";
+          prev.onclick = function() { otPreviewFile("dp_proof"); };
         } else {
           prev.removeAttribute("src");
           prev.style.display = "none";
+          prev.onclick = null;
         }
       }
     }
+    function closeOtFilePreview() {
+      var m = $("otFilePreviewModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      var img = $("otPreviewImg");
+      var fr = $("otPreviewFrame");
+      if (img) { img.style.display = "none"; img.removeAttribute("src"); }
+      if (fr) { fr.style.display = "none"; fr.removeAttribute("src"); }
+    }
+    function otPreviewFile(kind) {
+      var url = "";
+      var title = "Preview";
+      if (kind === "so_pdf") { url = otFileUrls.so_pdf; title = otFileUrls.so_name || "SO PDF"; }
+      else if (kind === "po_pdf") { url = otFileUrls.po_pdf; title = otFileUrls.po_name || "PO PDF"; }
+      else { url = otFileUrls.dp_proof; title = otFileUrls.dp_name || "Bukti DP"; }
+      if (!url) return toast("File belum diupload", true);
+
+      var modal = $("otFilePreviewModal");
+      var img = $("otPreviewImg");
+      var fr = $("otPreviewFrame");
+      var ttl = $("otPreviewTitle");
+      var open = $("otPreviewOpenDrive");
+      if (ttl) ttl.textContent = title;
+      if (open) { open.href = url; open.style.display = ""; }
+
+      var isImg = kind === "dp_proof" || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url) || /image/i.test(title);
+      if (img) img.style.display = "none";
+      if (fr) fr.style.display = "none";
+
+      if (isImg) {
+        if (img) {
+          img.src = otDrivePreviewUrl(url);
+          img.style.display = "block";
+        }
+      } else {
+        // PDF / dokumen → embed Drive preview
+        if (fr) {
+          fr.src = otDriveEmbedUrl(url);
+          fr.style.display = "block";
+        }
+      }
+      if (modal) {
+        modal.classList.add("show");
+        modal.style.display = "flex";
+        modal.style.alignItems = "center";
+        modal.style.justifyContent = "center";
+      }
+    }
+
 
         async function otUploadFile(kind) {
       var otId = ($("otEditId") && $("otEditId").value) || "";
