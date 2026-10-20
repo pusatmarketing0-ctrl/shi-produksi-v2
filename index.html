@@ -3533,31 +3533,19 @@
           <button type="button" class="btn btn-ghost btn-sm" onclick="otAddLine()">+ Baris</button>
         </div>
         <div id="otLines"></div>
-        <div id="otFilesBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(15,23,42,0.04);display:none">
-          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.5rem">Lampiran (Google Drive)</div>
-          <div class="field"><label>PDF SO ke customer</label>
-            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-              <input type="file" id="otFileSo" accept="application/pdf,.pdf" />
-              <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('so_pdf')">Upload</button>
-              <button type="button" id="otLinkSo" class="btn btn-ghost btn-sm" style="display:none" onclick="otPreviewFile('so_pdf')">Preview SO</button>
-            </div>
+                <div id="otFilesBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(15,23,42,0.04);display:none">
+          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.45rem">Lampiran (Google Drive)</div>
+          <div id="otDropZone" style="border:1.5px dashed #94a3b8;border-radius:12px;padding:1rem;text-align:center;background:rgba(255,255,255,0.6);cursor:pointer">
+            <div style="font-size:0.85rem;font-weight:600;color:var(--text)">Klik atau tarik file ke sini</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem">Bisa banyak file sekaligus · PDF / gambar · maks ~6 MB per file</div>
+            <input type="file" id="otMultiFiles" multiple accept="application/pdf,.pdf,image/*" style="display:none" />
           </div>
-          <div class="field"><label>PDF PO / dokumen Odoo</label>
-            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-              <input type="file" id="otFilePo" accept="application/pdf,.pdf" />
-              <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('po_pdf')">Upload</button>
-              <button type="button" id="otLinkPo" class="btn btn-ghost btn-sm" style="display:none" onclick="otPreviewFile('po_pdf')">Preview PO</button>
-            </div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;flex-wrap:wrap;align-items:center">
+            <button type="button" class="btn btn-primary btn-sm" id="btnOtUploadAll" onclick="otUploadMultiFiles()">Upload semua</button>
+            <span id="otUploadStatus" style="font-size:0.75rem;color:var(--text-muted)"></span>
           </div>
-          <div class="field"><label>Bukti TF DP (gambar)</label>
-            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-              <input type="file" id="otFileDp" accept="image/*" />
-              <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('dp_proof')">Upload</button>
-              <button type="button" id="otLinkDp" class="btn btn-ghost btn-sm" style="display:none" onclick="otPreviewFile('dp_proof')">Preview bukti</button>
-            </div>
-            <img id="otDpPreview" alt="Bukti DP" style="display:none;margin-top:0.5rem;max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);object-fit:contain;background:#f8fafc" />
-          </div>
-          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">File disimpan di Google Drive (gratis). Set DRIVE_UPLOAD_URL (Apps Script) di localStorage bila perlu.</p>
+          <div id="otAttachList" style="margin-top:0.65rem;display:flex;flex-direction:column;gap:0.4rem"></div>
+          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.4rem 0 0">File di Google Drive. Ketuk item untuk preview di webapp.</p>
         </div>
         <div id="otStatusBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(16,185,129,0.08);display:none">
           <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.4rem">Aksi status / referensi</div>
@@ -9785,6 +9773,7 @@ function closeOtModal() {
         if (statusBox) statusBox.style.display = "block";
         if (filesBox) filesBox.style.display = "block";
         try { otFillFileLinks(row); } catch (eF) {}
+        try { otSetupDropZone(); } catch (eZ) {}
         if ($("btnOtSave")) {
           $("btnOtSave").style.display = (canEdit && (row.status === "draft" || row.status === "menunggu_so_trading")) ? "" : "none";
         }
@@ -9805,7 +9794,9 @@ function closeOtModal() {
       } catch (e2) {}
     }
 
+    
     var otFileUrls = { so_pdf: "", po_pdf: "", dp_proof: "", so_name: "", po_name: "", dp_name: "" };
+    var otAttachments = []; // [{id,name,url,kind,mime,at}]
 
     function otDriveFileId(url) {
       if (!url) return "";
@@ -9826,43 +9817,78 @@ function closeOtModal() {
       if (id) return "https://drive.google.com/file/d/" + id + "/preview";
       return url || "";
     }
+    function otGuessKind(file) {
+      var n = String(file && file.name || "").toLowerCase();
+      var t = String(file && file.type || "");
+      if (t.indexOf("image/") === 0 || /\.(jpe?g|png|gif|webp)$/i.test(n)) {
+        if (n.indexOf("dp") >= 0 || n.indexOf("tf") >= 0 || n.indexOf("bukti") >= 0) return "dp_proof";
+        return "dp_proof";
+      }
+      if (n.indexOf("po") >= 0) return "po_pdf";
+      if (n.indexOf("so") >= 0) return "so_pdf";
+      if (t === "application/pdf" || n.endsWith(".pdf")) return "other";
+      return "other";
+    }
+    function otKindLabel(k) {
+      if (k === "so_pdf") return "SO";
+      if (k === "po_pdf") return "PO";
+      if (k === "dp_proof") return "Bukti DP";
+      return "File";
+    }
+    function otSyncLegacyUrlsFromAttachments() {
+      otFileUrls = { so_pdf: "", po_pdf: "", dp_proof: "", so_name: "", po_name: "", dp_name: "" };
+      (otAttachments || []).forEach(function(a) {
+        if (a.kind === "so_pdf" && !otFileUrls.so_pdf) {
+          otFileUrls.so_pdf = a.url; otFileUrls.so_name = a.name;
+        }
+        if (a.kind === "po_pdf" && !otFileUrls.po_pdf) {
+          otFileUrls.po_pdf = a.url; otFileUrls.po_name = a.name;
+        }
+        if (a.kind === "dp_proof" && !otFileUrls.dp_proof) {
+          otFileUrls.dp_proof = a.url; otFileUrls.dp_name = a.name;
+        }
+      });
+    }
+    function otRenderAttachList() {
+      var box = $("otAttachList");
+      if (!box) return;
+      otSyncLegacyUrlsFromAttachments();
+      if (!otAttachments || !otAttachments.length) {
+        box.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted)">Belum ada lampiran</div>';
+        return;
+      }
+      box.innerHTML = otAttachments.map(function(a, idx) {
+        var isImg = a.kind === "dp_proof" || (a.mime && a.mime.indexOf("image/") === 0);
+        var thumb = isImg
+          ? '<img src="' + esc(otDrivePreviewUrl(a.url)) + '" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:#fff" onerror="this.style.display=\'none\'" />'
+          : '<div style="width:44px;height:44px;border-radius:8px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#475569">PDF</div>';
+        return '<div style="display:flex;align-items:center;gap:0.55rem;padding:0.45rem 0.55rem;border-radius:10px;background:#fff;border:1px solid var(--border)">' +
+          thumb +
+          '<div style="flex:1;min-width:0;cursor:pointer" onclick="otPreviewAttachment(' + idx + ')">' +
+            '<div style="font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(a.name || "file") + '</div>' +
+            '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(otKindLabel(a.kind)) + ' · ketuk untuk preview</div>' +
+          '</div>' +
+          '<button type="button" class="btn btn-ghost btn-sm" onclick="otPreviewAttachment(' + idx + ')">Preview</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="otRemoveAttachment(' + idx + ')">Hapus</button>' +
+          '</div>';
+      }).join("");
+    }
     function otFillFileLinks(row) {
       row = row || {};
-      otFileUrls.so_pdf = row.so_pdf_url || "";
-      otFileUrls.po_pdf = row.po_pdf_url || "";
-      otFileUrls.dp_proof = row.dp_proof_url || "";
-      otFileUrls.so_name = row.so_pdf_name || "SO PDF";
-      otFileUrls.po_name = row.po_pdf_name || "PO PDF";
-      otFileUrls.dp_name = row.dp_proof_name || "Bukti DP";
-
-      function setBtn(id, url, label) {
-        var a = $(id);
-        if (!a) return;
-        if (url) {
-          a.style.display = "";
-          a.textContent = label || "Preview";
-        } else {
-          a.style.display = "none";
+      otAttachments = [];
+      try {
+        if (Array.isArray(row.attachments)) otAttachments = row.attachments.slice();
+        else if (typeof row.attachments === "string" && row.attachments) {
+          otAttachments = JSON.parse(row.attachments);
         }
+      } catch (e) { otAttachments = []; }
+      // migrasi dari kolom lama
+      if ((!otAttachments || !otAttachments.length)) {
+        if (row.so_pdf_url) otAttachments.push({ id: "legacy-so", name: row.so_pdf_name || "SO.pdf", url: row.so_pdf_url, kind: "so_pdf", mime: "application/pdf", at: "" });
+        if (row.po_pdf_url) otAttachments.push({ id: "legacy-po", name: row.po_pdf_name || "PO.pdf", url: row.po_pdf_url, kind: "po_pdf", mime: "application/pdf", at: "" });
+        if (row.dp_proof_url) otAttachments.push({ id: "legacy-dp", name: row.dp_proof_name || "bukti.jpg", url: row.dp_proof_url, kind: "dp_proof", mime: "image/*", at: "" });
       }
-      setBtn("otLinkSo", otFileUrls.so_pdf, "Preview SO");
-      setBtn("otLinkPo", otFileUrls.po_pdf, "Preview PO");
-      setBtn("otLinkDp", otFileUrls.dp_proof, "Preview bukti");
-
-      var prev = $("otDpPreview");
-      if (prev) {
-        if (otFileUrls.dp_proof) {
-          prev.src = otDrivePreviewUrl(otFileUrls.dp_proof);
-          prev.style.display = "block";
-          prev.alt = otFileUrls.dp_name;
-          prev.style.cursor = "pointer";
-          prev.onclick = function() { otPreviewFile("dp_proof"); };
-        } else {
-          prev.removeAttribute("src");
-          prev.style.display = "none";
-          prev.onclick = null;
-        }
-      }
+      otRenderAttachList();
     }
     function closeOtFilePreview() {
       var m = $("otFilePreviewModal");
@@ -9875,37 +9901,34 @@ function closeOtModal() {
       if (img) { img.style.display = "none"; img.removeAttribute("src"); }
       if (fr) { fr.style.display = "none"; fr.removeAttribute("src"); }
     }
+    function otPreviewAttachment(idx) {
+      var a = otAttachments[idx];
+      if (!a || !a.url) return toast("File tidak ditemukan", true);
+      otPreviewFileUrl(a.url, a.name || "Preview", a.kind === "dp_proof" || (a.mime && String(a.mime).indexOf("image/") === 0));
+    }
     function otPreviewFile(kind) {
-      var url = "";
-      var title = "Preview";
-      if (kind === "so_pdf") { url = otFileUrls.so_pdf; title = otFileUrls.so_name || "SO PDF"; }
-      else if (kind === "po_pdf") { url = otFileUrls.po_pdf; title = otFileUrls.po_name || "PO PDF"; }
-      else { url = otFileUrls.dp_proof; title = otFileUrls.dp_name || "Bukti DP"; }
+      // kompat tombol lama
+      var url = "", title = "Preview", isImg = false;
+      if (kind === "so_pdf") { url = otFileUrls.so_pdf; title = otFileUrls.so_name || "SO"; }
+      else if (kind === "po_pdf") { url = otFileUrls.po_pdf; title = otFileUrls.po_name || "PO"; }
+      else { url = otFileUrls.dp_proof; title = otFileUrls.dp_name || "Bukti DP"; isImg = true; }
       if (!url) return toast("File belum diupload", true);
-
+      otPreviewFileUrl(url, title, isImg);
+    }
+    function otPreviewFileUrl(url, title, isImg) {
       var modal = $("otFilePreviewModal");
       var img = $("otPreviewImg");
       var fr = $("otPreviewFrame");
       var ttl = $("otPreviewTitle");
       var open = $("otPreviewOpenDrive");
-      if (ttl) ttl.textContent = title;
+      if (ttl) ttl.textContent = title || "Preview";
       if (open) { open.href = url; open.style.display = ""; }
-
-      var isImg = kind === "dp_proof" || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url) || /image/i.test(title);
       if (img) img.style.display = "none";
       if (fr) fr.style.display = "none";
-
       if (isImg) {
-        if (img) {
-          img.src = otDrivePreviewUrl(url);
-          img.style.display = "block";
-        }
+        if (img) { img.src = otDrivePreviewUrl(url); img.style.display = "block"; }
       } else {
-        // PDF / dokumen → embed Drive preview
-        if (fr) {
-          fr.src = otDriveEmbedUrl(url);
-          fr.style.display = "block";
-        }
+        if (fr) { fr.src = otDriveEmbedUrl(url); fr.style.display = "block"; }
       }
       if (modal) {
         modal.classList.add("show");
@@ -9914,152 +9937,148 @@ function closeOtModal() {
         modal.style.justifyContent = "center";
       }
     }
-
-
-        async function otUploadFile(kind) {
+    async function otPersistAttachments() {
       var otId = ($("otEditId") && $("otEditId").value) || "";
-      if (!otId) return toast("Simpan Order Trading dulu sebelum upload file", true);
-      var inputId = kind === "so_pdf" ? "otFileSo" : (kind === "po_pdf" ? "otFilePo" : "otFileDp");
-      var input = $(inputId);
-      if (!input || !input.files || !input.files[0]) return toast("Pilih file dulu", true);
-      var file = input.files[0];
-      var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
-      if (!base) {
-        return toast("Drive belum diset. Deploy Apps Script, lalu di console:\nlocalStorage.setItem('DRIVE_UPLOAD_URL','https://script.google.com/macros/s/.../exec')", true);
+      if (!otId || !sb) return;
+      otSyncLegacyUrlsFromAttachments();
+      var patch = {
+        attachments: otAttachments,
+        so_pdf_url: otFileUrls.so_pdf || "",
+        so_pdf_name: otFileUrls.so_name || "",
+        po_pdf_url: otFileUrls.po_pdf || "",
+        po_pdf_name: otFileUrls.po_name || "",
+        dp_proof_url: otFileUrls.dp_proof || "",
+        dp_proof_name: otFileUrls.dp_name || "",
+        updated_at: new Date().toISOString()
+      };
+      var { error } = await sb.from("order_trading").update(patch).eq("ot_id", otId);
+      if (error) {
+        // fallback tanpa attachments json
+        delete patch.attachments;
+        var r2 = await sb.from("order_trading").update(patch).eq("ot_id", otId);
+        if (r2.error) throw new Error(r2.error.message);
       }
-      if (file.size > 6 * 1024 * 1024) {
-        return toast("Maksimal ~6 MB (batas Google Apps Script). Kompres PDF/gambar dulu.", true);
-      }
-      toast("Mengupload ke Google Drive…");
+      var r = otCache.find(function(x) { return x.ot_id === otId; });
+      if (r) Object.assign(r, patch, { attachments: otAttachments });
+    }
+    async function otRemoveAttachment(idx) {
+      if (!confirm("Hapus lampiran ini dari daftar?")) return;
+      otAttachments.splice(idx, 1);
+      otRenderAttachList();
       try {
-        var base64 = await new Promise(function(resolve, reject) {
-          var reader = new FileReader();
-          reader.onload = function() {
-            var s = String(reader.result || "");
-            var i = s.indexOf(",");
-            resolve(i >= 0 ? s.slice(i + 1) : s);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        var res = await fetch(base, {
-          method: "POST",
-          // text/plain menghindari preflight CORS rumit di GAS
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            ot_id: otId,
-            kind: kind,
-            fileName: file.name || "file",
-            mimeType: file.type || "application/octet-stream",
-            base64: base64
-          })
-        });
-        var text = await res.text();
-        var data = {};
-        try { data = JSON.parse(text); } catch (e1) {
-          return toast("Respons Drive tidak valid. Cek deployment Apps Script (Anyone).", true);
-        }
-        if (!data.ok) return toast(data.error || "Upload gagal", true);
-
-        var patch = { updated_at: new Date().toISOString() };
-        if (kind === "so_pdf") {
-          patch.so_pdf_url = data.url;
-          patch.so_pdf_name = data.name || file.name;
-        } else if (kind === "po_pdf") {
-          patch.po_pdf_url = data.url;
-          patch.po_pdf_name = data.name || file.name;
-        } else {
-          patch.dp_proof_url = data.url;
-          patch.dp_proof_name = data.name || file.name;
-        }
-        var up = await sb.from("order_trading").update(patch).eq("ot_id", otId);
-        if (up.error) return toast(up.error.message, true);
-        try { await otAddEvent(otId, "file_uploaded", kind + ": " + (data.name || "")); } catch (e2) {}
-        var r = otCache.find(function(x) { return x.ot_id === otId; });
-        if (r) Object.assign(r, patch);
-        otFillFileLinks(Object.assign({}, r || {}, patch));
-        toast("Tersimpan di Google Drive");
+        await otPersistAttachments();
+        toast("Lampiran dihapus dari daftar");
       } catch (e) {
         toast(String(e.message || e), true);
       }
     }
-
-    function renderOtActions(r) {
-      const box = $("otActionBtns");
-      if (!box) return;
-      const role = currentRole();
-      const st = r.status || "draft";
-      let btns = [];
-      if ((role === "marketing" || role === "admin") && st === "draft") {
-        btns.push(["Kirim ke CV Trading", "otSubmitTrading"]);
+    async function otUploadOneToDrive(file, kind) {
+      var otId = ($("otEditId") && $("otEditId").value) || "";
+      var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
+      if (!base) throw new Error("DRIVE_UPLOAD_URL belum diset");
+      if (file.size > 6 * 1024 * 1024) throw new Error(file.name + " > 6 MB");
+      var base64 = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() {
+          var s = String(reader.result || "");
+          var i = s.indexOf(",");
+          resolve(i >= 0 ? s.slice(i + 1) : s);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      var res = await fetch(base, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          ot_id: otId,
+          kind: kind || "other",
+          fileName: file.name || "file",
+          mimeType: file.type || "application/octet-stream",
+          base64: base64
+        })
+      });
+      var text = await res.text();
+      var data = {};
+      try { data = JSON.parse(text); } catch (e1) {
+        throw new Error("Respons Drive tidak valid");
       }
-      if ((role === "trading" || role === "admin") && (st === "menunggu_so_trading" || st === "draft")) {
-        btns.push(["SO Siap (Trading)", "otMarkSoReady"]);
+      if (!data.ok) throw new Error(data.error || "Upload gagal");
+      return data;
+    }
+    async function otUploadMultiFiles() {
+      var otId = ($("otEditId") && $("otEditId").value) || "";
+      if (!otId) return toast("Simpan Order Trading dulu sebelum upload", true);
+      var input = $("otMultiFiles");
+      if (!input || !input.files || !input.files.length) return toast("Pilih file dulu", true);
+      var files = Array.prototype.slice.call(input.files);
+      var st = $("otUploadStatus");
+      if (st) st.textContent = "Mengupload 0/" + files.length + "…";
+      toast("Mengupload " + files.length + " file…");
+      var ok = 0, fail = 0;
+      for (var i = 0; i < files.length; i++) {
+        var f = files[i];
+        if (st) st.textContent = "Mengupload " + (i + 1) + "/" + files.length + " — " + f.name;
+        try {
+          var kind = otGuessKind(f);
+          var data = await otUploadOneToDrive(f, kind);
+          otAttachments.push({
+            id: data.id || ("f-" + Date.now() + "-" + i),
+            name: data.name || f.name,
+            url: data.url,
+            kind: kind,
+            mime: f.type || "",
+            at: new Date().toISOString()
+          });
+          ok++;
+        } catch (e) {
+          fail++;
+          console.warn(e);
+          toast(f.name + ": " + (e.message || e), true);
+        }
       }
-      if ((role === "marketing" || role === "admin") && st === "so_siap") {
-        btns.push(["SO Sudah Dibagikan (tagih DP)", "otMarkShared"]);
+      otRenderAttachList();
+      try {
+        await otPersistAttachments();
+        try { await otAddEvent(otId, "file_uploaded", ok + " file"); } catch (e2) {}
+      } catch (e3) {
+        toast(String(e3.message || e3), true);
       }
-      if ((role === "marketing" || role === "admin") && (st === "so_dibagikan" || st === "dp_diterima")) {
-        btns.push(["DP Diterima", "otMarkDp"]);
-        btns.push(["Terbit ke Produksi + Odoo", "otPublishProduction"]);
-      }
-      if ((role === "marketing" || role === "admin") && st === "dp_diterima") {
-        btns.push(["Terbit ke Produksi + Odoo", "otPublishProduction"]);
-      }
-      box.innerHTML = btns.map(function(b) {
-        return "<button type='button' class='btn btn-primary btn-sm' data-act='" + b[1] + "'>" + b[0] + "</button>";
-      }).join(" ");
-      // dedupe publish buttons
-      const seen = {};
-      box.querySelectorAll("button").forEach(function(btn) {
-        const a = btn.getAttribute("data-act");
-        if (seen[a]) { btn.remove(); return; }
-        seen[a] = true;
-        btn.onclick = function() { otRunAction(r.ot_id, a); };
+      if (input) input.value = "";
+      if (st) st.textContent = ok + " berhasil" + (fail ? ", " + fail + " gagal" : "");
+      if (ok) toast(ok + " file tersimpan di Google Drive");
+    }
+    function otSetupDropZone() {
+      var zone = $("otDropZone");
+      var input = $("otMultiFiles");
+      if (!zone || !input || zone.dataset.bound === "1") return;
+      zone.dataset.bound = "1";
+      zone.addEventListener("click", function() { input.click(); });
+      zone.addEventListener("dragover", function(e) {
+        e.preventDefault();
+        zone.style.borderColor = "#10b981";
+        zone.style.background = "rgba(16,185,129,0.08)";
+      });
+      zone.addEventListener("dragleave", function() {
+        zone.style.borderColor = "#94a3b8";
+        zone.style.background = "rgba(255,255,255,0.6)";
+      });
+      zone.addEventListener("drop", function(e) {
+        e.preventDefault();
+        zone.style.borderColor = "#94a3b8";
+        zone.style.background = "rgba(255,255,255,0.6)";
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+          input.files = e.dataTransfer.files;
+          if ($("otUploadStatus")) $("otUploadStatus").textContent = e.dataTransfer.files.length + " file siap diupload";
+        }
+      });
+      input.addEventListener("change", function() {
+        if (input.files && input.files.length && $("otUploadStatus")) {
+          $("otUploadStatus").textContent = input.files.length + " file siap diupload";
+        }
       });
     }
 
-    async function loadOtTimeline(otId) {
-      const el = $("otTimeline");
-      if (!el) return;
-      const { data } = await sb.from("order_trading_events").select("*").eq("ot_id", otId).order("at", { ascending: true });
-      if (!data || !data.length) {
-        el.innerHTML = "<em>Belum ada riwayat</em>";
-        return;
-      }
-      el.innerHTML = "<strong>Riwayat track record</strong><ul style='margin:0.4rem 0 0;padding-left:1.1rem'>" +
-        data.map(function(ev) {
-          return "<li><code>" + esc(ev.event) + "</code> · " + esc(ev.by_email || "") +
-            " · " + esc(formatDateTimeWib ? formatDateTimeWib(ev.at) : (ev.at || "")) +
-            (ev.note ? " — " + esc(ev.note) : "") + "</li>";
-        }).join("") + "</ul>";
-    }
-
-    function collectOtLines() {
-      const lines = [];
-      document.querySelectorAll("#otLines .ot-line").forEach(function(el, idx) {
-        const raw = ((el.querySelector(".ot-prod") && el.querySelector(".ot-prod").value) || "").trim();
-        if (!raw) return;
-        let product_id = "";
-        try { product_id = resolveProductId(raw); } catch (e) { product_id = ""; }
-        // jika ketik nama bebas / belum match master → pakai teks mentah
-        if (!product_id) product_id = raw;
-        const qty = parseInputNum(el.querySelector(".ot-qty") && el.querySelector(".ot-qty").value);
-        if (!(qty > 0)) return;
-        const hargaEl = el.querySelector(".ot-harga");
-        const hppEl = el.querySelector(".ot-hpp");
-        lines.push({
-          product_id: product_id,
-          product_name: raw,
-          qty: qty,
-          harga: hargaEl ? (parseInputNum(hargaEl.value) || 0) : 0,
-          hpp: hppEl ? (parseInputNum(hppEl.value) || 0) : 0,
-          unit: "pcs",
-          sort_order: idx
-        });
-      });
-      return lines;
-    }
 
     async function saveOrderTrading() {
       if (!sb) return;
