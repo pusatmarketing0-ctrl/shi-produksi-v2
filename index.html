@@ -2532,7 +2532,8 @@
         <div class="nav-label" data-nav-group="master">Master data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/></svg></span><span class="nav-txt"> Produk</span></button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span class="nav-txt"> Proses</span></button>
-        <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
+        <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing,gudang" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
+        <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang,purchasing" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-3 3.5-4.5 6-4.5S13.8 16 15 19"/><circle cx="17" cy="9" r="2.5"/><path d="M17 13.5c2 0 3.8 1.2 4.5 3.5"/></svg></span><span class="nav-txt"> Data Akun</span></button>
@@ -2729,6 +2730,7 @@
               <option value="marketing">marketing</option>
               <option value="trading">trading (CV Trading)</option>
               <option value="purchasing">purchasing</option>
+                  <option value="gudang">gudang</option>
             </select>
             <select id="accActiveFilter" onchange="renderAccounts()" style="border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.75rem">
               <option value="">Semua status</option>
@@ -3054,7 +3056,10 @@
               <h1>Purchasing</h1>
               <p>Pembelian <strong>berdasarkan Sales Order</strong> customer. Pilih SO dulu, lalu isi bahan yang dibeli.</p>
             </div>
-            <button class="btn btn-primary" type="button" onclick="openPoModal()">+ PO baru</button>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" onclick="openCekKomponen()">Cek komponen SO</button>
+              <button class="btn btn-primary" type="button" onclick="openPoModal()">+ PO baru</button>
+            </div>
           </div>
           <div class="toolbar">
             <input type="search" id="poSearch" placeholder="Cari PO / supplier..." oninput="renderPurchaseOrders()" />
@@ -3211,6 +3216,34 @@
               <span id="exportStatus" style="font-size:0.8rem;color:var(--text-muted)"></span>
             </div>
             <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">Setiap jenis data menjadi sheet terpisah dalam satu file Excel. Batas baris per tabel ~5.000 untuk menjaga performa browser.</p>
+          </div>
+        </section>
+
+      
+        <section id="page-gudang" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Gudang</h1>
+              <p>Penerimaan barang dari Purchase — ETA & qty diterima.</p>
+            </div>
+            <button class="btn btn-ghost" type="button" onclick="loadGudangInbox()">Refresh</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="gudangSearch" placeholder="Cari PO / vendor / bahan..." oninput="renderGudangInbox()" />
+            <select id="gudangFilter" onchange="renderGudangInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="open">Belum lengkap</option>
+              <option value="eta">Ada ETA</option>
+              <option value="all">Semua</option>
+            </select>
+          </div>
+          <div class="card" style="overflow:auto">
+            <table class="data-table">
+              <thead><tr>
+                <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
+                <th>Qty</th><th>Diterima</th><th>Sisa</th><th></th>
+              </tr></thead>
+              <tbody id="gudangBody"><tr><td colspan="9" class="empty">Memuat…</td></tr></tbody>
+            </table>
           </div>
         </section>
 
@@ -3510,6 +3543,7 @@
             <option value="marketing">marketing</option>
             <option value="trading">trading (CV Trading)</option>
             <option value="purchasing">purchasing</option>
+                  <option value="gudang">gudang</option>
             <option value="admin">admin</option>
           </select>
         </div>
@@ -6809,7 +6843,7 @@ function fillOperatorList(selectedEmail) {
       const [{ data: plans, error: e1 }, { data: orders }, poRes] = await Promise.all([
         sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000),
         sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,order_lines(product_id,qty)").limit(800),
-        sb.from("purchase_orders").select("po_id,order_id,no_so,po_date,status").neq("status", "cancelled").limit(500)
+        sb.from("purchase_orders").select("po_id,order_id,no_so,po_date,status,purchase_lines(eta_date,for_product_id,product_id,vendor_name)").neq("status", "cancelled").limit(500)
       ]);
       if (e1) {
         toast(e1.message, true);
@@ -6822,17 +6856,38 @@ function fillOperatorList(selectedEmail) {
       // map SO → tanggal PO (tanda di grid)
       const poDaysByOrder = {};
       const poDaysByNoSo = {};
+      function markPoRange(map, key, fromD, toD) {
+        if (!key || !fromD) return;
+        if (!map[key]) map[key] = {};
+        var a = fromD;
+        var b = toD && toD >= fromD ? toD : fromD;
+        // clamp to visible month
+        if (b < start || a > end) return;
+        if (a < start) a = start;
+        if (b > end) b = end;
+        var cur = new Date(a + "T12:00:00");
+        var endDt = new Date(b + "T12:00:00");
+        while (cur <= endDt) {
+          var ds = cur.getFullYear() + "-" + String(cur.getMonth()+1).padStart(2,"0") + "-" + String(cur.getDate()).padStart(2,"0");
+          map[key][ds] = true;
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
       (poRes && poRes.data ? poRes.data : []).forEach(function(po) {
-        const d = po.po_date ? String(po.po_date).slice(0, 10) : "";
-        if (!d || d < start || d > end) return;
-        if (po.order_id) {
-          if (!poDaysByOrder[po.order_id]) poDaysByOrder[po.order_id] = {};
-          poDaysByOrder[po.order_id][d] = true;
-        }
-        if (po.no_so) {
-          if (!poDaysByNoSo[po.no_so]) poDaysByNoSo[po.no_so] = {};
-          poDaysByNoSo[po.no_so][d] = true;
-        }
+        const d0 = po.po_date ? String(po.po_date).slice(0, 10) : "";
+        if (!d0) return;
+        var lines = po.purchase_lines || [];
+        var etas = lines.map(function(l) { return l.eta_date ? String(l.eta_date).slice(0,10) : ""; }).filter(Boolean);
+        var d1 = etas.length ? etas.sort().slice(-1)[0] : d0; // max ETA
+        if (po.order_id) markPoRange(poDaysByOrder, po.order_id, d0, d1);
+        if (po.no_so) markPoRange(poDaysByNoSo, po.no_so, d0, d1);
+        // juga per for_product_id nanti di group match
+        lines.forEach(function(l) {
+          var eta = l.eta_date ? String(l.eta_date).slice(0,10) : d0;
+          if (l.for_product_id && po.order_id) {
+            markPoRange(poDaysByOrder, po.order_id + "::" + l.for_product_id, d0, eta);
+          }
+        });
       });
 
       let reports = [];
@@ -7026,14 +7081,16 @@ function fillOperatorList(selectedEmail) {
       });
 
       
-      // Tandai tanggal PO di setiap baris SO (grid)
+      // Tandai rentang PO → ETA di setiap baris SO/FG (grid)
       Object.keys(groups).forEach(function(k) {
         var g = groups[k];
         g.po_mark_days = g.po_mark_days || {};
         var byOrd = g.order_id && poDaysByOrder[g.order_id];
         var bySo = g.no_so && poDaysByNoSo[g.no_so];
+        var byFg = g.order_id && g.product_id && poDaysByOrder[g.order_id + "::" + g.product_id];
         if (byOrd) Object.keys(byOrd).forEach(function(d) { g.po_mark_days[d] = true; });
         if (bySo) Object.keys(bySo).forEach(function(d) { g.po_mark_days[d] = true; });
+        if (byFg) Object.keys(byFg).forEach(function(d) { g.po_mark_days[d] = true; });
       });
 
       opsRows = Object.values(groups).sort((a, b) => String(a.product_id).localeCompare(String(b.product_id)));
@@ -7338,7 +7395,7 @@ function fillOperatorList(selectedEmail) {
             if (row.ket === "Plan" && (isSoDay || isPoDay)) {
               var badges = "";
               if (isSoDay) badges += '<span class="so-badge" title="SO terbit produksi">SO</span>';
-              if (isPoDay) badges += '<span class="po-badge" title="PO pembelian bahan">PO</span>';
+              if (isPoDay) badges += '<span class="po-badge" title="PO / est. kedatangan gudang">PO</span>';
               content = badges + (content ? '<div>' + content + '</div>' : '');
               if (!titleExtra) {
                 titleExtra = ' title="' +
@@ -7760,6 +7817,91 @@ function fillOperatorList(selectedEmail) {
       const d = todayStr().replace(/-/g, "");
       return "PO-" + d + "-" + String(Math.floor(Math.random() * 9000) + 1000);
     }
+    
+    var gudangRows = [];
+    async function loadGudangInbox() {
+      if (!sb) return;
+      var body = $("gudangBody");
+      if (body) body.innerHTML = '<tr><td colspan="9" class="empty">Memuat…</td></tr>';
+      var { data: pos, error } = await sb.from("purchase_orders")
+        .select("po_id,no_so,order_id,po_date,status,purchase_lines(*)")
+        .neq("status", "cancelled")
+        .order("po_date", { ascending: false })
+        .limit(150);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="9" class="empty">' + esc(error.message) + '</td></tr>';
+        return;
+      }
+      gudangRows = [];
+      (pos || []).forEach(function(po) {
+        (po.purchase_lines || []).forEach(function(l) {
+          gudangRows.push({
+            po_id: po.po_id,
+            no_so: po.no_so || "",
+            line_id: l.id,
+            product_id: l.product_id,
+            vendor_name: l.vendor_name || po.supplier_name || "",
+            eta_date: l.eta_date ? String(l.eta_date).slice(0,10) : "",
+            qty: Number(l.qty) || 0,
+            qty_received: Number(l.qty_received) || 0,
+            unit: l.unit || "pcs",
+            kategori: l.kategori || ""
+          });
+        });
+      });
+      renderGudangInbox();
+    }
+    function renderGudangInbox() {
+      var body = $("gudangBody");
+      if (!body) return;
+      var q = (($("gudangSearch") && $("gudangSearch").value) || "").toLowerCase().trim();
+      var f = ($("gudangFilter") && $("gudangFilter").value) || "open";
+      var list = gudangRows.filter(function(r) {
+        if (f === "open" && r.qty_received >= r.qty) return false;
+        if (f === "eta" && !r.eta_date) return false;
+        if (!q) return true;
+        var blob = (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name).toLowerCase();
+        return blob.indexOf(q) >= 0;
+      });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada data</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(function(r) {
+        var sisa = Math.max(0, r.qty - r.qty_received);
+        var pname = "";
+        try {
+          var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
+          pname = p ? p.name : "";
+        } catch (e) {}
+        return "<tr>" +
+          "<td>" + esc(r.po_id) + "</td>" +
+          "<td>" + esc(r.no_so || "—") + "</td>" +
+          "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
+          "<td>" + esc(r.vendor_name || "—") + "</td>" +
+          "<td>" + esc(r.eta_date || "—") + "</td>" +
+          "<td>" + formatNum(r.qty) + " " + esc(r.unit) + "</td>" +
+          "<td>" + formatNum(r.qty_received) + "</td>" +
+          "<td>" + formatNum(sisa) + "</td>" +
+          "<td>" + (sisa > 0
+            ? '<button type="button" class="btn btn-primary btn-sm" onclick="gudangReceive(' + r.line_id + ',' + r.qty + ')">Terima</button>'
+            : '<span style="color:#059669;font-size:0.75rem;font-weight:700">OK</span>') +
+          "</td></tr>";
+      }).join("");
+    }
+    async function gudangReceive(lineId, maxQty) {
+      if (!sb || !lineId) return;
+      var raw = prompt("Qty diterima (maks " + maxQty + "):", String(maxQty));
+      if (raw == null) return;
+      var n = parseInputNum(raw);
+      if (!(n > 0)) return toast("Qty tidak valid", true);
+      var { error } = await sb.from("purchase_lines").update({ qty_received: n }).eq("id", lineId);
+      if (error) return toast(error.message, true);
+      toast("Penerimaan disimpan");
+      loadGudangInbox();
+    }
+
+
     async function loadPurchaseOrders() {
       if (!sb) return;
       const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id)").order("po_date", { ascending: false }).limit(200);
@@ -7822,6 +7964,19 @@ function fillOperatorList(selectedEmail) {
       });
       return list.slice(0, 40);
     }
+    function poFgOptionsHtml(selected) {
+      selected = selected || "";
+      var opts = '<option value="">— FG (opsional) —</option>';
+      var sel = $("poFgSelect");
+      if (sel) {
+        for (var i = 0; i < sel.options.length; i++) {
+          var o = sel.options[i];
+          if (!o.value) continue;
+          opts += '<option value="' + esc(o.value) + '"' + (o.value === selected ? " selected" : "") + ">" + esc(o.textContent) + "</option>";
+        }
+      }
+      return opts;
+    }
     function poLineHtml(line) {
       line = line || {};
       const pid = line.product_id || "";
@@ -7829,16 +7984,28 @@ function fillOperatorList(selectedEmail) {
       const display = p ? productSearchLabel(p) : pid;
       const qtyVal = line.qty != null && line.qty !== "" ? formatInputNum(line.qty, true) : "";
       const recvVal = line.qty_received != null && line.qty_received !== "" ? formatInputNum(line.qty_received, true) : "0";
-      return '<div class="po-line po-line-card">' +
+      const kat = line.kategori || "baku";
+      const vendor = line.vendor_name || "";
+      const eta = line.eta_date ? String(line.eta_date).slice(0, 10) : "";
+      var defaultFg = line.for_product_id || (($("poFgSelect") && $("poFgSelect").value) || "");
+      return '<div class="po-line po-line-card" style="display:grid;grid-template-columns:1.2fr 0.85fr 0.75fr 0.7fr 0.55fr 0.55fr 0.5fr 0.5fr 28px;gap:0.3rem;align-items:center;margin-bottom:0.4rem">' +
         '<div class="po-combo">' +
           '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
-          '<input type="text" class="po-combo-input" placeholder="Ketik kode / nama produk..." value="' + esc(display) + '" autocomplete="off" />' +
+          '<input type="text" class="po-combo-input" placeholder="Bahan..." value="' + esc(display) + '" autocomplete="off" />' +
           '<div class="po-combo-list"></div>' +
         '</div>' +
+        '<input class="pol-vendor" placeholder="Vendor" value="' + esc(vendor) + '" />' +
+        '<input class="pol-eta" type="date" value="' + esc(eta) + '" title="Est. tiba gudang" />' +
+        '<select class="pol-fg">' + poFgOptionsHtml(defaultFg) + '</select>' +
+        '<select class="pol-kat">' +
+          '<option value="baku"' + (kat === "baku" ? " selected" : "") + '>Baku</option>' +
+          '<option value="kemas"' + (kat === "kemas" ? " selected" : "") + '>Kemas</option>' +
+          '<option value="penunjang"' + (kat === "penunjang" ? " selected" : "") + '>Penunjang</option>' +
+        '</select>' +
         '<input class="pol-qty num-input" inputmode="decimal" placeholder="Qty" value="' + qtyVal + '" />' +
-        '<input class="pol-unit" placeholder="Satuan" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" />' +
-        '<input class="pol-recv num-input" inputmode="decimal" placeholder="Diterima" value="' + recvVal + '" />' +
-        '<button type="button" class="po-del" title="Hapus baris">×</button>' +
+        '<input class="pol-unit" placeholder="Unit" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" />' +
+        '<input class="pol-recv num-input" inputmode="decimal" placeholder="Terima" value="' + recvVal + '" />' +
+        '<button type="button" class="po-del" title="Hapus">×</button>' +
         '</div>';
     }
     function bindPoProductCombo(card) {
@@ -7924,7 +8091,7 @@ function fillOperatorList(selectedEmail) {
       if (!box) return;
       if (!box.querySelector(".po-lines-head") && !box.querySelector(".po-line-card")) {
         box.insertAdjacentHTML("afterbegin",
-          '<div class="po-lines-head"><span>Produk (ketik cari)</span><span>Qty</span><span>Satuan</span><span>Diterima</span><span></span></div>');
+          '<div class="po-lines-head" style="display:grid;grid-template-columns:1.2fr 0.85fr 0.75fr 0.7fr 0.55fr 0.55fr 0.5fr 0.5fr 28px;gap:0.3rem;font-size:0.65rem;color:var(--text-muted);margin-bottom:0.25rem"><span>Bahan</span><span>Vendor</span><span>ETA Gudang</span><span>Untuk FG</span><span>Kategori</span><span>Qty</span><span>Unit</span><span>Terima</span><span></span></div>');
       }
       box.insertAdjacentHTML("beforeend", poLineHtml(line));
       const card = box.querySelector(".po-line-card:last-of-type");
@@ -7971,53 +8138,80 @@ function fillOperatorList(selectedEmail) {
     }
 
     async function onPoSoChange() {
-      const sel = $("poSoSelect");
-      if (!sel || !sel.value) {
-        if ($("poSoHint")) $("poSoHint").textContent = "";
+      var sel = $("poSoSelect");
+      var fg = $("poFgSelect");
+      var hint = $("poSoHint");
+      if (!sel) return;
+      var orderId = sel.value || "";
+      if (fg) fg.innerHTML = '<option value="">— Semua FG di SO —</option>';
+      if (!orderId) {
+        if (hint) hint.textContent = "Pilih SO customer terlebih dahulu.";
         return;
       }
-      const opt = sel.options[sel.selectedIndex];
-      const noso = (opt && opt.dataset.noso) || "";
-      if ($("poSoHint")) $("poSoHint").textContent = "SO: " + (noso || sel.value) + " — bahan diisi dari BOM produk SO (bisa diedit).";
-      // only auto-fill lines when creating new PO (empty lines or single empty)
-      const box = $("poLines");
-      if (!box) return;
-      // fetch order lines
-      const { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty,unit)").eq("order_id", sel.value).maybeSingle();
-      if (!ord || !ord.order_lines || !ord.order_lines.length) {
-        if ($("poSoHint")) $("poSoHint").textContent += " SO tanpa baris produk.";
-        return;
-      }
-      if (!window.__bomRows || !window.__bomRows.length) {
-        try { await loadBom(true); } catch (e) {}
-      }
-      const materialMap = {}; // mat -> { qty, unit }
-      ord.order_lines.forEach(L => {
-        const fg = L.product_id;
-        const fgQty = Number(L.qty) || 0;
-        const boms = (window.__bomRows || []).filter(b => String(b.fg_product_id) === String(fg));
-        if (!boms.length) {
-          // no BOM: still suggest FG itself as purchase? skip FG finished goods usually
-          return;
+      var opt = sel.options[sel.selectedIndex];
+      var noSo = (opt && opt.dataset.noso) || "";
+      if (hint) hint.textContent = "SO: " + (noSo || orderId) + " — 1 PO = 1 vendor · banyak bahan · per FG bisa banyak vendor (buat PO terpisah).";
+      // load FG from SO lines (async)
+      (async function() {
+        if (!sb || !fg) return;
+        try {
+          var { data: lines } = await sb.from("order_lines").select("product_id,qty").eq("order_id", orderId);
+          (lines || []).forEach(function(l) {
+            var pid = l.product_id || "";
+            if (!pid) return;
+            var p = (products || []).find(function(x) { return String(x.product_id) === String(pid); });
+            var label = p ? ("[" + pid + "] " + (p.name || "")) : pid;
+            var o = document.createElement("option");
+            o.value = pid;
+            o.textContent = label + (l.qty ? (" · " + formatNum(l.qty)) : "");
+            fg.appendChild(o);
+          });
+          document.querySelectorAll("#poLines .pol-fg").forEach(function(s) {
+            var cur = s.value;
+            s.innerHTML = poFgOptionsHtml(cur);
+          });
+        } catch (e) { console.warn(e); }
+      })();
+    }
+
+    
+    async function openCekKomponen() {
+      if (!sb) return;
+      var orderId = prompt("Masukkan Order ID atau pilih dari daftar SO aktif.\nContoh: ORD-...");
+      if (!orderId) return;
+      orderId = orderId.trim();
+      toast("Mengecek komponen…");
+      try {
+        var { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("order_id", orderId).maybeSingle();
+        if (!ord) {
+          var r2 = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("no_so", orderId).limit(1).maybeSingle();
+          ord = r2.data;
         }
-        boms.forEach(b => {
-          const mat = b.material_product_id;
-          const need = fgQty * (Number(b.qty_per_fg) || 0);
-          if (!materialMap[mat]) materialMap[mat] = { qty: 0, unit: b.unit || "gr" };
-          materialMap[mat].qty += need;
-          materialMap[mat].unit = b.unit || materialMap[mat].unit;
+        if (!ord) return toast("SO tidak ditemukan", true);
+        var { data: pos } = await sb.from("purchase_orders").select("po_id,status,purchase_lines(product_id,qty,qty_received,kategori,vendor_name,eta_date)").eq("order_id", ord.order_id);
+        var lines = [];
+        (pos || []).forEach(function(po) {
+          if (po.status === "cancelled") return;
+          (po.purchase_lines || []).forEach(function(l) {
+            lines.push(Object.assign({ po_id: po.po_id }, l));
+          });
         });
-      });
-      const mats = Object.keys(materialMap);
-      if (!mats.length) {
-        if ($("poSoHint")) $("poSoHint").textContent += " Tidak ada BOM untuk produk SO — tambah baris manual.";
-        return;
+        var msg = "SO " + (ord.no_so || ord.order_id) + "\nFG: " + ((ord.order_lines||[]).map(function(l){return l.product_id;}).join(", ") || "—") + "\n\n";
+        if (!lines.length) {
+          msg += "Belum ada PO bahan.\nKomponen: KURANG → buat PO.";
+        } else {
+          var kurang = lines.filter(function(l) { return (Number(l.qty_received)||0) < (Number(l.qty)||0); });
+          msg += "Baris PO: " + lines.length + "\nBelum lengkap terima: " + kurang.length + "\n";
+          kurang.slice(0, 8).forEach(function(l) {
+            msg += "- " + l.product_id + " (" + (l.kategori||"") + ") vendor " + (l.vendor_name||"-") + " sisa " + ((Number(l.qty)||0)-(Number(l.qty_received)||0)) + " ETA " + (l.eta_date||"-") + "\n";
+          });
+          if (kurang.length) msg += "\n→ Trigger purchase / follow-up vendor.";
+          else msg += "\nSemua baris PO sudah diterima (qty).";
+        }
+        alert(msg);
+      } catch (e) {
+        toast(String(e.message || e), true);
       }
-      box.innerHTML = "";
-      mats.forEach(mat => {
-        addPoLine({ product_id: mat, qty: materialMap[mat].qty, unit: materialMap[mat].unit, qty_received: 0 });
-      });
-      if ($("poSoHint")) $("poSoHint").textContent = "SO " + (ord.no_so || ord.order_id) + " → " + mats.length + " bahan dari BOM (edit qty sesuai kebutuhan beli).";
     }
 
     async function openPoModal(poId) {
@@ -8039,6 +8233,7 @@ function fillOperatorList(selectedEmail) {
         $("poStatus").value = "draft";
         $("poNotes").value = "";
         await fillPoSoSelect("");
+        if ($("poFgSelect")) $("poFgSelect").innerHTML = '<option value="">— Semua FG di SO —</option>';
         if ($("poSoHint")) $("poSoHint").textContent = "Pilih SO customer terlebih dahulu.";
         // jangan addPoLine dulu — tunggu SO
       } else {
@@ -8051,6 +8246,7 @@ function fillOperatorList(selectedEmail) {
         $("poStatus").value = po.status || "draft";
         $("poNotes").value = po.notes || "";
         await fillPoSoSelect(po.order_id || "");
+        try { await onPoSoChange(); } catch (eSo) {}
         if ($("poSoSelect")) $("poSoSelect").value = po.order_id || "";
         if ($("poSoHint")) $("poSoHint").textContent = "SO: " + (po.no_so || po.order_id || "—");
         const { data: lines } = await sb.from("purchase_lines").select("*").eq("po_id", poId);
@@ -8089,14 +8285,30 @@ function fillOperatorList(selectedEmail) {
         header.created_at = new Date().toISOString();
       }
       const lines = [];
+      header.supplier_name = ($("poSupplier").value || "").trim();
       document.querySelectorAll("#poLines .po-line").forEach(el => {
         const product_id = resolveProductId((el.querySelector(".pol-pid").value || "").trim()) || (el.querySelector(".pol-pid").value || "").trim();
         const qty = parseInputNum(el.querySelector(".pol-qty").value);
         const unit = (el.querySelector(".pol-unit").value || "pcs").trim();
-        const qty_received = parseInputNum(el.querySelector(".pol-recv").value);
-        if (product_id && qty > 0) lines.push({ po_id, product_id, qty, unit, qty_received });
+        const qty_received = parseInputNum(el.querySelector(".pol-recv") && el.querySelector(".pol-recv").value);
+        const for_product_id = (el.querySelector(".pol-fg") && el.querySelector(".pol-fg").value) || "";
+        const kategori = (el.querySelector(".pol-kat") && el.querySelector(".pol-kat").value) || "baku";
+        const vendor_name = (el.querySelector(".pol-vendor") && el.querySelector(".pol-vendor").value || "").trim();
+        const eta_date = (el.querySelector(".pol-eta") && el.querySelector(".pol-eta").value) || null;
+        if (product_id && qty > 0) {
+          if (!vendor_name) return; // skip incomplete - check after
+          lines.push({ po_id, product_id, qty, unit, qty_received, for_product_id, kategori, vendor_name, eta_date });
+        }
       });
-      if (!lines.length) return toast("Minimal 1 baris produk dengan qty > 0", true);
+      var incomplete = false;
+      document.querySelectorAll("#poLines .po-line").forEach(function(el) {
+        var pid = (el.querySelector(".pol-pid") && el.querySelector(".pol-pid").value) || "";
+        var qty = parseInputNum(el.querySelector(".pol-qty") && el.querySelector(".pol-qty").value);
+        var ven = (el.querySelector(".pol-vendor") && el.querySelector(".pol-vendor").value || "").trim();
+        if (pid && qty > 0 && !ven) incomplete = true;
+      });
+      if (incomplete) return toast("Setiap baris bahan wajib isi Vendor", true);
+      if (!lines.length) return toast("Minimal 1 baris bahan dengan qty > 0", true);
       let error;
       if (isNew) {
         ({ error } = await sb.from("purchase_orders").insert(header));
@@ -9612,6 +9824,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "machines") { try { renderMachines(); } catch (e) {} }
       if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
       if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
+      if (page === "gudang") { try { loadGudangInbox(); } catch (eG) {} }
       if (page === "bom") { try { loadBom(); } catch (e) {} }
       if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
       if (page === "wip") { try { loadWipStock(); } catch (e) {} }
