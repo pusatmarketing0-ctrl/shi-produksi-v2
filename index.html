@@ -2397,6 +2397,28 @@
       line-height: 1.2;
     }
 
+
+    .ops-table td.po-terbit {
+      background: rgba(245, 158, 11, 0.16) !important;
+      box-shadow: inset 0 0 0 2px rgba(217, 119, 6, 0.5);
+    }
+    .ops-table td.so-terbit.po-terbit {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(245,158,11,0.15)) !important;
+      box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.45);
+    }
+    .ops-table td .po-badge {
+      display: inline-block;
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #b45309;
+      background: #fef3c7;
+      border-radius: 4px;
+      padding: 0.1rem 0.28rem;
+      line-height: 1.2;
+      margin-left: 0.15rem;
+    }
+
   </style>
 </head>
 <body>
@@ -6784,9 +6806,10 @@ function fillOperatorList(selectedEmail) {
       if ($("opsEmpty")) { $("opsEmpty").style.display = "block"; $("opsEmpty").textContent = "Memuat…"; }
       if ($("opsTable")) $("opsTable").style.display = "none";
 
-      const [{ data: plans, error: e1 }, { data: orders }] = await Promise.all([
+      const [{ data: plans, error: e1 }, { data: orders }, poRes] = await Promise.all([
         sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000),
-        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,order_lines(product_id,qty)").limit(800)
+        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,order_lines(product_id,qty)").limit(800),
+        sb.from("purchase_orders").select("po_id,order_id,no_so,po_date,status").neq("status", "cancelled").limit(500)
       ]);
       if (e1) {
         toast(e1.message, true);
@@ -6796,6 +6819,21 @@ function fillOperatorList(selectedEmail) {
       const planList = plans || [];
       const orderMap = {};
       (orders || []).forEach(o => { orderMap[o.order_id] = o; });
+      // map SO → tanggal PO (tanda di grid)
+      const poDaysByOrder = {};
+      const poDaysByNoSo = {};
+      (poRes && poRes.data ? poRes.data : []).forEach(function(po) {
+        const d = po.po_date ? String(po.po_date).slice(0, 10) : "";
+        if (!d || d < start || d > end) return;
+        if (po.order_id) {
+          if (!poDaysByOrder[po.order_id]) poDaysByOrder[po.order_id] = {};
+          poDaysByOrder[po.order_id][d] = true;
+        }
+        if (po.no_so) {
+          if (!poDaysByNoSo[po.no_so]) poDaysByNoSo[po.no_so] = {};
+          poDaysByNoSo[po.no_so][d] = true;
+        }
+      });
 
       let reports = [];
       const planIds = planList.map(p => p.plan_id);
@@ -6985,6 +7023,17 @@ function fillOperatorList(selectedEmail) {
             status: "open"
           };
         });
+      });
+
+      
+      // Tandai tanggal PO di setiap baris SO (grid)
+      Object.keys(groups).forEach(function(k) {
+        var g = groups[k];
+        g.po_mark_days = g.po_mark_days || {};
+        var byOrd = g.order_id && poDaysByOrder[g.order_id];
+        var bySo = g.no_so && poDaysByNoSo[g.no_so];
+        if (byOrd) Object.keys(byOrd).forEach(function(d) { g.po_mark_days[d] = true; });
+        if (bySo) Object.keys(bySo).forEach(function(d) { g.po_mark_days[d] = true; });
       });
 
       opsRows = Object.values(groups).sort((a, b) => String(a.product_id).localeCompare(String(b.product_id)));
@@ -7284,10 +7333,18 @@ function fillOperatorList(selectedEmail) {
               const done2 = (g.procDoneDay && g.procDoneDay[d]) || 0;
               titleExtra = ' title="' + done2 + '/' + tot2 + ' proses sudah laporan"';
             }
-            if (row.ket === "Plan" && isSoDay) {
-              content = '<span class="so-badge" title="SO terbit produksi">SO</span>' +
-                (content ? '<div>' + content + '</div>' : '');
-              if (!titleExtra) titleExtra = ' title="Tanggal terbit SO produksi"';
+            const isPoDay = !!(g.po_mark_days && g.po_mark_days[d]);
+            if (row.ket === "Plan" && isPoDay) extra += " po-terbit";
+            if (row.ket === "Plan" && (isSoDay || isPoDay)) {
+              var badges = "";
+              if (isSoDay) badges += '<span class="so-badge" title="SO terbit produksi">SO</span>';
+              if (isPoDay) badges += '<span class="po-badge" title="PO pembelian bahan">PO</span>';
+              content = badges + (content ? '<div>' + content + '</div>' : '');
+              if (!titleExtra) {
+                titleExtra = ' title="' +
+                  (isSoDay && isPoDay ? "SO & PO pada tanggal ini" :
+                   isSoDay ? "Tanggal terbit SO produksi" : "Tanggal PO pembelian") + '"';
+              }
             }
             body += '<td class="day-cell' + wk + td + extra + '"' + click + titleExtra + '>' + content + '</td>';
           });
