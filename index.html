@@ -3510,6 +3510,32 @@
           <button type="button" class="btn btn-ghost btn-sm" onclick="otAddLine()">+ Baris</button>
         </div>
         <div id="otLines"></div>
+        <div id="otFilesBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(15,23,42,0.04);display:none">
+          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.5rem">Lampiran (Google Drive)</div>
+          <div class="field"><label>PDF SO ke customer</label>
+            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+              <input type="file" id="otFileSo" accept="application/pdf,.pdf" />
+              <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('so_pdf')">Upload</button>
+              <a id="otLinkSo" href="#" target="_blank" rel="noopener" style="font-size:0.78rem;display:none">Lihat SO</a>
+            </div>
+          </div>
+          <div class="field"><label>PDF PO / dokumen Odoo</label>
+            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+              <input type="file" id="otFilePo" accept="application/pdf,.pdf" />
+              <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('po_pdf')">Upload</button>
+              <a id="otLinkPo" href="#" target="_blank" rel="noopener" style="font-size:0.78rem;display:none">Lihat PO</a>
+            </div>
+          </div>
+          <div class="field"><label>Bukti TF DP (gambar)</label>
+            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+              <input type="file" id="otFileDp" accept="image/*" />
+              <button type="button" class="btn btn-ghost btn-sm" onclick="otUploadFile('dp_proof')">Upload</button>
+              <a id="otLinkDp" href="#" target="_blank" rel="noopener" style="font-size:0.78rem;display:none">Lihat bukti</a>
+            </div>
+            <img id="otDpPreview" alt="Bukti DP" style="display:none;margin-top:0.5rem;max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);object-fit:contain;background:#f8fafc" />
+          </div>
+          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">File disimpan di Google Drive (gratis). Set DRIVE_UPLOAD_URL (Apps Script) di localStorage bila perlu.</p>
+        </div>
         <div id="otStatusBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(16,185,129,0.08);display:none">
           <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.4rem">Aksi status / referensi</div>
           <div class="field"><label>No SO Trading (CV Trading)</label><input id="otSoTradingNo" placeholder="Nomor SO ke customer" /></div>
@@ -3656,6 +3682,12 @@
 
     const $ = (id) => document.getElementById(id);
     let currentUser = null, currentProfile = null;
+    
+    // Google Drive upload via Apps Script Web App
+    // Setelah deploy Code.gs, set:
+    // localStorage.setItem("DRIVE_UPLOAD_URL", "https://script.google.com/macros/s/XXXX/exec")
+    const DRIVE_UPLOAD_URL = localStorage.getItem("DRIVE_UPLOAD_URL") || "";
+
     let products = [], machines = [], plans = [], routes = [];
     let editingProductId = null, editingMachineId = null, editingPlanId = null;
 
@@ -9673,64 +9705,112 @@ function closeOtModal() {
       document.body.classList.remove("modal-open");
     }
 
-    async function openOtModal(otId) {
-      try { await loadProducts(); } catch (e) {}
-      try { await loadCustomers(); } catch (e) {}
-      try { fillCustomerList(); } catch (e) {}
-      $("otEditId").value = otId || "";
-      $("otModalTitle").textContent = otId ? "Detail Order Trading" : "Order Trading baru";
-      $("otCustomer").value = "";
-      $("otNote").value = "";
-      $("otSoTradingNo").value = "";
-      $("otSoTradingNote").value = "";
-      $("otNoSo").value = "";
-      $("otDpNote").value = "";
-      $("otLines").innerHTML = "";
-      $("otTimeline").innerHTML = "";
-      const statusBox = $("otStatusBox");
-      const role = currentRole();
-      const canEdit = role === "marketing" || role === "admin";
-
-      if (!otId) {
-        if (statusBox) statusBox.style.display = "none";
-        otAddLine();
-        $("btnOtSave").style.display = canEdit ? "" : "none";
-      } else {
-        const row = otCache.find(function(r) { return r.ot_id === otId; });
-        if (!row) {
-          const { data } = await sb.from("order_trading").select("*").eq("ot_id", otId).maybeSingle();
-          if (!data) return toast("Order tidak ditemukan", true);
-          otCache.unshift(data);
+    
+    function otDrivePreviewUrl(url) {
+      if (!url) return "";
+      var s = String(url);
+      var m = s.match(/\/file\/d\/([^/]+)/);
+      if (m) return "https://drive.google.com/uc?export=view&id=" + m[1];
+      m = s.match(/[?&]id=([^&]+)/);
+      if (m) return "https://drive.google.com/uc?export=view&id=" + m[1];
+      return s;
+    }
+    function otFillFileLinks(row) {
+      row = row || {};
+      function setLink(id, url, name) {
+        var a = $(id);
+        if (!a) return;
+        if (url) {
+          a.href = url;
+          a.style.display = "";
+          a.textContent = name || "Lihat file";
+        } else {
+          a.removeAttribute("href");
+          a.style.display = "none";
         }
-        const r = otCache.find(function(x) { return x.ot_id === otId; });
-        $("otCustomer").value = r.customer_name || "";
-        $("otNote").value = r.note || "";
-        $("otSoTradingNo").value = r.so_trading_no || "";
-        $("otSoTradingNote").value = r.so_trading_note || "";
-        $("otNoSo").value = r.no_so || "";
-        $("otDpNote").value = r.dp_note || "";
-        const lines = otLinesCache[otId] || [];
-        if (!lines.length) {
-          const { data: ln } = await sb.from("order_trading_lines").select("*").eq("ot_id", otId);
-          otLinesCache[otId] = ln || [];
-        }
-        (otLinesCache[otId] || []).forEach(function(ln) { otAddLine(ln); });
-        if (!(otLinesCache[otId] || []).length) otAddLine();
-        if (statusBox) statusBox.style.display = "block";
-        $("btnOtSave").style.display = (canEdit && (r.status === "draft" || r.status === "menunggu_so_trading")) ? "" : "none";
-        renderOtActions(r);
-        await loadOtTimeline(otId);
       }
-      $("otModal").classList.add("show");
-      document.body.classList.add("modal-open");
-      try { otBindCustomerInput(); } catch (e) {}
-      try { bindAllThousandInputs(); } catch (e) {}
+      setLink("otLinkSo", row.so_pdf_url, row.so_pdf_name || "Lihat SO PDF");
+      setLink("otLinkPo", row.po_pdf_url, row.po_pdf_name || "Lihat PO PDF");
+      setLink("otLinkDp", row.dp_proof_url, row.dp_proof_name || "Lihat bukti DP");
+      var prev = $("otDpPreview");
+      if (prev) {
+        if (row.dp_proof_url) {
+          prev.src = otDrivePreviewUrl(row.dp_proof_url);
+          prev.style.display = "block";
+          prev.alt = row.dp_proof_name || "Bukti DP";
+        } else {
+          prev.removeAttribute("src");
+          prev.style.display = "none";
+        }
+      }
+    }
+
+        async function otUploadFile(kind) {
+      var otId = ($("otEditId") && $("otEditId").value) || "";
+      if (!otId) return toast("Simpan Order Trading dulu sebelum upload file", true);
+      var inputId = kind === "so_pdf" ? "otFileSo" : (kind === "po_pdf" ? "otFilePo" : "otFileDp");
+      var input = $(inputId);
+      if (!input || !input.files || !input.files[0]) return toast("Pilih file dulu", true);
+      var file = input.files[0];
+      var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
+      if (!base) {
+        return toast("Drive belum diset. Deploy Apps Script, lalu di console:\nlocalStorage.setItem('DRIVE_UPLOAD_URL','https://script.google.com/macros/s/.../exec')", true);
+      }
+      if (file.size > 6 * 1024 * 1024) {
+        return toast("Maksimal ~6 MB (batas Google Apps Script). Kompres PDF/gambar dulu.", true);
+      }
+      toast("Mengupload ke Google Drive…");
       try {
-        document.querySelectorAll("#otLines .ot-prod").forEach(function(inp) {
-          delete inp.dataset.scBound;
-          otBindLineProduct(inp);
+        var base64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function() {
+            var s = String(reader.result || "");
+            var i = s.indexOf(",");
+            resolve(i >= 0 ? s.slice(i + 1) : s);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
         });
-      } catch (e2) {}
+        var res = await fetch(base, {
+          method: "POST",
+          // text/plain menghindari preflight CORS rumit di GAS
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            ot_id: otId,
+            kind: kind,
+            fileName: file.name || "file",
+            mimeType: file.type || "application/octet-stream",
+            base64: base64
+          })
+        });
+        var text = await res.text();
+        var data = {};
+        try { data = JSON.parse(text); } catch (e1) {
+          return toast("Respons Drive tidak valid. Cek deployment Apps Script (Anyone).", true);
+        }
+        if (!data.ok) return toast(data.error || "Upload gagal", true);
+
+        var patch = { updated_at: new Date().toISOString() };
+        if (kind === "so_pdf") {
+          patch.so_pdf_url = data.url;
+          patch.so_pdf_name = data.name || file.name;
+        } else if (kind === "po_pdf") {
+          patch.po_pdf_url = data.url;
+          patch.po_pdf_name = data.name || file.name;
+        } else {
+          patch.dp_proof_url = data.url;
+          patch.dp_proof_name = data.name || file.name;
+        }
+        var up = await sb.from("order_trading").update(patch).eq("ot_id", otId);
+        if (up.error) return toast(up.error.message, true);
+        try { await otAddEvent(otId, "file_uploaded", kind + ": " + (data.name || "")); } catch (e2) {}
+        var r = otCache.find(function(x) { return x.ot_id === otId; });
+        if (r) Object.assign(r, patch);
+        otFillFileLinks(Object.assign({}, r || {}, patch));
+        toast("Tersimpan di Google Drive");
+      } catch (e) {
+        toast(String(e.message || e), true);
+      }
     }
 
     function renderOtActions(r) {
