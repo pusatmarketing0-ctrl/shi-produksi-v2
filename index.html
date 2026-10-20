@@ -3368,33 +3368,41 @@
   
   
   <div id="poModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:640px">
+    <div class="modal modal-sheet" style="max-width:min(720px,96vw)">
       <div class="sheet-handle"></div>
       <div class="sheet-head"><h2 id="poModalTitle">PO baru</h2></div>
       <div class="sheet-body">
         <input type="hidden" id="poEditId" />
+        <input type="hidden" id="poSupplier" value="" />
         <div class="field"><label>Sales Order (wajib)</label>
-          <select id="poSoSelect">
+          <select id="poSoSelect" onchange="onPoSoChange()">
             <option value="">— Pilih SO —</option>
           </select>
           <p id="poSoHint" style="font-size:0.75rem;color:var(--text-muted);margin:0.3rem 0 0"></p>
         </div>
-        <div class="field"><label>Tanggal PO</label><input type="date" id="poDate" /></div>
-        <div class="field"><label>Supplier</label><input id="poSupplier" placeholder="Nama supplier" /></div>
-        <div class="field"><label>Status</label>
-          <select id="poStatus">
-            <option value="draft">draft</option>
-            <option value="ordered">ordered</option>
-            <option value="partial">partial</option>
-            <option value="received">received</option>
-            <option value="cancelled">cancelled</option>
+        <div class="field"><label>Filter FG di SO (opsional)</label>
+          <select id="poFgSelect">
+            <option value="">— Semua FG di SO —</option>
           </select>
+          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Pilihan diisi otomatis dari produk SO. Dipakai default “Untuk FG” saat + Baris.</p>
         </div>
-        <div class="field"><label>Catatan</label><input id="poNotes" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem">
+          <div class="field" style="margin:0"><label>Tanggal PO</label><input type="date" id="poDate" /></div>
+          <div class="field" style="margin:0"><label>Status</label>
+            <select id="poStatus">
+              <option value="draft">draft</option>
+              <option value="ordered">ordered</option>
+              <option value="partial">partial</option>
+              <option value="received">received</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Catatan</label><input id="poNotes" placeholder="Opsional" /></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin:1rem 0 0.5rem">
           <div>
             <strong style="font-size:0.9rem">Baris bahan</strong>
-            <div style="font-size:0.72rem;color:var(--text-muted)">Dari master produk · auto dari BOM SO</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Vendor diisi per baris (boleh beda-beda). ETA = estimasi tiba gudang.</div>
           </div>
           <button type="button" class="btn btn-ghost btn-sm" onclick="addPoLine()">+ Baris</button>
         </div>
@@ -7966,14 +7974,17 @@ function fillOperatorList(selectedEmail) {
     }
     function poFgOptionsHtml(selected) {
       selected = selected || "";
-      var opts = '<option value="">— FG (opsional) —</option>';
+      var opts = '<option value="">— Pilih FG dari SO —</option>';
       var sel = $("poFgSelect");
       if (sel) {
         for (var i = 0; i < sel.options.length; i++) {
           var o = sel.options[i];
           if (!o.value) continue;
-          opts += '<option value="' + esc(o.value) + '"' + (o.value === selected ? " selected" : "") + ">" + esc(o.textContent) + "</option>";
+          opts += '<option value="' + esc(o.value) + '"' + (String(o.value) === String(selected) ? " selected" : "") + ">" + esc(o.textContent) + "</option>";
         }
+      }
+      if (selected && opts.indexOf('value="' + selected + '"') < 0) {
+        opts += '<option value="' + esc(selected) + '" selected>' + esc(selected) + '</option>';
       }
       return opts;
     }
@@ -7988,25 +7999,33 @@ function fillOperatorList(selectedEmail) {
       const vendor = line.vendor_name || "";
       const eta = line.eta_date ? String(line.eta_date).slice(0, 10) : "";
       var defaultFg = line.for_product_id || (($("poFgSelect") && $("poFgSelect").value) || "");
-      return '<div class="po-line po-line-card" style="display:grid;grid-template-columns:1.2fr 0.85fr 0.75fr 0.7fr 0.55fr 0.55fr 0.5fr 0.5fr 28px;gap:0.3rem;align-items:center;margin-bottom:0.4rem">' +
-        '<div class="po-combo">' +
-          '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
-          '<input type="text" class="po-combo-input" placeholder="Bahan..." value="' + esc(display) + '" autocomplete="off" />' +
-          '<div class="po-combo-list"></div>' +
-        '</div>' +
-        '<input class="pol-vendor" placeholder="Vendor" value="' + esc(vendor) + '" />' +
-        '<input class="pol-eta" type="date" value="' + esc(eta) + '" title="Est. tiba gudang" />' +
-        '<select class="pol-fg">' + poFgOptionsHtml(defaultFg) + '</select>' +
-        '<select class="pol-kat">' +
-          '<option value="baku"' + (kat === "baku" ? " selected" : "") + '>Baku</option>' +
-          '<option value="kemas"' + (kat === "kemas" ? " selected" : "") + '>Kemas</option>' +
-          '<option value="penunjang"' + (kat === "penunjang" ? " selected" : "") + '>Penunjang</option>' +
-        '</select>' +
-        '<input class="pol-qty num-input" inputmode="decimal" placeholder="Qty" value="' + qtyVal + '" />' +
-        '<input class="pol-unit" placeholder="Unit" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" />' +
-        '<input class="pol-recv num-input" inputmode="decimal" placeholder="Terima" value="' + recvVal + '" />' +
-        '<button type="button" class="po-del" title="Hapus">×</button>' +
-        '</div>';
+      return '<div class="po-line po-line-card" style="border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.65rem;background:#fff">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.55rem">' +
+          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Bahan</label>' +
+            '<div class="po-combo">' +
+              '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
+              '<input type="text" class="po-combo-input" placeholder="Ketik kode / nama bahan..." value="' + esc(display) + '" autocomplete="off" style="width:100%" />' +
+              '<div class="po-combo-list"></div>' +
+            '</div></div>' +
+          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Vendor</label>' +
+            '<input class="pol-vendor" placeholder="Nama vendor" value="' + esc(vendor) + '" style="width:100%" /></div>' +
+          '<div class="field" style="margin:0"><label style="font-size:0.72rem">ETA gudang</label>' +
+            '<input class="pol-eta" type="date" value="' + esc(eta) + '" style="width:100%" /></div>' +
+          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Untuk FG (dari SO)</label>' +
+            '<select class="pol-fg" style="width:100%">' + poFgOptionsHtml(defaultFg) + '</select></div>' +
+          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Kategori</label>' +
+            '<select class="pol-kat" style="width:100%">' +
+              '<option value="baku"' + (kat === "baku" ? " selected" : "") + '>Bahan baku</option>' +
+              '<option value="kemas"' + (kat === "kemas" ? " selected" : "") + '>Bahan kemas</option>' +
+              '<option value="penunjang"' + (kat === "penunjang" ? " selected" : "") + '>Penunjang</option>' +
+            '</select></div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.4rem;align-items:end">' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label><input class="pol-qty num-input" inputmode="decimal" placeholder="0" value="' + qtyVal + '" style="width:100%" /></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Unit</label><input class="pol-unit" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" style="width:100%" /></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Diterima</label><input class="pol-recv num-input" inputmode="decimal" value="' + recvVal + '" style="width:100%" /></div>' +
+            '<button type="button" class="btn btn-ghost btn-sm po-del" title="Hapus baris" style="color:#b91c1c">Hapus</button>' +
+          '</div>' +
+        '</div></div>';
     }
     function bindPoProductCombo(card) {
       if (!card) return;
@@ -8145,27 +8164,38 @@ function fillOperatorList(selectedEmail) {
       var orderId = sel.value || "";
       if (fg) fg.innerHTML = '<option value="">— Semua FG di SO —</option>';
       if (!orderId) {
-        if (hint) hint.textContent = "Pilih SO customer terlebih dahulu.";
+        if (hint) hint.textContent = "Pilih SO customer dulu. Vendor diisi di tiap baris bahan.";
         return;
       }
       var opt = sel.options[sel.selectedIndex];
       var noSo = (opt && opt.dataset.noso) || "";
-      if (hint) hint.textContent = "SO: " + (noSo || orderId) + " — 1 PO = 1 vendor · banyak bahan · per FG bisa banyak vendor (buat PO terpisah).";
-      // load FG from SO lines (async)
+      if (hint) hint.textContent = "SO: " + (noSo || orderId) + " — vendor & ETA per baris bahan.";
       (async function() {
         if (!sb || !fg) return;
         try {
-          var { data: lines } = await sb.from("order_lines").select("product_id,qty").eq("order_id", orderId);
+          var lines = [];
+          var r1 = await sb.from("order_lines").select("product_id,qty").eq("order_id", orderId);
+          if (r1.data && r1.data.length) lines = r1.data;
+          else {
+            var r2 = await sb.from("orders").select("order_lines(product_id,qty)").eq("order_id", orderId).maybeSingle();
+            if (r2.data && r2.data.order_lines) lines = r2.data.order_lines;
+          }
+          // dedupe
+          var seen = {};
           (lines || []).forEach(function(l) {
-            var pid = l.product_id || "";
-            if (!pid) return;
-            var p = (products || []).find(function(x) { return String(x.product_id) === String(pid); });
+            var pid = String(l.product_id || "").trim();
+            if (!pid || seen[pid]) return;
+            seen[pid] = true;
+            var p = (products || []).find(function(x) { return String(x.product_id) === pid; });
             var label = p ? ("[" + pid + "] " + (p.name || "")) : pid;
             var o = document.createElement("option");
             o.value = pid;
             o.textContent = label + (l.qty ? (" · " + formatNum(l.qty)) : "");
             fg.appendChild(o);
           });
+          if (!Object.keys(seen).length && hint) {
+            hint.textContent += " (belum ada baris FG di SO — cek order_lines)";
+          }
           document.querySelectorAll("#poLines .pol-fg").forEach(function(s) {
             var cur = s.value;
             s.innerHTML = poFgOptionsHtml(cur);
@@ -8174,7 +8204,6 @@ function fillOperatorList(selectedEmail) {
       })();
     }
 
-    
     async function openCekKomponen() {
       if (!sb) return;
       var orderId = prompt("Masukkan Order ID atau pilih dari daftar SO aktif.\nContoh: ORD-...");
