@@ -2249,6 +2249,38 @@
       align-items: center;
       justify-content: center;
     }
+
+    /* Freeze grid: background solid agar tidak tembus saat scroll */
+    .ops-table .fz {
+      position: sticky !important;
+      z-index: 8;
+      background: #ffffff !important;
+    }
+    .ops-table thead tr.ops-day-row .fz {
+      z-index: 16 !important;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+      color: #f8fafc !important;
+    }
+    .ops-table thead tr.ops-sum-row .fz {
+      z-index: 14 !important;
+      background: #f8fafc !important;
+      color: #334155 !important;
+    }
+    .ops-table tbody tr.ops-plan .fz,
+    .ops-table tbody tr.ops-op .fz,
+    .ops-table tbody tr.ops-act .fz {
+      background: #ffffff !important;
+    }
+    .ops-table tbody tr:hover .fz {
+      background: #f0faf5 !important;
+    }
+    .ops-table .fz-prod { left: 0 !important; }
+    .ops-table .fz-cust { left: 168px !important; }
+    .ops-table .fz-so {
+      left: 288px !important;
+      box-shadow: 4px 0 10px rgba(15, 23, 42, 0.07) !important;
+    }
+
   </style>
 </head>
 <body>
@@ -6995,11 +7027,10 @@ function fillOperatorList(selectedEmail) {
         ];
         rows.forEach((row, ri) => {
           body += '<tr class="' + row.cls + '">';
-          // Freeze cols tanpa rowspan (sticky+rowspan rusak di Chrome)
-          body += '<td class="fz fz-prod"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
-          body += '<td class="fz fz-cust">' + esc(g.customer || "—") + '</td>';
-          body += '<td class="fz fz-so">' + esc(g.no_so || "—") + '</td>';
           if (ri === 0) {
+            body += '<td class="fz fz-prod" rowspan="3"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
+            body += '<td class="fz fz-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
+            body += '<td class="fz fz-so" rowspan="3">' + esc(g.no_so || "—") + '</td>';
             body += '<td class="sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
             body += '<td class="sc-po" rowspan="3">' + formatNum(g.po_qty) + '</td>';
             body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
