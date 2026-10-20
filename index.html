@@ -1202,6 +1202,11 @@
       left: 288px !important; min-width: 100px; width: 100px;
       box-shadow: 6px 0 14px rgba(15, 23, 42, 0.1) !important;
     }
+    .ops-table thead tr.ops-day-row .fz-prod,
+    .ops-table thead tr.ops-day-row .fz-cust,
+    .ops-table thead tr.ops-day-row .fz-so {
+      z-index: 15 !important;
+    }
     .ops-table td.fz, .ops-table th.fz {
       text-align: left;
     }
@@ -6990,10 +6995,11 @@ function fillOperatorList(selectedEmail) {
         ];
         rows.forEach((row, ri) => {
           body += '<tr class="' + row.cls + '">';
+          // Freeze cols tanpa rowspan (sticky+rowspan rusak di Chrome)
+          body += '<td class="fz fz-prod"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
+          body += '<td class="fz fz-cust">' + esc(g.customer || "—") + '</td>';
+          body += '<td class="fz fz-so">' + esc(g.no_so || "—") + '</td>';
           if (ri === 0) {
-            body += '<td class="fz fz-prod" rowspan="3"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
-            body += '<td class="fz fz-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
-            body += '<td class="fz fz-so" rowspan="3">' + esc(g.no_so || "—") + '</td>';
             body += '<td class="sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
             body += '<td class="sc-po" rowspan="3">' + formatNum(g.po_qty) + '</td>';
             body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
