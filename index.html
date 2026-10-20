@@ -2409,6 +2409,15 @@
       margin-left: 0.15rem;
     }
 
+
+    #appPromptModal.modal-bg.show {
+      display: flex !important; align-items: center; justify-content: center;
+      backdrop-filter: blur(6px); background: rgba(15, 23, 42, 0.45);
+    }
+    #appPromptModal .modal {
+      background: rgba(255,255,255,0.96); backdrop-filter: blur(16px);
+      box-shadow: 0 20px 50px rgba(15,23,42,0.25);
+    }
   </style>
 </head>
 <body>
@@ -2522,8 +2531,8 @@
         <div class="nav-label" data-nav-group="master">Master data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/></svg></span><span class="nav-txt"> Produk</span></button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span class="nav-txt"> Proses</span></button>
-        <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing,gudang" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
-        <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang,purchasing" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
+        <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
+        <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-3 3.5-4.5 6-4.5S13.8 16 15 19"/><circle cx="17" cy="9" r="2.5"/><path d="M17 13.5c2 0 3.8 1.2 4.5 3.5"/></svg></span><span class="nav-txt"> Data Akun</span></button>
@@ -2534,13 +2543,26 @@
         <section id="page-home" class="page">
           <!-- Staff home -->
           <div id="homeStaff">
-            <div class="page-head"><div><h1 id="greet">Selamat datang</h1><p>Ringkasan operasional dari Supabase.</p></div></div>
-            <div class="grid-kpi">
+            <div class="page-head"><div><h1 id="greet">Selamat datang</h1><p id="homeSub">Ringkasan operasional dari Supabase.</p></div></div>
+            <div class="grid-kpi" id="homeKpiOps">
               <div class="kpi"><div class="label">Plan hari ini</div><div class="value" id="kpiPlans">—</div><div class="hint">Semua shift</div></div>
               <div class="kpi"><div class="label">Laporan</div><div class="value" id="kpiReports">—</div><div class="hint">Total report</div></div>
               <div class="kpi"><div class="label">SO aktif</div><div class="value" id="kpiOrders">—</div><div class="hint">Open & production</div></div>
               <div class="kpi"><div class="label">Produk</div><div class="value" id="kpiProducts">—</div><div class="hint">Master</div></div>
             </div>
+            <div class="grid-kpi" id="homeKpiPurchase" style="display:none">
+              <div class="kpi"><div class="label">PO draft</div><div class="value" id="kpiPoDraft">—</div><div class="hint">Belum order</div></div>
+              <div class="kpi"><div class="label">PO ordered</div><div class="value" id="kpiPoOrdered">—</div><div class="hint">Menunggu barang</div></div>
+              <div class="kpi"><div class="label">Baris belom penuh</div><div class="value" id="kpiPoOpenLines">—</div><div class="hint">qty belum lengkap</div></div>
+              <div class="kpi"><div class="label">ETA 7 hari</div><div class="value" id="kpiPoEta">—</div><div class="hint">Estimasi tiba</div></div>
+            </div>
+            <div class="grid-kpi" id="homeKpiGudang" style="display:none">
+              <div class="kpi"><div class="label">Menunggu terima</div><div class="value" id="kpiGdOpen">—</div><div class="hint">Baris belum penuh</div></div>
+              <div class="kpi"><div class="label">ETA hari ini</div><div class="value" id="kpiGdEtaToday">—</div><div class="hint">Harus tiba</div></div>
+              <div class="kpi"><div class="label">ETA terlambat</div><div class="value" id="kpiGdLate">—</div><div class="hint">Lewat ETA</div></div>
+              <div class="kpi"><div class="label">Diterima hari ini</div><div class="value" id="kpiGdDone">—</div><div class="hint">qty_received</div></div>
+            </div>
+            <div id="homeRoleActions" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem"></div>
             <div class="card"><h3>Status</h3><div class="empty" id="homeStatusBox"><strong id="homeStatusTitle">Memuat…</strong><span id="homeStatusText"></span></div></div>
           </div>
           <!-- Operator home (phone-first) -->
@@ -3920,6 +3942,47 @@
     }
 
     let _confirmResolver = null;
+    
+    function appPrompt(opts) {
+      opts = opts || {};
+      return new Promise(function(resolve) {
+        var m = $("appPromptModal");
+        var title = $("appPromptTitle");
+        var msg = $("appPromptMsg");
+        var inp = $("appPromptInput");
+        var ok = $("appPromptOk");
+        var cancel = $("appPromptCancel");
+        if (!m || !inp) {
+          resolve(window.prompt(opts.message || "", opts.defaultValue || ""));
+          return;
+        }
+        if (title) title.textContent = opts.title || "Input";
+        if (msg) msg.textContent = opts.message || "";
+        if (ok) ok.textContent = opts.okText || "Simpan";
+        if (cancel) cancel.textContent = opts.cancelText || "Batal";
+        inp.value = opts.defaultValue != null ? String(opts.defaultValue) : "";
+        function close(val) {
+          m.classList.remove("show");
+          m.style.display = "none";
+          ok.onclick = null;
+          cancel.onclick = null;
+          resolve(val);
+        }
+        ok.onclick = function() { close(inp.value); };
+        cancel.onclick = function() { close(null); };
+        m.onclick = function(e) { if (e.target === m) close(null); };
+        inp.onkeydown = function(e) {
+          if (e.key === "Enter") { e.preventDefault(); close(inp.value); }
+          if (e.key === "Escape") close(null);
+        };
+        m.classList.add("show");
+        m.style.display = "flex";
+        m.style.alignItems = "center";
+        m.style.justifyContent = "center";
+        setTimeout(function() { try { inp.focus(); inp.select(); } catch (e) {} }, 50);
+      });
+    }
+
     function appConfirm(message, title) {
       return new Promise(function(resolve) {
         const bg = $("appConfirmBg");
@@ -7817,6 +7880,86 @@ function fillOperatorList(selectedEmail) {
     }
     
     var gudangRows = [];
+    
+    async function loadPurchaseDash() {
+      if (!sb) return;
+      try {
+        var { data: pos } = await sb.from("purchase_orders").select("po_id,status,purchase_lines(qty,qty_received,eta_date)").neq("status", "cancelled").limit(300);
+        var draft = 0, ordered = 0, openLines = 0, eta7 = 0;
+        var today = todayStr();
+        var limit = new Date(); limit.setDate(limit.getDate() + 7);
+        var limitS = limit.toISOString().slice(0, 10);
+        (pos || []).forEach(function(po) {
+          if (po.status === "draft") draft++;
+          if (po.status === "ordered" || po.status === "partial") ordered++;
+          (po.purchase_lines || []).forEach(function(l) {
+            var q = Number(l.qty) || 0, r = Number(l.qty_received) || 0;
+            if (r < q) openLines++;
+            var eta = l.eta_date ? String(l.eta_date).slice(0, 10) : "";
+            if (eta && eta >= today && eta <= limitS && r < q) eta7++;
+          });
+        });
+        if ($("kpiPoDraft")) $("kpiPoDraft").textContent = formatNum(draft);
+        if ($("kpiPoOrdered")) $("kpiPoOrdered").textContent = formatNum(ordered);
+        if ($("kpiPoOpenLines")) $("kpiPoOpenLines").textContent = formatNum(openLines);
+        if ($("kpiPoEta")) $("kpiPoEta").textContent = formatNum(eta7);
+      } catch (e) { console.warn(e); }
+    }
+    async function loadGudangDash() {
+      if (!sb) return;
+      try {
+        var { data: pos } = await sb.from("purchase_orders").select("po_id,status,purchase_lines(qty,qty_received,eta_date)").neq("status", "cancelled").limit(300);
+        var open = 0, etaToday = 0, late = 0, doneish = 0;
+        var today = todayStr();
+        (pos || []).forEach(function(po) {
+          (po.purchase_lines || []).forEach(function(l) {
+            var q = Number(l.qty) || 0, r = Number(l.qty_received) || 0;
+            if (r < q) open++;
+            var eta = l.eta_date ? String(l.eta_date).slice(0, 10) : "";
+            if (r < q && eta === today) etaToday++;
+            if (r < q && eta && eta < today) late++;
+            if (r > 0 && r >= q) doneish++;
+          });
+        });
+        if ($("kpiGdOpen")) $("kpiGdOpen").textContent = formatNum(open);
+        if ($("kpiGdEtaToday")) $("kpiGdEtaToday").textContent = formatNum(etaToday);
+        if ($("kpiGdLate")) $("kpiGdLate").textContent = formatNum(late);
+        if ($("kpiGdDone")) $("kpiGdDone").textContent = formatNum(doneish);
+      } catch (e) { console.warn(e); }
+    }
+    function applyHomeByRole() {
+      var role = currentRole();
+      var ops = $("homeKpiOps");
+      var pur = $("homeKpiPurchase");
+      var gud = $("homeKpiGudang");
+      var sub = $("homeSub");
+      var act = $("homeRoleActions");
+      if (ops) ops.style.display = (role === "purchasing" || role === "gudang") ? "none" : "";
+      if (pur) pur.style.display = (role === "purchasing" || role === "admin" || role === "ppic") ? "" : "none";
+      if (gud) gud.style.display = (role === "gudang" || role === "admin" || role === "ppic") ? "" : "none";
+      // for admin show ops + both; adjust
+      if (role === "admin" || role === "ppic") {
+        if (ops) ops.style.display = "";
+      }
+      if (role === "purchasing") {
+        if (sub) sub.textContent = "Dashboard Purchasing — PO & follow-up vendor.";
+        if (act) act.innerHTML = '<button type="button" class="btn btn-primary" onclick="goPage(\'purchasing\')">Buka Purchasing</button>' +
+          '<button type="button" class="btn btn-ghost" onclick="openPoModal()">+ PO baru</button>';
+        loadPurchaseDash();
+      } else if (role === "gudang") {
+        if (sub) sub.textContent = "Dashboard Gudang — penerimaan & ETA kedatangan.";
+        if (act) act.innerHTML = '<button type="button" class="btn btn-primary" onclick="goPage(\'gudang\')">Buka Gudang</button>';
+        loadGudangDash();
+      } else {
+        if (sub) sub.textContent = "Ringkasan operasional dari Supabase.";
+        if (act) act.innerHTML = "";
+        if (role === "admin" || role === "ppic") {
+          loadPurchaseDash();
+          loadGudangDash();
+        }
+      }
+    }
+
     async function loadGudangInbox() {
       if (!sb) return;
       var body = $("gudangBody");
@@ -7882,21 +8025,43 @@ function fillOperatorList(selectedEmail) {
           "<td>" + formatNum(r.qty_received) + "</td>" +
           "<td>" + formatNum(sisa) + "</td>" +
           "<td>" + (sisa > 0
-            ? '<button type="button" class="btn btn-primary btn-sm" onclick="gudangReceive(' + r.line_id + ',' + r.qty + ')">Terima</button>'
+            ? '<button type="button" class="btn btn-primary btn-sm" onclick="gudangReceive(' + r.line_id + ',' + r.qty + ',' + r.qty_received + ')">Terima</button>'
             : '<span style="color:#059669;font-size:0.75rem;font-weight:700">OK</span>') +
           "</td></tr>";
       }).join("");
     }
-    async function gudangReceive(lineId, maxQty) {
+    async function gudangReceive(lineId, maxQty, alreadyReceived) {
       if (!sb || !lineId) return;
-      var raw = prompt("Qty diterima (maks " + maxQty + "):", String(maxQty));
+      alreadyReceived = Number(alreadyReceived) || 0;
+      maxQty = Number(maxQty) || 0;
+      var sisa = Math.max(0, maxQty - alreadyReceived);
+      if (sisa <= 0) return toast("Sudah diterima penuh", true);
+      var raw = await appPrompt({
+        title: "Penerimaan gudang",
+        message: "Sudah diterima: " + formatNum(alreadyReceived) + " · Sisa: " + formatNum(sisa) + ". Masukkan qty penerimaan kali ini (akan ditambahkan ke total):",
+        defaultValue: String(sisa),
+        okText: "Terima",
+        cancelText: "Batal"
+      });
       if (raw == null) return;
       var n = parseInputNum(raw);
       if (!(n > 0)) return toast("Qty tidak valid", true);
-      var { error } = await sb.from("purchase_lines").update({ qty_received: n }).eq("id", lineId);
+      if (n > sisa) {
+        var okOver = await appConfirm({
+          title: "Melebihi sisa?",
+          message: "Qty " + formatNum(n) + " lebih besar dari sisa " + formatNum(sisa) + ". Tetap simpan?",
+          okText: "Ya, simpan",
+          cancelText: "Batal",
+          danger: false
+        });
+        if (!okOver) return;
+      }
+      var total = alreadyReceived + n;
+      var { error } = await sb.from("purchase_lines").update({ qty_received: total }).eq("id", lineId);
       if (error) return toast(error.message, true);
-      toast("Penerimaan disimpan");
+      toast("Diterima +" + formatNum(n) + " → total " + formatNum(total));
       loadGudangInbox();
+      try { loadGudangDash(); } catch (e) {}
     }
 
 
@@ -9823,6 +9988,8 @@ function fillOperatorList(selectedEmail) {
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
       }
+      if (currentRole() === "gudang" && page === "purchasing") page = "gudang";
+      if (currentRole() === "purchasing" && page === "gudang") page = "purchasing";
       const navBtn = document.querySelector('.nav-item[data-page="' + page + '"]');
       if (navBtn && navBtn.style.display === "none") page = "home";
       document.querySelectorAll(".page").forEach(el => { el.hidden = el.id !== "page-" + page; });
@@ -9857,6 +10024,7 @@ function fillOperatorList(selectedEmail) {
 
     function applyUserChip() {
       try { setupUserChipMenu(); } catch (e0) {}
+      try { applyHomeByRole(); } catch (eH0) {}
       const name = (currentProfile && currentProfile.name) || (currentUser && currentUser.email) || "—";
       const role = (currentProfile && currentProfile.role) || "operator";
       const avatarUrl = (currentProfile && (currentProfile.avatar_url || currentProfile.photo_url)) || "";
@@ -11143,5 +11311,17 @@ function closeOtModal() {
     </div>
   </div>
 
+
+  <div id="appPromptModal" class="modal-bg" style="z-index:100210;display:none">
+    <div class="modal" style="max-width:380px;width:92vw;padding:1.25rem 1.2rem;border-radius:18px">
+      <div id="appPromptTitle" style="font-weight:700;font-size:1rem;margin-bottom:0.35rem">Input</div>
+      <div id="appPromptMsg" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;line-height:1.45"></div>
+      <input id="appPromptInput" type="text" inputmode="decimal" style="width:100%;box-sizing:border-box;margin-bottom:1rem" />
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+        <button type="button" class="btn btn-ghost" id="appPromptCancel">Batal</button>
+        <button type="button" class="btn btn-primary" id="appPromptOk">Simpan</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
