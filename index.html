@@ -18,6 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
 
     :root {
@@ -2494,6 +2495,11 @@
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-3 3.5-4.5 6-4.5S13.8 16 15 19"/><circle cx="17" cy="9" r="2.5"/><path d="M17 13.5c2 0 3.8 1.2 4.5 3.5"/></svg></span><span class="nav-txt"> Data Akun</span></button>
+
+        <button type="button" class="nav-btn" data-page="export-data" data-roles="admin,ppic,marketing" onclick="goPage('export-data')">
+          <span class="nav-ico">📤</span><span class="nav-txt">Export Data</span>
+        </button>
+
       </aside>
       <main class="main">
         <section id="page-home" class="page">
@@ -3136,6 +3142,37 @@
               <thead><tr><th>#</th><th>Operator</th><th>Plan</th><th>Actual</th><th>Target adj</th><th>%</th><th>Grade</th></tr></thead>
               <tbody id="rankBody"></tbody>
             </table>
+          </div>
+        </section>
+
+      
+        <section id="page-export-data" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Export Data</h1>
+              <p>Pilih data dari database lalu unduh ke Excel (.xlsx) — mirip export Odoo.</p>
+            </div>
+          </div>
+          <div class="card" style="padding:1rem;max-width:720px">
+            <div style="font-weight:700;margin-bottom:0.5rem">1. Pilih data</div>
+            <div id="exportChecks" style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem 1rem;margin-bottom:1rem"></div>
+            <div style="font-weight:700;margin-bottom:0.5rem">2. Filter tanggal (opsional, untuk data transaksi)</div>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem">
+              <div class="field" style="margin:0;flex:1;min-width:140px"><label>Dari</label><input type="date" id="exportDateFrom" /></div>
+              <div class="field" style="margin:0;flex:1;min-width:140px"><label>Sampai</label><input type="date" id="exportDateTo" /></div>
+            </div>
+            <div style="font-weight:700;margin-bottom:0.5rem">3. Format</div>
+            <div style="display:flex;gap:0.75rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem"><input type="radio" name="exportFmt" value="xlsx" checked /> Excel (.xlsx)</label>
+              <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem"><input type="radio" name="exportFmt" value="csv" /> CSV (per sheet/file)</label>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+              <button type="button" class="btn btn-primary" id="btnDoExport" onclick="runDataExport()">Export sekarang</button>
+              <button type="button" class="btn btn-ghost" onclick="exportSelectAll(true)">Pilih semua</button>
+              <button type="button" class="btn btn-ghost" onclick="exportSelectAll(false)">Kosongkan</button>
+              <span id="exportStatus" style="font-size:0.8rem;color:var(--text-muted)"></span>
+            </div>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">Setiap jenis data menjadi sheet terpisah dalam satu file Excel. Batas baris per tabel ~5.000 untuk menjaga performa browser.</p>
           </div>
         </section>
 
@@ -9336,6 +9373,129 @@ function fillOperatorList(selectedEmail) {
     });
 
 
+    
+    var EXPORT_SOURCES = [
+      { id: "products", label: "Produk (master)", table: "products", dateCol: null },
+      { id: "customers", label: "Customer", table: "customers", dateCol: null },
+      { id: "profiles", label: "Akun / User", table: "profiles", dateCol: null },
+      { id: "processes", label: "Proses / Mesin", table: "processes", dateCol: null },
+      { id: "product_routes", label: "Product Routes", table: "product_routes", dateCol: null },
+      { id: "orders", label: "Sales Order (header)", table: "orders", dateCol: "order_date" },
+      { id: "order_lines", label: "Sales Order (baris produk)", table: "order_lines", dateCol: null },
+      { id: "order_trading", label: "Order Trading (header)", table: "order_trading", dateCol: "created_at" },
+      { id: "order_trading_lines", label: "Order Trading (baris)", table: "order_trading_lines", dateCol: null },
+      { id: "plans", label: "Production Plans", table: "plans", dateCol: "plan_date" },
+      { id: "reports", label: "Laporan Operator", table: "reports", dateCol: "report_date" }
+    ];
+
+    function initExportPage() {
+      var box = $("exportChecks");
+      if (!box || box.dataset.ready === "1") return;
+      box.dataset.ready = "1";
+      box.innerHTML = EXPORT_SOURCES.map(function(s) {
+        return '<label style="display:flex;align-items:center;gap:0.4rem;font-size:0.84rem;padding:0.25rem 0">' +
+          '<input type="checkbox" class="export-src" value="' + s.id + '" data-table="' + s.table + '" /> ' +
+          esc(s.label) + '</label>';
+      }).join("");
+      // default: transactional month-ish empty dates
+    }
+    function exportSelectAll(on) {
+      document.querySelectorAll(".export-src").forEach(function(c) { c.checked = !!on; });
+    }
+    async function fetchExportRows(src, dateFrom, dateTo) {
+      if (!sb) throw new Error("Supabase belum siap");
+      var q = sb.from(src.table).select("*").limit(5000);
+      // date filter if column exists and dates set
+      if (src.dateCol && dateFrom) {
+        q = q.gte(src.dateCol, dateFrom);
+      }
+      if (src.dateCol && dateTo) {
+        q = q.lte(src.dateCol, dateTo.length === 10 ? dateTo + "T23:59:59" : dateTo);
+      }
+      var { data, error } = await q;
+      if (error) {
+        // retry without date if column missing
+        if (src.dateCol && /column/i.test(error.message)) {
+          var r2 = await sb.from(src.table).select("*").limit(5000);
+          if (r2.error) throw new Error(src.label + ": " + r2.error.message);
+          return r2.data || [];
+        }
+        throw new Error(src.label + ": " + error.message);
+      }
+      return data || [];
+    }
+    function downloadBlob(blob, filename) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 1500);
+    }
+    async function runDataExport() {
+      var checked = Array.prototype.slice.call(document.querySelectorAll(".export-src:checked"));
+      if (!checked.length) return toast("Pilih minimal 1 jenis data", true);
+      if (typeof XLSX === "undefined") return toast("Library Excel belum termuat. Refresh halaman.", true);
+
+      var dateFrom = ($("exportDateFrom") && $("exportDateFrom").value) || "";
+      var dateTo = ($("exportDateTo") && $("exportDateTo").value) || "";
+      var fmt = (document.querySelector('input[name="exportFmt"]:checked') || {}).value || "xlsx";
+      var st = $("exportStatus");
+      var btn = $("btnDoExport");
+      if (btn) btn.disabled = true;
+      if (st) st.textContent = "Menyiapkan…";
+
+      try {
+        var wb = XLSX.utils.book_new();
+        var sheetsOk = 0;
+        for (var i = 0; i < checked.length; i++) {
+          var id = checked[i].value;
+          var src = EXPORT_SOURCES.find(function(s) { return s.id === id; });
+          if (!src) continue;
+          if (st) st.textContent = "Mengambil " + src.label + " (" + (i + 1) + "/" + checked.length + ")…";
+          var rows = await fetchExportRows(src, dateFrom, dateTo);
+          // flatten objects/arrays for excel
+          var flat = (rows || []).map(function(r) {
+            var o = {};
+            Object.keys(r || {}).forEach(function(k) {
+              var v = r[k];
+              if (v == null) o[k] = "";
+              else if (typeof v === "object") o[k] = JSON.stringify(v);
+              else o[k] = v;
+            });
+            return o;
+          });
+          var sheetName = src.id.substring(0, 28);
+          var ws = XLSX.utils.json_to_sheet(flat.length ? flat : [{ info: "tidak ada data" }]);
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+          sheetsOk++;
+
+          if (fmt === "csv") {
+            var csv = XLSX.utils.sheet_to_csv(ws);
+            downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), sheetName + ".csv");
+          }
+        }
+        if (fmt === "xlsx") {
+          var stamp = new Date().toISOString().slice(0, 10);
+          var out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+          downloadBlob(
+            new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+            "SHI-export-" + stamp + ".xlsx"
+          );
+        }
+        if (st) st.textContent = sheetsOk + " data diexport";
+        toast("Export selesai (" + sheetsOk + " sheet)");
+      } catch (e) {
+        toast(String(e.message || e), true);
+        if (st) st.textContent = "Gagal";
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     function goPage(page) {
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
@@ -9352,6 +9512,7 @@ function fillOperatorList(selectedEmail) {
       }
       if (page === "plan-import" && currentRole() === "operator") { page = "home"; }
       if (page === "reports") { try { loadReportsPage(); } catch (e) {} }
+      if (page === "export-data") { try { initExportPage(); } catch (eEx) {} }
       if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
       if (page === "order-trading") { try { loadOrderTrading(); } catch (e) {} }
       if (page === "absences") { try { loadAbsences(); } catch (e) {} }
