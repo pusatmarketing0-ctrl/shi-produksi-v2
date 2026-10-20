@@ -1386,28 +1386,18 @@
     .ops-table td.day-cell.ops-dragging { opacity: 0.55; }
 
     /* Purchasing lines */
-    .po-lines-head {
-      display: grid;
-      grid-template-columns: 1.4fr 0.7fr 0.55fr 0.7fr 36px;
-      gap: 0.4rem;
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      margin-bottom: 0.35rem;
-      padding: 0 0.15rem;
-    }
+    .po-lines-head { display: none !important; }
     .po-line-card {
-      display: grid;
-      grid-template-columns: 1.4fr 0.7fr 0.55fr 0.7fr 36px;
-      gap: 0.4rem;
-      align-items: center;
-      margin-bottom: 0.45rem;
-      padding: 0.5rem;
-      background: #f8faf9;
+      display: block;
+      margin-bottom: 0.75rem;
+      padding: 0.85rem;
+      background: #fff;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 14px;
+    }
+    .po-line-card .field label {
+      display: block;
+      margin-bottom: 0.2rem;
     }
     .po-line-card input,
     .po-line-card select {
@@ -7999,33 +7989,39 @@ function fillOperatorList(selectedEmail) {
       const vendor = line.vendor_name || "";
       const eta = line.eta_date ? String(line.eta_date).slice(0, 10) : "";
       var defaultFg = line.for_product_id || (($("poFgSelect") && $("poFgSelect").value) || "");
-      return '<div class="po-line po-line-card" style="border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.65rem;background:#fff">' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.55rem">' +
-          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Bahan</label>' +
-            '<div class="po-combo">' +
-              '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
-              '<input type="text" class="po-combo-input" placeholder="Ketik kode / nama bahan..." value="' + esc(display) + '" autocomplete="off" style="width:100%" />' +
-              '<div class="po-combo-list"></div>' +
-            '</div></div>' +
-          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Vendor</label>' +
-            '<input class="pol-vendor" placeholder="Nama vendor" value="' + esc(vendor) + '" style="width:100%" /></div>' +
-          '<div class="field" style="margin:0"><label style="font-size:0.72rem">ETA gudang</label>' +
-            '<input class="pol-eta" type="date" value="' + esc(eta) + '" style="width:100%" /></div>' +
-          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Untuk FG (dari SO)</label>' +
-            '<select class="pol-fg" style="width:100%">' + poFgOptionsHtml(defaultFg) + '</select></div>' +
-          '<div class="field" style="margin:0"><label style="font-size:0.72rem">Kategori</label>' +
-            '<select class="pol-kat" style="width:100%">' +
-              '<option value="baku"' + (kat === "baku" ? " selected" : "") + '>Bahan baku</option>' +
-              '<option value="kemas"' + (kat === "kemas" ? " selected" : "") + '>Bahan kemas</option>' +
-              '<option value="penunjang"' + (kat === "penunjang" ? " selected" : "") + '>Penunjang</option>' +
-            '</select></div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.4rem;align-items:end">' +
-            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label><input class="pol-qty num-input" inputmode="decimal" placeholder="0" value="' + qtyVal + '" style="width:100%" /></div>' +
-            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Unit</label><input class="pol-unit" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" style="width:100%" /></div>' +
-            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Diterima</label><input class="pol-recv num-input" inputmode="decimal" value="' + recvVal + '" style="width:100%" /></div>' +
-            '<button type="button" class="btn btn-ghost btn-sm po-del" title="Hapus baris" style="color:#b91c1c">Hapus</button>' +
+      return (
+        '<div class="po-line po-line-card" style="border:1px solid var(--border);border-radius:14px;padding:0.85rem;margin-bottom:0.75rem;background:#fff">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.65rem 0.75rem">' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Bahan</label>' +
+              '<div class="po-combo" style="width:100%">' +
+                '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
+                '<input type="text" class="po-combo-input" placeholder="Kode / nama bahan..." value="' + esc(display) + '" autocomplete="off" style="width:100%;box-sizing:border-box" />' +
+                '<div class="po-combo-list"></div>' +
+              '</div></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Vendor</label>' +
+              '<input class="pol-vendor" placeholder="Nama vendor" value="' + esc(vendor) + '" style="width:100%;box-sizing:border-box" /></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">ETA gudang</label>' +
+              '<input class="pol-eta" type="date" value="' + esc(eta) + '" style="width:100%;box-sizing:border-box" /></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Untuk FG (dari SO)</label>' +
+              '<select class="pol-fg" style="width:100%;box-sizing:border-box">' + poFgOptionsHtml(defaultFg) + '</select></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Kategori</label>' +
+              '<select class="pol-kat" style="width:100%;box-sizing:border-box">' +
+                '<option value="baku"' + (kat === "baku" ? " selected" : "") + '>Bahan baku</option>' +
+                '<option value="kemas"' + (kat === "kemas" ? " selected" : "") + '>Bahan kemas</option>' +
+                '<option value="penunjang"' + (kat === "penunjang" ? " selected" : "") + '>Penunjang</option>' +
+              '</select></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label>' +
+              '<input class="pol-qty num-input" inputmode="decimal" placeholder="0" value="' + qtyVal + '" style="width:100%;box-sizing:border-box" /></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Unit</label>' +
+              '<input class="pol-unit" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" style="width:100%;box-sizing:border-box" /></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Diterima</label>' +
+              '<input class="pol-recv num-input" inputmode="decimal" value="' + recvVal + '" style="width:100%;box-sizing:border-box" /></div>' +
+            '<div class="field" style="margin:0;display:flex;align-items:flex-end">' +
+              '<button type="button" class="btn btn-ghost btn-sm po-del" style="color:#b91c1c;width:100%">Hapus baris</button>' +
+            '</div>' +
           '</div>' +
-        '</div></div>';
+        '</div>'
+      );
     }
     function bindPoProductCombo(card) {
       if (!card) return;
@@ -8110,7 +8106,7 @@ function fillOperatorList(selectedEmail) {
       if (!box) return;
       if (!box.querySelector(".po-lines-head") && !box.querySelector(".po-line-card")) {
         box.insertAdjacentHTML("afterbegin",
-          '<div class="po-lines-head" style="display:grid;grid-template-columns:1.2fr 0.85fr 0.75fr 0.7fr 0.55fr 0.55fr 0.5fr 0.5fr 28px;gap:0.3rem;font-size:0.65rem;color:var(--text-muted);margin-bottom:0.25rem"><span>Bahan</span><span>Vendor</span><span>ETA Gudang</span><span>Untuk FG</span><span>Kategori</span><span>Qty</span><span>Unit</span><span>Terima</span><span></span></div>');
+          '');
       }
       box.insertAdjacentHTML("beforeend", poLineHtml(line));
       const card = box.querySelector(".po-line-card:last-of-type");
