@@ -9703,7 +9703,85 @@ function closeOtModal() {
       document.body.classList.remove("modal-open");
     }
 
-    
+    async function openOtModal(otId) {
+      try { await loadProducts(); } catch (e) {}
+      try { await loadCustomers(); } catch (e) {}
+      try { fillCustomerList(); } catch (e) {}
+
+      if ($("otEditId")) $("otEditId").value = otId || "";
+      if ($("otModalTitle")) $("otModalTitle").textContent = otId ? "Detail Order Trading" : "Order Trading baru";
+      if ($("otCustomer")) $("otCustomer").value = "";
+      if ($("otNote")) $("otNote").value = "";
+      if ($("otSoTradingNo")) $("otSoTradingNo").value = "";
+      if ($("otSoTradingNote")) $("otSoTradingNote").value = "";
+      if ($("otNoSo")) $("otNoSo").value = "";
+      if ($("otDpNote")) $("otDpNote").value = "";
+      if ($("otLines")) $("otLines").innerHTML = "";
+      if ($("otTimeline")) $("otTimeline").innerHTML = "";
+
+      var statusBox = $("otStatusBox");
+      var filesBox = $("otFilesBox");
+      var role = currentRole();
+      var canEdit = role === "marketing" || role === "admin";
+
+      if (!otId) {
+        if (statusBox) statusBox.style.display = "none";
+        if (filesBox) filesBox.style.display = "none";
+        otAddLine();
+        if ($("btnOtSave")) $("btnOtSave").style.display = canEdit ? "" : "none";
+      } else {
+        var row = otCache.find(function(r) { return r.ot_id === otId; });
+        if (!row) {
+          var res = await sb.from("order_trading").select("*").eq("ot_id", otId).maybeSingle();
+          if (!res.data) {
+            toast("Order tidak ditemukan", true);
+            return;
+          }
+          otCache.unshift(res.data);
+          row = res.data;
+        }
+        if ($("otCustomer")) $("otCustomer").value = row.customer_name || "";
+        if ($("otNote")) $("otNote").value = row.note || "";
+        if ($("otSoTradingNo")) $("otSoTradingNo").value = row.so_trading_no || "";
+        if ($("otSoTradingNote")) $("otSoTradingNote").value = row.so_trading_note || "";
+        if ($("otNoSo")) $("otNoSo").value = row.no_so || "";
+        if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
+
+        var lines = otLinesCache[otId] || [];
+        if (!lines.length) {
+          var ln = await sb.from("order_trading_lines").select("*").eq("ot_id", otId);
+          otLinesCache[otId] = ln.data || [];
+          lines = otLinesCache[otId];
+        }
+        if (lines.length) {
+          lines.forEach(function(l) { otAddLine(l); });
+        } else {
+          otAddLine();
+        }
+
+        if (statusBox) statusBox.style.display = "block";
+        if (filesBox) filesBox.style.display = "block";
+        try { otFillFileLinks(row); } catch (eF) {}
+        if ($("btnOtSave")) {
+          $("btnOtSave").style.display = (canEdit && (row.status === "draft" || row.status === "menunggu_so_trading")) ? "" : "none";
+        }
+        try { renderOtActions(row); } catch (eA) {}
+        try { await loadOtTimeline(otId); } catch (eT) {}
+      }
+
+      var modal = $("otModal");
+      if (modal) modal.classList.add("show");
+      document.body.classList.add("modal-open");
+      try { otBindCustomerInput(); } catch (e) {}
+      try { bindAllThousandInputs(); } catch (e) {}
+      try {
+        document.querySelectorAll("#otLines .ot-prod").forEach(function(inp) {
+          delete inp.dataset.otCombo;
+          otBindLineProduct(inp);
+        });
+      } catch (e2) {}
+    }
+
     function otDrivePreviewUrl(url) {
       if (!url) return "";
       var s = String(url);
