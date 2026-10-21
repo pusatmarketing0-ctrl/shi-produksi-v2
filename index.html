@@ -6446,6 +6446,7 @@ function fillOperatorList(selectedEmail) {
       }
       toast(report_id ? "Laporan diperbarui" : "Laporan disimpan");
       try { await applyWipFromReport(plan, report_id, actual_qty); } catch (eW) {}
+      try { await applyFgFromReport(plan, report_id, actual_qty); } catch (eF) { console.warn(eF); }
       closeReportModal();
       await loadReportsPage();
       try { if (currentRole() === "operator") loadOperatorHome(); } catch (e) {}
@@ -7770,6 +7771,57 @@ function fillOperatorList(selectedEmail) {
     }
 
     /** Setelah laporan OP: tambah WIP di proses ini + kurangi WIP step sebelumnya (jika ada depends_on) */
+    /**
+     * Fase 2: packing masterbox / FG → auto masuk stok gudang (warehouse_movements in_fg)
+     * Idempotent per report_id: hapus movement lama report ini, tulis ulang qty actual.
+     */
+    async function applyFgFromReport(plan, report_id, actual_qty) {
+      if (!sb || !plan || !report_id) return;
+      var machineId = plan.machine_id || "";
+      if (!isFgMachine(machineId)) return;
+      var product_id = plan.product_id || "";
+      if (!product_id) return;
+      var qty = Number(actual_qty) || 0;
+      var unit = plan.unit || "pcs";
+      var noSo = plan.no_so || "";
+      var marker = "report:" + report_id;
+
+      // Hapus movement lama dari report yang sama (supaya edit laporan tidak double)
+      try {
+        var { data: olds } = await sb.from("warehouse_movements")
+          .select("id,ref_note")
+          .eq("movement_type", "in_fg")
+          .eq("product_id", product_id)
+          .limit(50);
+        var toDel = (olds || []).filter(function(m) {
+          return String(m.ref_note || "").indexOf(marker) >= 0;
+        }).map(function(m) { return m.id; });
+        if (toDel.length) {
+          await sb.from("warehouse_movements").delete().in("id", toDel);
+        }
+      } catch (eDel) { console.warn(eDel); }
+
+      if (qty <= 0) return;
+
+      var { error } = await sb.from("warehouse_movements").insert({
+        movement_type: "in_fg",
+        product_id: product_id,
+        qty: qty,
+        unit: unit,
+        no_so: noSo,
+        po_id: "",
+        qc_status: "passed",
+        ref_note: marker + " · plan " + (plan.plan_id || "") + " · auto FG packing",
+        created_by: (currentUser && currentUser.email) || ""
+      });
+      if (error) {
+        console.warn("applyFgFromReport", error);
+        toast("Laporan OK, tapi FG gudang gagal: " + error.message, true);
+      } else {
+        toast("FG +" + formatNum(qty) + " " + unit + " masuk gudang (auto)");
+      }
+    }
+
     async function applyWipFromReport(plan, report_id, actual_qty) {
       if (!sb || !plan || !(actual_qty > 0)) return;
       const product_id = plan.product_id;
