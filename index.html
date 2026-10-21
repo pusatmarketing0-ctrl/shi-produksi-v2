@@ -2292,6 +2292,44 @@
       box-shadow: 0 20px 50px rgba(15,23,42,0.25);
     }
 
+    /* Module sub-tabs (Opsi A: sidebar + tab bar) */
+    .mod-tabs {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.15rem 0 0.85rem;
+      margin-bottom: 0.15rem;
+      scrollbar-width: none;
+    }
+    .mod-tabs::-webkit-scrollbar { display: none; }
+    .mod-tab {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.7);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
+    }
+    .mod-tab:hover { border-color: #86efac; color: var(--text); }
+    .mod-tab.active {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28);
+    }
+    .gudang-pane { animation: tabIn .2s ease; }
+    @keyframes tabIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: none; }
+    }
+
     .user-chip-wrap {
       position: relative;
       z-index: 40;
@@ -3270,58 +3308,72 @@
           <div class="page-head">
             <div>
               <h1>Gudang</h1>
-              <p>Stok dari mutasi · terima bahan setelah QC · FG auto dari packing.</p>
+              <p>Stok · terima setelah QC · mutasi FG / sisa.</p>
             </div>
-            <button class="btn btn-ghost" type="button" onclick="loadGudangInbox();loadGudangStock()">Refresh</button>
+            <button class="btn btn-ghost" type="button" onclick="refreshGudangTab()">Refresh</button>
           </div>
-          <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem">
-              <div style="font-weight:700">Stok gudang (saldo)</div>
-              <input type="search" id="whStockSearch" placeholder="Cari kode / nama..." oninput="renderGudangStock()" style="max-width:220px;border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.65rem;font-size:0.85rem" />
+          <div class="mod-tabs" id="gudangTabs" role="tablist">
+            <button type="button" class="mod-tab active" data-gtab="stok" onclick="setGudangTab('stok')">Stok</button>
+            <button type="button" class="mod-tab" data-gtab="terima" onclick="setGudangTab('terima')">Terima</button>
+            <button type="button" class="mod-tab" data-gtab="mutasi" onclick="setGudangTab('mutasi')">Mutasi</button>
+          </div>
+          <div id="gudang-pane-stok" class="gudang-pane">
+            <div class="card" style="padding:0.85rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem">
+                <div style="font-weight:700">Saldo stok</div>
+                <input type="search" id="whStockSearch" placeholder="Cari kode / nama..." oninput="renderGudangStock()" style="max-width:220px;border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.65rem;font-size:0.85rem" />
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Kode</th><th>Nama</th><th>Masuk</th><th>Keluar</th><th>Saldo</th><th>Unit</th></tr></thead>
+                  <tbody id="whStockBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
+              <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Masuk = vendor + FG + sisa · Keluar = pengiriman · Saldo = masuk − keluar</p>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Kode</th><th>Nama</th><th>Masuk</th><th>Keluar</th><th>Saldo</th><th>Unit</th></tr></thead>
-                <tbody id="whStockBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+          </div>
+          <div id="gudang-pane-terima" class="gudang-pane" hidden>
+            <div class="toolbar">
+              <input type="search" id="gudangSearch" placeholder="Cari PO / vendor / bahan..." oninput="renderGudangInbox()" />
+              <select id="gudangFilter" onchange="renderGudangInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+                <option value="open">Belum lengkap</option>
+                <option value="eta">Ada ETA</option>
+                <option value="all">Semua</option>
+              </select>
+            </div>
+            <div class="card" style="overflow:auto">
+              <table class="data-table">
+                <thead><tr>
+                  <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
+                  <th>Qty</th><th>Diterima</th><th>Sisa</th><th>QC</th><th></th>
+                </tr></thead>
+                <tbody id="gudangBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
-            <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Masuk = in_vendor + in_fg + in_sisa · Keluar = out_delivery / out_* · Saldo = masuk − keluar</p>
           </div>
-          <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
-            <div style="font-weight:700;margin-bottom:0.5rem">Dari produksi → gudang (FG / sisa bahan)</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:0.5rem;align-items:end">
-              <div class="field" style="margin:0"><label style="font-size:0.72rem">Jenis</label>
-                <select id="whProdType"><option value="in_fg">Finisgood (FG)</option><option value="in_sisa">Sisa bahan produksi</option></select>
+          <div id="gudang-pane-mutasi" class="gudang-pane" hidden>
+            <div class="card" style="padding:0.85rem">
+              <div style="font-weight:700;margin-bottom:0.5rem">Input mutasi (FG / sisa bahan)</div>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">FG packing biasanya auto dari laporan operator. Form ini untuk koreksi / sisa manual.</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;align-items:end;max-width:560px">
+                <div class="field" style="margin:0"><label style="font-size:0.72rem">Jenis</label>
+                  <select id="whProdType"><option value="in_fg">Finisgood (FG)</option><option value="in_sisa">Sisa bahan produksi</option></select>
+                </div>
+                <div class="field" style="margin:0"><label style="font-size:0.72rem">Produk / bahan</label>
+                  <input id="whProdProduct" placeholder="Kode produk" list="whProdList" />
+                  <datalist id="whProdList"></datalist>
+                </div>
+                <div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label>
+                  <input id="whProdQty" class="num-input" inputmode="decimal" placeholder="0" />
+                </div>
+                <div class="field" style="margin:0"><label style="font-size:0.72rem">No SO (opsional)</label>
+                  <input id="whProdSo" placeholder="SO/..." />
+                </div>
+                <div style="grid-column:1/-1">
+                  <button type="button" class="btn btn-primary" onclick="saveWhFromProduction()">Simpan mutasi</button>
+                </div>
               </div>
-              <div class="field" style="margin:0"><label style="font-size:0.72rem">Produk / bahan</label>
-                <input id="whProdProduct" placeholder="Kode produk" list="whProdList" />
-                <datalist id="whProdList"></datalist>
-              </div>
-              <div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label>
-                <input id="whProdQty" class="num-input" inputmode="decimal" placeholder="0" />
-              </div>
-              <div class="field" style="margin:0"><label style="font-size:0.72rem">No SO (opsional)</label>
-                <input id="whProdSo" placeholder="SO/..." />
-              </div>
-              <button type="button" class="btn btn-primary" onclick="saveWhFromProduction()">Simpan</button>
             </div>
-          </div>
-          <div class="toolbar">
-            <input type="search" id="gudangSearch" placeholder="Cari PO / vendor / bahan..." oninput="renderGudangInbox()" />
-            <select id="gudangFilter" onchange="renderGudangInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
-              <option value="open">Belum lengkap</option>
-              <option value="eta">Ada ETA</option>
-              <option value="all">Semua</option>
-            </select>
-          </div>
-          <div class="card" style="overflow:auto">
-            <table class="data-table">
-              <thead><tr>
-                <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
-                <th>Qty</th><th>Diterima</th><th>Sisa</th><th>QC</th><th></th>
-              </tr></thead>
-              <tbody id="gudangBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
-            </table>
           </div>
         </section>
 
@@ -8327,6 +8379,32 @@ function fillOperatorList(selectedEmail) {
       toast(typ === "in_fg" ? "FG masuk gudang" : "Sisa bahan masuk gudang");
       if ($("whProdQty")) $("whProdQty").value = "";
     }
+    var gudangActiveTab = "stok";
+    function setGudangTab(tab) {
+      gudangActiveTab = tab || "stok";
+      document.querySelectorAll("#gudangTabs .mod-tab").forEach(function(btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-gtab") === gudangActiveTab);
+      });
+      ["stok", "terima", "mutasi"].forEach(function(t) {
+        var pane = $("gudang-pane-" + t);
+        if (pane) pane.hidden = t !== gudangActiveTab;
+      });
+      refreshGudangTab();
+    }
+    function refreshGudangTab() {
+      if (gudangActiveTab === "stok") {
+        try { loadGudangStock(); } catch (e) {}
+      } else if (gudangActiveTab === "terima") {
+        try { loadGudangInbox(); } catch (e) {}
+      } else if (gudangActiveTab === "mutasi") {
+        try {
+          var dl = $("whProdList");
+          if (dl) dl.innerHTML = (products || []).slice(0, 500).map(function(p) {
+            return '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>';
+          }).join("");
+        } catch (e2) {}
+      }
+    }
     var gudangStockRows = [];
     async function loadGudangStock() {
       if (!sb) return;
@@ -11039,7 +11117,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "machines") { try { renderMachines(); } catch (e) {} }
       if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
       if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
-      if (page === "gudang") { try { loadGudangInbox(); } catch (eG) {} }
+      if (page === "gudang") { try { setGudangTab(gudangActiveTab || "stok"); } catch (eG) {} }
       if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
       if (page === "qc") { try { loadQcInbox(); } catch (eQ) {} }
       if (page === "purchasing") { try { loadPurchaseRequests(); } catch (ePr) {} }
