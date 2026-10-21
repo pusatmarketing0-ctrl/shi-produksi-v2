@@ -2531,7 +2531,8 @@
         <div class="nav-label" data-nav-group="master">Master data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/></svg></span><span class="nav-txt"> Produk</span></button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span class="nav-txt"> Proses</span></button>
-        <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
+        <button class="nav-item" data-page="pr-ppic" data-roles="admin,ppic" data-tip="Permintaan beli"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></span><span class="nav-txt">Permintaan</span></button>
+        <button class="nav-item" data-page="purchasing" data-roles="admin,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
         <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
         <button class="nav-item" data-page="delivery" data-roles="admin,ppic,gudang,marketing" data-tip="Pengiriman" onclick="goPage('delivery')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h13v10H3z"/><path d="M16 10h4l2 3v4h-6V10z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/></svg></span><span class="nav-txt">Pengiriman</span></button>
         <button class="nav-item" data-page="qc" data-roles="admin,ppic,qc" data-tip="QC" onclick="goPage('qc')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="nav-txt">QC</span></button>
@@ -3065,11 +3066,31 @@
         
         
         
+        <section id="page-pr-ppic" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Permintaan beli</h1>
+              <p>Menu <strong>PPIC</strong> — cek komponen atau buat PR manual, lalu Purchase yang proses PO.</p>
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              <button class="btn btn-primary" type="button" onclick="openPrManualModal()">+ PR manual</button>
+              <button class="btn btn-ghost" type="button" onclick="openCekKomponen()">Cek komponen SO</button>
+            </div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                <tbody id="prPpicBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
         <section id="page-purchasing" class="page" hidden>
           <div class="page-head">
             <div>
               <h1>Purchasing</h1>
-              <p>Inbox permintaan dari <strong>PPIC</strong> (cek komponen) → buat PO by SO.</p>
+              <p>Inbox permintaan dari PPIC → buat PO by SO · set ETA kekurangan.</p>
             </div>
             <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
               <button class="btn btn-primary" type="button" onclick="openPoModal()">+ PO baru</button>
@@ -3077,12 +3098,8 @@
           </div>
           <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
-              <div style="font-weight:700">Permintaan ke Purchase</div>
-              <div style="display:flex;gap:0.35rem;flex-wrap:wrap">
-                <button class="btn btn-primary btn-sm" type="button" onclick="openPrManualModal()">+ PR manual</button>
-                <button class="btn btn-ghost btn-sm" type="button" onclick="openCekKomponen()">Dari cek komponen</button>
-                <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseRequests()">Refresh</button>
-              </div>
+              <div style="font-weight:700">Inbox permintaan PPIC</div>
+              <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseRequests()">Refresh</button>
             </div>
             <div class="table-wrap">
               <table>
@@ -8630,27 +8647,34 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       prList = data || [];
-      if (!body) return;
-      if (!prList.length) {
-        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada permintaan dari PPIC</td></tr>';
-        return;
+      function prRowsHtml(forPurchase) {
+        if (!prList.length) {
+          return '<tr><td colspan="6" class="empty">Belum ada permintaan</td></tr>';
+        }
+        return prList.map(function(pr) {
+          var n = (pr.purchase_request_lines && pr.purchase_request_lines.length) || 0;
+          var items = (pr.purchase_request_lines || []).slice(0, 3).map(function(l) {
+            return l.product_id + " (" + formatNum(l.qty_needed) + ")";
+          }).join(", ");
+          var prIdSafe = String(pr.pr_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+          var btn = "";
+          if (forPurchase && (pr.status === "open" || pr.status === "partial")) {
+            btn = "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"openPoFromPr('" + prIdSafe + "')\">Buat PO</button>";
+          } else {
+            btn = '<span style="font-size:0.75rem;color:var(--text-muted)">' + esc(pr.status) + '</span>';
+          }
+          return "<tr>" +
+            "<td><strong>" + esc(pr.pr_id) + "</strong></td>" +
+            "<td>" + esc(pr.no_so || pr.order_id || "—") + "</td>" +
+            "<td>" + esc(pr.status) + "</td>" +
+            "<td style=\"font-size:0.78rem\">" + esc(items || (n + " item")) + "</td>" +
+            "<td style=\"font-size:0.78rem\">" + esc(pr.notes || "") + "</td>" +
+            "<td>" + btn + "</td></tr>";
+        }).join("");
       }
-      body.innerHTML = prList.map(function(pr) {
-        var n = (pr.purchase_request_lines && pr.purchase_request_lines.length) || 0;
-        var items = (pr.purchase_request_lines || []).slice(0, 3).map(function(l) {
-          return l.product_id + " (" + formatNum(l.qty_needed) + ")";
-        }).join(", ");
-        var btn = pr.status === "open" || pr.status === "partial"
-          ? '<button type="button" class="btn btn-primary btn-sm" onclick="openPoFromPr(' + JSON.stringify(pr.pr_id) + ')">Buat PO</button>'
-          : '<span style="font-size:0.75rem;color:var(--text-muted)">' + esc(pr.status) + '</span>';
-        return "<tr>" +
-          "<td><strong>" + esc(pr.pr_id) + "</strong></td>" +
-          "<td>" + esc(pr.no_so || pr.order_id || "—") + "</td>" +
-          "<td>" + esc(pr.status) + "</td>" +
-          "<td style=\"font-size:0.78rem\">" + esc(items || (n + " item")) + "</td>" +
-          "<td style=\"font-size:0.78rem\">" + esc(pr.notes || "") + "</td>" +
-          "<td>" + btn + "</td></tr>";
-      }).join("");
+      if (body) body.innerHTML = prRowsHtml(true);
+      var bodyPpic = $("prPpicBody");
+      if (bodyPpic) bodyPpic.innerHTML = prRowsHtml(false);
     }
     async function openPoFromPr(prId) {
       var pr = (prList || []).find(function(x) { return x.pr_id === prId; });
@@ -10884,6 +10908,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
       if (page === "qc") { try { loadQcInbox(); } catch (eQ) {} }
       if (page === "purchasing") { try { loadPurchaseRequests(); } catch (ePr) {} }
+      if (page === "pr-ppic") { try { loadPurchaseRequests(); } catch (ePr2) {} }
       if (page === "bom") { try { loadBom(); } catch (e) {} }
       if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
       if (page === "wip") { try { loadWipStock(); } catch (e) {} }
