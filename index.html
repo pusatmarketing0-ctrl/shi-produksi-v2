@@ -8414,8 +8414,8 @@ function fillOperatorList(selectedEmail) {
           pname = p ? p.name : "";
         } catch (e) {}
         var actions = st === "pending"
-          ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + r.line_id + ',\'passed\',' + JSON.stringify(r.product_id || '') + ',' + JSON.stringify(r.po_id || '') + ',' + JSON.stringify(r.no_so || '') + ',' + r.qty_received + ')">Lulus</button> ' +
-            '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="qcDecide(' + r.line_id + ',\'failed\',' + JSON.stringify(r.product_id || '') + ',' + JSON.stringify(r.po_id || '') + ',' + JSON.stringify(r.no_so || '') + ',' + r.qty_received + ')">Tolak</button>'
+          ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + Number(r.line_id) + ',\'passed\')">Lulus</button> ' +
+            '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="qcDecide(' + Number(r.line_id) + ',\'failed\')">Tolak</button>'
           : '<span style="font-size:0.75rem;color:var(--text-muted)">Selesai</span>';
         return "<tr>" +
           "<td>" + esc(r.po_id) + "</td>" +
@@ -8427,8 +8427,9 @@ function fillOperatorList(selectedEmail) {
           "<td>" + actions + "</td></tr>";
       }).join("");
     }
-    async function qcDecide(lineId, result, productId, poId, noSo, qtyChecked) {
+    async function qcDecide(lineId, result) {
       if (!sb || !lineId) return;
+      var row = (qcRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
       var notes = await appPrompt({
         title: result === "passed" ? "QC Lulus" : "QC Tolak",
         message: "Catatan QC (opsional):",
@@ -8449,12 +8450,12 @@ function fillOperatorList(selectedEmail) {
         await sb.from("qc_logs").insert({
           source_type: "purchase_line",
           source_id: String(lineId),
-          product_id: productId || "",
-          po_id: poId || "",
-          no_so: noSo || "",
+          product_id: row.product_id || "",
+          po_id: row.po_id || "",
+          no_so: row.no_so || "",
           result: result,
           notes: String(notes || "").trim(),
-          qty_checked: Number(qtyChecked) || 0,
+          qty_checked: Number(row.qty_received) || 0,
           created_by: (currentUser && currentUser.email) || ""
         });
       } catch (eL) {}
@@ -8855,109 +8856,23 @@ function fillOperatorList(selectedEmail) {
       orderId = String(orderId).trim();
       try {
         var chk = await checkSoComponentsReady(orderId);
-        if (!chk.order_id && chk.summary.indexOf("tidak ditemukan") >= 0) return toast("SO tidak ditemukan", true);
+        if (!chk.order_id && String(chk.summary || "").indexOf("tidak ditemukan") >= 0) {
+          return toast("SO tidak ditemukan", true);
+        }
         var body = "SO " + (chk.no_so || orderId) + "\n\n" + chk.summary + "\n\n" + (chk.rows || []).slice(0, 20).join("\n");
-        await appConfirm({ title: chk.ready ? "Komponen READY" : "Komponen KURANG", message: body, okText: chk.ready ? "OK" : "Buka Purchasing", cancelText: "Tutup", danger: false, icon: chk.ready ? "✓" : "⚠" }).then(function(go) { if (go && !chk.ready) try { goPage("purchasing"); } catch (e) {} });
-        return;
-      } catch (eC) { toast(String(eC.message || eC), true); return; }
-      toast("Mengecek komponen vs BOM & PO…");
-      try {
-        var { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("order_id", orderId).maybeSingle();
-        if (!ord) {
-          var r2 = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("no_so", orderId).limit(1).maybeSingle();
-          ord = r2.data;
-        }
-        if (!ord) return toast("SO tidak ditemukan", true);
-
-        var fgs = ord.order_lines || [];
-        var need = {}; // material_id -> { need, unit, for_fg }
-        for (var fi = 0; fi < fgs.length; fi++) {
-          var fg = fgs[fi];
-          var fgQty = Number(fg.qty) || 0;
-          var { data: bom } = await sb.from("product_bom").select("material_product_id,qty_per_fg,unit").eq("fg_product_id", fg.product_id);
-          if (bom && bom.length) {
-            bom.forEach(function(b) {
-              var mid = b.material_product_id;
-              var n = (Number(b.qty_per_fg) || 0) * fgQty;
-              if (!need[mid]) need[mid] = { need: 0, unit: b.unit || "pcs", fgs: [] };
-              need[mid].need += n;
-              need[mid].fgs.push(fg.product_id);
-            });
-          }
-        }
-
-        var { data: pos } = await sb.from("purchase_orders")
-          .select("po_id,status,purchase_lines(product_id,qty,qty_received,kategori,vendor_name,eta_date,qc_status)")
-          .eq("order_id", ord.order_id);
-        var received = {}; // product_id -> qty_received passed QC
-        var ordered = {};
-        (pos || []).forEach(function(po) {
-          if (po.status === "cancelled") return;
-          (po.purchase_lines || []).forEach(function(l) {
-            var pid = l.product_id;
-            ordered[pid] = (ordered[pid] || 0) + (Number(l.qty) || 0);
-            var qc = l.qc_status || "pending";
-            var rcv = Number(l.qty_received) || 0;
-            if (qc === "failed") return;
-            received[pid] = (received[pid] || 0) + rcv;
-          });
-        });
-
-        var rows = [];
-        var allReady = true;
-        var keys = Object.keys(need);
-        if (!keys.length) {
-          // no BOM — fallback to PO completeness
-          var poLines = [];
-          (pos || []).forEach(function(po) {
-            if (po.status === "cancelled") return;
-            (po.purchase_lines || []).forEach(function(l) { poLines.push(l); });
-          });
-          if (!poLines.length) {
-            allReady = false;
-            rows.push("Belum ada BOM & belum ada PO → status: KURANG");
-          } else {
-            poLines.forEach(function(l) {
-              var sisa = (Number(l.qty) || 0) - (Number(l.qty_received) || 0);
-              if (sisa > 0 || (l.qc_status && l.qc_status === "failed")) allReady = false;
-              rows.push((sisa <= 0 && l.qc_status !== "failed" ? "✓ " : "✗ ") + l.product_id +
-                " PO " + formatNum(l.qty) + " terima " + formatNum(l.qty_received) +
-                " QC " + (l.qc_status || "pending"));
-            });
-          }
-        } else {
-          keys.forEach(function(mid) {
-            var needQty = need[mid].need;
-            var got = received[mid] || 0;
-            var ordQty = ordered[mid] || 0;
-            var ok = got + 1e-9 >= needQty;
-            if (!ok) allReady = false;
-            rows.push((ok ? "✓ READY " : "✗ KURANG ") + mid +
-              " butuh " + formatNum(needQty) + " " + (need[mid].unit || "") +
-              " | PO " + formatNum(ordQty) + " | terima " + formatNum(got) +
-              " | FG " + need[mid].fgs.join(","));
-          });
-        }
-
-        var title = allReady ? "READY — komponen cukup" : "KURANG — perlu purchase / follow-up";
-        var body = "SO " + (ord.no_so || ord.order_id) + "\n" +
-          "FG: " + (fgs.map(function(l) { return l.product_id; }).join(", ") || "—") + "\n\n" +
-          title + "\n\n" + rows.slice(0, 20).join("\n");
-        if (!allReady) body += "\n\n→ Buka Purchasing, buat PO untuk item KURANG.";
-        await appConfirm({
-          title: allReady ? "Komponen READY" : "Komponen KURANG",
+        var go = await appConfirm({
+          title: chk.ready ? "Komponen READY" : "Komponen KURANG",
           message: body,
-          okText: allReady ? "OK" : "Buka Purchasing",
+          okText: chk.ready ? "OK" : "Buka Purchasing",
           cancelText: "Tutup",
-          danger: false,
-          icon: allReady ? "✓" : "⚠"
-        }).then(function(go) {
-          if (go && !allReady) try { goPage("purchasing"); } catch (e) {}
+          danger: false
         });
-      } catch (e) {
-        toast(String(e.message || e), true);
+        if (go && !chk.ready) try { goPage("purchasing"); } catch (e) {}
+      } catch (eC) {
+        toast(String(eC.message || eC), true);
       }
     }
+    
 
     async function openPoModal(poId) {
       let dl = document.getElementById("poProdList");
