@@ -3069,11 +3069,25 @@
           <div class="page-head">
             <div>
               <h1>Purchasing</h1>
-              <p>Pembelian <strong>berdasarkan Sales Order</strong> customer. Pilih SO dulu, lalu isi bahan yang dibeli.</p>
+              <p>Inbox permintaan dari <strong>PPIC</strong> (cek komponen) → buat PO by SO.</p>
             </div>
             <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-              <button class="btn btn-ghost" type="button" onclick="openCekKomponen()">Cek komponen SO</button>
               <button class="btn btn-primary" type="button" onclick="openPoModal()">+ PO baru</button>
+            </div>
+          </div>
+          <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
+              <div style="font-weight:700">Permintaan dari PPIC</div>
+              <div style="display:flex;gap:0.35rem;flex-wrap:wrap">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="openCekKomponen()">Cek komponen (PPIC)</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseRequests()">Refresh PR</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                <tbody id="prBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
             </div>
           </div>
           <div class="toolbar">
@@ -3086,17 +3100,16 @@
               <option value="received">received</option>
               <option value="cancelled">cancelled</option>
             </select>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseOrders()">Refresh</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseOrders()">Refresh PO</button>
           </div>
           <div class="card" style="padding:0;overflow:hidden">
             <div class="table-wrap">
               <table>
                 <thead><tr><th>PO</th><th>No SO</th><th>Tanggal</th><th>Supplier</th><th>Status</th><th>Item</th><th></th></tr></thead>
-                <tbody id="poBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                <tbody id="poBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
           </div>
-          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">SQL: <code>batch4_purchasing.sql</code></p>
         </section>
 
         <section id="page-bom" class="page" hidden>
@@ -8601,6 +8614,72 @@ function fillOperatorList(selectedEmail) {
     }
 
 
+    var prList = [];
+    async function loadPurchaseRequests() {
+      if (!sb) return;
+      var body = $("prBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      var { data, error } = await sb.from("purchase_requests")
+        .select("*, purchase_request_lines(id,product_id,qty_needed,unit,for_product_id)")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(error.message) + ' — jalankan ppic_purchase_request.sql</td></tr>';
+        prList = [];
+        return;
+      }
+      prList = data || [];
+      if (!body) return;
+      if (!prList.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada permintaan dari PPIC</td></tr>';
+        return;
+      }
+      body.innerHTML = prList.map(function(pr) {
+        var n = (pr.purchase_request_lines && pr.purchase_request_lines.length) || 0;
+        var items = (pr.purchase_request_lines || []).slice(0, 3).map(function(l) {
+          return l.product_id + " (" + formatNum(l.qty_needed) + ")";
+        }).join(", ");
+        var btn = pr.status === "open" || pr.status === "partial"
+          ? '<button type="button" class="btn btn-primary btn-sm" onclick="openPoFromPr(' + JSON.stringify(pr.pr_id) + ')">Buat PO</button>'
+          : '<span style="font-size:0.75rem;color:var(--text-muted)">' + esc(pr.status) + '</span>';
+        return "<tr>" +
+          "<td><strong>" + esc(pr.pr_id) + "</strong></td>" +
+          "<td>" + esc(pr.no_so || pr.order_id || "—") + "</td>" +
+          "<td>" + esc(pr.status) + "</td>" +
+          "<td style=\"font-size:0.78rem\">" + esc(items || (n + " item")) + "</td>" +
+          "<td style=\"font-size:0.78rem\">" + esc(pr.notes || "") + "</td>" +
+          "<td>" + btn + "</td></tr>";
+      }).join("");
+    }
+    async function openPoFromPr(prId) {
+      var pr = (prList || []).find(function(x) { return x.pr_id === prId; });
+      if (!pr) return toast("PR tidak ditemukan", true);
+      await openPoModal();
+      try {
+        if ($("poSoSelect") && pr.order_id) {
+          $("poSoSelect").value = pr.order_id;
+          await onPoSoChange();
+        }
+        if ($("poNotes")) $("poNotes").value = "Dari " + pr.pr_id + (pr.notes ? (" — " + pr.notes) : "");
+        $("poLines").innerHTML = "";
+        (pr.purchase_request_lines || []).forEach(function(l) {
+          addPoLine({
+            product_id: l.product_id,
+            qty: l.qty_needed,
+            unit: l.unit || "pcs",
+            for_product_id: l.for_product_id || "",
+            kategori: "baku"
+          });
+        });
+        if (!(pr.purchase_request_lines || []).length) addPoLine();
+        toast("Form PO diisi dari permintaan PPIC — lengkapi vendor & ETA");
+      } catch (e) {
+        toast(String(e.message || e), true);
+      }
+      try {
+        await sb.from("purchase_requests").update({ status: "partial", updated_at: new Date().toISOString() }).eq("pr_id", prId);
+      } catch (e2) {}
+    }
     async function loadPurchaseOrders() {
       if (!sb) return;
       const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id)").order("po_date", { ascending: false }).limit(200);
@@ -8915,7 +8994,7 @@ function fillOperatorList(selectedEmail) {
 
     /** Fase 1 roadmap: cek komponen SO */
     async function checkSoComponentsReady(orderIdOrNoSo) {
-      var result = { ready: false, order_id: "", no_so: "", rows: [], summary: "" };
+      var result = { ready: false, order_id: "", no_so: "", rows: [], shortages: [], summary: "" };
       if (!sb || !orderIdOrNoSo) { result.summary = "SO tidak diisi"; return result; }
       var key = String(orderIdOrNoSo).trim();
       var { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("order_id", key).maybeSingle();
@@ -8975,13 +9054,21 @@ function fillOperatorList(selectedEmail) {
       } else {
         keys.forEach(function(mid) {
           var needQty = need[mid].need, got = received[mid] || 0, ok = got + 1e-9 >= needQty;
-          if (!ok) allReady = false;
-          rows.push((ok ? "✓ READY " : "✗ KURANG ") + mid + " butuh " + formatNum(needQty) + " | terima " + formatNum(got));
+          if (!ok) {
+            allReady = false;
+            result.shortages.push({
+              product_id: mid,
+              qty_needed: Math.max(0, needQty - got),
+              unit: (need[mid] && need[mid].unit) || "pcs",
+              for_product_id: ((need[mid] && need[mid].fgs) || []).join(",")
+            });
+          }
+          rows.push((ok ? "✓ READY " : "✗ KURANG ") + mid + " butuh " + formatNum(needQty) + " | lulus QC " + formatNum(got));
         });
       }
       result.ready = allReady;
       result.rows = rows;
-      result.summary = allReady ? "READY — komponen cukup" : "KURANG — perlu purchase / QC";
+      result.summary = allReady ? "READY — komponen cukup" : "KURANG — PPIC buat permintaan ke Purchase";
       return result;
     }
     async function ensureSoReadyForPlan(orderIdOrNoSo) {
@@ -8998,11 +9085,60 @@ function fillOperatorList(selectedEmail) {
       await appConfirm({ title: "Komponen KURANG — plan ditahan", message: body + "\n\nSelesaikan Purchase & QC gudang dulu.", okText: "Buka Purchasing", cancelText: "Tutup", danger: false, icon: "⚠" }).then(function(go) { if (go) try { goPage("purchasing"); } catch (e) {} });
       return false;
     }
+    function newPrId() {
+      return "PR-" + Date.now().toString(36).toUpperCase();
+    }
+    /** PPIC: buat permintaan beli ke Purchase dari hasil cek komponen */
+    async function createPurchaseRequestFromCheck(chk) {
+      if (!sb || !chk || !chk.order_id) return toast("SO tidak valid", true);
+      var lines = chk.shortages || [];
+      if (!lines.length) {
+        // fallback: parse dari rows yang KURANG
+        return toast("Tidak ada item kekurangan terstruktur. Pastikan BOM produk sudah diisi.", true);
+      }
+      var note = await appPrompt({
+        title: "Permintaan ke Purchase",
+        message: "SO " + (chk.no_so || chk.order_id) + " · " + lines.length + " item kurang.\nCatatan untuk Purchase (opsional):",
+        defaultValue: "Dari cek komponen PPIC",
+        okText: "Kirim ke Purchase",
+        cancelText: "Batal"
+      });
+      if (note == null) return;
+      var prId = newPrId();
+      var { error } = await sb.from("purchase_requests").insert({
+        pr_id: prId,
+        order_id: chk.order_id,
+        no_so: chk.no_so || "",
+        status: "open",
+        notes: String(note || "").trim(),
+        created_by: (currentUser && currentUser.email) || ""
+      });
+      if (error) return toast(error.message + " — jalankan ppic_purchase_request.sql", true);
+      var rows = lines.map(function(s) {
+        return {
+          pr_id: prId,
+          product_id: s.product_id,
+          qty_needed: Number(s.qty_needed) || 0,
+          unit: s.unit || "pcs",
+          for_product_id: s.for_product_id || "",
+          notes: ""
+        };
+      });
+      var { error: eL } = await sb.from("purchase_request_lines").insert(rows);
+      if (eL) return toast(eL.message, true);
+      toast("Permintaan " + prId + " dikirim ke Purchase");
+      try { goPage("purchasing"); } catch (e) {}
+      try { loadPurchaseRequests(); } catch (e2) {}
+    }
     async function openCekKomponen() {
       if (!sb) return;
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      if (role !== "admin" && role !== "ppic") {
+        return toast("Cek komponen hanya untuk PPIC / Admin", true);
+      }
       var orderId = await appPrompt({
-        title: "Cek komponen SO",
-        message: "Masukkan Order ID atau No SO (contoh: ORD-xxx atau SO/2026/...)",
+        title: "Cek komponen SO (PPIC)",
+        message: "Masukkan Order ID atau No SO:",
         defaultValue: "",
         okText: "Cek",
         cancelText: "Batal"
@@ -9015,14 +9151,18 @@ function fillOperatorList(selectedEmail) {
           return toast("SO tidak ditemukan", true);
         }
         var body = "SO " + (chk.no_so || orderId) + "\n\n" + chk.summary + "\n\n" + (chk.rows || []).slice(0, 20).join("\n");
+        if (chk.ready) {
+          await appConfirm({ title: "Komponen READY", message: body, okText: "OK", cancelText: "Tutup", danger: false });
+          return;
+        }
         var go = await appConfirm({
-          title: chk.ready ? "Komponen READY" : "Komponen KURANG",
-          message: body,
-          okText: chk.ready ? "OK" : "Buka Purchasing",
+          title: "Komponen KURANG",
+          message: body + "\n\nBuat permintaan beli ke Purchase?",
+          okText: "Buat permintaan Purchase",
           cancelText: "Tutup",
           danger: false
         });
-        if (go && !chk.ready) try { goPage("purchasing"); } catch (e) {}
+        if (go) await createPurchaseRequestFromCheck(chk);
       } catch (eC) {
         toast(String(eC.message || eC), true);
       }
@@ -10645,6 +10785,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "gudang") { try { loadGudangInbox(); } catch (eG) {} }
       if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
       if (page === "qc") { try { loadQcInbox(); } catch (eQ) {} }
+      if (page === "purchasing") { try { loadPurchaseRequests(); } catch (ePr) {} }
       if (page === "bom") { try { loadBom(); } catch (e) {} }
       if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
       if (page === "wip") { try { loadWipStock(); } catch (e) {} }
