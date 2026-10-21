@@ -3293,8 +3293,9 @@
             <input type="search" id="qcSearch" placeholder="Cari PO / SO / bahan..." oninput="renderQcInbox()" />
             <select id="qcFilter" onchange="renderQcInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
               <option value="pending">Menunggu QC</option>
-              <option value="passed">Lulus</option>
-              <option value="failed">Tolak</option>
+              <option value="partial">Sebagian</option>
+              <option value="passed">Lulus penuh</option>
+              <option value="failed">Tolak penuh</option>
               <option value="all">Semua</option>
             </select>
           </div>
@@ -8363,7 +8364,7 @@ function fillOperatorList(selectedEmail) {
       var body = $("qcBody");
       if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Memuat…</td></tr>';
       var { data: pos, error } = await sb.from("purchase_orders")
-        .select("po_id,no_so,status,purchase_lines(id,product_id,qty,qty_received,unit,vendor_name,qc_status,qc_notes)")
+        .select("po_id,no_so,status,purchase_lines(id,product_id,qty,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta)")
         .neq("status", "cancelled")
         .order("po_date", { ascending: false })
         .limit(150);
@@ -8382,9 +8383,13 @@ function fillOperatorList(selectedEmail) {
             product_id: l.product_id,
             vendor_name: l.vendor_name || "",
             qty_received: Number(l.qty_received) || 0,
+            qty_qc_passed: Number(l.qty_qc_passed) || 0,
+            qty_qc_failed: Number(l.qty_qc_failed) || 0,
             unit: l.unit || "pcs",
             qc_status: l.qc_status || "pending",
-            qc_notes: l.qc_notes || ""
+            qc_notes: l.qc_notes || "",
+            eta_date: l.eta_date ? String(l.eta_date).slice(0, 10) : "",
+            replace_eta: l.replace_eta ? String(l.replace_eta).slice(0, 10) : ""
           });
         });
       });
@@ -8406,23 +8411,26 @@ function fillOperatorList(selectedEmail) {
       }
       body.innerHTML = list.map(function(r) {
         var st = r.qc_status || "pending";
-        var color = st === "passed" ? "#059669" : (st === "failed" ? "#b91c1c" : "#a16207");
-        var label = st === "passed" ? "Lulus" : (st === "failed" ? "Tolak" : "Pending");
+        var color = st === "passed" ? "#059669" : (st === "failed" ? "#b91c1c" : (st === "partial" ? "#c2410c" : "#a16207"));
+        var label = st === "passed" ? "Lulus" : (st === "failed" ? "Tolak" : (st === "partial" ? "Sebagian" : "Pending"));
         var pname = "";
         try {
           var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
           pname = p ? p.name : "";
         } catch (e) {}
-        var actions = st === "pending"
-          ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + Number(r.line_id) + ',\'passed\')">Lulus</button> ' +
-            '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="qcDecide(' + Number(r.line_id) + ',\'failed\')">Tolak</button>'
+        var detail = "Lulus " + formatNum(r.qty_qc_passed || 0) + " · Tolak " + formatNum(r.qty_qc_failed || 0);
+        if (r.replace_eta) detail += " · ETA ganti " + r.replace_eta;
+        var canEdit = st === "pending" || st === "partial";
+        var actions = canEdit
+          ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + Number(r.line_id) + ',\'passed\')">QC</button>'
           : '<span style="font-size:0.75rem;color:var(--text-muted)">Selesai</span>';
         return "<tr>" +
           "<td>" + esc(r.po_id) + "</td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
           "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
           "<td>" + esc(r.vendor_name || "—") + "</td>" +
-          "<td>" + formatNum(r.qty_received) + " " + esc(r.unit) + "</td>" +
+          "<td>" + formatNum(r.qty_received) + " " + esc(r.unit) +
+            "<div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(detail) + "</div></td>" +
           "<td style='font-weight:700;color:" + color + "'>" + label + "</td>" +
           "<td>" + actions + "</td></tr>";
       }).join("");
@@ -8430,22 +8438,126 @@ function fillOperatorList(selectedEmail) {
     async function qcDecide(lineId, result) {
       if (!sb || !lineId) return;
       var row = (qcRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
+      var received = Number(row.qty_received) || 0;
+      if (received <= 0) return toast("Belum ada qty diterima gudang", true);
+
+      // QC parsial: default full pass atau full fail, bisa diubah
+      var defaultPass = result === "passed" ? received : 0;
+      var passRaw = await appPrompt({
+        title: "QC — qty LULUS",
+        message: "Diterima gudang: " + formatNum(received) + " " + (row.unit || "") +
+          "\nIsi qty yang LULUS (sisanya bisa ditolak / menunggu):",
+        defaultValue: String(defaultPass),
+        okText: "Lanjut",
+        cancelText: "Batal"
+      });
+      if (passRaw == null) return;
+      var qtyPass = parseInputNum(passRaw);
+      if (qtyPass < 0 || qtyPass > received) return toast("Qty lulus tidak valid", true);
+
+      var qtyFailSuggest = Math.max(0, received - qtyPass);
+      var failRaw = await appPrompt({
+        title: "QC — qty TOLAK",
+        message: "Qty lulus: " + formatNum(qtyPass) + "\nSisa diterima: " + formatNum(qtyFailSuggest) +
+          "\nIsi qty yang DITOLAK (boleh 0 jika belum diputuskan semua):",
+        defaultValue: String(qtyFailSuggest),
+        okText: "Lanjut",
+        cancelText: "Batal"
+      });
+      if (failRaw == null) return;
+      var qtyFail = parseInputNum(failRaw);
+      if (qtyFail < 0 || qtyPass + qtyFail > received + 1e-9) {
+        return toast("Lulus + Tolak tidak boleh melebihi qty diterima", true);
+      }
+
       var notes = await appPrompt({
-        title: result === "passed" ? "QC Lulus" : "QC Tolak",
-        message: "Catatan QC (opsional):",
+        title: "Catatan QC",
+        message: "Catatan (opsional):",
         defaultValue: "",
         okText: "Simpan",
         cancelText: "Batal"
       });
       if (notes == null) return;
+
+      var qcStatus = "pending";
+      if (qtyPass + qtyFail >= received - 1e-9) {
+        if (qtyFail <= 0) qcStatus = "passed";
+        else if (qtyPass <= 0) qcStatus = "failed";
+        else qcStatus = "partial";
+      } else if (qtyPass > 0 && qtyFail > 0) qcStatus = "partial";
+      else if (qtyPass > 0) qcStatus = "partial";
+      else if (qtyFail > 0) qcStatus = "partial";
+
+      var replaceEta = null;
+      var replaceNotes = "";
+      if (qtyFail > 0) {
+        var needRep = await appConfirm({
+          title: "Pengganti vendor?",
+          message: "Qty tolak " + formatNum(qtyFail) + ".\nVendor akan kirim ulang?\nSetujui untuk isi tanggal deadline kirim baru (ETA).",
+          okText: "Set ETA ganti",
+          cancelText: "Tidak sekarang",
+          danger: false
+        });
+        if (needRep) {
+          var etaRaw = await appPrompt({
+            title: "ETA kirim ulang",
+            message: "Tanggal deadline vendor kirim barang pengganti (YYYY-MM-DD):",
+            defaultValue: todayStr(),
+            okText: "Simpan ETA",
+            cancelText: "Batal"
+          });
+          if (etaRaw != null && String(etaRaw).trim()) {
+            replaceEta = String(etaRaw).trim().slice(0, 10);
+          }
+          var rn = await appPrompt({
+            title: "Catatan pengganti",
+            message: "Catatan kesepakatan dengan vendor (opsional):",
+            defaultValue: "Kirim ulang qty tolak " + formatNum(qtyFail),
+            okText: "OK",
+            cancelText: "Skip"
+          });
+          if (rn != null) replaceNotes = String(rn).trim();
+        }
+      }
+
       var patch = {
-        qc_status: result,
+        qty_qc_passed: qtyPass,
+        qty_qc_failed: qtyFail,
+        qc_status: qcStatus,
         qc_notes: String(notes || "").trim(),
         qc_at: new Date().toISOString(),
         qc_by: (currentUser && currentUser.email) || ""
       };
+      if (replaceEta) {
+        patch.replace_eta = replaceEta;
+        patch.replace_notes = replaceNotes;
+        // ETA baris PO ikut di-update agar gudang & purchase lihat deadline baru
+        patch.eta_date = replaceEta;
+      }
       var { error } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
       if (error) return toast(error.message, true);
+
+      // Baris pengganti (qty = tolak) di PO yang sama — gudang nanti terima kiriman baru
+      if (qtyFail > 0 && replaceEta) {
+        try {
+          await sb.from("purchase_lines").insert({
+            po_id: row.po_id,
+            product_id: row.product_id,
+            qty: qtyFail,
+            qty_received: 0,
+            unit: row.unit || "pcs",
+            vendor_name: row.vendor_name || "",
+            eta_date: replaceEta,
+            kategori: "baku",
+            qc_status: "pending",
+            parent_line_id: lineId,
+            notes: "Pengganti QC tolak line " + lineId + (replaceNotes ? (" — " + replaceNotes) : "")
+          });
+        } catch (eIns) {
+          console.warn(eIns);
+        }
+      }
+
       try {
         await sb.from("qc_logs").insert({
           source_type: "purchase_line",
@@ -8453,13 +8565,14 @@ function fillOperatorList(selectedEmail) {
           product_id: row.product_id || "",
           po_id: row.po_id || "",
           no_so: row.no_so || "",
-          result: result,
-          notes: String(notes || "").trim(),
-          qty_checked: Number(row.qty_received) || 0,
+          result: qcStatus === "passed" ? "passed" : (qcStatus === "failed" ? "failed" : "passed"),
+          notes: "Lulus " + qtyPass + " / Tolak " + qtyFail + (replaceEta ? (" | ETA ganti " + replaceEta) : "") + " | " + String(notes || "").trim(),
+          qty_checked: received,
           created_by: (currentUser && currentUser.email) || ""
         });
       } catch (eL) {}
-      toast(result === "passed" ? "QC LULUS" : "QC TOLAK");
+
+      toast("QC: lulus " + formatNum(qtyPass) + " · tolak " + formatNum(qtyFail) + (replaceEta ? " · ETA ganti " + replaceEta : ""));
       loadQcInbox();
     }
 
@@ -8792,15 +8905,21 @@ function fillOperatorList(selectedEmail) {
         });
       }
       var { data: pos } = await sb.from("purchase_orders")
-        .select("po_id,status,purchase_lines(product_id,qty,qty_received,qc_status)")
+        .select("po_id,status,purchase_lines(product_id,qty,qty_received,qty_qc_passed,qty_qc_failed,qc_status)")
         .eq("order_id", ord.order_id);
       var received = {}, ordered = {};
       (pos || []).forEach(function(po) {
         if (po.status === "cancelled") return;
         (po.purchase_lines || []).forEach(function(l) {
           ordered[l.product_id] = (ordered[l.product_id] || 0) + (Number(l.qty) || 0);
-          if ((l.qc_status || "pending") === "failed") return;
-          received[l.product_id] = (received[l.product_id] || 0) + (Number(l.qty_received) || 0);
+          // Hanya qty yang LULUS QC yang dihitung siap produksi
+          var passed = Number(l.qty_qc_passed);
+          if (isNaN(passed) || passed < 0) {
+            if ((l.qc_status || "pending") === "passed") passed = Number(l.qty_received) || 0;
+            else if ((l.qc_status || "pending") === "failed") passed = 0;
+            else passed = 0;
+          }
+          received[l.product_id] = (received[l.product_id] || 0) + passed;
         });
       });
       var rows = [], allReady = true, keys = Object.keys(need);
