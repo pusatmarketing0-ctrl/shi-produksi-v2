@@ -3285,7 +3285,7 @@
           <div class="page-head">
             <div>
               <h1>Quality Control</h1>
-              <p>Alur: vendor datang → <strong>QC dulu</strong> → baru gudang terima qty yang lulus.</p>
+              <p>Alur: vendor datang → <strong>QC dulu</strong> (lulus/tolak) → Purchase set ETA kekurangan jika ada tolak → gudang terima yang lulus.</p>
             </div>
             <button class="btn btn-ghost" type="button" onclick="loadQcInbox()">Refresh</button>
           </div>
@@ -8503,38 +8503,6 @@ function fillOperatorList(selectedEmail) {
         qcStatus = "partial";
       }
 
-      var replaceEta = null;
-      var replaceNotes = "";
-      if (qtyFail > 0) {
-        var needRep = await appConfirm({
-          title: "Pengganti vendor?",
-          message: "Qty tolak " + formatNum(qtyFail) + ".\nVendor akan kirim ulang?\nSetujui untuk isi tanggal deadline kirim baru (ETA).",
-          okText: "Set ETA ganti",
-          cancelText: "Tidak sekarang",
-          danger: false
-        });
-        if (needRep) {
-          var etaRaw = await appPrompt({
-            title: "ETA kirim ulang",
-            message: "Tanggal deadline vendor kirim barang pengganti (YYYY-MM-DD):",
-            defaultValue: todayStr(),
-            okText: "Simpan ETA",
-            cancelText: "Batal"
-          });
-          if (etaRaw != null && String(etaRaw).trim()) {
-            replaceEta = String(etaRaw).trim().slice(0, 10);
-          }
-          var rn = await appPrompt({
-            title: "Catatan pengganti",
-            message: "Catatan kesepakatan dengan vendor (opsional):",
-            defaultValue: "Kirim ulang qty tolak " + formatNum(qtyFail),
-            okText: "OK",
-            cancelText: "Skip"
-          });
-          if (rn != null) replaceNotes = String(rn).trim();
-        }
-      }
-
       var patch = {
         qty_qc_passed: qtyPass,
         qty_qc_failed: qtyFail,
@@ -8543,35 +8511,8 @@ function fillOperatorList(selectedEmail) {
         qc_at: new Date().toISOString(),
         qc_by: (currentUser && currentUser.email) || ""
       };
-      if (replaceEta) {
-        patch.replace_eta = replaceEta;
-        patch.replace_notes = replaceNotes;
-        // ETA baris PO ikut di-update agar gudang & purchase lihat deadline baru
-        patch.eta_date = replaceEta;
-      }
       var { error } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
       if (error) return toast(error.message, true);
-
-      // Baris pengganti (qty = tolak) di PO yang sama — gudang nanti terima kiriman baru
-      if (qtyFail > 0 && replaceEta) {
-        try {
-          await sb.from("purchase_lines").insert({
-            po_id: row.po_id,
-            product_id: row.product_id,
-            qty: qtyFail,
-            qty_received: 0,
-            unit: row.unit || "pcs",
-            vendor_name: row.vendor_name || "",
-            eta_date: replaceEta,
-            kategori: "baku",
-            qc_status: "pending",
-            parent_line_id: lineId,
-            notes: "Pengganti QC tolak line " + lineId + (replaceNotes ? (" — " + replaceNotes) : "")
-          });
-        } catch (eIns) {
-          console.warn(eIns);
-        }
-      }
 
       try {
         await sb.from("qc_logs").insert({
@@ -8581,14 +8522,82 @@ function fillOperatorList(selectedEmail) {
           po_id: row.po_id || "",
           no_so: row.no_so || "",
           result: qcStatus === "passed" ? "passed" : (qcStatus === "failed" ? "failed" : "passed"),
-          notes: "Lulus " + qtyPass + " / Tolak " + qtyFail + (replaceEta ? (" | ETA ganti " + replaceEta) : "") + " | " + String(notes || "").trim(),
+          notes: "Lulus " + qtyPass + " / Tolak " + qtyFail + " | " + String(notes || "").trim(),
           qty_checked: qtyPo,
           created_by: (currentUser && currentUser.email) || ""
         });
       } catch (eL) {}
 
-      toast("QC: lulus " + formatNum(qtyPass) + " · tolak " + formatNum(qtyFail) + (replaceEta ? " · ETA ganti " + replaceEta : "") + " — gudang boleh terima yang lulus");
+      var msg = "QC: lulus " + formatNum(qtyPass) + " · tolak " + formatNum(qtyFail);
+      if (qtyFail > 0) msg += " — Purchase set ETA kekurangan / kirim ulang";
+      else msg += " — gudang boleh terima yang lulus";
+      toast(msg);
       loadQcInbox();
+    }
+
+    /** Purchase: set ETA kekurangan (kirim ulang vendor) + buat baris pengganti */
+    async function purchaseSetReplaceEta(lineId) {
+      if (!sb || !lineId) return;
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      if (role !== "admin" && role !== "purchasing" && role !== "ppic") {
+        return toast("Hanya Purchase / PPIC / Admin yang boleh set ETA kekurangan", true);
+      }
+      var { data: line, error: e0 } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      if (e0 || !line) return toast((e0 && e0.message) || "Baris PO tidak ditemukan", true);
+      var failQty = Number(line.qty_qc_failed) || 0;
+      if (failQty <= 0) return toast("Baris ini tidak punya qty tolak QC", true);
+
+      var etaRaw = await appPrompt({
+        title: "ETA kekurangan (Purchase)",
+        message: "Produk " + (line.product_id || "") + " · tolak " + formatNum(failQty) + " " + (line.unit || "") +
+          "\nIsi tanggal deadline vendor kirim ulang (YYYY-MM-DD):",
+        defaultValue: (line.replace_eta || line.eta_date || todayStr()).toString().slice(0, 10),
+        okText: "Simpan ETA",
+        cancelText: "Batal"
+      });
+      if (etaRaw == null || !String(etaRaw).trim()) return;
+      var replaceEta = String(etaRaw).trim().slice(0, 10);
+      var rn = await appPrompt({
+        title: "Catatan ke vendor",
+        message: "Catatan kesepakatan (opsional):",
+        defaultValue: line.replace_notes || ("Kirim ulang qty tolak " + formatNum(failQty)),
+        okText: "OK",
+        cancelText: "Skip"
+      });
+      var replaceNotes = rn != null ? String(rn).trim() : "";
+
+      var { error } = await sb.from("purchase_lines").update({
+        replace_eta: replaceEta,
+        replace_notes: replaceNotes,
+        eta_date: replaceEta
+      }).eq("id", lineId);
+      if (error) return toast(error.message, true);
+
+      // Baris pengganti jika belum ada
+      try {
+        var { data: existing } = await sb.from("purchase_lines").select("id").eq("parent_line_id", lineId).limit(1);
+        if (!existing || !existing.length) {
+          await sb.from("purchase_lines").insert({
+            po_id: line.po_id,
+            product_id: line.product_id,
+            qty: failQty,
+            qty_received: 0,
+            unit: line.unit || "pcs",
+            vendor_name: line.vendor_name || "",
+            eta_date: replaceEta,
+            kategori: line.kategori || "baku",
+            qc_status: "pending",
+            parent_line_id: lineId,
+            notes: "Pengganti QC tolak line " + lineId + (replaceNotes ? (" — " + replaceNotes) : "")
+          });
+        } else {
+          await sb.from("purchase_lines").update({ eta_date: replaceEta, qty: failQty }).eq("parent_line_id", lineId);
+        }
+      } catch (eIns) { console.warn(eIns); }
+
+      toast("ETA kekurangan " + replaceEta + " disimpan · baris pengganti siap untuk QC & gudang");
+      try { loadPurchaseOrders(); } catch (e) {}
+      try { openPoModal(line.po_id); } catch (e2) {}
     }
 
 
@@ -8681,9 +8690,21 @@ function fillOperatorList(selectedEmail) {
       const vendor = line.vendor_name || "";
       const eta = line.eta_date ? String(line.eta_date).slice(0, 10) : "";
       var defaultFg = line.for_product_id || (($("poFgSelect") && $("poFgSelect").value) || "");
+      var failQty = Number(line.qty_qc_failed) || 0;
+      var passQty = Number(line.qty_qc_passed) || 0;
+      var lineId = line.id || "";
+      var qcBanner = "";
+      if (failQty > 0) {
+        qcBanner = '<div style="grid-column:1/-1;padding:0.5rem 0.65rem;border-radius:10px;background:#fef2f2;border:1px solid #fecaca;font-size:0.8rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between">' +
+          '<span><strong style="color:#b91c1c">QC tolak ' + formatNum(failQty) + '</strong> · lulus ' + formatNum(passQty) +
+          (line.replace_eta ? ' · ETA ganti ' + esc(String(line.replace_eta).slice(0,10)) : ' · <em>belum ada ETA kekurangan</em>') + '</span>' +
+          (lineId ? '<button type="button" class="btn btn-primary btn-sm" onclick="purchaseSetReplaceEta(' + Number(lineId) + ')">Set ETA kekurangan</button>' : '') +
+          '</div>';
+      }
       return (
         '<div class="po-line po-line-card" style="border:1px solid var(--border);border-radius:14px;padding:0.85rem;margin-bottom:0.75rem;background:#fff">' +
           '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.65rem 0.75rem">' +
+            qcBanner +
             '<div class="field" style="margin:0"><label style="font-size:0.72rem">Bahan</label>' +
               '<div class="po-combo" style="width:100%">' +
                 '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
