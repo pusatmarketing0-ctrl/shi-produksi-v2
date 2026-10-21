@@ -2534,6 +2534,7 @@
         <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
         <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
         <button class="nav-item" data-page="delivery" data-roles="admin,ppic,gudang,marketing" data-tip="Pengiriman" onclick="goPage('delivery')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h13v10H3z"/><path d="M16 10h4l2 3v4h-6V10z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/></svg></span><span class="nav-txt">Pengiriman</span></button>
+        <button class="nav-item" data-page="qc" data-roles="admin,ppic,qc" data-tip="QC" onclick="goPage('qc')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="nav-txt">QC</span></button>
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-3 3.5-4.5 6-4.5S13.8 16 15 19"/><circle cx="17" cy="9" r="2.5"/><path d="M17 13.5c2 0 3.8 1.2 4.5 3.5"/></svg></span><span class="nav-txt"> Data Akun</span></button>
@@ -2744,6 +2745,7 @@
               <option value="trading">trading (CV Trading)</option>
               <option value="purchasing">purchasing</option>
                   <option value="gudang">gudang</option>
+                  <option value="qc">qc</option>
             </select>
             <select id="accActiveFilter" onchange="renderAccounts()" style="border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.75rem">
               <option value="">Semua status</option>
@@ -3279,7 +3281,33 @@
           </div>
         </section>
 
-      <section id="page-delivery" class="page" hidden>
+      <section id="page-qc" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Quality Control</h1>
+              <p>QC independen — bahan menunggu inspeksi setelah gudang terima qty.</p>
+            </div>
+            <button class="btn btn-ghost" type="button" onclick="loadQcInbox()">Refresh</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="qcSearch" placeholder="Cari PO / SO / bahan..." oninput="renderQcInbox()" />
+            <select id="qcFilter" onchange="renderQcInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="pending">Menunggu QC</option>
+              <option value="passed">Lulus</option>
+              <option value="failed">Tolak</option>
+              <option value="all">Semua</option>
+            </select>
+          </div>
+          <div class="card" style="overflow:auto">
+            <table class="data-table">
+              <thead><tr>
+                <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>Diterima</th><th>QC</th><th></th>
+              </tr></thead>
+              <tbody id="qcBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="page-delivery" class="page" hidden>
           <div class="page-head">
             <div>
               <h1>Pengiriman</h1>
@@ -3613,6 +3641,7 @@
             <option value="trading">trading (CV Trading)</option>
             <option value="purchasing">purchasing</option>
                   <option value="gudang">gudang</option>
+                  <option value="qc">qc</option>
             <option value="admin">admin</option>
           </select>
         </div>
@@ -7996,9 +8025,15 @@ function fillOperatorList(selectedEmail) {
           '<button type="button" class="btn btn-ghost" onclick="openPoModal()">+ PO baru</button>';
         loadPurchaseDash();
       } else if (role === "gudang") {
-        if (sub) sub.textContent = "Dashboard Gudang — penerimaan & ETA kedatangan.";
+        if (sub) sub.textContent = "Dashboard Gudang — penerimaan qty (QC oleh role QC).";
         if (act) act.innerHTML = '<button type="button" class="btn btn-primary" onclick="goPage(\'gudang\')">Buka Gudang</button>';
         loadGudangDash();
+      } else if (role === "qc") {
+        if (ops) ops.style.display = "none";
+        if (pur) pur.style.display = "none";
+        if (gud) gud.style.display = "none";
+        if (sub) sub.textContent = "Dashboard QC — inspeksi bahan setelah gudang terima.";
+        if (act) act.innerHTML = '<button type="button" class="btn btn-primary" onclick="goPage(\'qc\')">Buka inbox QC</button>';
       } else {
         if (sub) sub.textContent = "Ringkasan operasional dari Supabase.";
         if (act) act.innerHTML = "";
@@ -8278,9 +8313,9 @@ function fillOperatorList(selectedEmail) {
       if (sisa <= 0) return toast("Sudah diterima penuh", true);
       var raw = await appPrompt({
         title: "Penerimaan gudang",
-        message: "Sudah diterima: " + formatNum(alreadyReceived) + " · Sisa: " + formatNum(sisa) + ". Masukkan qty penerimaan kali ini (akan ditambahkan):",
+        message: "Sudah diterima: " + formatNum(alreadyReceived) + " · Sisa: " + formatNum(sisa) + ".\nMasukkan qty penerimaan (QC dilakukan role QC terpisah):",
         defaultValue: String(sisa),
-        okText: "Lanjut QC",
+        okText: "Terima",
         cancelText: "Batal"
       });
       if (raw == null) return;
@@ -8296,21 +8331,11 @@ function fillOperatorList(selectedEmail) {
         });
         if (!okOver) return;
       }
-      var qcPass = await appConfirm({
-        title: "QC bahan",
-        message: "Apakah bahan lulus QC gudang?\n\nOK = Lulus · Batal = Tolak (qty tetap dicatat, QC = failed)",
-        okText: "Lulus QC",
-        cancelText: "Tolak QC",
-        danger: false,
-        icon: "🔬"
-      });
-      var qcStatus = qcPass ? "passed" : "failed";
       var total = alreadyReceived + n;
+      // Gudang hanya qty — QC status tetap pending (role qc yang putuskan)
       var patch = {
         qty_received: total,
-        qc_status: qcStatus,
-        qc_at: new Date().toISOString(),
-        qc_by: (currentUser && currentUser.email) || ""
+        qc_status: "pending"
       };
       var { error } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
       if (error) return toast(error.message, true);
@@ -8322,14 +8347,119 @@ function fillOperatorList(selectedEmail) {
           unit: unit || "pcs",
           po_id: poId || "",
           no_so: noSo || "",
-          qc_status: qcStatus,
-          ref_note: "Terima PO line " + lineId,
+          qc_status: "pending",
+          ref_note: "Terima gudang PO line " + lineId + " — menunggu QC",
           created_by: (currentUser && currentUser.email) || ""
         });
       } catch (eM) {}
-      toast((qcPass ? "QC LULUS · " : "QC TOLAK · ") + "Diterima +" + formatNum(n) + " → total " + formatNum(total));
+      toast("Diterima +" + formatNum(n) + " → total " + formatNum(total) + " · menunggu QC");
       loadGudangInbox();
       try { loadGudangDash(); } catch (e) {}
+    }
+
+    var qcRows = [];
+    async function loadQcInbox() {
+      if (!sb) return;
+      var body = $("qcBody");
+      if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Memuat…</td></tr>';
+      var { data: pos, error } = await sb.from("purchase_orders")
+        .select("po_id,no_so,status,purchase_lines(id,product_id,qty,qty_received,unit,vendor_name,qc_status,qc_notes)")
+        .neq("status", "cancelled")
+        .order("po_date", { ascending: false })
+        .limit(150);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="7" class="empty">' + esc(error.message) + '</td></tr>';
+        return;
+      }
+      qcRows = [];
+      (pos || []).forEach(function(po) {
+        (po.purchase_lines || []).forEach(function(l) {
+          if ((Number(l.qty_received) || 0) <= 0) return;
+          qcRows.push({
+            line_id: l.id,
+            po_id: po.po_id,
+            no_so: po.no_so || "",
+            product_id: l.product_id,
+            vendor_name: l.vendor_name || "",
+            qty_received: Number(l.qty_received) || 0,
+            unit: l.unit || "pcs",
+            qc_status: l.qc_status || "pending",
+            qc_notes: l.qc_notes || ""
+          });
+        });
+      });
+      renderQcInbox();
+    }
+    function renderQcInbox() {
+      var body = $("qcBody");
+      if (!body) return;
+      var q = (($("qcSearch") && $("qcSearch").value) || "").toLowerCase().trim();
+      var f = ($("qcFilter") && $("qcFilter").value) || "pending";
+      var list = qcRows.filter(function(r) {
+        if (f !== "all" && (r.qc_status || "pending") !== f) return false;
+        if (!q) return true;
+        return (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name).toLowerCase().indexOf(q) >= 0;
+      });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada data</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(function(r) {
+        var st = r.qc_status || "pending";
+        var color = st === "passed" ? "#059669" : (st === "failed" ? "#b91c1c" : "#a16207");
+        var label = st === "passed" ? "Lulus" : (st === "failed" ? "Tolak" : "Pending");
+        var pname = "";
+        try {
+          var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
+          pname = p ? p.name : "";
+        } catch (e) {}
+        var actions = st === "pending"
+          ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + r.line_id + ',\'passed\',' + JSON.stringify(r.product_id || '') + ',' + JSON.stringify(r.po_id || '') + ',' + JSON.stringify(r.no_so || '') + ',' + r.qty_received + ')">Lulus</button> ' +
+            '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="qcDecide(' + r.line_id + ',\'failed\',' + JSON.stringify(r.product_id || '') + ',' + JSON.stringify(r.po_id || '') + ',' + JSON.stringify(r.no_so || '') + ',' + r.qty_received + ')">Tolak</button>'
+          : '<span style="font-size:0.75rem;color:var(--text-muted)">Selesai</span>';
+        return "<tr>" +
+          "<td>" + esc(r.po_id) + "</td>" +
+          "<td>" + esc(r.no_so || "—") + "</td>" +
+          "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
+          "<td>" + esc(r.vendor_name || "—") + "</td>" +
+          "<td>" + formatNum(r.qty_received) + " " + esc(r.unit) + "</td>" +
+          "<td style='font-weight:700;color:" + color + "'>" + label + "</td>" +
+          "<td>" + actions + "</td></tr>";
+      }).join("");
+    }
+    async function qcDecide(lineId, result, productId, poId, noSo, qtyChecked) {
+      if (!sb || !lineId) return;
+      var notes = await appPrompt({
+        title: result === "passed" ? "QC Lulus" : "QC Tolak",
+        message: "Catatan QC (opsional):",
+        defaultValue: "",
+        okText: "Simpan",
+        cancelText: "Batal"
+      });
+      if (notes == null) return;
+      var patch = {
+        qc_status: result,
+        qc_notes: String(notes || "").trim(),
+        qc_at: new Date().toISOString(),
+        qc_by: (currentUser && currentUser.email) || ""
+      };
+      var { error } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
+      if (error) return toast(error.message, true);
+      try {
+        await sb.from("qc_logs").insert({
+          source_type: "purchase_line",
+          source_id: String(lineId),
+          product_id: productId || "",
+          po_id: poId || "",
+          no_so: noSo || "",
+          result: result,
+          notes: String(notes || "").trim(),
+          qty_checked: Number(qtyChecked) || 0,
+          created_by: (currentUser && currentUser.email) || ""
+        });
+      } catch (eL) {}
+      toast(result === "passed" ? "QC LULUS" : "QC TOLAK");
+      loadQcInbox();
     }
 
 
@@ -10444,6 +10574,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
       if (page === "gudang") { try { loadGudangInbox(); } catch (eG) {} }
       if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
+      if (page === "qc") { try { loadQcInbox(); } catch (eQ) {} }
       if (page === "bom") { try { loadBom(); } catch (e) {} }
       if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
       if (page === "wip") { try { loadWipStock(); } catch (e) {} }
