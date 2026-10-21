@@ -8312,19 +8312,21 @@ function fillOperatorList(selectedEmail) {
         return "<span style=\"font-size:0.72rem;color:#a16207\">Menunggu QC</span>";
       }
       if (sisaG2 > 0) {
+        // Hanya line_id — data lain diambil dari gudangRows (hindari putus quote di onclick)
         return "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangReceive(" +
-          Number(r.line_id) + "," + Number(r.qty) + "," + Number(r.qty_received) + "," +
-          JSON.stringify(String(r.product_id || "")) + "," + JSON.stringify(String(r.unit || "pcs")) + "," +
-          JSON.stringify(String(r.po_id || "")) + "," + JSON.stringify(String(r.no_so || "")) +
-          ")\">Terima</button>";
+          Number(r.line_id) + ")\">Terima</button>";
       }
       return "<span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span>";
     }
-    async function gudangReceive(lineId, maxQty, alreadyReceived, productId, unit, poId, noSo) {
+    async function gudangReceive(lineId) {
       if (!sb || !lineId) return;
-      alreadyReceived = Number(alreadyReceived) || 0;
-      maxQty = Number(maxQty) || 0;
       var rowG = (gudangRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
+      var alreadyReceived = Number(rowG.qty_received) || 0;
+      var maxQty = Number(rowG.qty) || 0;
+      var productId = rowG.product_id || "";
+      var unit = rowG.unit || "pcs";
+      var poId = rowG.po_id || "";
+      var noSo = rowG.no_so || "";
       var qcPassed = Number(rowG.qty_qc_passed) || 0;
       var qcSt = rowG.qc_status || "pending";
       if (qcPassed <= 0 && qcSt !== "passed" && qcSt !== "partial") {
@@ -8351,11 +8353,11 @@ function fillOperatorList(selectedEmail) {
       try {
         await sb.from("warehouse_movements").insert({
           movement_type: "in_vendor",
-          product_id: productId || "",
+          product_id: productId,
           qty: n,
-          unit: unit || "pcs",
-          po_id: poId || "",
-          no_so: noSo || "",
+          unit: unit,
+          po_id: poId,
+          no_so: noSo,
           qc_status: "passed",
           ref_note: "Terima gudang setelah QC, line " + lineId,
           created_by: (currentUser && currentUser.email) || ""
