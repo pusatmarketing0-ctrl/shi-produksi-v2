@@ -8633,6 +8633,85 @@ function fillOperatorList(selectedEmail) {
       })();
     }
 
+    /** Fase 1 roadmap: cek komponen SO */
+    async function checkSoComponentsReady(orderIdOrNoSo) {
+      var result = { ready: false, order_id: "", no_so: "", rows: [], summary: "" };
+      if (!sb || !orderIdOrNoSo) { result.summary = "SO tidak diisi"; return result; }
+      var key = String(orderIdOrNoSo).trim();
+      var { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("order_id", key).maybeSingle();
+      if (!ord) {
+        var r2 = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("no_so", key).limit(1).maybeSingle();
+        ord = r2.data;
+      }
+      if (!ord) { result.summary = "SO tidak ditemukan"; return result; }
+      result.order_id = ord.order_id;
+      result.no_so = ord.no_so || ord.order_id;
+      var fgs = ord.order_lines || [];
+      var need = {};
+      for (var fi = 0; fi < fgs.length; fi++) {
+        var fg = fgs[fi];
+        var fgQty = Number(fg.qty) || 0;
+        var { data: bom } = await sb.from("product_bom").select("material_product_id,qty_per_fg,unit").eq("fg_product_id", fg.product_id);
+        (bom || []).forEach(function(b) {
+          var mid = b.material_product_id;
+          var n = (Number(b.qty_per_fg) || 0) * fgQty;
+          if (!need[mid]) need[mid] = { need: 0, unit: b.unit || "pcs", fgs: [] };
+          need[mid].need += n;
+          need[mid].fgs.push(fg.product_id);
+        });
+      }
+      var { data: pos } = await sb.from("purchase_orders")
+        .select("po_id,status,purchase_lines(product_id,qty,qty_received,qc_status)")
+        .eq("order_id", ord.order_id);
+      var received = {}, ordered = {};
+      (pos || []).forEach(function(po) {
+        if (po.status === "cancelled") return;
+        (po.purchase_lines || []).forEach(function(l) {
+          ordered[l.product_id] = (ordered[l.product_id] || 0) + (Number(l.qty) || 0);
+          if ((l.qc_status || "pending") === "failed") return;
+          received[l.product_id] = (received[l.product_id] || 0) + (Number(l.qty_received) || 0);
+        });
+      });
+      var rows = [], allReady = true, keys = Object.keys(need);
+      if (!keys.length) {
+        var poLines = [];
+        (pos || []).forEach(function(po) {
+          if (po.status === "cancelled") return;
+          (po.purchase_lines || []).forEach(function(l) { poLines.push(l); });
+        });
+        if (!poLines.length) { allReady = false; rows.push("Belum ada BOM & PO → KURANG"); }
+        else poLines.forEach(function(l) {
+          var sisa = (Number(l.qty) || 0) - (Number(l.qty_received) || 0);
+          var qcOk = (l.qc_status || "pending") !== "failed";
+          if (sisa > 0 || !qcOk) allReady = false;
+          rows.push((sisa <= 0 && qcOk ? "✓ " : "✗ ") + l.product_id + " terima " + formatNum(l.qty_received) + "/" + formatNum(l.qty));
+        });
+      } else {
+        keys.forEach(function(mid) {
+          var needQty = need[mid].need, got = received[mid] || 0, ok = got + 1e-9 >= needQty;
+          if (!ok) allReady = false;
+          rows.push((ok ? "✓ READY " : "✗ KURANG ") + mid + " butuh " + formatNum(needQty) + " | terima " + formatNum(got));
+        });
+      }
+      result.ready = allReady;
+      result.rows = rows;
+      result.summary = allReady ? "READY — komponen cukup" : "KURANG — perlu purchase / QC";
+      return result;
+    }
+    async function ensureSoReadyForPlan(orderIdOrNoSo) {
+      if (!orderIdOrNoSo) return true;
+      toast("Cek komponen SO…");
+      var chk = await checkSoComponentsReady(orderIdOrNoSo);
+      if (chk.ready) { toast("Komponen READY"); return true; }
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      var body = "SO " + (chk.no_so || orderIdOrNoSo) + "\n" + chk.summary + "\n\n" + (chk.rows || []).slice(0, 12).join("\n");
+      if (role === "admin") {
+        var force = await appConfirm({ title: "Komponen KURANG", message: body + "\n\nAdmin: paksa plan tetap?", okText: "Paksa plan", cancelText: "Batal", danger: true, icon: "⚠" });
+        return !!force;
+      }
+      await appConfirm({ title: "Komponen KURANG — plan ditahan", message: body + "\n\nSelesaikan Purchase & QC gudang dulu.", okText: "Buka Purchasing", cancelText: "Tutup", danger: false, icon: "⚠" }).then(function(go) { if (go) try { goPage("purchasing"); } catch (e) {} });
+      return false;
+    }
     async function openCekKomponen() {
       if (!sb) return;
       var orderId = await appPrompt({
@@ -8644,6 +8723,13 @@ function fillOperatorList(selectedEmail) {
       });
       if (orderId == null || !String(orderId).trim()) return;
       orderId = String(orderId).trim();
+      try {
+        var chk = await checkSoComponentsReady(orderId);
+        if (!chk.order_id && chk.summary.indexOf("tidak ditemukan") >= 0) return toast("SO tidak ditemukan", true);
+        var body = "SO " + (chk.no_so || orderId) + "\n\n" + chk.summary + "\n\n" + (chk.rows || []).slice(0, 20).join("\n");
+        await appConfirm({ title: chk.ready ? "Komponen READY" : "Komponen KURANG", message: body, okText: chk.ready ? "OK" : "Buka Purchasing", cancelText: "Tutup", danger: false, icon: chk.ready ? "✓" : "⚠" }).then(function(go) { if (go && !chk.ready) try { goPage("purchasing"); } catch (e) {} });
+        return;
+      } catch (eC) { toast(String(eC.message || eC), true); return; }
       toast("Mengecek komponen vs BOM & PO…");
       try {
         var { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("order_id", orderId).maybeSingle();
