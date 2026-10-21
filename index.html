@@ -2533,6 +2533,7 @@
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span class="nav-txt"> Proses</span></button>
         <button class="nav-item" data-page="purchasing" data-roles="admin,ppic,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
         <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
+        <button class="nav-item" data-page="delivery" data-roles="admin,ppic,gudang,marketing" data-tip="Pengiriman" onclick="goPage('delivery')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h13v10H3z"/><path d="M16 10h4l2 3v4h-6V10z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/></svg></span><span class="nav-txt">Pengiriman</span></button>
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-3 3.5-4.5 6-4.5S13.8 16 15 19"/><circle cx="17" cy="9" r="2.5"/><path d="M17 13.5c2 0 3.8 1.2 4.5 3.5"/></svg></span><span class="nav-txt"> Data Akun</span></button>
@@ -3236,9 +3237,28 @@
           <div class="page-head">
             <div>
               <h1>Gudang</h1>
-              <p>Penerimaan barang dari Purchase — ETA & qty diterima.</p>
+              <p>1) Terima bahan vendor + QC · 2) Terima FG & sisa dari produksi · sesuai alur pabrik.</p>
             </div>
             <button class="btn btn-ghost" type="button" onclick="loadGudangInbox()">Refresh</button>
+          </div>
+          <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
+            <div style="font-weight:700;margin-bottom:0.5rem">Dari produksi → gudang (FG / sisa bahan)</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:0.5rem;align-items:end">
+              <div class="field" style="margin:0"><label style="font-size:0.72rem">Jenis</label>
+                <select id="whProdType"><option value="in_fg">Finisgood (FG)</option><option value="in_sisa">Sisa bahan produksi</option></select>
+              </div>
+              <div class="field" style="margin:0"><label style="font-size:0.72rem">Produk / bahan</label>
+                <input id="whProdProduct" placeholder="Kode produk" list="whProdList" />
+                <datalist id="whProdList"></datalist>
+              </div>
+              <div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label>
+                <input id="whProdQty" class="num-input" inputmode="decimal" placeholder="0" />
+              </div>
+              <div class="field" style="margin:0"><label style="font-size:0.72rem">No SO (opsional)</label>
+                <input id="whProdSo" placeholder="SO/..." />
+              </div>
+              <button type="button" class="btn btn-primary" onclick="saveWhFromProduction()">Simpan</button>
+            </div>
           </div>
           <div class="toolbar">
             <input type="search" id="gudangSearch" placeholder="Cari PO / vendor / bahan..." oninput="renderGudangInbox()" />
@@ -3252,13 +3272,42 @@
             <table class="data-table">
               <thead><tr>
                 <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
-                <th>Qty</th><th>Diterima</th><th>Sisa</th><th></th>
+                <th>Qty</th><th>Diterima</th><th>Sisa</th><th>QC</th><th></th>
               </tr></thead>
-              <tbody id="gudangBody"><tr><td colspan="9" class="empty">Memuat…</td></tr></tbody>
+              <tbody id="gudangBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
             </table>
           </div>
         </section>
 
+      <section id="page-delivery" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Pengiriman</h1>
+              <p>DO ke customer akhir — menutup alur dari produksi & gudang FG.</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="openDeliveryModal()">+ DO baru</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="doSearch" placeholder="Cari DO / SO / customer..." oninput="renderDeliveries()" />
+            <select id="doStatusFilter" onchange="renderDeliveries()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua status</option>
+              <option value="draft">draft</option>
+              <option value="ready">ready</option>
+              <option value="shipped">shipped</option>
+              <option value="delivered">delivered</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="loadDeliveries()">Refresh</button>
+          </div>
+          <div class="card" style="overflow:auto">
+            <table class="data-table">
+              <thead><tr>
+                <th>DO</th><th>Tanggal</th><th>SO</th><th>Customer</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody id="doBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
       </main>
     </div>
     <nav class="mobile-nav" id="mobileNav">
@@ -7960,10 +8009,196 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+    var deliveryList = [];
+    function newDeliveryId() {
+      return "DO-" + Date.now().toString(36).toUpperCase();
+    }
+    function closeDeliveryModal() {
+      var m = $("deliveryModal");
+      if (m) m.classList.remove("show");
+    }
+    async function loadDeliveries() {
+      if (!sb) return;
+      var body = $("doBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      var { data, error } = await sb.from("deliveries").select("*").order("delivery_date", { ascending: false }).limit(200);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(error.message) + ' — jalankan align_flow_v2.sql</td></tr>';
+        deliveryList = [];
+        return;
+      }
+      deliveryList = data || [];
+      renderDeliveries();
+    }
+    function renderDeliveries() {
+      var body = $("doBody");
+      if (!body) return;
+      var q = (($("doSearch") && $("doSearch").value) || "").toLowerCase().trim();
+      var st = ($("doStatusFilter") && $("doStatusFilter").value) || "";
+      var list = deliveryList.filter(function(d) {
+        if (st && d.status !== st) return false;
+        if (!q) return true;
+        return (d.delivery_id + " " + (d.no_so || "") + " " + (d.customer_name || "")).toLowerCase().indexOf(q) >= 0;
+      });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pengiriman</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(function(d) {
+        return "<tr>" +
+          "<td><strong>" + esc(d.delivery_id) + "</strong></td>" +
+          "<td>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
+          "<td>" + esc(d.no_so || "—") + "</td>" +
+          "<td>" + esc(d.customer_name || "—") + "</td>" +
+          "<td>" + esc(d.status || "") + "</td>" +
+          "<td><button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button></td>" +
+          "</tr>";
+      }).join("");
+    }
+    async function openDeliveryModal(doId) {
+      $("doLines").innerHTML = "";
+      $("doEditId").value = doId || "";
+      $("doModalTitle").textContent = doId ? "Edit DO" : "DO baru";
+      $("doDate").value = todayStr();
+      $("doStatus").value = "draft";
+      $("doNotes").value = "";
+      $("doCustomer").value = "";
+      await fillDoSoSelect(doId ? "" : "");
+      if (doId) {
+        var { data: d } = await sb.from("deliveries").select("*").eq("delivery_id", doId).maybeSingle();
+        if (d) {
+          $("doDate").value = String(d.delivery_date || "").slice(0, 10);
+          $("doStatus").value = d.status || "draft";
+          $("doNotes").value = d.notes || "";
+          $("doCustomer").value = d.customer_name || "";
+          await fillDoSoSelect(d.order_id || "");
+          var { data: lines } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
+          (lines || []).forEach(function(l) { addDoLine(l); });
+        }
+      } else {
+        addDoLine();
+      }
+      var m = $("deliveryModal");
+      if (m) m.classList.add("show");
+    }
+    async function fillDoSoSelect(selectedId) {
+      var sel = $("doSoSelect");
+      if (!sel || !sb) return;
+      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").order("created_at", { ascending: false }).limit(100);
+      sel.innerHTML = '<option value="">— Pilih SO —</option>';
+      (data || []).forEach(function(o) {
+        var opt = document.createElement("option");
+        opt.value = o.order_id;
+        opt.dataset.noso = o.no_so || "";
+        opt.dataset.customer = o.customer_name || "";
+        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "");
+        if (selectedId && o.order_id === selectedId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+    function onDoSoChange() {
+      var sel = $("doSoSelect");
+      if (!sel || !sel.value) return;
+      var opt = sel.options[sel.selectedIndex];
+      if ($("doCustomer") && opt.dataset.customer) $("doCustomer").value = opt.dataset.customer;
+    }
+    function addDoLine(line) {
+      line = line || {};
+      var box = $("doLines");
+      if (!box) return;
+      box.insertAdjacentHTML("beforeend",
+        '<div class="do-line" style="display:grid;grid-template-columns:1.4fr 0.6fr 0.5fr 32px;gap:0.4rem;margin-bottom:0.4rem">' +
+          '<input class="dol-pid" placeholder="Kode FG" value="' + esc(line.product_id || "") + '" />' +
+          '<input class="dol-qty num-input" inputmode="decimal" placeholder="Qty" value="' + (line.qty != null ? esc(String(line.qty)) : "") + '" />' +
+          '<input class="dol-unit" placeholder="Unit" value="' + esc(line.unit || "pcs") + '" />' +
+          '<button type="button" class="btn btn-ghost btn-sm" onclick="this.parentNode.remove()" style="color:#b91c1c">×</button>' +
+        '</div>');
+    }
+    async function saveDelivery() {
+      if (!sb) return;
+      var order_id = ($("doSoSelect") && $("doSoSelect").value) || "";
+      var opt = $("doSoSelect") && $("doSoSelect").options[$("doSoSelect").selectedIndex];
+      var no_so = (opt && opt.dataset.noso) || "";
+      var do_id = ($("doEditId").value || "").trim() || newDeliveryId();
+      var isNew = !($("doEditId").value || "").trim();
+      var header = {
+        delivery_id: do_id,
+        order_id: order_id,
+        no_so: no_so,
+        customer_name: ($("doCustomer").value || "").trim(),
+        delivery_date: $("doDate").value || todayStr(),
+        status: $("doStatus").value || "draft",
+        notes: ($("doNotes").value || "").trim(),
+        updated_at: new Date().toISOString()
+      };
+      if (isNew) {
+        header.created_by = (currentUser && currentUser.email) || "";
+        header.created_at = new Date().toISOString();
+      }
+      var lines = [];
+      document.querySelectorAll("#doLines .do-line").forEach(function(el) {
+        var product_id = (el.querySelector(".dol-pid").value || "").trim();
+        var qty = parseInputNum(el.querySelector(".dol-qty").value);
+        var unit = (el.querySelector(".dol-unit").value || "pcs").trim();
+        if (product_id && qty > 0) lines.push({ delivery_id: do_id, product_id: product_id, qty: qty, unit: unit });
+      });
+      if (!lines.length) return toast("Minimal 1 baris FG", true);
+      var error;
+      if (isNew) ({ error } = await sb.from("deliveries").insert(header));
+      else {
+        ({ error } = await sb.from("deliveries").update(header).eq("delivery_id", do_id));
+        await sb.from("delivery_lines").delete().eq("delivery_id", do_id);
+      }
+      if (error) return toast(error.message, true);
+      var { error: eL } = await sb.from("delivery_lines").insert(lines);
+      if (eL) return toast(eL.message, true);
+      if (header.status === "shipped" || header.status === "delivered") {
+        try {
+          for (var i = 0; i < lines.length; i++) {
+            await sb.from("warehouse_movements").insert({
+              movement_type: "out_delivery",
+              product_id: lines[i].product_id,
+              qty: lines[i].qty,
+              unit: lines[i].unit,
+              order_id: order_id,
+              no_so: no_so,
+              ref_note: "DO " + do_id,
+              created_by: (currentUser && currentUser.email) || ""
+            });
+          }
+        } catch (eM) {}
+      }
+      toast("DO disimpan");
+      closeDeliveryModal();
+      loadDeliveries();
+    }
+
+    async function saveWhFromProduction() {
+      if (!sb) return;
+      var typ = ($("whProdType") && $("whProdType").value) || "in_fg";
+      var pid = (($("whProdProduct") && $("whProdProduct").value) || "").trim();
+      var qty = parseInputNum($("whProdQty") && $("whProdQty").value);
+      var noSo = (($("whProdSo") && $("whProdSo").value) || "").trim();
+      if (!pid) return toast("Isi kode produk", true);
+      if (!(qty > 0)) return toast("Qty tidak valid", true);
+      var { error } = await sb.from("warehouse_movements").insert({
+        movement_type: typ,
+        product_id: pid,
+        qty: qty,
+        unit: "pcs",
+        no_so: noSo,
+        qc_status: "passed",
+        ref_note: typ === "in_fg" ? "FG dari produksi" : "Sisa bahan dari produksi",
+        created_by: (currentUser && currentUser.email) || ""
+      });
+      if (error) return toast(error.message, true);
+      toast(typ === "in_fg" ? "FG masuk gudang" : "Sisa bahan masuk gudang");
+      if ($("whProdQty")) $("whProdQty").value = "";
+    }
     async function loadGudangInbox() {
       if (!sb) return;
       var body = $("gudangBody");
-      if (body) body.innerHTML = '<tr><td colspan="9" class="empty">Memuat…</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="10" class="empty">Memuat…</td></tr>';
       var { data: pos, error } = await sb.from("purchase_orders")
         .select("po_id,no_so,order_id,po_date,status,purchase_lines(*)")
         .neq("status", "cancelled")
@@ -7986,7 +8221,8 @@ function fillOperatorList(selectedEmail) {
             qty: Number(l.qty) || 0,
             qty_received: Number(l.qty_received) || 0,
             unit: l.unit || "pcs",
-            kategori: l.kategori || ""
+            kategori: l.kategori || "",
+            qc_status: l.qc_status || "pending"
           });
         });
       });
@@ -8015,6 +8251,9 @@ function fillOperatorList(selectedEmail) {
           var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
           pname = p ? p.name : "";
         } catch (e) {}
+        var qc = r.qc_status || "pending";
+        var qcLabel = qc === "passed" ? "Lulus" : (qc === "failed" ? "Tolak" : "Pending");
+        var qcColor = qc === "passed" ? "#059669" : (qc === "failed" ? "#b91c1c" : "#a16207");
         return "<tr>" +
           "<td>" + esc(r.po_id) + "</td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
@@ -8024,13 +8263,14 @@ function fillOperatorList(selectedEmail) {
           "<td>" + formatNum(r.qty) + " " + esc(r.unit) + "</td>" +
           "<td>" + formatNum(r.qty_received) + "</td>" +
           "<td>" + formatNum(sisa) + "</td>" +
+          "<td style='font-weight:700;color:" + qcColor + "'>" + qcLabel + "</td>" +
           "<td>" + (sisa > 0
-            ? '<button type="button" class="btn btn-primary btn-sm" onclick="gudangReceive(' + r.line_id + ',' + r.qty + ',' + r.qty_received + ')">Terima</button>'
+            ? '<button type="button" class="btn btn-primary btn-sm" onclick="gudangReceive(' + r.line_id + ',' + r.qty + ',' + r.qty_received + ',' + JSON.stringify(r.product_id || '') + ',' + JSON.stringify(r.unit || 'pcs') + ',' + JSON.stringify(r.po_id || '') + ',' + JSON.stringify(r.no_so || '') + ')">Terima</button>'
             : '<span style="color:#059669;font-size:0.75rem;font-weight:700">OK</span>') +
           "</td></tr>";
       }).join("");
     }
-    async function gudangReceive(lineId, maxQty, alreadyReceived) {
+    async function gudangReceive(lineId, maxQty, alreadyReceived, productId, unit, poId, noSo) {
       if (!sb || !lineId) return;
       alreadyReceived = Number(alreadyReceived) || 0;
       maxQty = Number(maxQty) || 0;
@@ -8038,9 +8278,9 @@ function fillOperatorList(selectedEmail) {
       if (sisa <= 0) return toast("Sudah diterima penuh", true);
       var raw = await appPrompt({
         title: "Penerimaan gudang",
-        message: "Sudah diterima: " + formatNum(alreadyReceived) + " · Sisa: " + formatNum(sisa) + ". Masukkan qty penerimaan kali ini (akan ditambahkan ke total):",
+        message: "Sudah diterima: " + formatNum(alreadyReceived) + " · Sisa: " + formatNum(sisa) + ". Masukkan qty penerimaan kali ini (akan ditambahkan):",
         defaultValue: String(sisa),
-        okText: "Terima",
+        okText: "Lanjut QC",
         cancelText: "Batal"
       });
       if (raw == null) return;
@@ -8049,17 +8289,45 @@ function fillOperatorList(selectedEmail) {
       if (n > sisa) {
         var okOver = await appConfirm({
           title: "Melebihi sisa?",
-          message: "Qty " + formatNum(n) + " lebih besar dari sisa " + formatNum(sisa) + ". Tetap simpan?",
-          okText: "Ya, simpan",
+          message: "Qty " + formatNum(n) + " > sisa " + formatNum(sisa) + ". Tetap simpan?",
+          okText: "Ya",
           cancelText: "Batal",
           danger: false
         });
         if (!okOver) return;
       }
+      var qcPass = await appConfirm({
+        title: "QC bahan",
+        message: "Apakah bahan lulus QC gudang?\n\nOK = Lulus · Batal = Tolak (qty tetap dicatat, QC = failed)",
+        okText: "Lulus QC",
+        cancelText: "Tolak QC",
+        danger: false,
+        icon: "🔬"
+      });
+      var qcStatus = qcPass ? "passed" : "failed";
       var total = alreadyReceived + n;
-      var { error } = await sb.from("purchase_lines").update({ qty_received: total }).eq("id", lineId);
+      var patch = {
+        qty_received: total,
+        qc_status: qcStatus,
+        qc_at: new Date().toISOString(),
+        qc_by: (currentUser && currentUser.email) || ""
+      };
+      var { error } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
       if (error) return toast(error.message, true);
-      toast("Diterima +" + formatNum(n) + " → total " + formatNum(total));
+      try {
+        await sb.from("warehouse_movements").insert({
+          movement_type: "in_vendor",
+          product_id: productId || "",
+          qty: n,
+          unit: unit || "pcs",
+          po_id: poId || "",
+          no_so: noSo || "",
+          qc_status: qcStatus,
+          ref_note: "Terima PO line " + lineId,
+          created_by: (currentUser && currentUser.email) || ""
+        });
+      } catch (eM) {}
+      toast((qcPass ? "QC LULUS · " : "QC TOLAK · ") + "Diterima +" + formatNum(n) + " → total " + formatNum(total));
       loadGudangInbox();
       try { loadGudangDash(); } catch (e) {}
     }
@@ -8367,10 +8635,16 @@ function fillOperatorList(selectedEmail) {
 
     async function openCekKomponen() {
       if (!sb) return;
-      var orderId = prompt("Masukkan Order ID atau pilih dari daftar SO aktif.\nContoh: ORD-...");
-      if (!orderId) return;
-      orderId = orderId.trim();
-      toast("Mengecek komponen…");
+      var orderId = await appPrompt({
+        title: "Cek komponen SO",
+        message: "Masukkan Order ID atau No SO (contoh: ORD-xxx atau SO/2026/...)",
+        defaultValue: "",
+        okText: "Cek",
+        cancelText: "Batal"
+      });
+      if (orderId == null || !String(orderId).trim()) return;
+      orderId = String(orderId).trim();
+      toast("Mengecek komponen vs BOM & PO…");
       try {
         var { data: ord } = await sb.from("orders").select("order_id,no_so,order_lines(product_id,qty)").eq("order_id", orderId).maybeSingle();
         if (!ord) {
@@ -8378,27 +8652,92 @@ function fillOperatorList(selectedEmail) {
           ord = r2.data;
         }
         if (!ord) return toast("SO tidak ditemukan", true);
-        var { data: pos } = await sb.from("purchase_orders").select("po_id,status,purchase_lines(product_id,qty,qty_received,kategori,vendor_name,eta_date)").eq("order_id", ord.order_id);
-        var lines = [];
+
+        var fgs = ord.order_lines || [];
+        var need = {}; // material_id -> { need, unit, for_fg }
+        for (var fi = 0; fi < fgs.length; fi++) {
+          var fg = fgs[fi];
+          var fgQty = Number(fg.qty) || 0;
+          var { data: bom } = await sb.from("product_bom").select("material_product_id,qty_per_fg,unit").eq("fg_product_id", fg.product_id);
+          if (bom && bom.length) {
+            bom.forEach(function(b) {
+              var mid = b.material_product_id;
+              var n = (Number(b.qty_per_fg) || 0) * fgQty;
+              if (!need[mid]) need[mid] = { need: 0, unit: b.unit || "pcs", fgs: [] };
+              need[mid].need += n;
+              need[mid].fgs.push(fg.product_id);
+            });
+          }
+        }
+
+        var { data: pos } = await sb.from("purchase_orders")
+          .select("po_id,status,purchase_lines(product_id,qty,qty_received,kategori,vendor_name,eta_date,qc_status)")
+          .eq("order_id", ord.order_id);
+        var received = {}; // product_id -> qty_received passed QC
+        var ordered = {};
         (pos || []).forEach(function(po) {
           if (po.status === "cancelled") return;
           (po.purchase_lines || []).forEach(function(l) {
-            lines.push(Object.assign({ po_id: po.po_id }, l));
+            var pid = l.product_id;
+            ordered[pid] = (ordered[pid] || 0) + (Number(l.qty) || 0);
+            var qc = l.qc_status || "pending";
+            var rcv = Number(l.qty_received) || 0;
+            if (qc === "failed") return;
+            received[pid] = (received[pid] || 0) + rcv;
           });
         });
-        var msg = "SO " + (ord.no_so || ord.order_id) + "\nFG: " + ((ord.order_lines||[]).map(function(l){return l.product_id;}).join(", ") || "—") + "\n\n";
-        if (!lines.length) {
-          msg += "Belum ada PO bahan.\nKomponen: KURANG → buat PO.";
-        } else {
-          var kurang = lines.filter(function(l) { return (Number(l.qty_received)||0) < (Number(l.qty)||0); });
-          msg += "Baris PO: " + lines.length + "\nBelum lengkap terima: " + kurang.length + "\n";
-          kurang.slice(0, 8).forEach(function(l) {
-            msg += "- " + l.product_id + " (" + (l.kategori||"") + ") vendor " + (l.vendor_name||"-") + " sisa " + ((Number(l.qty)||0)-(Number(l.qty_received)||0)) + " ETA " + (l.eta_date||"-") + "\n";
+
+        var rows = [];
+        var allReady = true;
+        var keys = Object.keys(need);
+        if (!keys.length) {
+          // no BOM — fallback to PO completeness
+          var poLines = [];
+          (pos || []).forEach(function(po) {
+            if (po.status === "cancelled") return;
+            (po.purchase_lines || []).forEach(function(l) { poLines.push(l); });
           });
-          if (kurang.length) msg += "\n→ Trigger purchase / follow-up vendor.";
-          else msg += "\nSemua baris PO sudah diterima (qty).";
+          if (!poLines.length) {
+            allReady = false;
+            rows.push("Belum ada BOM & belum ada PO → status: KURANG");
+          } else {
+            poLines.forEach(function(l) {
+              var sisa = (Number(l.qty) || 0) - (Number(l.qty_received) || 0);
+              if (sisa > 0 || (l.qc_status && l.qc_status === "failed")) allReady = false;
+              rows.push((sisa <= 0 && l.qc_status !== "failed" ? "✓ " : "✗ ") + l.product_id +
+                " PO " + formatNum(l.qty) + " terima " + formatNum(l.qty_received) +
+                " QC " + (l.qc_status || "pending"));
+            });
+          }
+        } else {
+          keys.forEach(function(mid) {
+            var needQty = need[mid].need;
+            var got = received[mid] || 0;
+            var ordQty = ordered[mid] || 0;
+            var ok = got + 1e-9 >= needQty;
+            if (!ok) allReady = false;
+            rows.push((ok ? "✓ READY " : "✗ KURANG ") + mid +
+              " butuh " + formatNum(needQty) + " " + (need[mid].unit || "") +
+              " | PO " + formatNum(ordQty) + " | terima " + formatNum(got) +
+              " | FG " + need[mid].fgs.join(","));
+          });
         }
-        alert(msg);
+
+        var title = allReady ? "READY — komponen cukup" : "KURANG — perlu purchase / follow-up";
+        var body = "SO " + (ord.no_so || ord.order_id) + "\n" +
+          "FG: " + (fgs.map(function(l) { return l.product_id; }).join(", ") || "—") + "\n\n" +
+          title + "\n\n" + rows.slice(0, 20).join("\n");
+        if (!allReady) body += "\n\n→ Buka Purchasing, buat PO untuk item KURANG.";
+        await appConfirm({
+          title: allReady ? "Komponen READY" : "Komponen KURANG",
+          message: body,
+          okText: allReady ? "OK" : "Buka Purchasing",
+          cancelText: "Tutup",
+          danger: false,
+          icon: allReady ? "✓" : "⚠"
+        }).then(function(go) {
+          if (go && !allReady) try { goPage("purchasing"); } catch (e) {}
+        });
       } catch (e) {
         toast(String(e.message || e), true);
       }
@@ -9990,6 +10329,7 @@ function fillOperatorList(selectedEmail) {
       }
       if (currentRole() === "gudang" && page === "purchasing") page = "gudang";
       if (currentRole() === "purchasing" && page === "gudang") page = "purchasing";
+      if (currentRole() === "operator" && page === "delivery") page = "home";
       const navBtn = document.querySelector('.nav-item[data-page="' + page + '"]');
       if (navBtn && navBtn.style.display === "none") page = "home";
       document.querySelectorAll(".page").forEach(el => { el.hidden = el.id !== "page-" + page; });
@@ -10017,6 +10357,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
       if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
       if (page === "gudang") { try { loadGudangInbox(); } catch (eG) {} }
+      if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
       if (page === "bom") { try { loadBom(); } catch (e) {} }
       if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
       if (page === "wip") { try { loadWipStock(); } catch (e) {} }
@@ -11312,6 +11653,37 @@ function closeOtModal() {
   </div>
 
 
+  <div id="deliveryModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:560px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2 id="doModalTitle">DO baru</h2></div>
+      <div class="sheet-body">
+        <input type="hidden" id="doEditId" />
+        <div class="field"><label>Sales Order</label>
+          <select id="doSoSelect" onchange="onDoSoChange()"><option value="">— Pilih SO —</option></select>
+        </div>
+        <div class="field"><label>Customer</label><input id="doCustomer" placeholder="Nama customer" /></div>
+        <div class="field"><label>Tanggal kirim</label><input type="date" id="doDate" /></div>
+        <div class="field"><label>Status</label>
+          <select id="doStatus">
+            <option value="draft">draft</option>
+            <option value="ready">ready</option>
+            <option value="shipped">shipped</option>
+            <option value="delivered">delivered</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+        </div>
+        <div class="field"><label>Catatan</label><input id="doNotes" /></div>
+        <div style="font-weight:700;margin:0.75rem 0 0.35rem">Baris produk (FG)</div>
+        <div id="doLines"></div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addDoLine()">+ Baris</button>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeDeliveryModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="saveDelivery()">Simpan DO</button>
+      </div>
+    </div>
+  </div>
   <div id="appPromptModal" class="modal-bg" style="z-index:100210;display:none">
     <div class="modal" style="max-width:380px;width:92vw;padding:1.25rem 1.2rem;border-radius:18px">
       <div id="appPromptTitle" style="font-weight:700;font-size:1rem;margin-bottom:0.35rem">Input</div>
