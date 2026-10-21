@@ -8465,7 +8465,8 @@ function fillOperatorList(selectedEmail) {
           if (p) name = p.name || "";
         } catch (e) {}
         var saldoColor = r.saldo < 0 ? "#b91c1c" : (r.saldo > 0 ? "#059669" : "inherit");
-        return "<tr>" +
+        var pidSafe = String(r.product_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        return "<tr style=\"cursor:pointer\" onclick=\"openProductMove('" + pidSafe + "')\" title=\"History pergerakan\">" +
           "<td><strong>" + esc(r.product_id) + "</strong></td>" +
           "<td style=\"font-size:0.8rem\">" + esc(name || "—") + "</td>" +
           "<td>" + formatNum(r.in) + "</td>" +
@@ -8473,6 +8474,91 @@ function fillOperatorList(selectedEmail) {
           "<td style=\"font-weight:700;color:" + saldoColor + "\">" + formatNum(r.saldo) + "</td>" +
           "<td>" + esc(r.unit) + "</td></tr>";
       }).join("");
+    }
+    function whMoveLabel(type, ref) {
+      var t = String(type || "");
+      var map = {
+        in_vendor: "Masuk — terima vendor (setelah QC)",
+        in_fg: "Masuk — FG dari packing / produksi",
+        in_sisa: "Masuk — sisa bahan produksi",
+        out_delivery: "Keluar — pengiriman ke customer",
+        out_prod: "Keluar — dipakai produksi",
+        out_adjust: "Keluar — penyesuaian",
+        in_adjust: "Masuk — penyesuaian"
+      };
+      var base = map[t] || ((t.indexOf("out") === 0 ? "Keluar — " : "Masuk — ") + t);
+      if (ref) base += " · " + ref;
+      return base;
+    }
+    async function openProductMove(productId) {
+      if (!sb || !productId) return;
+      var name = "";
+      try {
+        var p = (products || []).find(function(x) { return String(x.product_id) === String(productId); });
+        if (p) name = p.name || "";
+      } catch (e) {}
+      if ($("pmTitle")) $("pmTitle").textContent = productId + (name ? " — " + name : "");
+      if ($("pmSub")) $("pmSub").textContent = "History pergerakan (in / out / saldo berjalan)";
+      var body = $("pmBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      var modal = $("productMoveModal");
+      if (modal) {
+        modal.classList.add("show");
+        modal.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+
+      var { data, error } = await sb.from("warehouse_movements")
+        .select("id,product_id,qty,unit,movement_type,ref_note,po_id,no_so,created_at,created_by")
+        .eq("product_id", productId)
+        .order("created_at", { ascending: true })
+        .limit(2000);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(error.message) + '</td></tr>';
+        return;
+      }
+      var rows = data || [];
+      if (!rows.length) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pergerakan</td></tr>';
+        if ($("pmSaldo")) $("pmSaldo").textContent = "0";
+        return;
+      }
+      var saldo = 0;
+      body.innerHTML = rows.map(function(r) {
+        var q = Number(r.qty) || 0;
+        var t = String(r.movement_type || "");
+        var isOut = t.indexOf("out") === 0;
+        var masuk = isOut ? 0 : q;
+        var keluar = isOut ? q : 0;
+        saldo += masuk - keluar;
+        var tgl = "";
+        try {
+          tgl = formatWibDateTime(r.created_at) || String(r.created_at || "").slice(0, 16);
+        } catch (e2) {
+          tgl = String(r.created_at || "").replace("T", " ").slice(0, 16);
+        }
+        var ket = whMoveLabel(t, r.ref_note || "");
+        if (r.po_id) ket += " · PO " + r.po_id;
+        if (r.no_so) ket += " · SO " + r.no_so;
+        var dirColor = isOut ? "#b91c1c" : "#059669";
+        var dirTxt = isOut ? "KELUAR" : "MASUK";
+        return "<tr>" +
+          "<td style=\"white-space:nowrap;font-size:0.8rem\">" + esc(tgl) + "</td>" +
+          "<td style=\"font-size:0.8rem\">" + esc(ket) + "</td>" +
+          "<td style=\"font-weight:700;color:" + dirColor + "\">" + dirTxt + "</td>" +
+          "<td style=\"text-align:right\">" + (masuk ? formatNum(masuk) : "—") + "</td>" +
+          "<td style=\"text-align:right\">" + (keluar ? formatNum(keluar) : "—") + "</td>" +
+          "<td style=\"text-align:right;font-weight:700\">" + formatNum(saldo) + "</td></tr>";
+      }).join("");
+      if ($("pmSaldo")) $("pmSaldo").textContent = formatNum(saldo) + " " + (rows[rows.length - 1].unit || "");
+    }
+    function closeProductMove() {
+      var modal = $("productMoveModal");
+      if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
     }
     async function loadGudangInbox() {
       if (!sb) return;
@@ -12417,6 +12503,38 @@ function closeOtModal() {
   </div>
 
 
+  <div id="productMoveModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100150">
+    <div class="modal modal-sheet" style="max-width:720px;width:94vw;max-height:88vh;display:flex;flex-direction:column">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+        <div>
+          <h2 id="pmTitle" style="margin:0;font-size:1.05rem">Produk</h2>
+          <p id="pmSub" style="margin:0.25rem 0 0;font-size:0.78rem;color:var(--text-muted)">History pergerakan</p>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeProductMove()">Tutup</button>
+      </div>
+      <div style="padding:0 1rem 0.5rem;font-size:0.85rem">
+        Saldo akhir: <strong id="pmSaldo">—</strong>
+      </div>
+      <div class="sheet-body" style="overflow:auto;flex:1;padding-top:0">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Keterangan</th>
+                <th>Arah</th>
+                <th style="text-align:right">Masuk</th>
+                <th style="text-align:right">Keluar</th>
+                <th style="text-align:right">Saldo</th>
+              </tr>
+            </thead>
+            <tbody id="pmBody"><tr><td colspan="6" class="empty">—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="prManualModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:560px">
       <div class="sheet-handle"></div>
