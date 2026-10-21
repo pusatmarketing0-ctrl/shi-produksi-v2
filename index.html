@@ -3077,10 +3077,11 @@
           </div>
           <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
-              <div style="font-weight:700">Permintaan dari PPIC</div>
+              <div style="font-weight:700">Permintaan ke Purchase</div>
               <div style="display:flex;gap:0.35rem;flex-wrap:wrap">
-                <button class="btn btn-ghost btn-sm" type="button" onclick="openCekKomponen()">Cek komponen (PPIC)</button>
-                <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseRequests()">Refresh PR</button>
+                <button class="btn btn-primary btn-sm" type="button" onclick="openPrManualModal()">+ PR manual</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="openCekKomponen()">Dari cek komponen</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseRequests()">Refresh</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -9130,6 +9131,103 @@ function fillOperatorList(selectedEmail) {
       try { goPage("purchasing"); } catch (e) {}
       try { loadPurchaseRequests(); } catch (e2) {}
     }
+    function closePrManualModal() {
+      var m = $("prManualModal");
+      if (m) m.classList.remove("show");
+    }
+    async function openPrManualModal() {
+      if (!sb) return;
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      if (role !== "admin" && role !== "ppic" && role !== "purchasing") {
+        return toast("Hanya PPIC / Purchase / Admin", true);
+      }
+      $("prNotes").value = "";
+      $("prLines").innerHTML = "";
+      await fillPrSoSelect();
+      addPrLine();
+      var m = $("prManualModal");
+      if (m) m.classList.add("show");
+    }
+    async function fillPrSoSelect() {
+      var sel = $("prSoSelect");
+      if (!sel || !sb) return;
+      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").order("created_at", { ascending: false }).limit(100);
+      sel.innerHTML = '<option value="">— Tanpa SO / pilih —</option>';
+      (data || []).forEach(function(o) {
+        var opt = document.createElement("option");
+        opt.value = o.order_id;
+        opt.dataset.noso = o.no_so || "";
+        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "");
+        sel.appendChild(opt);
+      });
+    }
+    function onPrSoChange() {}
+    function addPrLine(line) {
+      line = line || {};
+      var box = $("prLines");
+      if (!box) return;
+      box.insertAdjacentHTML("beforeend",
+        '<div class="pr-line" style="display:grid;grid-template-columns:1.4fr 0.7fr 0.5fr 32px;gap:0.4rem;margin-bottom:0.4rem;align-items:center">' +
+          '<input class="prl-pid" placeholder="Kode bahan" list="prProdList" value="' + esc(line.product_id || "") + '" />' +
+          '<input class="prl-qty num-input" inputmode="decimal" placeholder="Qty" value="' + (line.qty_needed != null ? esc(String(line.qty_needed)) : "") + '" />' +
+          '<input class="prl-unit" placeholder="Unit" value="' + esc(line.unit || "pcs") + '" />' +
+          '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="this.parentNode.remove()">×</button>' +
+        '</div>');
+      try {
+        var dl = document.getElementById("prProdList");
+        if (!dl) {
+          dl = document.createElement("datalist");
+          dl.id = "prProdList";
+          document.body.appendChild(dl);
+        }
+        dl.innerHTML = (products || []).slice(0, 800).map(function(p) {
+          return '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>';
+        }).join("");
+      } catch (e) {}
+    }
+    async function savePrManual() {
+      if (!sb) return;
+      var soSel = $("prSoSelect");
+      var order_id = (soSel && soSel.value) || "";
+      var no_so = "";
+      if (soSel && soSel.value && soSel.selectedIndex >= 0) {
+        no_so = soSel.options[soSel.selectedIndex].dataset.noso || "";
+      }
+      var notes = (($("prNotes") && $("prNotes").value) || "").trim();
+      var lines = [];
+      document.querySelectorAll("#prLines .pr-line").forEach(function(el) {
+        var product_id = (el.querySelector(".prl-pid").value || "").trim();
+        var qty = parseInputNum(el.querySelector(".prl-qty").value);
+        var unit = (el.querySelector(".prl-unit").value || "pcs").trim();
+        if (product_id && qty > 0) lines.push({ product_id: product_id, qty_needed: qty, unit: unit });
+      });
+      if (!lines.length) return toast("Minimal 1 bahan dengan qty", true);
+      var prId = newPrId();
+      var { error } = await sb.from("purchase_requests").insert({
+        pr_id: prId,
+        order_id: order_id,
+        no_so: no_so,
+        status: "open",
+        notes: notes || "PR manual",
+        created_by: (currentUser && currentUser.email) || ""
+      });
+      if (error) return toast(error.message + " — jalankan ppic_purchase_request.sql", true);
+      var rows = lines.map(function(l) {
+        return {
+          pr_id: prId,
+          product_id: l.product_id,
+          qty_needed: l.qty_needed,
+          unit: l.unit,
+          for_product_id: "",
+          notes: ""
+        };
+      });
+      var { error: eL } = await sb.from("purchase_request_lines").insert(rows);
+      if (eL) return toast(eL.message, true);
+      toast("PR " + prId + " dikirim ke Purchase");
+      closePrManualModal();
+      loadPurchaseRequests();
+    }
     async function openCekKomponen() {
       if (!sb) return;
       var role = (typeof currentRole === "function" ? currentRole() : "") || "";
@@ -12081,6 +12179,27 @@ function closeOtModal() {
   </div>
 
 
+  <div id="prManualModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:560px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2>Permintaan beli (manual)</h2></div>
+      <div class="sheet-body">
+        <div class="field"><label>Sales Order (opsional)</label>
+          <select id="prSoSelect" onchange="onPrSoChange()"><option value="">— Tanpa SO / pilih —</option></select>
+        </div>
+        <div class="field"><label>Catatan untuk Purchase</label>
+          <input id="prNotes" placeholder="Mis. butuh asap untuk batch minggu ini" />
+        </div>
+        <div style="font-weight:700;margin:0.75rem 0 0.35rem">Baris bahan</div>
+        <div id="prLines"></div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addPrLine()">+ Bahan</button>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closePrManualModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="savePrManual()">Kirim ke Purchase</button>
+      </div>
+    </div>
+  </div>
   <div id="deliveryModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:560px">
       <div class="sheet-handle"></div>
