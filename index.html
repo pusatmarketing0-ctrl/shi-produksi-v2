@@ -8301,38 +8301,42 @@ function fillOperatorList(selectedEmail) {
           "<td>" + formatNum(r.qty_received) + "</td>" +
           "<td>" + formatNum(sisa) + "</td>" +
           "<td style='font-weight:700;color:" + qcColor + "'>" + qcLabel + "</td>" +
-          (function() {
-          var passed = Number(r.qty_qc_passed) || 0;
-          if ((r.qc_status || "") === "passed" && passed <= 0) passed = Number(r.qty) || 0;
-          var sisaG = Math.max(0, passed - (Number(r.qty_received) || 0));
-          if ((r.qc_status || "pending") === "pending" && passed <= 0) {
-            return "<td><span style='font-size:0.72rem;color:#a16207'>Menunggu QC</span></td></tr>";
-          }
-          if (sisaG > 0) {
-            return "<td><button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangReceive(" + r.line_id + "," + r.qty + "," + r.qty_received + "," + JSON.stringify(r.product_id || "") + "," + JSON.stringify(r.unit || "pcs") + "," + JSON.stringify(r.po_id || "") + "," + JSON.stringify(r.no_so || "") + ")\">Terima</button></td></tr>";
-          }
-          return "<td><span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span></td></tr>";
-        })();
+          "<td>" + gudangActionHtml(r) + "</td></tr>";
       }).join("");
+    }
+    function gudangActionHtml(r) {
+      var passed2 = Number(r.qty_qc_passed) || 0;
+      if ((r.qc_status || "") === "passed" && passed2 <= 0) passed2 = Number(r.qty) || 0;
+      var sisaG2 = Math.max(0, passed2 - (Number(r.qty_received) || 0));
+      if ((r.qc_status || "pending") === "pending" && passed2 <= 0) {
+        return "<span style=\"font-size:0.72rem;color:#a16207\">Menunggu QC</span>";
+      }
+      if (sisaG2 > 0) {
+        return "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangReceive(" +
+          Number(r.line_id) + "," + Number(r.qty) + "," + Number(r.qty_received) + "," +
+          JSON.stringify(String(r.product_id || "")) + "," + JSON.stringify(String(r.unit || "pcs")) + "," +
+          JSON.stringify(String(r.po_id || "")) + "," + JSON.stringify(String(r.no_so || "")) +
+          ")\">Terima</button>";
+      }
+      return "<span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span>";
     }
     async function gudangReceive(lineId, maxQty, alreadyReceived, productId, unit, poId, noSo) {
       if (!sb || !lineId) return;
       alreadyReceived = Number(alreadyReceived) || 0;
       maxQty = Number(maxQty) || 0;
-      // Alur: QC dulu — gudang hanya boleh terima max = qty lulus QC
       var rowG = (gudangRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
       var qcPassed = Number(rowG.qty_qc_passed) || 0;
       var qcSt = rowG.qc_status || "pending";
-      if (qcPassed <= 0 && qcSt !== "passed") {
-        return toast("Belum QC / belum ada qty lulus. QC harus dulu sebelum gudang terima.", true);
+      if (qcPassed <= 0 && qcSt !== "passed" && qcSt !== "partial") {
+        return toast("Belum QC / belum ada qty lulus. Selesaikan QC dulu.", true);
       }
-      if (qcSt === "passed" && qcPassed <= 0) qcPassed = maxQty;
+      if ((qcSt === "passed" || qcSt === "partial") && qcPassed <= 0) qcPassed = maxQty;
       var sisaQc = Math.max(0, qcPassed - alreadyReceived);
       if (sisaQc <= 0) return toast("Qty lulus QC sudah diterima penuh di gudang", true);
       var raw = await appPrompt({
         title: "Penerimaan gudang",
         message: "Lulus QC: " + formatNum(qcPassed) + " · Sudah di gudang: " + formatNum(alreadyReceived) +
-          " · Sisa boleh terima: " + formatNum(sisaQc) + "\n(QC sudah selesai — terima yang lulus saja)",
+          " · Sisa boleh terima: " + formatNum(sisaQc),
         defaultValue: String(sisaQc),
         okText: "Terima",
         cancelText: "Batal"
@@ -8340,10 +8344,9 @@ function fillOperatorList(selectedEmail) {
       if (raw == null) return;
       var n = parseInputNum(raw);
       if (!(n > 0)) return toast("Qty tidak valid", true);
-      if (n > sisaQc) return toast("Tidak boleh melebihi sisa qty lulus QC (" + formatNum(sisaQc) + ")", true);
+      if (n > sisaQc) return toast("Maks. sisa lulus QC: " + formatNum(sisaQc), true);
       var total = alreadyReceived + n;
-      var patch = { qty_received: total };
-      var { error } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
+      var { error } = await sb.from("purchase_lines").update({ qty_received: total }).eq("id", lineId);
       if (error) return toast(error.message, true);
       try {
         await sb.from("warehouse_movements").insert({
@@ -8353,12 +8356,12 @@ function fillOperatorList(selectedEmail) {
           unit: unit || "pcs",
           po_id: poId || "",
           no_so: noSo || "",
-          qc_status: "pending",
-          ref_note: "Terima gudang PO line " + lineId + " — menunggu QC",
+          qc_status: "passed",
+          ref_note: "Terima gudang setelah QC, line " + lineId,
           created_by: (currentUser && currentUser.email) || ""
         });
       } catch (eM) {}
-      toast("Diterima +" + formatNum(n) + " → total " + formatNum(total) + " · menunggu QC");
+      toast("Diterima +" + formatNum(n) + " → total " + formatNum(total));
       loadGudangInbox();
       try { loadGudangDash(); } catch (e) {}
     }
