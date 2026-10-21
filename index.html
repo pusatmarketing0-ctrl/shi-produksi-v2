@@ -3270,9 +3270,22 @@
           <div class="page-head">
             <div>
               <h1>Gudang</h1>
-              <p>1) Terima bahan <strong>setelah QC lulus</strong> · 2) Terima FG & sisa dari produksi.</p>
+              <p>Stok dari mutasi · terima bahan setelah QC · FG auto dari packing.</p>
             </div>
-            <button class="btn btn-ghost" type="button" onclick="loadGudangInbox()">Refresh</button>
+            <button class="btn btn-ghost" type="button" onclick="loadGudangInbox();loadGudangStock()">Refresh</button>
+          </div>
+          <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem">
+              <div style="font-weight:700">Stok gudang (saldo)</div>
+              <input type="search" id="whStockSearch" placeholder="Cari kode / nama..." oninput="renderGudangStock()" style="max-width:220px;border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.65rem;font-size:0.85rem" />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Kode</th><th>Nama</th><th>Masuk</th><th>Keluar</th><th>Saldo</th><th>Unit</th></tr></thead>
+                <tbody id="whStockBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Masuk = in_vendor + in_fg + in_sisa · Keluar = out_delivery / out_* · Saldo = masuk − keluar</p>
           </div>
           <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
             <div style="font-weight:700;margin-bottom:0.5rem">Dari produksi → gudang (FG / sisa bahan)</div>
@@ -8314,10 +8327,80 @@ function fillOperatorList(selectedEmail) {
       toast(typ === "in_fg" ? "FG masuk gudang" : "Sisa bahan masuk gudang");
       if ($("whProdQty")) $("whProdQty").value = "";
     }
+    var gudangStockRows = [];
+    async function loadGudangStock() {
+      if (!sb) return;
+      var body = $("whStockBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      var { data, error } = await sb.from("warehouse_movements")
+        .select("product_id,qty,unit,movement_type")
+        .limit(5000);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(error.message) + '</td></tr>';
+        gudangStockRows = [];
+        return;
+      }
+      var map = {};
+      (data || []).forEach(function(m) {
+        var pid = m.product_id || "";
+        if (!pid) return;
+        if (!map[pid]) map[pid] = { product_id: pid, in: 0, out: 0, unit: m.unit || "pcs" };
+        var q = Number(m.qty) || 0;
+        var t = String(m.movement_type || "");
+        if (t.indexOf("out") === 0 || t === "out_delivery" || t === "out_prod") {
+          map[pid].out += q;
+        } else {
+          map[pid].in += q;
+        }
+        if (m.unit) map[pid].unit = m.unit;
+      });
+      gudangStockRows = Object.keys(map).map(function(k) {
+        var r = map[k];
+        r.saldo = r.in - r.out;
+        return r;
+      }).sort(function(a, b) {
+        return String(a.product_id).localeCompare(String(b.product_id));
+      });
+      renderGudangStock();
+    }
+    function renderGudangStock() {
+      var body = $("whStockBody");
+      if (!body) return;
+      var q = (($("whStockSearch") && $("whStockSearch").value) || "").toLowerCase().trim();
+      var list = gudangStockRows.filter(function(r) {
+        if (!q) return true;
+        var name = "";
+        try {
+          var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
+          if (p) name = p.name || "";
+        } catch (e) {}
+        return (r.product_id + " " + name).toLowerCase().indexOf(q) >= 0;
+      });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada mutasi gudang</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(function(r) {
+        var name = "";
+        try {
+          var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
+          if (p) name = p.name || "";
+        } catch (e) {}
+        var saldoColor = r.saldo < 0 ? "#b91c1c" : (r.saldo > 0 ? "#059669" : "inherit");
+        return "<tr>" +
+          "<td><strong>" + esc(r.product_id) + "</strong></td>" +
+          "<td style=\"font-size:0.8rem\">" + esc(name || "—") + "</td>" +
+          "<td>" + formatNum(r.in) + "</td>" +
+          "<td>" + formatNum(r.out) + "</td>" +
+          "<td style=\"font-weight:700;color:" + saldoColor + "\">" + formatNum(r.saldo) + "</td>" +
+          "<td>" + esc(r.unit) + "</td></tr>";
+      }).join("");
+    }
     async function loadGudangInbox() {
       if (!sb) return;
       var body = $("gudangBody");
       if (body) body.innerHTML = '<tr><td colspan="10" class="empty">Memuat…</td></tr>';
+      try { loadGudangStock(); } catch (eS) {}
       var { data: pos, error } = await sb.from("purchase_orders")
         .select("po_id,no_so,order_id,po_date,status,purchase_lines(*)")
         .neq("status", "cancelled")
