@@ -7146,9 +7146,26 @@ function fillOperatorList(selectedEmail) {
           "<div>OP: <strong>" + formatNum(opsMenuCtx.op_total || 0) + "</strong></div>";
       }
       var dbSt = String(opsMenuCtx.db_status || "").toLowerCase();
-      var closed = dbSt === "done" || dbSt === "closed" || opsMenuCtx.status === "DONE";
+      var closed = !!(opsMenuCtx.line_closed) || dbSt === "done" || dbSt === "closed" || opsMenuCtx.status === "DONE";
       if ($("btnOpsClose")) $("btnOpsClose").style.display = closed ? "none" : "";
       if ($("btnOpsReopen")) $("btnOpsReopen").style.display = closed ? "" : "none";
+      if ($("opsCloseForm")) $("opsCloseForm").style.display = closed ? "none" : "";
+      if ($("opsCloseCat")) $("opsCloseCat").value = "";
+      if ($("opsCloseReason")) $("opsCloseReason").value = "";
+      if ($("opsClosePhoto")) $("opsClosePhoto").value = "";
+      if ($("opsClosePhotoPrev")) $("opsClosePhotoPrev").textContent = "";
+      try {
+        var ph = $("opsClosePhoto");
+        if (ph && ph.dataset.bound !== "1") {
+          ph.dataset.bound = "1";
+          ph.addEventListener("change", function() {
+            var f = ph.files && ph.files[0];
+            if ($("opsClosePhotoPrev")) {
+              $("opsClosePhotoPrev").textContent = f ? ("📎 " + f.name + " (" + Math.round(f.size / 1024) + " KB)") : "";
+            }
+          });
+        }
+      } catch (ePh) {}
       var m = $("opsProductModal");
       if (m) {
         m.classList.add("show");
@@ -7182,11 +7199,51 @@ function fillOperatorList(selectedEmail) {
       }
       if (!orderId) return toast("Order ID / No SO tidak ditemukan", true);
 
+      var closeCat = "";
+      var closeReason = "";
+      var photoUrl = "";
+      if (!reopen) {
+        closeCat = (($("opsCloseCat") && $("opsCloseCat").value) || "").trim();
+        closeReason = (($("opsCloseReason") && $("opsCloseReason").value) || "").trim();
+        if (!closeCat) return toast("Pilih kategori close", true);
+        var poQty = Number(opsMenuCtx.po_qty) || 0;
+        var actQty = Number(opsMenuCtx.act_total) || 0;
+        var needReason = closeCat === "potong_order" || closeCat === "reject_qc" || closeCat === "batal_produksi" || closeCat === "lainnya" || (poQty > 0 && actQty < poQty);
+        if (needReason && !closeReason) return toast("Isi alasan / catatan close", true);
+        var needPhoto = closeCat === "potong_order" || closeCat === "reject_qc";
+        var fileEl = $("opsClosePhoto");
+        var file = fileEl && fileEl.files && fileEl.files[0];
+        if (needPhoto && !file) return toast("Upload foto bukti untuk kategori ini", true);
+        if (file) {
+          try {
+            toast("Upload bukti…");
+            if (typeof otUploadOneToDrive === "function") {
+              var up = await otUploadOneToDrive(file, "close_proof");
+              photoUrl = (up && (up.url || up.webViewLink || up.link)) || "";
+            }
+          } catch (eUp) {
+            console.warn(eUp);
+            return toast("Gagal upload bukti: " + (eUp.message || eUp), true);
+          }
+        }
+      }
+
+      var catLabel = {
+        selesai_normal: "Selesai normal",
+        potong_order: "Potong order customer",
+        reject_qc: "Reject / QC",
+        koreksi_admin: "Koreksi admin",
+        batal_produksi: "Batal produksi",
+        lainnya: "Lainnya"
+      };
       var ok = await appConfirm({
         title: reopen ? "Buka kembali produk ini?" : "Close produk ini saja?",
         message: (reopen
           ? "Hanya produk ini yang dibuka lagi.\n"
-          : "Hanya produk ini yang di-close.\nProduk lain di SO yang sama TIDAK ikut tertutup.\nSO induk jadi done hanya jika semua produk sudah done.\n\n") +
+          : "Kategori: " + (catLabel[closeCat] || closeCat) + "\n" +
+            (closeReason ? "Alasan: " + closeReason + "\n" : "") +
+            (photoUrl ? "Bukti: terlampir\n" : "") +
+            "Produk lain di SO TIDAK ikut tertutup.\n\n") +
           "SO: " + (noSo || orderId) + "\nProduk: " + productId,
         okText: reopen ? "Buka produk" : "Close produk ini",
         cancelText: "Batal",
@@ -7198,25 +7255,35 @@ function fillOperatorList(selectedEmail) {
       var now = new Date().toISOString();
       var lineSt = reopen ? "open" : "done";
       var lineOk = false;
+      var closeMeta = !reopen
+        ? ("[CLOSE:" + closeCat + "]" + (closeReason ? " " + closeReason : "") + (photoUrl ? " [PROOF:" + photoUrl + "]" : ""))
+        : "";
 
-      // 1) Tandai baris order_lines produk ini
+      // 1) Tandai baris order_lines produk ini + meta close
       try {
-        var u1 = await sb.from("order_lines").update({ status: lineSt }).eq("order_id", orderId).eq("product_id", productId);
-        if (!u1.error) lineOk = true;
-        else {
-          var { data: lines0 } = await sb.from("order_lines").select("id,notes").eq("order_id", orderId).eq("product_id", productId);
-          if (lines0 && lines0.length) {
-            for (var li = 0; li < lines0.length; li++) {
-              var note = String(lines0[li].notes || "");
-              if (!reopen) {
-                if (note.indexOf("[CLOSED]") < 0) note = (note ? note + " " : "") + "[CLOSED]";
-              } else {
-                note = note.replace(/\s*\[CLOSED\]/g, "").trim();
-              }
-              var u2 = await sb.from("order_lines").update({ notes: note }).eq("id", lines0[li].id);
-              if (!u2.error) lineOk = true;
+        var { data: lines0 } = await sb.from("order_lines").select("id,notes").eq("order_id", orderId).eq("product_id", productId);
+        if (lines0 && lines0.length) {
+          for (var li = 0; li < lines0.length; li++) {
+            var note = String(lines0[li].notes || "");
+            if (!reopen) {
+              note = note.replace(/\s*\[CLOSED\]/g, "").replace(/\s*\[CLOSE:[^\]]*\]/g, "").replace(/\s*\[PROOF:[^\]]*\]/g, "").trim();
+              note = (note ? note + " " : "") + "[CLOSED] " + closeMeta;
+            } else {
+              note = note.replace(/\s*\[CLOSED\]/g, "").replace(/\s*\[CLOSE:[^\]]*\]/g, "").replace(/\s*\[PROOF:[^\]]*\]/g, "").trim();
             }
+            var payloadLn = { notes: note };
+            if (!reopen) payloadLn.status = "done";
+            else payloadLn.status = "open";
+            var u2 = await sb.from("order_lines").update(payloadLn).eq("id", lines0[li].id);
+            if (u2.error) {
+              // tanpa kolom status
+              u2 = await sb.from("order_lines").update({ notes: note }).eq("id", lines0[li].id);
+            }
+            if (!u2.error) lineOk = true;
           }
+        } else {
+          var u1 = await sb.from("order_lines").update({ status: lineSt }).eq("order_id", orderId).eq("product_id", productId);
+          if (!u1.error) lineOk = true;
         }
       } catch (eLn) { console.warn(eLn); }
 
@@ -12916,16 +12983,39 @@ function closeOtModal() {
 
 
   <div id="opsProductModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100160">
-    <div class="modal modal-sheet" style="max-width:420px;width:94vw">
+    <div class="modal modal-sheet" style="max-width:440px;width:94vw;max-height:90vh;overflow:auto">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
         <h2 id="opsMenuTitle" style="margin:0;font-size:1.05rem">Produk</h2>
         <p id="opsMenuSub" style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
       </div>
       <div class="sheet-body">
-        <div id="opsMenuStats" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;font-size:0.85rem;margin-bottom:1rem"></div>
-        <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Close hanya untuk <strong>produk ini</strong>. Produk lain di SO yang sama tetap aktif. SO induk baru done jika semua produk sudah di-close.</p>
-        <div style="display:flex;flex-direction:column;gap:0.5rem">
+        <div id="opsMenuStats" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;font-size:0.85rem;margin-bottom:0.85rem"></div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Close hanya <strong>produk ini</strong>. Produk lain di SO tetap aktif.</p>
+        <div id="opsCloseForm">
+          <div class="field" style="margin-bottom:0.65rem">
+            <label style="font-size:0.75rem">Kategori close</label>
+            <select id="opsCloseCat" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)">
+              <option value="">— Pilih kategori —</option>
+              <option value="selesai_normal">Selesai normal (qty terpenuhi)</option>
+              <option value="potong_order">Potong order customer</option>
+              <option value="reject_qc">Reject / QC tidak lulus</option>
+              <option value="koreksi_admin">Koreksi admin / salah input</option>
+              <option value="batal_produksi">Batal produksi</option>
+              <option value="lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0.65rem">
+            <label style="font-size:0.75rem">Alasan / catatan</label>
+            <input id="opsCloseReason" placeholder="Wajib jika qty kurang atau kategori potong/reject" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)" />
+          </div>
+          <div class="field" style="margin-bottom:0.65rem">
+            <label style="font-size:0.75rem">Foto bukti (opsional, disarankan jika potong/reject)</label>
+            <input type="file" id="opsClosePhoto" accept="image/*,.pdf" capture="environment" style="width:100%;font-size:0.8rem" />
+            <div id="opsClosePhotoPrev" style="margin-top:0.4rem;font-size:0.72rem;color:var(--text-muted)"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem">
           <button type="button" class="btn btn-primary" id="btnOpsClose" onclick="opsCloseOrder(false)">Close produk ini</button>
           <button type="button" class="btn btn-ghost" id="btnOpsReopen" style="display:none" onclick="opsCloseOrder(true)">Buka kembali produk</button>
           <button type="button" class="btn btn-ghost" onclick="closeOpsProductMenu()">Batal</button>
