@@ -1066,9 +1066,13 @@
     .badge-done { background: linear-gradient(135deg, #bbf7d0, #86efac); color: #14532d; }
     .badge-open { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; }
     .ops-sum-label {
-      text-align: right !important; font-weight: 700 !important;
-      color: #64748b !important; min-width: 54px;
-      font-size: 0.62rem !important; text-transform: uppercase; letter-spacing: 0.05em;
+      text-align: center !important; font-weight: 700 !important;
+      color: #334155 !important;
+      font-size: 0.68rem !important; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .ops-table thead tr.ops-sum-row .fz-so.ops-sum-label {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
     }
     .ops-sum-row th.has-sum {
       color: #0f7a4f !important; font-weight: 700 !important;
@@ -7851,8 +7855,10 @@ function fillOperatorList(selectedEmail) {
 
       let head = '<thead>';
             function sumLead(label) {
-        return '<th class="fz fz-prod"></th><th class="fz fz-cust"></th><th class="fz fz-so"></th>' +
-          '<th colspan="7"></th><th class="sc-ket ops-sum-label">' + label + '</th>';
+        // Label Plan/Actual/%/OP di kolom No SO (bukan di KET)
+        return '<th class="fz fz-prod"></th><th class="fz fz-cust"></th>' +
+          '<th class="fz fz-so ops-sum-label">' + label + '</th>' +
+          '<th colspan="8"></th>';
       }
       head += '<tr class="ops-sum-row">' + sumLead('Plan') +
         dayCells(d => { const v = (opsDayMeta[d]||{}).plan; return v ? formatNum(v) : ""; }, "") + '</tr>';
