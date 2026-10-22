@@ -971,19 +971,55 @@
       left: 276px; min-width: 92px; font-family: ui-monospace, monospace; font-size: 0.66rem;
       box-shadow: 4px 0 12px rgba(15, 23, 42, 0.08);
     }
-    .ops-table .sc-tgl { min-width: 76px; font-family: ui-monospace, monospace; font-size: 0.66rem; position: static; left: auto; box-shadow: none; }
-    .ops-table .sc-po { min-width: 56px; text-align: right; font-weight: 600; position: static; left: auto; box-shadow: none; }
-    .ops-table .sc-pl { min-width: 56px; text-align: right; background: #f0fdf4 !important; font-weight: 700; color: #166534; position: static; left: auto; box-shadow: none; }
-    .ops-table .sc-ac { min-width: 56px; text-align: right; background: #eff6ff !important; font-weight: 700; color: #1e40af; position: static; left: auto; box-shadow: none; }
-    .ops-table .sc-op { min-width: 44px; text-align: right; background: #fff7ed !important; font-weight: 700; color: #c2410c; position: static; left: auto; box-shadow: none; }
-    .ops-table .sc-st { min-width: 72px; text-align: center; position: static; left: auto; box-shadow: none; }
-    .ops-table .sc-jp { min-width: 50px; position: static; left: auto; box-shadow: none; }
+    /* Kolom ringkasan ikut freeze (setelah Produk+Customer+No SO) */
+    .ops-table .sc-tgl,
+    .ops-table .sc-po,
+    .ops-table .sc-pl,
+    .ops-table .sc-ac,
+    .ops-table .sc-op,
+    .ops-table .sc-st,
+    .ops-table .sc-jp,
     .ops-table .sc-ket {
-      min-width: 54px; text-align: center;
+      position: sticky !important;
+      z-index: 6;
+      background: #fff !important;
+    }
+    .ops-table thead .sc-tgl,
+    .ops-table thead .sc-po,
+    .ops-table thead .sc-pl,
+    .ops-table thead .sc-ac,
+    .ops-table thead .sc-op,
+    .ops-table thead .sc-st,
+    .ops-table thead .sc-jp,
+    .ops-table thead .sc-ket {
+      z-index: 14 !important;
+    }
+    /* left = 168+120+108 = 396 */
+    .ops-table .sc-tgl { left: 396px !important; min-width: 76px; width: 76px; font-family: ui-monospace, monospace; font-size: 0.66rem; }
+    .ops-table .sc-po { left: 472px !important; min-width: 56px; width: 56px; text-align: right; font-weight: 600; }
+    .ops-table .sc-pl { left: 528px !important; min-width: 56px; width: 56px; text-align: right; background: #f0fdf4 !important; font-weight: 700; color: #166534; }
+    .ops-table .sc-ac { left: 584px !important; min-width: 56px; width: 56px; text-align: right; background: #eff6ff !important; font-weight: 700; color: #1e40af; }
+    .ops-table .sc-op { left: 640px !important; min-width: 44px; width: 44px; text-align: right; background: #fff7ed !important; font-weight: 700; color: #c2410c; }
+    .ops-table .sc-st { left: 684px !important; min-width: 72px; width: 72px; text-align: center; }
+    .ops-table .sc-jp { left: 756px !important; min-width: 50px; width: 50px; }
+    .ops-table .sc-ket {
+      left: 806px !important; min-width: 54px; width: 54px; text-align: center;
       background: #f8fafc !important; font-weight: 700; color: #64748b;
       font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em;
-      position: static; left: auto; box-shadow: none;
+      box-shadow: 6px 0 14px rgba(15, 23, 42, 0.1) !important;
+      border-right: 2px solid #cbd5e1 !important;
     }
+    .ops-table tbody tr:hover .sc-tgl,
+    .ops-table tbody tr:hover .sc-po,
+    .ops-table tbody tr:hover .sc-pl,
+    .ops-table tbody tr:hover .sc-ac,
+    .ops-table tbody tr:hover .sc-op,
+    .ops-table tbody tr:hover .sc-st,
+    .ops-table tbody tr:hover .sc-jp,
+    .ops-table tbody tr:hover .sc-ket { background: #f0faf5 !important; }
+    .ops-table tbody tr:hover .sc-pl { background: #dcfce7 !important; }
+    .ops-table tbody tr:hover .sc-ac { background: #dbeafe !important; }
+    .ops-table tbody tr:hover .sc-op { background: #ffedd5 !important; }
     .ops-table thead tr.ops-day-row .sc-pl,
     .ops-table thead tr.ops-day-row .sc-ac,
     .ops-table thead tr.ops-day-row .sc-op,
@@ -1169,7 +1205,7 @@
     }
 
 
-    /* Sticky freeze: Produk + Customer + No SO only */
+    /* Sticky freeze: Produk + Customer + No SO + ringkasan (tgl SO … KET) */
     .ops-wrap {
       overflow: auto;
       position: relative;
@@ -1200,8 +1236,9 @@
     .ops-table .fz-prod { left: 0 !important; min-width: 168px; max-width: 188px; width: 168px; }
     .ops-table .fz-cust { left: 168px !important; min-width: 120px; max-width: 140px; width: 120px; }
     .ops-table .fz-so {
-      left: 288px !important; min-width: 100px; width: 100px;
-      box-shadow: 6px 0 14px rgba(15, 23, 42, 0.1) !important;
+      left: 288px !important; min-width: 108px; width: 108px;
+      /* shadow dipindah ke sc-ket (ujung freeze) */
+      box-shadow: none !important;
     }
     .ops-table thead tr.ops-day-row .fz-prod,
     .ops-table thead tr.ops-day-row .fz-cust,
@@ -1211,22 +1248,17 @@
     .ops-table td.fz, .ops-table th.fz {
       text-align: left;
     }
-    /* non-freeze left meta cols — scroll normally */
-    .ops-table .sc-tgl,
-    .ops-table .sc-po,
-    .ops-table .sc-pl,
-    .ops-table .sc-ac,
-    .ops-table .sc-op,
-    .ops-table .sc-st,
-    .ops-table .sc-jp,
-    .ops-table .sc-ket {
-      position: static !important;
-      left: auto !important;
-      box-shadow: none !important;
-    }
     @media (max-width: 899px) {
       .ops-table .fz-cust { display: none; }
       .ops-table .fz-so { left: 168px !important; }
+      .ops-table .sc-tgl { left: 276px !important; }
+      .ops-table .sc-po { left: 352px !important; }
+      .ops-table .sc-pl { left: 408px !important; }
+      .ops-table .sc-ac { left: 464px !important; }
+      .ops-table .sc-op { left: 520px !important; }
+      .ops-table .sc-st { left: 564px !important; }
+      .ops-table .sc-jp { left: 636px !important; }
+      .ops-table .sc-ket { left: 686px !important; }
     }
 
 
@@ -1669,8 +1701,53 @@
     .ops-table .fz-cust { left: 168px !important; z-index: 8 !important; min-width: 120px; max-width: 140px; width: 120px; }
     .ops-table .fz-so {
       left: 288px !important; z-index: 9 !important; min-width: 108px; width: 108px;
-      box-shadow: 8px 0 16px rgba(15, 23, 42, 0.12) !important;
-      border-right: 2px solid #cbd5e1 !important;
+      box-shadow: none !important;
+      border-right: none !important;
+    }
+    .ops-table thead .sc-tgl,
+    .ops-table thead .sc-po,
+    .ops-table thead .sc-pl,
+    .ops-table thead .sc-ac,
+    .ops-table thead .sc-op,
+    .ops-table thead .sc-st,
+    .ops-table thead .sc-jp,
+    .ops-table thead .sc-ket {
+      z-index: 19 !important;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+      color: #f8fafc !important;
+    }
+    .ops-table thead tr.ops-sum-row .sc-tgl,
+    .ops-table thead tr.ops-sum-row .sc-po,
+    .ops-table thead tr.ops-sum-row .sc-pl,
+    .ops-table thead tr.ops-sum-row .sc-ac,
+    .ops-table thead tr.ops-sum-row .sc-op,
+    .ops-table thead tr.ops-sum-row .sc-st,
+    .ops-table thead tr.ops-sum-row .sc-jp,
+    .ops-table thead tr.ops-sum-row .sc-ket {
+      z-index: 17 !important;
+      background: #f1f5f9 !important;
+      color: #334155 !important;
+    }
+    .ops-table thead tr.ops-day-row .sc-tgl,
+    .ops-table thead tr.ops-day-row .sc-po,
+    .ops-table thead tr.ops-day-row .sc-pl,
+    .ops-table thead tr.ops-day-row .sc-ac,
+    .ops-table thead tr.ops-day-row .sc-op,
+    .ops-table thead tr.ops-day-row .sc-st,
+    .ops-table thead tr.ops-day-row .sc-jp,
+    .ops-table thead tr.ops-day-row .sc-ket {
+      top: 112px;
+      z-index: 19 !important;
+    }
+    .ops-table tbody td.sc-tgl,
+    .ops-table tbody td.sc-po,
+    .ops-table tbody td.sc-pl,
+    .ops-table tbody td.sc-ac,
+    .ops-table tbody td.sc-op,
+    .ops-table tbody td.sc-st,
+    .ops-table tbody td.sc-jp,
+    .ops-table tbody td.sc-ket {
+      z-index: 6 !important;
     }
     .ops-table thead .fz-prod,
     .ops-table thead .fz-cust,
