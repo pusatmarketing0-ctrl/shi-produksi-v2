@@ -12101,6 +12101,49 @@ function closeOtModal() {
     }
 
 
+    function collectOtLines() {
+      var lines = [];
+      document.querySelectorAll("#otLines .ot-line").forEach(function(wrap) {
+        var prodEl = wrap.querySelector(".ot-prod");
+        var qtyEl = wrap.querySelector(".ot-qty");
+        var hargaEl = wrap.querySelector(".ot-harga");
+        var hppEl = wrap.querySelector(".ot-hpp");
+        var rawProd = ((prodEl && prodEl.value) || "").trim();
+        if (!rawProd) return;
+        var product_id = rawProd;
+        try {
+          if (typeof resolveProductId === "function") {
+            product_id = resolveProductId(rawProd) || rawProd;
+          }
+        } catch (e) {}
+        // ambil kode sebelum " — " jika label combo
+        if (product_id.indexOf(" — ") > 0) product_id = product_id.split(" — ")[0].trim();
+        if (product_id.indexOf(" - ") > 0 && product_id.indexOf("FG") === 0) {
+          /* keep full if needed */
+        }
+        var qty = 0;
+        try {
+          qty = typeof parseInputNum === "function" ? parseInputNum(qtyEl && qtyEl.value) : Number(String((qtyEl && qtyEl.value) || "").replace(/\./g, "").replace(",", ".")) || 0;
+        } catch (e2) {
+          qty = Number((qtyEl && qtyEl.value) || 0) || 0;
+        }
+        if (!(qty > 0)) return;
+        var harga = 0, hpp = 0;
+        try {
+          if (hargaEl) harga = typeof parseInputNum === "function" ? parseInputNum(hargaEl.value) : Number(hargaEl.value) || 0;
+          if (hppEl) hpp = typeof parseInputNum === "function" ? parseInputNum(hppEl.value) : Number(hppEl.value) || 0;
+        } catch (e3) {}
+        lines.push({
+          product_id: product_id,
+          product_name: rawProd,
+          qty: qty,
+          harga: harga,
+          hpp: hpp,
+          unit: "pcs"
+        });
+      });
+      return lines;
+    }
     async function saveOrderTrading() {
       if (!sb) return;
       const role = currentRole();
