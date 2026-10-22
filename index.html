@@ -12101,6 +12101,27 @@ function closeOtModal() {
     }
 
 
+    function otNormalizeProductId(raw) {
+      var s = String(raw || "").trim();
+      if (!s) return "";
+      var m = s.match(/^([A-Za-z0-9._\-\/]+)\s*[—\-–]\s+/);
+      if (m) return m[1].trim();
+      try {
+        if (typeof resolveProductId === "function") {
+          var r = resolveProductId(s);
+          if (r) return String(r).trim();
+        }
+      } catch (e) {}
+      try {
+        var low = s.toLowerCase();
+        var hit = (products || []).find(function(p) {
+          return String(p.product_id).toLowerCase() === low ||
+            String(p.name || "").toLowerCase() === low;
+        });
+        if (hit) return hit.product_id;
+      } catch (e2) {}
+      return s;
+    }
     function collectOtLines() {
       var lines = [];
       document.querySelectorAll("#otLines .ot-line").forEach(function(wrap) {
@@ -12110,37 +12131,21 @@ function closeOtModal() {
         var hppEl = wrap.querySelector(".ot-hpp");
         var rawProd = ((prodEl && prodEl.value) || "").trim();
         if (!rawProd) return;
-        var product_id = rawProd;
-        try {
-          if (typeof resolveProductId === "function") {
-            product_id = resolveProductId(rawProd) || rawProd;
-          }
-        } catch (e) {}
-        // ambil kode sebelum " — " jika label combo
-        if (product_id.indexOf(" — ") > 0) product_id = product_id.split(" — ")[0].trim();
-        if (product_id.indexOf(" - ") > 0 && product_id.indexOf("FG") === 0) {
-          /* keep full if needed */
-        }
+        var product_id = otNormalizeProductId(rawProd);
+        if (!product_id) return;
         var qty = 0;
         try {
           qty = typeof parseInputNum === "function" ? parseInputNum(qtyEl && qtyEl.value) : Number(String((qtyEl && qtyEl.value) || "").replace(/\./g, "").replace(",", ".")) || 0;
         } catch (e2) {
-          qty = Number((qtyEl && qtyEl.value) || 0) || 0;
+          qty = Number(String((qtyEl && qtyEl.value) || "0").replace(/[^\d.,\-]/g, "").replace(/\./g, "").replace(",", ".")) || 0;
         }
         if (!(qty > 0)) return;
         var harga = 0, hpp = 0;
         try {
-          if (hargaEl) harga = typeof parseInputNum === "function" ? parseInputNum(hargaEl.value) : Number(hargaEl.value) || 0;
-          if (hppEl) hpp = typeof parseInputNum === "function" ? parseInputNum(hppEl.value) : Number(hppEl.value) || 0;
+          if (hargaEl) harga = typeof parseInputNum === "function" ? parseInputNum(hargaEl.value) : 0;
+          if (hppEl) hpp = typeof parseInputNum === "function" ? parseInputNum(hppEl.value) : 0;
         } catch (e3) {}
-        lines.push({
-          product_id: product_id,
-          product_name: rawProd,
-          qty: qty,
-          harga: harga,
-          hpp: hpp,
-          unit: "pcs"
-        });
+        lines.push({ product_id: product_id, qty: qty, harga: harga || 0, hpp: hpp || 0, unit: "pcs" });
       });
       return lines;
     }
@@ -12151,7 +12156,7 @@ function closeOtModal() {
       const customer = (($("otCustomer") && $("otCustomer").value) || "").trim();
       if (!customer) return toast("Customer wajib", true);
       const lines = collectOtLines();
-      if (!lines.length) return toast("Minimal 1 produk + qty", true);
+      if (!lines.length) return toast("Minimal 1 produk + qty (isi produk & qty tiap baris)", true);
       let otId = ($("otEditId") && $("otEditId").value) || "";
       const isNew = !otId;
       if (!otId) otId = newOtId();
@@ -12167,21 +12172,84 @@ function closeOtModal() {
         payload.created_at = new Date().toISOString();
         const { error } = await sb.from("order_trading").insert(payload);
         if (error) return toast(error.message, true);
-        await otAddEvent(otId, "created", customer);
+        try { await otAddEvent(otId, "created", customer); } catch (e) {}
       } else {
         const { error } = await sb.from("order_trading").update(payload).eq("ot_id", otId);
         if (error) return toast(error.message, true);
         await sb.from("order_trading_lines").delete().eq("ot_id", otId);
-        await otAddEvent(otId, "updated", "");
+        try { await otAddEvent(otId, "updated", lines.length + " produk"); } catch (e) {}
       }
-      const rows = lines.map(function(ln) {
-        return Object.assign({ ot_id: otId }, ln);
+      var ok = 0, failMsg = "";
+      for (var i = 0; i < lines.length; i++) {
+        var row = {
+          ot_id: otId,
+          product_id: lines[i].product_id,
+          qty: lines[i].qty,
+          unit: lines[i].unit || "pcs",
+          harga: lines[i].harga || 0,
+          hpp: lines[i].hpp || 0
+        };
+        var ins = await sb.from("order_trading_lines").insert(row);
+        if (ins.error) {
+          var row2 = { ot_id: otId, product_id: lines[i].product_id, qty: lines[i].qty };
+          var ins2 = await sb.from("order_trading_lines").insert(row2);
+          if (ins2.error) {
+            failMsg = ins2.error.message || ins.error.message;
+            console.warn("OT line fail", lines[i], ins2.error);
+          } else ok++;
+        } else ok++;
+      }
+      if (!ok) return toast("Gagal simpan produk: " + (failMsg || "cek order_trading_lines"), true);
+      otLinesCache[otId] = lines.map(function(l) {
+        return { ot_id: otId, product_id: l.product_id, qty: l.qty, harga: l.harga, hpp: l.hpp, unit: l.unit };
       });
-      const { error: e2 } = await sb.from("order_trading_lines").insert(rows);
-      if (e2) return toast(e2.message, true);
-      toast(isNew ? "Order Trading dibuat: " + otId : "Tersimpan");
+      toast((isNew ? "OT dibuat: " + otId + " · " : "Tersimpan · ") + ok + " produk" + (ok < lines.length ? " (sebagian gagal)" : ""));
       closeOtModal();
       await loadOrderTrading();
+    }
+
+    function renderOtActions(row) {
+      var box = $("otActionBtns") || $("otActions");
+      if (!box || !row) return;
+      var role = currentRole();
+      var st = row.status || "draft";
+      var otId = row.ot_id;
+      var btns = [];
+      function add(label, act, cls) {
+        btns.push('<button type="button" class="btn ' + (cls || "btn-ghost") + ' btn-sm ot-act-btn" data-ot-act="' + act + '" data-ot-id="' + esc(otId) + '">' + label + "</button>");
+      }
+      if (role === "marketing" || role === "admin") {
+        if (st === "draft") add("Kirim ke Trading", "otSubmitTrading", "btn-primary");
+        if (st === "so_siap") add("Tandai SO dibagikan", "otMarkShared", "btn-ghost");
+        if (st === "so_dibagikan" || st === "so_siap") add("DP diterima", "otMarkDp", "btn-primary");
+        if (st === "dp_diterima" || st === "so_dibagikan") {
+          btns.push('<div style="width:100%;margin-top:0.35rem"><label style="font-size:0.72rem">No SO Odoo</label><input id="otNoSo" placeholder="SO/2026/..." value="' + esc(row.no_so || "") + '" style="width:100%;margin-top:0.2rem;padding:0.45rem;border-radius:8px;border:1px solid var(--border)"/></div>');
+          add("Terbit ke Produksi", "otPublishProduction", "btn-primary");
+        }
+        if (st === "terbit_produksi" || st === "in_production" || row.order_id) {
+          btns.push('<span style="font-size:0.8rem;color:#059669;font-weight:600">Sudah di produksi' + (row.order_id ? " · " + esc(row.order_id) : "") + "</span>");
+        }
+      }
+      if (role === "trading" || role === "admin") {
+        if (st === "menunggu_so_trading" || st === "draft") {
+          btns.push('<div style="width:100%"><label style="font-size:0.72rem">No SO Trading</label><input id="otSoTradingNo" value="' + esc(row.so_trading_no || "") + '" placeholder="Nomor SO Trading" style="width:100%;margin-top:0.2rem;padding:0.45rem;border-radius:8px;border:1px solid var(--border)"/></div>');
+          btns.push('<div style="width:100%"><label style="font-size:0.72rem">Catatan</label><input id="otSoTradingNote" value="' + esc(row.so_trading_note || "") + '" placeholder="Opsional" style="width:100%;margin-top:0.2rem;padding:0.45rem;border-radius:8px;border:1px solid var(--border)"/></div>');
+          add("SO Trading siap", "otMarkSoReady", "btn-primary");
+        }
+      }
+      if (!btns.length) {
+        box.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Status: ' + esc(st) + " — tidak ada aksi</span>";
+      } else {
+        box.innerHTML = '<div style="font-size:0.78rem;font-weight:700;margin-bottom:0.35rem">Aksi · ' + esc(st) + '</div><div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:flex-end">' + btns.join("") + "</div>";
+        box.querySelectorAll(".ot-act-btn").forEach(function(btn) {
+          btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            otRunAction(btn.getAttribute("data-ot-id"), btn.getAttribute("data-ot-act"));
+          };
+        });
+      }
+      if ($("otStatusBox")) $("otStatusBox").style.display = "block";
     }
 
     async function otRunAction(otId, act) {
