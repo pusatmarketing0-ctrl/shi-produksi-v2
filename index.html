@@ -2324,7 +2324,7 @@
       color: #fff;
       box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28);
     }
-    .gudang-pane { animation: tabIn .2s ease; }
+    .gudang-pane, .mod-pane { animation: tabIn .2s ease; }
     @keyframes tabIn {
       from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: none; }
@@ -3108,19 +3108,31 @@
           <div class="page-head">
             <div>
               <h1>Permintaan beli</h1>
-              <p>Menu <strong>PPIC</strong> — cek komponen atau buat PR manual, lalu Purchase yang proses PO.</p>
+              <p>Menu <strong>PPIC</strong> — cek komponen atau PR manual → Purchase proses PO.</p>
             </div>
-            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-              <button class="btn btn-primary" type="button" onclick="openPrManualModal()">+ PR manual</button>
-              <button class="btn btn-ghost" type="button" onclick="openCekKomponen()">Cek komponen SO</button>
+            <button class="btn btn-ghost" type="button" onclick="loadPurchaseRequests()">Refresh</button>
+          </div>
+          <div class="mod-tabs" role="tablist">
+            <button type="button" class="mod-tab active" data-mod="pr-ppic" data-tab="daftar" onclick="setModTab('pr-ppic','daftar')">Daftar PR</button>
+            <button type="button" class="mod-tab" data-mod="pr-ppic" data-tab="buat" onclick="setModTab('pr-ppic','buat')">Buat PR</button>
+          </div>
+          <div id="pr-ppic-pane-daftar" class="mod-pane">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                  <tbody id="prPpicBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <div class="card" style="padding:0;overflow:hidden">
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
-                <tbody id="prPpicBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
-              </table>
+          <div id="pr-ppic-pane-buat" class="mod-pane" hidden>
+            <div class="card" style="padding:1rem;max-width:480px">
+              <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem">Pilih cara membuat permintaan ke Purchase.</p>
+              <div style="display:flex;flex-direction:column;gap:0.65rem">
+                <button class="btn btn-primary" type="button" onclick="openPrManualModal()">+ PR manual (isi bahan sendiri)</button>
+                <button class="btn btn-ghost" type="button" onclick="openCekKomponen()">Dari cek komponen SO</button>
+              </div>
             </div>
           </div>
         </section>
@@ -3128,42 +3140,44 @@
           <div class="page-head">
             <div>
               <h1>Purchasing</h1>
-              <p>Inbox permintaan dari PPIC → buat PO by SO · set ETA kekurangan.</p>
+              <p>Inbox PR → buat PO · set ETA kekurangan.</p>
             </div>
-            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-              <button class="btn btn-primary" type="button" onclick="openPoModal()">+ PO baru</button>
+            <button class="btn btn-ghost" type="button" onclick="refreshPurchasingTab()">Refresh</button>
+          </div>
+          <div class="mod-tabs" role="tablist">
+            <button type="button" class="mod-tab active" data-mod="purchasing" data-tab="inbox" onclick="setModTab('purchasing','inbox')">Inbox PR</button>
+            <button type="button" class="mod-tab" data-mod="purchasing" data-tab="po" onclick="setModTab('purchasing','po')">Daftar PO</button>
+          </div>
+          <div id="purchasing-pane-inbox" class="mod-pane">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                  <tbody id="prBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <div class="card" style="padding:0.85rem;margin-bottom:0.85rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
-              <div style="font-weight:700">Inbox permintaan PPIC</div>
-              <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseRequests()">Refresh</button>
+          <div id="purchasing-pane-po" class="mod-pane" hidden>
+            <div class="toolbar">
+              <input type="search" id="poSearch" placeholder="Cari PO / supplier..." oninput="renderPurchaseOrders()" />
+              <select id="poStatusFilter" onchange="renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+                <option value="">Semua status</option>
+                <option value="draft">draft</option>
+                <option value="ordered">ordered</option>
+                <option value="partial">partial</option>
+                <option value="received">received</option>
+                <option value="cancelled">cancelled</option>
+              </select>
+              <button class="btn btn-primary btn-sm" type="button" onclick="openPoModal()">+ PO baru</button>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
-                <tbody id="prBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="toolbar">
-            <input type="search" id="poSearch" placeholder="Cari PO / supplier..." oninput="renderPurchaseOrders()" />
-            <select id="poStatusFilter" onchange="renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
-              <option value="">Semua status</option>
-              <option value="draft">draft</option>
-              <option value="ordered">ordered</option>
-              <option value="partial">partial</option>
-              <option value="received">received</option>
-              <option value="cancelled">cancelled</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseOrders()">Refresh PO</button>
-          </div>
-          <div class="card" style="padding:0;overflow:hidden">
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>PO</th><th>No SO</th><th>Tanggal</th><th>Supplier</th><th>Status</th><th>Item</th><th></th></tr></thead>
-                <tbody id="poBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
-              </table>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>PO</th><th>No SO</th><th>Tanggal</th><th>Supplier</th><th>Status</th><th>Item</th><th></th></tr></thead>
+                  <tbody id="poBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -3381,18 +3395,24 @@
           <div class="page-head">
             <div>
               <h1>Quality Control</h1>
-              <p>Alur: vendor datang → <strong>QC dulu</strong> (lulus/tolak) → Purchase set ETA kekurangan jika ada tolak → gudang terima yang lulus.</p>
+              <p>QC dulu → Purchase ETA jika tolak → gudang terima yang lulus.</p>
             </div>
             <button class="btn btn-ghost" type="button" onclick="loadQcInbox()">Refresh</button>
           </div>
+          <div class="mod-tabs" role="tablist">
+            <button type="button" class="mod-tab active" data-mod="qc" data-tab="antrian" onclick="setQcTab('antrian')">Antrian</button>
+            <button type="button" class="mod-tab" data-mod="qc" data-tab="lulus" onclick="setQcTab('lulus')">Lulus</button>
+            <button type="button" class="mod-tab" data-mod="qc" data-tab="tolak" onclick="setQcTab('tolak')">Tolak</button>
+            <button type="button" class="mod-tab" data-mod="qc" data-tab="all" onclick="setQcTab('all')">Semua</button>
+          </div>
           <div class="toolbar">
             <input type="search" id="qcSearch" placeholder="Cari PO / SO / bahan..." oninput="renderQcInbox()" />
-            <select id="qcFilter" onchange="renderQcInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
-              <option value="pending">Menunggu QC</option>
-              <option value="partial">Sebagian</option>
-              <option value="passed">Lulus penuh</option>
-              <option value="failed">Tolak penuh</option>
-              <option value="all">Semua</option>
+            <select id="qcFilter" hidden>
+              <option value="pending">pending</option>
+              <option value="partial">partial</option>
+              <option value="passed">passed</option>
+              <option value="failed">failed</option>
+              <option value="all">all</option>
             </select>
           </div>
           <div class="card" style="overflow:auto">
@@ -3400,7 +3420,7 @@
               <thead><tr>
                 <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>Qty PO</th><th>QC</th><th>Gudang</th><th></th>
               </tr></thead>
-              <tbody id="qcBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
+              <tbody id="qcBody"><tr><td colspan="8" class="empty">Memuat…</td></tr></tbody>
             </table>
           </div>
         </section>
@@ -8380,6 +8400,37 @@ function fillOperatorList(selectedEmail) {
       if ($("whProdQty")) $("whProdQty").value = "";
     }
     var gudangActiveTab = "stok";
+    var modTabState = { purchasing: "inbox", "pr-ppic": "daftar", qc: "antrian" };
+    function setModTab(mod, tab) {
+      modTabState[mod] = tab;
+      document.querySelectorAll('.mod-tab[data-mod="' + mod + '"]').forEach(function(btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
+      });
+      document.querySelectorAll('[id^="' + mod + '-pane-"]').forEach(function(pane) {
+        var id = pane.id || "";
+        var suffix = id.replace(mod + "-pane-", "");
+        pane.hidden = suffix !== tab;
+      });
+      if (mod === "purchasing") refreshPurchasingTab();
+      if (mod === "pr-ppic") { try { loadPurchaseRequests(); } catch (e) {} }
+      if (mod === "qc") setQcTab(tab);
+    }
+    function refreshPurchasingTab() {
+      var t = modTabState.purchasing || "inbox";
+      if (t === "inbox") { try { loadPurchaseRequests(); } catch (e) {} }
+      else { try { loadPurchaseOrders(); } catch (e2) {} }
+    }
+    function setQcTab(tab) {
+      modTabState.qc = tab;
+      document.querySelectorAll('.mod-tab[data-mod="qc"]').forEach(function(btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
+      });
+      var map = { antrian: "pending", lulus: "passed", tolak: "failed", all: "all" };
+      var f = map[tab] || "pending";
+      if ($("qcFilter")) $("qcFilter").value = f;
+      // antrian = pending + partial: handle in renderQcInbox
+      try { loadQcInbox(); } catch (e) {}
+    }
     function setGudangTab(tab) {
       gudangActiveTab = tab || "stok";
       document.querySelectorAll("#gudangTabs .mod-tab").forEach(function(btn) {
@@ -8744,7 +8795,10 @@ function fillOperatorList(selectedEmail) {
       var q = (($("qcSearch") && $("qcSearch").value) || "").toLowerCase().trim();
       var f = ($("qcFilter") && $("qcFilter").value) || "pending";
       var list = qcRows.filter(function(r) {
-        if (f !== "all" && (r.qc_status || "pending") !== f) return false;
+        var st = r.qc_status || "pending";
+        if (f === "pending") {
+          if (st !== "pending" && st !== "partial") return false;
+        } else if (f !== "all" && st !== f) return false;
         if (!q) return true;
         return (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name).toLowerCase().indexOf(q) >= 0;
       });
@@ -11206,8 +11260,9 @@ function fillOperatorList(selectedEmail) {
       if (page === "gudang") { try { setGudangTab(gudangActiveTab || "stok"); } catch (eG) {} }
       if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
       if (page === "qc") { try { loadQcInbox(); } catch (eQ) {} }
-      if (page === "purchasing") { try { loadPurchaseRequests(); } catch (ePr) {} }
-      if (page === "pr-ppic") { try { loadPurchaseRequests(); } catch (ePr2) {} }
+      if (page === "purchasing") { try { setModTab("purchasing", modTabState.purchasing || "inbox"); } catch (ePr) {} }
+      if (page === "pr-ppic") { try { setModTab("pr-ppic", modTabState["pr-ppic"] || "daftar"); } catch (ePr2) {} }
+      if (page === "qc") { try { setQcTab(modTabState.qc || "antrian"); } catch (eQc) {} }
       if (page === "bom") { try { loadBom(); } catch (e) {} }
       if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
       if (page === "wip") { try { loadWipStock(); } catch (e) {} }
