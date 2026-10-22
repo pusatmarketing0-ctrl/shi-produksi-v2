@@ -2569,6 +2569,21 @@
         </div>
       </div>
       <div class="topbar-right">
+        <div class="notif-wrap" style="position:relative">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnNotif" onclick="toggleNotifPanel()" title="Antrian / notifikasi" style="position:relative;min-width:40px;height:40px;border-radius:12px">
+            <span style="font-size:1.15rem">🔔</span>
+            <span id="notifBadge" style="display:none;position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#dc2626;color:#fff;font-size:0.65rem;font-weight:700;line-height:16px;text-align:center">0</span>
+          </button>
+          <div id="notifPanel" hidden style="position:absolute;right:0;top:calc(100% + 8px);width:min(360px,92vw);max-height:70vh;overflow:auto;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(15,23,42,0.15);z-index:80;padding:0.65rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+              <strong style="font-size:0.85rem">Antrian</strong>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="loadInboxNotifs()">Refresh</button>
+            </div>
+            <div id="notifList" style="display:flex;flex-direction:column;gap:0.35rem">
+              <div class="empty" style="padding:0.75rem;font-size:0.8rem">Memuat…</div>
+            </div>
+          </div>
+        </div>
         <div class="user-chip" id="userChip" title="Profil saya" role="button" tabindex="0">
           <div class="user-avatar" id="userAvatar">?</div>
           <div class="user-meta"><strong id="userName">—</strong><span id="userRole">—</span></div>
@@ -2627,6 +2642,26 @@
               <div class="kpi"><div class="label">Diterima hari ini</div><div class="value" id="kpiGdDone">—</div><div class="hint">qty_received</div></div>
             </div>
             <div id="homeRoleActions" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem"></div>
+            <div class="card" style="margin-top:0.85rem" id="homeInboxCard">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <h3 style="margin:0">Antrian kerja</h3>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="loadInboxNotifs()">Refresh</button>
+              </div>
+              <div id="homeInboxList" class="empty" style="padding:0.5rem 0">Memuat…</div>
+            </div>
+            <div class="card" style="margin-top:0.85rem" id="homeSisaSoCard">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
+                <h3 style="margin:0">Sisa SO (belum selesai)</h3>
+                <input type="search" id="sisaSoSearch" placeholder="Cari SO / produk / customer…" oninput="renderSisaSo()" style="max-width:220px;border:1px solid var(--border);border-radius:10px;padding:0.35rem 0.55rem;font-size:0.8rem" />
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>No SO</th><th>Customer</th><th>Produk</th><th>Qty PO</th><th>Actual</th><th>Sisa</th><th>%</th><th>Status</th></tr></thead>
+                  <tbody id="sisaSoBody"><tr><td colspan="8" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
+              <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Sisa = Qty PO − Actual FG. Produk yang sudah di-close tidak tampil.</p>
+            </div>
             <div class="card"><h3>Status</h3><div class="empty" id="homeStatusBox"><strong id="homeStatusTitle">Memuat…</strong><span id="homeStatusText"></span></div></div>
           </div>
           <!-- Operator home (phone-first) -->
@@ -11281,6 +11316,7 @@ function fillOperatorList(selectedEmail) {
       try { bindAllThousandInputs(); } catch (eT) {}
       try {
         await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats(), loadBom(true)]);
+        try { loadInboxNotifs(); } catch (eIn) {}
         try { /* orders page lazy */ } catch (e) {}
         try { fillRouteProductSelect(); } catch (e2) {}
       } catch (e) {
@@ -11543,6 +11579,215 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+    function toggleNotifPanel() {
+      var p = $("notifPanel");
+      if (!p) return;
+      var open = p.hasAttribute("hidden");
+      if (open) {
+        p.removeAttribute("hidden");
+        try { loadInboxNotifs(); } catch (e) {}
+      } else {
+        p.setAttribute("hidden", "");
+      }
+    }
+    function setNotifBadge(n) {
+      var b = $("notifBadge");
+      if (!b) return;
+      if (n > 0) {
+        b.style.display = "";
+        b.textContent = n > 99 ? "99+" : String(n);
+      } else {
+        b.style.display = "none";
+      }
+    }
+    function renderNotifItems(items) {
+      var html = "";
+      if (!items || !items.length) {
+        html = '<div class="empty" style="padding:0.75rem;font-size:0.8rem">Tidak ada antrian</div>';
+      } else {
+        html = items.map(function(it) {
+          return '<button type="button" class="btn btn-ghost" style="width:100%;text-align:left;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;display:block" onclick="goPage(\'' + it.page + '\');var p=$(\'notifPanel\');if(p)p.setAttribute(\'hidden\',\'\')">' +
+            '<div style="font-weight:700;font-size:0.82rem">' + esc(it.title) + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(it.sub || "") + "</div></button>";
+        }).join("");
+      }
+      if ($("notifList")) $("notifList").innerHTML = html;
+      if ($("homeInboxList")) {
+        if (!items || !items.length) {
+          $("homeInboxList").innerHTML = '<div class="empty" style="padding:0.5rem;font-size:0.8rem">Tidak ada antrian untuk role Anda</div>';
+        } else {
+          $("homeInboxList").innerHTML = items.map(function(it) {
+            return '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding:0.45rem 0;border-bottom:1px solid var(--border)">' +
+              '<div><strong style="font-size:0.85rem">' + esc(it.title) + '</strong><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(it.sub || "") + "</div></div>" +
+              '<button type="button" class="btn btn-primary btn-sm" onclick="goPage(\'' + it.page + '\')">Buka</button></div>';
+          }).join("");
+        }
+      }
+      setNotifBadge(items ? items.length : 0);
+    }
+    async function loadInboxNotifs() {
+      if (!sb) return;
+      var role = currentRole();
+      var items = [];
+      try {
+        if (role === "purchasing" || role === "admin" || role === "ppic") {
+          var { data: prs } = await sb.from("purchase_requests").select("pr_id,status,no_so").in("status", ["open", "submitted", "pending"]).limit(30);
+          (prs || []).forEach(function(r) {
+            items.push({ title: "PR " + (r.pr_id || ""), sub: "SO " + (r.no_so || "—") + " · status " + (r.status || ""), page: role === "ppic" ? "pr-ppic" : "purchasing" });
+          });
+        }
+        if (role === "purchasing" || role === "admin") {
+          var { data: pod } = await sb.from("purchase_orders").select("po_id,status,no_so").eq("status", "draft").limit(20);
+          (pod || []).forEach(function(r) {
+            items.push({ title: "PO draft " + (r.po_id || ""), sub: "SO " + (r.no_so || "—"), page: "purchasing" });
+          });
+        }
+        if (role === "qc" || role === "admin") {
+          var { data: lines } = await sb.from("purchase_lines").select("id,po_id,product_id,qc_status,qty").in("qc_status", ["pending", "partial"]).limit(40);
+          (lines || []).forEach(function(l) {
+            items.push({ title: "QC " + (l.product_id || ""), sub: "PO " + (l.po_id || "") + " · " + (l.qc_status || "pending"), page: "qc" });
+          });
+        }
+        if (role === "gudang" || role === "admin") {
+          var { data: gl } = await sb.from("purchase_lines").select("id,po_id,product_id,qty,qty_received,qty_qc_passed,qc_status").eq("qc_status", "passed").limit(40);
+          (gl || []).forEach(function(l) {
+            var need = Number(l.qty_qc_passed) || Number(l.qty) || 0;
+            var got = Number(l.qty_received) || 0;
+            if (got < need) {
+              items.push({ title: "Terima " + (l.product_id || ""), sub: "PO " + (l.po_id || "") + " · sisa " + formatNum(need - got), page: "gudang" });
+            }
+          });
+        }
+        if (role === "marketing" || role === "trading" || role === "admin") {
+          var { data: ots } = await sb.from("order_trading").select("ot_id,status,customer_name").not("status", "in", '("done","cancelled","terbit_produksi")').limit(25);
+          (ots || []).forEach(function(r) {
+            items.push({ title: "OT " + (r.ot_id || ""), sub: (r.customer_name || "") + " · " + (r.status || ""), page: "order-trading" });
+          });
+        }
+        if (role === "ppic" || role === "korlap" || role === "admin") {
+          var today = (typeof todayStr === "function") ? todayStr() : new Date().toISOString().slice(0, 10);
+          var { data: plans } = await sb.from("plans").select("plan_id,product_id,status,plan_date").eq("plan_date", today).in("status", ["open", "draft"]).limit(30);
+          (plans || []).forEach(function(p) {
+            items.push({ title: "Plan hari ini " + (p.product_id || ""), sub: (p.status || "") + " · " + (p.plan_id || ""), page: "plans" });
+          });
+        }
+        if (role === "operator") {
+          items.push({ title: "Laporan hari ini", sub: "Isi actual di menu Laporan", page: "reports" });
+        }
+      } catch (e) {
+        console.warn("inbox", e);
+      }
+      // dedupe by title+sub
+      var seen = {};
+      items = items.filter(function(it) {
+        var k = it.title + "|" + it.sub;
+        if (seen[k]) return false;
+        seen[k] = true;
+        return true;
+      }).slice(0, 40);
+      renderNotifItems(items);
+      try { await loadSisaSo(); } catch (e2) {}
+    }
+
+    var sisaSoRows = [];
+    async function loadSisaSo() {
+      if (!sb) return;
+      var role = currentRole();
+      if (role === "operator" || role === "gudang") {
+        if ($("homeSisaSoCard")) $("homeSisaSoCard").style.display = "none";
+        return;
+      }
+      if ($("homeSisaSoCard")) $("homeSisaSoCard").style.display = "";
+      var { data: orders } = await sb.from("orders")
+        .select("order_id,no_so,customer_name,status,notes,order_lines(product_id,qty,status,notes)")
+        .not("status", "in", '("cancelled","canceled")')
+        .limit(400);
+      var productIds = {};
+      (orders || []).forEach(function(o) {
+        (o.order_lines || []).forEach(function(l) { if (l.product_id) productIds[l.product_id] = true; });
+      });
+      // actual FG dari reports via plans (ringkas: sum reports by product+no_so dari plans)
+      var actMap = {};
+      try {
+        var { data: plans } = await sb.from("plans").select("plan_id,product_id,no_so,order_id,machine_id").limit(3000);
+        var planIds = (plans || []).map(function(p) { return p.plan_id; }).filter(Boolean);
+        var planMeta = {};
+        (plans || []).forEach(function(p) { planMeta[p.plan_id] = p; });
+        // batch reports
+        if (planIds.length) {
+          var chunk = planIds.slice(0, 500);
+          var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", chunk).limit(5000);
+          (reps || []).forEach(function(r) {
+            var p = planMeta[r.plan_id];
+            if (!p) return;
+            // only FG-ish: packing masterbox if machine known - else all
+            var key = String(p.product_id) + "||" + String(p.no_so || p.order_id || "");
+            actMap[key] = (actMap[key] || 0) + (Number(r.actual_qty) || 0);
+          });
+        }
+      } catch (eA) { console.warn(eA); }
+
+      var rows = [];
+      (orders || []).forEach(function(o) {
+        var st = String(o.status || "").toLowerCase();
+        if (st === "done" || st === "closed" || st === "completed") return;
+        (o.order_lines || []).forEach(function(l) {
+          if (opsLineClosed(l, o.notes, l.product_id)) return;
+          var key = String(l.product_id) + "||" + String(o.no_so || o.order_id || "");
+          var po = Number(l.qty) || 0;
+          var act = Number(actMap[key]) || 0;
+          var sisa = Math.max(0, po - act);
+          if (po > 0 && sisa <= 0 && act >= po) return; // selesai qty
+          var pct = po > 0 ? Math.min(100, Math.round((act / po) * 100)) : 0;
+          var pname = "";
+          try {
+            var pr = (products || []).find(function(x) { return String(x.product_id) === String(l.product_id); });
+            if (pr) pname = pr.name || "";
+          } catch (e) {}
+          rows.push({
+            no_so: o.no_so || o.order_id,
+            order_id: o.order_id,
+            customer: o.customer_name || "",
+            product_id: l.product_id,
+            product_name: pname,
+            po: po,
+            act: act,
+            sisa: sisa,
+            pct: pct,
+            status: st || "open"
+          });
+        });
+      });
+      rows.sort(function(a, b) { return b.sisa - a.sisa; });
+      sisaSoRows = rows;
+      renderSisaSo();
+    }
+    function renderSisaSo() {
+      var body = $("sisaSoBody");
+      if (!body) return;
+      var q = (($("sisaSoSearch") && $("sisaSoSearch").value) || "").toLowerCase().trim();
+      var list = sisaSoRows.filter(function(r) {
+        if (!q) return true;
+        return (r.no_so + " " + r.customer + " " + r.product_id + " " + r.product_name).toLowerCase().indexOf(q) >= 0;
+      });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada sisa SO</td></tr>';
+        return;
+      }
+      body.innerHTML = list.slice(0, 100).map(function(r) {
+        var sisaColor = r.sisa > 0 ? "#b91c1c" : "#059669";
+        return "<tr>" +
+          "<td><strong>" + esc(r.no_so) + "</strong></td>" +
+          "<td>" + esc(r.customer || "—") + "</td>" +
+          "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(r.product_name || "") + "</div></td>" +
+          "<td>" + formatNum(r.po) + "</td>" +
+          "<td>" + formatNum(r.act) + "</td>" +
+          "<td style='font-weight:700;color:" + sisaColor + "'>" + formatNum(r.sisa) + "</td>" +
+          "<td>" + r.pct + "%</td>" +
+          "<td>" + esc(r.status) + "</td></tr>";
+      }).join("");
+    }
+
     function goPage(page) {
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
@@ -11570,6 +11815,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
       if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
       if (page === "home" && currentRole() === "operator") { try { loadOperatorHome(); } catch (e) {} }
+      if (page === "home") { try { loadInboxNotifs(); } catch (eIn) {} }
       if (page === "routes") { try { loadRoutes(); renderRouteProductTable(); } catch (e) {} }
       else { try { closeRouteEditor(); } catch (e4) {} }
       if (page === "products") { try { renderProducts(); } catch (e) {} }
