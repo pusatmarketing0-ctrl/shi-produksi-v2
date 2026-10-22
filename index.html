@@ -2353,6 +2353,56 @@
       to { opacity: 1; transform: none; }
     }
 
+    /* Badge antrian (model menu Approval) */
+    .nav-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; padding: 0 5px;
+      border-radius: 99px; background: #ef4444; color: #fff;
+      font-size: 0.65rem; font-weight: 700; line-height: 1;
+      box-shadow: 0 1px 4px rgba(239,68,68,0.45);
+    }
+    .notif-panel {
+      position: absolute; right: 0; top: calc(100% + 8px);
+      width: min(300px, 92vw); max-height: 72vh; overflow: auto;
+      background: #0f172a; color: #e2e8f0;
+      border: 1px solid #1e293b; border-radius: 14px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.35); z-index: 90;
+      padding: 0.4rem 0.35rem 0.55rem;
+    }
+    .notif-panel-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.45rem 0.65rem 0.55rem; border-bottom: 1px solid #1e293b;
+      font-size: 0.82rem;
+    }
+    .notif-panel-head .btn { color: #94a3b8; }
+    .notif-tree { padding: 0.25rem 0; }
+    .notif-cat {
+      display: flex; align-items: center; gap: 0.5rem;
+      width: 100%; padding: 0.55rem 0.7rem; border: none; background: transparent;
+      color: #f1f5f9; font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      border-radius: 8px; text-align: left;
+    }
+    .notif-cat:hover { background: rgba(255,255,255,0.06); }
+    .notif-cat .nc-ico { width: 1.15rem; text-align: center; }
+    .notif-cat .nc-label { flex: 1; }
+    .notif-cat .nc-caret { color: #64748b; font-size: 0.7rem; margin-left: 0.25rem; }
+    .notif-sub {
+      padding: 0.1rem 0.35rem 0.35rem 1.4rem;
+      display: none; flex-direction: column; gap: 0.05rem;
+    }
+    .notif-sub.open { display: flex; }
+    .notif-sub-item {
+      display: flex; align-items: center; gap: 0.45rem;
+      width: 100%; padding: 0.42rem 0.55rem; border: none; background: transparent;
+      color: #cbd5e1; font-size: 0.8rem; cursor: pointer; border-radius: 8px; text-align: left;
+    }
+    .notif-sub-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .notif-sub-item .ns-label { flex: 1; }
+    .home-inbox-tree { background: transparent; }
+    .home-inbox-tree .notif-cat { color: var(--text); }
+    .home-inbox-tree .notif-sub-item { color: var(--text-muted); }
+    .home-inbox-tree .notif-sub-item:hover { color: var(--text); background: var(--green-light); }
+
     .user-chip-wrap {
       position: relative;
       z-index: 40;
@@ -2570,16 +2620,16 @@
       </div>
       <div class="topbar-right">
         <div class="notif-wrap" style="position:relative">
-          <button type="button" class="btn btn-ghost btn-sm" id="btnNotif" onclick="toggleNotifPanel()" title="Antrian / notifikasi" style="position:relative;min-width:40px;height:40px;border-radius:12px">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnNotif" onclick="toggleNotifPanel()" title="Antrian" style="position:relative;min-width:40px;height:40px;border-radius:12px">
             <span style="font-size:1.15rem">🔔</span>
-            <span id="notifBadge" style="display:none;position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#dc2626;color:#fff;font-size:0.65rem;font-weight:700;line-height:16px;text-align:center">0</span>
+            <span id="notifBadge" class="nav-badge" style="display:none;position:absolute;top:2px;right:2px">0</span>
           </button>
-          <div id="notifPanel" hidden style="position:absolute;right:0;top:calc(100% + 8px);width:min(360px,92vw);max-height:70vh;overflow:auto;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(15,23,42,0.15);z-index:80;padding:0.65rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-              <strong style="font-size:0.85rem">Antrian</strong>
-              <button type="button" class="btn btn-ghost btn-sm" onclick="loadInboxNotifs()">Refresh</button>
+          <div id="notifPanel" class="notif-panel" hidden>
+            <div class="notif-panel-head">
+              <strong>Antrian</strong>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="loadInboxNotifs()">↻</button>
             </div>
-            <div id="notifList" style="display:flex;flex-direction:column;gap:0.35rem">
+            <div id="notifList" class="notif-tree">
               <div class="empty" style="padding:0.75rem;font-size:0.8rem">Memuat…</div>
             </div>
           </div>
@@ -11600,92 +11650,179 @@ function fillOperatorList(selectedEmail) {
         b.style.display = "none";
       }
     }
-    function renderNotifItems(items) {
-      var html = "";
-      if (!items || !items.length) {
-        html = '<div class="empty" style="padding:0.75rem;font-size:0.8rem">Tidak ada antrian</div>';
-      } else {
-        html = items.map(function(it) {
-          return '<button type="button" class="btn btn-ghost" style="width:100%;text-align:left;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;display:block" onclick="goPage(\'' + it.page + '\');var p=$(\'notifPanel\');if(p)p.setAttribute(\'hidden\',\'\')">' +
-            '<div style="font-weight:700;font-size:0.82rem">' + esc(it.title) + '</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(it.sub || "") + "</div></button>";
-        }).join("");
+    function toggleNotifCat(id) {
+      var sub = document.getElementById("notif-sub-" + id);
+      var caret = document.getElementById("notif-caret-" + id);
+      if (!sub) return;
+      var open = sub.classList.toggle("open");
+      if (caret) caret.textContent = open ? "▴" : "▾";
+    }
+    function buildNotifTreeHtml(groups, dark) {
+      if (!groups || !groups.length) {
+        return '<div class="empty" style="padding:0.75rem;font-size:0.8rem;color:' + (dark ? "#94a3b8" : "inherit") + '">Tidak ada antrian</div>';
       }
+      return groups.map(function(g, gi) {
+        var id = "g" + gi;
+        var count = g.count != null ? g.count : (g.items ? g.items.length : 0);
+        if (count <= 0 && !(g.items && g.items.length)) return "";
+        var hasKids = g.items && g.items.length > 0;
+        var kids = "";
+        if (hasKids) {
+          kids = '<div class="notif-sub' + (g.open !== false ? " open" : "") + '" id="notif-sub-' + id + '">' +
+            g.items.map(function(it) {
+              var c = it.count != null ? it.count : 1;
+              return '<button type="button" class="notif-sub-item" onclick="goPage(\'' + it.page + '\');var p=$(\'notifPanel\');if(p)p.setAttribute(\'hidden\',\'\')">' +
+                '<span style="opacity:0.7">' + (it.icon || "•") + "</span>" +
+                '<span class="ns-label">' + esc(it.label) + "</span>" +
+                (c > 0 ? '<span class="nav-badge">' + (c > 99 ? "99+" : c) + "</span>" : "") +
+                "</button>";
+            }).join("") + "</div>";
+        }
+        return '<div class="notif-cat-block">' +
+          '<button type="button" class="notif-cat" onclick="' + (hasKids ? "toggleNotifCat('" + id + "')" : "goPage('" + (g.page || "home") + "');var p=$('notifPanel');if(p)p.setAttribute('hidden','')") + '">' +
+          '<span class="nc-ico">' + (g.icon || "📋") + "</span>" +
+          '<span class="nc-label">' + esc(g.label) + "</span>" +
+          (count > 0 ? '<span class="nav-badge">' + (count > 99 ? "99+" : count) + "</span>" : "") +
+          (hasKids ? '<span class="nc-caret" id="notif-caret-' + id + '">▴</span>' : "") +
+          "</button>" + kids + "</div>";
+      }).join("");
+    }
+    function renderNotifItems(groups) {
+      var total = 0;
+      (groups || []).forEach(function(g) {
+        total += g.count != null ? g.count : (g.items ? g.items.length : 0);
+      });
+      var html = buildNotifTreeHtml(groups, true);
       if ($("notifList")) $("notifList").innerHTML = html;
       if ($("homeInboxList")) {
-        if (!items || !items.length) {
-          $("homeInboxList").innerHTML = '<div class="empty" style="padding:0.5rem;font-size:0.8rem">Tidak ada antrian untuk role Anda</div>';
-        } else {
-          $("homeInboxList").innerHTML = items.map(function(it) {
-            return '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding:0.45rem 0;border-bottom:1px solid var(--border)">' +
-              '<div><strong style="font-size:0.85rem">' + esc(it.title) + '</strong><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(it.sub || "") + "</div></div>" +
-              '<button type="button" class="btn btn-primary btn-sm" onclick="goPage(\'' + it.page + '\')">Buka</button></div>';
-          }).join("");
-        }
+        $("homeInboxList").className = "home-inbox-tree";
+        $("homeInboxList").innerHTML = buildNotifTreeHtml(groups, false);
       }
-      setNotifBadge(items ? items.length : 0);
+      setNotifBadge(total);
     }
     async function loadInboxNotifs() {
       if (!sb) return;
       var role = currentRole();
-      var items = [];
+      var groups = [];
       try {
+        // —— Purchase / PR ——
         if (role === "purchasing" || role === "admin" || role === "ppic") {
-          var { data: prs } = await sb.from("purchase_requests").select("pr_id,status,no_so").in("status", ["open", "submitted", "pending"]).limit(30);
-          (prs || []).forEach(function(r) {
-            items.push({ title: "PR " + (r.pr_id || ""), sub: "SO " + (r.no_so || "—") + " · status " + (r.status || ""), page: role === "ppic" ? "pr-ppic" : "purchasing" });
-          });
+          var prItems = [];
+          var { data: prs } = await sb.from("purchase_requests").select("pr_id,status,no_so").in("status", ["open", "submitted", "pending"]).limit(50);
+          var nPr = (prs || []).length;
+          if (nPr) prItems.push({ label: "Permintaan beli (PR)", count: nPr, page: role === "ppic" ? "pr-ppic" : "purchasing", icon: "📝" });
+          if (role === "purchasing" || role === "admin") {
+            var { data: pod } = await sb.from("purchase_orders").select("po_id").eq("status", "draft").limit(50);
+            var nPo = (pod || []).length;
+            if (nPo) prItems.push({ label: "PO draft", count: nPo, page: "purchasing", icon: "🛒" });
+            var { data: poo } = await sb.from("purchase_orders").select("po_id").eq("status", "ordered").limit(50);
+            var nOrd = (poo || []).length;
+            if (nOrd) prItems.push({ label: "PO ordered", count: nOrd, page: "purchasing", icon: "🚚" });
+          }
+          if (prItems.length) {
+            groups.push({
+              label: "Procurement",
+              icon: "🛒",
+              count: prItems.reduce(function(s, x) { return s + (x.count || 0); }, 0),
+              items: prItems,
+              open: true
+            });
+          }
         }
-        if (role === "purchasing" || role === "admin") {
-          var { data: pod } = await sb.from("purchase_orders").select("po_id,status,no_so").eq("status", "draft").limit(20);
-          (pod || []).forEach(function(r) {
-            items.push({ title: "PO draft " + (r.po_id || ""), sub: "SO " + (r.no_so || "—"), page: "purchasing" });
-          });
-        }
+        // —— QC ——
         if (role === "qc" || role === "admin") {
-          var { data: lines } = await sb.from("purchase_lines").select("id,po_id,product_id,qc_status,qty").in("qc_status", ["pending", "partial"]).limit(40);
+          var { data: lines } = await sb.from("purchase_lines").select("id,qc_status").in("qc_status", ["pending", "partial"]).limit(80);
+          var nPend = 0, nPart = 0;
           (lines || []).forEach(function(l) {
-            items.push({ title: "QC " + (l.product_id || ""), sub: "PO " + (l.po_id || "") + " · " + (l.qc_status || "pending"), page: "qc" });
+            if (l.qc_status === "partial") nPart++;
+            else nPend++;
           });
+          var qcItems = [];
+          if (nPend) qcItems.push({ label: "Menunggu QC", count: nPend, page: "qc", icon: "⏳" });
+          if (nPart) qcItems.push({ label: "QC sebagian", count: nPart, page: "qc", icon: "◐" });
+          if (qcItems.length) {
+            groups.push({
+              label: "Quality Control",
+              icon: "✅",
+              count: nPend + nPart,
+              items: qcItems,
+              open: true
+            });
+          }
         }
+        // —— Gudang ——
         if (role === "gudang" || role === "admin") {
-          var { data: gl } = await sb.from("purchase_lines").select("id,po_id,product_id,qty,qty_received,qty_qc_passed,qc_status").eq("qc_status", "passed").limit(40);
+          var { data: gl } = await sb.from("purchase_lines").select("id,qty,qty_received,qty_qc_passed,qc_status").eq("qc_status", "passed").limit(80);
+          var nRecv = 0;
           (gl || []).forEach(function(l) {
             var need = Number(l.qty_qc_passed) || Number(l.qty) || 0;
             var got = Number(l.qty_received) || 0;
-            if (got < need) {
-              items.push({ title: "Terima " + (l.product_id || ""), sub: "PO " + (l.po_id || "") + " · sisa " + formatNum(need - got), page: "gudang" });
-            }
+            if (got < need) nRecv++;
           });
+          if (nRecv) {
+            groups.push({
+              label: "Gudang",
+              icon: "📦",
+              count: nRecv,
+              items: [{ label: "Menunggu terima", count: nRecv, page: "gudang", icon: "📥" }],
+              open: true
+            });
+          }
         }
+        // —— Trading / Marketing ——
         if (role === "marketing" || role === "trading" || role === "admin") {
-          var { data: ots } = await sb.from("order_trading").select("ot_id,status,customer_name").not("status", "in", '("done","cancelled","terbit_produksi")').limit(25);
+          var { data: ots } = await sb.from("order_trading").select("ot_id,status").limit(80);
+          var bySt = {};
           (ots || []).forEach(function(r) {
-            items.push({ title: "OT " + (r.ot_id || ""), sub: (r.customer_name || "") + " · " + (r.status || ""), page: "order-trading" });
+            var st = String(r.status || "draft");
+            if (st === "done" || st === "cancelled" || st === "terbit_produksi") return;
+            bySt[st] = (bySt[st] || 0) + 1;
           });
+          var otItems = Object.keys(bySt).map(function(st) {
+            return { label: st.replace(/_/g, " "), count: bySt[st], page: "order-trading", icon: "📄" };
+          });
+          var otTotal = otItems.reduce(function(s, x) { return s + x.count; }, 0);
+          if (otTotal) {
+            groups.push({ label: "Order Trading", icon: "🤝", count: otTotal, items: otItems, open: true });
+          }
         }
+        // —— Produksi / Plan ——
         if (role === "ppic" || role === "korlap" || role === "admin") {
           var today = (typeof todayStr === "function") ? todayStr() : new Date().toISOString().slice(0, 10);
-          var { data: plans } = await sb.from("plans").select("plan_id,product_id,status,plan_date").eq("plan_date", today).in("status", ["open", "draft"]).limit(30);
+          var { data: plans } = await sb.from("plans").select("plan_id,status").eq("plan_date", today).in("status", ["open", "draft", "in_progress"]).limit(80);
+          var nOpen = 0, nDraft = 0, nProg = 0;
           (plans || []).forEach(function(p) {
-            items.push({ title: "Plan hari ini " + (p.product_id || ""), sub: (p.status || "") + " · " + (p.plan_id || ""), page: "plans" });
+            if (p.status === "draft") nDraft++;
+            else if (p.status === "in_progress") nProg++;
+            else nOpen++;
           });
+          var pItems = [];
+          if (nOpen) pItems.push({ label: "Plan open hari ini", count: nOpen, page: "plans", icon: "📅" });
+          if (nDraft) pItems.push({ label: "Plan draft (belum OP)", count: nDraft, page: "plans", icon: "✏️" });
+          if (nProg) pItems.push({ label: "In progress", count: nProg, page: "plans", icon: "▶" });
+          if (pItems.length) {
+            groups.push({
+              label: "Produksi",
+              icon: "🏭",
+              count: nOpen + nDraft + nProg,
+              items: pItems,
+              open: true
+            });
+          }
         }
         if (role === "operator") {
-          items.push({ title: "Laporan hari ini", sub: "Isi actual di menu Laporan", page: "reports" });
+          groups.push({
+            label: "Laporan",
+            icon: "📋",
+            count: 1,
+            items: [{ label: "Isi laporan hari ini", count: 1, page: "reports", icon: "✍️" }],
+            open: true
+          });
         }
       } catch (e) {
         console.warn("inbox", e);
       }
-      // dedupe by title+sub
-      var seen = {};
-      items = items.filter(function(it) {
-        var k = it.title + "|" + it.sub;
-        if (seen[k]) return false;
-        seen[k] = true;
-        return true;
-      }).slice(0, 40);
-      renderNotifItems(items);
+      renderNotifItems(groups);
       try { await loadSisaSo(); } catch (e2) {}
     }
 
