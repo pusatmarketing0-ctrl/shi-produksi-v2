@@ -971,19 +971,49 @@
       left: 276px; min-width: 92px; font-family: ui-monospace, monospace; font-size: 0.66rem;
       box-shadow: 4px 0 12px rgba(15, 23, 42, 0.08);
     }
-    /* Ringkasan (Tgl SO … KET) + tanggal: scroll ke samping — freeze hanya s/d No SO */
-    .ops-table .sc-tgl { min-width: 76px; font-family: ui-monospace, monospace; font-size: 0.66rem; position: static !important; left: auto !important; }
-    .ops-table .sc-po { min-width: 56px; text-align: right; font-weight: 600; position: static !important; left: auto !important; }
-    .ops-table .sc-pl { min-width: 56px; text-align: right; background: #f0fdf4 !important; font-weight: 700; color: #166534; position: static !important; left: auto !important; }
-    .ops-table .sc-ac { min-width: 56px; text-align: right; background: #eff6ff !important; font-weight: 700; color: #1e40af; position: static !important; left: auto !important; }
-    .ops-table .sc-op { min-width: 44px; text-align: right; background: #fff7ed !important; font-weight: 700; color: #c2410c; position: static !important; left: auto !important; }
-    .ops-table .sc-st { min-width: 72px; text-align: center; position: static !important; left: auto !important; }
-    .ops-table .sc-jp { min-width: 50px; position: static !important; left: auto !important; }
+    /* Body: ringkasan + KET scroll ke SAMPING (tidak sticky-left).
+       Header thead tetap sticky-TOP agar freeze ke BAWAH tidak putus. */
+    .ops-table tbody .sc-tgl,
+    .ops-table tbody .sc-po,
+    .ops-table tbody .sc-pl,
+    .ops-table tbody .sc-ac,
+    .ops-table tbody .sc-op,
+    .ops-table tbody .sc-st,
+    .ops-table tbody .sc-jp,
+    .ops-table tbody .sc-ket {
+      position: static !important;
+      left: auto !important;
+      box-shadow: none !important;
+    }
+    .ops-table .sc-tgl { min-width: 76px; font-family: ui-monospace, monospace; font-size: 0.66rem; }
+    .ops-table .sc-po { min-width: 56px; text-align: right; font-weight: 600; }
+    .ops-table .sc-pl { min-width: 56px; text-align: right; background: #f0fdf4 !important; font-weight: 700; color: #166534; }
+    .ops-table .sc-ac { min-width: 56px; text-align: right; background: #eff6ff !important; font-weight: 700; color: #1e40af; }
+    .ops-table .sc-op { min-width: 44px; text-align: right; background: #fff7ed !important; font-weight: 700; color: #c2410c; }
+    .ops-table .sc-st { min-width: 72px; text-align: center; }
+    .ops-table .sc-jp { min-width: 50px; }
     .ops-table .sc-ket {
       min-width: 54px; text-align: center;
       background: #f8fafc !important; font-weight: 700; color: #64748b;
       font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em;
-      position: static !important; left: auto !important; box-shadow: none !important; border-right: none !important;
+    }
+    /* Header KET + ringkasan: sticky vertikal (ikut baris tanggal) */
+    .ops-table thead tr.ops-day-row .sc-tgl,
+    .ops-table thead tr.ops-day-row .sc-po,
+    .ops-table thead tr.ops-day-row .sc-pl,
+    .ops-table thead tr.ops-day-row .sc-ac,
+    .ops-table thead tr.ops-day-row .sc-op,
+    .ops-table thead tr.ops-day-row .sc-st,
+    .ops-table thead tr.ops-day-row .sc-jp,
+    .ops-table thead tr.ops-day-row .sc-ket {
+      position: sticky !important;
+      top: 112px !important;
+      z-index: 11 !important;
+      left: auto !important;
+    }
+    .ops-table thead tr.ops-sum-row .sc-ket {
+      position: sticky !important;
+      left: auto !important;
     }
     .ops-table thead tr.ops-day-row .sc-pl,
     .ops-table thead tr.ops-day-row .sc-ac,
