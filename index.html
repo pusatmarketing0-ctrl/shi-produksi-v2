@@ -7091,7 +7091,25 @@ function fillOperatorList(selectedEmail) {
       const d = new Date(dateStr + "T12:00:00").getDay();
       return d === 0;
     }
+    function opsLineClosed(line, orderNotes, productId) {
+      if (!line && !orderNotes) return false;
+      if (line) {
+        var st = String(line.status || "").toLowerCase();
+        if (st === "done" || st === "closed") return true;
+        if (String(line.notes || "").indexOf("[CLOSED]") >= 0) return true;
+      }
+      if (orderNotes && productId) {
+        var m = String(orderNotes).match(/\[CLOSED_PRODUCTS:([^\]]*)\]/);
+        if (m) {
+          return m[1].split(",").some(function(x) { return String(x.trim()) === String(productId); });
+        }
+      }
+      return false;
+    }
     function opsStatusOf(g) {
+      if (g.line_closed) return "DONE";
+      var db = String(g.order_status || g.db_status || "").toLowerCase();
+      if (db === "done" || db === "closed") return "DONE";
       if (g.po_qty > 0 && g.act_total >= g.po_qty) return "DONE";
       if (g.act_total > 0 || g.plan_total > 0) return "PARTIAL";
       return "OPEN";
@@ -7099,6 +7117,201 @@ function fillOperatorList(selectedEmail) {
     function opsStatusBadge(st) {
       const c = st === "DONE" ? "badge-done" : (st === "PARTIAL" ? "badge-partial" : "badge-open");
       return '<span class="badge-st ' + c + '">' + st + '</span>';
+    }
+
+    var opsMenuCtx = null;
+    function openOpsProductMenu(productId, noSo, orderId) {
+      var g = (opsRows || []).find(function(x) {
+        if (orderId && x.order_id && String(x.order_id) === String(orderId) && String(x.product_id) === String(productId)) return true;
+        return String(x.product_id) === String(productId) && String(x.no_so || "") === String(noSo || "");
+      });
+      opsMenuCtx = g || { product_id: productId, no_so: noSo, order_id: orderId };
+      var pname = "";
+      try {
+        var p = (products || []).find(function(x) { return String(x.product_id) === String(productId); });
+        if (p) pname = p.name || "";
+      } catch (e) {}
+      if ($("opsMenuTitle")) $("opsMenuTitle").textContent = productId + (pname ? " — " + pname : "");
+      if ($("opsMenuSub")) {
+        $("opsMenuSub").textContent =
+          "SO: " + (opsMenuCtx.no_so || "—") +
+          " · Customer: " + (opsMenuCtx.customer || "—") +
+          " · Status grid: " + (opsMenuCtx.status || opsStatusOf(opsMenuCtx));
+      }
+      if ($("opsMenuStats")) {
+        $("opsMenuStats").innerHTML =
+          "<div>Qty PO: <strong>" + formatNum(opsMenuCtx.po_qty || 0) + "</strong></div>" +
+          "<div>Plan: <strong>" + formatNum(opsMenuCtx.plan_total || 0) + "</strong></div>" +
+          "<div>Actual: <strong>" + formatNum(opsMenuCtx.act_total || 0) + "</strong></div>" +
+          "<div>OP: <strong>" + formatNum(opsMenuCtx.op_total || 0) + "</strong></div>";
+      }
+      var dbSt = String(opsMenuCtx.db_status || "").toLowerCase();
+      var closed = dbSt === "done" || dbSt === "closed" || opsMenuCtx.status === "DONE";
+      if ($("btnOpsClose")) $("btnOpsClose").style.display = closed ? "none" : "";
+      if ($("btnOpsReopen")) $("btnOpsReopen").style.display = closed ? "" : "none";
+      var m = $("opsProductModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+    }
+    function closeOpsProductMenu() {
+      var m = $("opsProductModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+      opsMenuCtx = null;
+    }
+    /** Close / reopen SATU produk di SO multi-produk. SO induk done hanya jika semua produk done. */
+    async function opsCloseOrder(reopen) {
+      if (!sb || !opsMenuCtx) return;
+      var orderId = opsMenuCtx.order_id || "";
+      var noSo = opsMenuCtx.no_so || "";
+      var productId = opsMenuCtx.product_id || "";
+      if (!productId) return toast("Produk tidak ditemukan", true);
+      if (!orderId && noSo) {
+        var { data: oFind } = await sb.from("orders").select("order_id,ot_id,status,no_so").eq("no_so", noSo).limit(1).maybeSingle();
+        if (oFind) {
+          orderId = oFind.order_id;
+          opsMenuCtx.order_id = orderId;
+          opsMenuCtx.ot_id = oFind.ot_id;
+        }
+      }
+      if (!orderId) return toast("Order ID / No SO tidak ditemukan", true);
+
+      var ok = await appConfirm({
+        title: reopen ? "Buka kembali produk ini?" : "Close produk ini saja?",
+        message: (reopen
+          ? "Hanya produk ini yang dibuka lagi.\n"
+          : "Hanya produk ini yang di-close.\nProduk lain di SO yang sama TIDAK ikut tertutup.\nSO induk jadi done hanya jika semua produk sudah done.\n\n") +
+          "SO: " + (noSo || orderId) + "\nProduk: " + productId,
+        okText: reopen ? "Buka produk" : "Close produk ini",
+        cancelText: "Batal",
+        danger: !reopen
+      });
+      if (!ok) return;
+
+      toast(reopen ? "Membuka produk…" : "Menutup produk…");
+      var now = new Date().toISOString();
+      var lineSt = reopen ? "open" : "done";
+      var lineOk = false;
+
+      // 1) Tandai baris order_lines produk ini
+      try {
+        var u1 = await sb.from("order_lines").update({ status: lineSt }).eq("order_id", orderId).eq("product_id", productId);
+        if (!u1.error) lineOk = true;
+        else {
+          var { data: lines0 } = await sb.from("order_lines").select("id,notes").eq("order_id", orderId).eq("product_id", productId);
+          if (lines0 && lines0.length) {
+            for (var li = 0; li < lines0.length; li++) {
+              var note = String(lines0[li].notes || "");
+              if (!reopen) {
+                if (note.indexOf("[CLOSED]") < 0) note = (note ? note + " " : "") + "[CLOSED]";
+              } else {
+                note = note.replace(/\s*\[CLOSED\]/g, "").trim();
+              }
+              var u2 = await sb.from("order_lines").update({ notes: note }).eq("id", lines0[li].id);
+              if (!u2.error) lineOk = true;
+            }
+          }
+        }
+      } catch (eLn) { console.warn(eLn); }
+
+      if (!lineOk) {
+        try {
+          var { data: ord0 } = await sb.from("orders").select("notes").eq("order_id", orderId).maybeSingle();
+          var notes = String((ord0 && ord0.notes) || "");
+          var closedSet = {};
+          var m = notes.match(/\[CLOSED_PRODUCTS:([^\]]*)\]/);
+          if (m) m[1].split(",").forEach(function(x) { if (x.trim()) closedSet[x.trim()] = true; });
+          if (reopen) delete closedSet[productId];
+          else closedSet[productId] = true;
+          var list = Object.keys(closedSet).join(",");
+          var cleaned = notes.replace(/\s*\[CLOSED_PRODUCTS:[^\]]*\]/g, "").trim();
+          var newNotes = (cleaned ? cleaned + " " : "") + (list ? "[CLOSED_PRODUCTS:" + list + "]" : "");
+          await sb.from("orders").update({ notes: newNotes }).eq("order_id", orderId);
+          lineOk = true;
+        } catch (eN) {
+          return toast("Gagal tandai produk: " + (eN.message || eN), true);
+        }
+      }
+
+      // 2) Plan hanya produk ini + SO ini
+      try {
+        var { data: pls } = await sb.from("plans").select("plan_id,product_id,no_so,order_id,status").eq("product_id", productId).limit(800);
+        for (var j = 0; j < (pls || []).length; j++) {
+          var pl = pls[j];
+          var matchSo = (noSo && String(pl.no_so) === String(noSo)) || (orderId && String(pl.order_id) === String(orderId));
+          if (!matchSo) continue;
+          if (reopen) {
+            if (String(pl.status) === "done") await sb.from("plans").update({ status: "open" }).eq("plan_id", pl.plan_id);
+          } else if (["open", "in_progress", "draft"].indexOf(String(pl.status)) >= 0) {
+            await sb.from("plans").update({ status: "done" }).eq("plan_id", pl.plan_id);
+          }
+        }
+      } catch (ePl) { console.warn(ePl); }
+
+      // 3) PO yang khusus FG produk ini
+      try {
+        var { data: pos } = await sb.from("purchase_orders")
+          .select("po_id,order_id,no_so,purchase_lines(for_product_id,product_id)")
+          .or("order_id.eq." + orderId + (noSo ? ",no_so.eq." + noSo : ""))
+          .limit(80);
+        for (var pi = 0; pi < (pos || []).length; pi++) {
+          var po = pos[pi];
+          var lines = po.purchase_lines || [];
+          if (!lines.length) continue;
+          var onlyThis = lines.every(function(l) {
+            return String(l.for_product_id || l.product_id || "") === String(productId);
+          });
+          var hit = lines.some(function(l) {
+            return String(l.for_product_id || "") === String(productId) || String(l.product_id || "") === String(productId);
+          });
+          if (onlyThis && hit) {
+            await sb.from("purchase_orders").update({ status: reopen ? "ordered" : "received" }).eq("po_id", po.po_id);
+          }
+        }
+      } catch (ePo) { console.warn(ePo); }
+
+      // 4) SO induk: done hanya jika semua produk di SO sudah closed
+      try {
+        var { data: allLines } = await sb.from("order_lines").select("product_id,status,notes").eq("order_id", orderId);
+        var allDone = true;
+        if (allLines && allLines.length) {
+          allLines.forEach(function(l) {
+            var st = String(l.status || "").toLowerCase();
+            var noteClosed = String(l.notes || "").indexOf("[CLOSED]") >= 0;
+            var isDone = st === "done" || st === "closed" || noteClosed;
+            if (String(l.product_id) === String(productId)) isDone = !reopen;
+            if (!isDone) allDone = false;
+          });
+        } else {
+          var { data: ordN } = await sb.from("orders").select("notes,order_lines(product_id)").eq("order_id", orderId).maybeSingle();
+          var closedSet2 = {};
+          var nm = String((ordN && ordN.notes) || "").match(/\[CLOSED_PRODUCTS:([^\]]*)\]/);
+          if (nm) nm[1].split(",").forEach(function(x) { if (x.trim()) closedSet2[x.trim()] = true; });
+          if (reopen) delete closedSet2[productId];
+          else closedSet2[productId] = true;
+          var prods = (ordN && ordN.order_lines) || [];
+          allDone = prods.length ? prods.every(function(l) { return !!closedSet2[l.product_id]; }) : !reopen;
+        }
+        if (!reopen && allDone) {
+          await sb.from("orders").update({ status: "done" }).eq("order_id", orderId);
+          try {
+            var { data: ord } = await sb.from("orders").select("ot_id").eq("order_id", orderId).maybeSingle();
+            if (ord && ord.ot_id) await sb.from("order_trading").update({ status: "done", updated_at: now }).eq("ot_id", ord.ot_id);
+          } catch (eOt) {}
+        } else if (reopen) {
+          await sb.from("orders").update({ status: "open" }).eq("order_id", orderId);
+        }
+      } catch (eOrd) { console.warn(eOrd); }
+
+      toast(reopen ? "Produk dibuka kembali" : "Produk di-close (produk lain di SO tetap aktif)");
+      closeOpsProductMenu();
+      try { await loadOperasional(); } catch (eL) {}
     }
 
     async function loadOperasional() {
@@ -7118,7 +7331,7 @@ function fillOperatorList(selectedEmail) {
 
       const [{ data: plans, error: e1 }, { data: orders }, poRes] = await Promise.all([
         sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000),
-        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,order_lines(product_id,qty)").limit(800),
+        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").limit(800),
         sb.from("purchase_orders").select("po_id,order_id,no_so,po_date,status,purchase_lines(eta_date,for_product_id,product_id,vendor_name)").neq("status", "cancelled").limit(500)
       ]);
       if (e1) {
@@ -7196,6 +7409,11 @@ function fillOperatorList(selectedEmail) {
               if (String(l.product_id) === String(p.product_id)) poQty += Number(l.qty) || 0;
             });
           }
+          var lineClosed = false;
+          if (ord) {
+            var lnHit = (ord.order_lines || []).find(function(l) { return String(l.product_id) === String(p.product_id); });
+            lineClosed = opsLineClosed(lnHit, ord.notes, p.product_id);
+          }
           groups[key] = {
             product_id: p.product_id,
             no_so: p.no_so || (ord && ord.no_so) || "",
@@ -7204,6 +7422,9 @@ function fillOperatorList(selectedEmail) {
             so_mark_day: (ord && ord.order_date) ? String(ord.order_date).slice(0, 10) : "",
             customer: (ord && ord.customer_name) || "",
             order_status: (ord && ord.status) || "",
+            db_status: (ord && ord.status) || "",
+            line_closed: lineClosed,
+            ot_id: (ord && ord.ot_id) || "",
             from_ot: !!(ord && ord.ot_id),
             po_qty: poQty,
             planDay: {},
@@ -7338,6 +7559,9 @@ function fillOperatorList(selectedEmail) {
             so_mark_day: o.order_date ? String(o.order_date).slice(0, 10) : "",
             customer: o.customer_name || "",
             order_status: o.status || "",
+            db_status: o.status || "",
+            line_closed: opsLineClosed(l, o.notes, pid),
+            ot_id: o.ot_id || "",
             from_ot: !!(o.ot_id),
             po_qty: Number(l.qty) || 0,
             planDay: {},
@@ -7607,9 +7831,12 @@ function fillOperatorList(selectedEmail) {
         rows.forEach((row, ri) => {
           body += '<tr class="' + row.cls + '">';
           if (ri === 0) {
-            body += '<td class="fz fz-prod" rowspan="3"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div></td>';
+            var oidSafe = String(g.order_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            var nosoSafe = String(g.no_so || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            var pidSafe = String(g.product_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            body += '<td class="fz fz-prod" rowspan="3" style="cursor:pointer" title="Klik untuk aksi SO/PO" onclick="event.stopPropagation();openOpsProductMenu(\'' + pidSafe + '\',\'' + nosoSafe + '\',\'' + oidSafe + '\')"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div><div style="font-size:0.6rem;color:#16a34a;margin-top:0.15rem">Aksi ▾</div></td>';
             body += '<td class="fz fz-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
-            body += '<td class="fz fz-so" rowspan="3">' + esc(g.no_so || "—") + '</td>';
+            body += '<td class="fz fz-so" rowspan="3" style="cursor:pointer" title="Klik aksi SO" onclick="event.stopPropagation();openOpsProductMenu(\'' + pidSafe + '\',\'' + nosoSafe + '\',\'' + oidSafe + '\')">' + esc(g.no_so || "—") + '</td>';
             body += '<td class="sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
             body += '<td class="sc-po" rowspan="3">' + formatNum(g.po_qty) + '</td>';
             body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
@@ -12688,6 +12915,24 @@ function closeOtModal() {
   </div>
 
 
+  <div id="opsProductModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100160">
+    <div class="modal modal-sheet" style="max-width:420px;width:94vw">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="opsMenuTitle" style="margin:0;font-size:1.05rem">Produk</h2>
+        <p id="opsMenuSub" style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+      </div>
+      <div class="sheet-body">
+        <div id="opsMenuStats" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;font-size:0.85rem;margin-bottom:1rem"></div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Close hanya untuk <strong>produk ini</strong>. Produk lain di SO yang sama tetap aktif. SO induk baru done jika semua produk sudah di-close.</p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <button type="button" class="btn btn-primary" id="btnOpsClose" onclick="opsCloseOrder(false)">Close produk ini</button>
+          <button type="button" class="btn btn-ghost" id="btnOpsReopen" style="display:none" onclick="opsCloseOrder(true)">Buka kembali produk</button>
+          <button type="button" class="btn btn-ghost" onclick="closeOpsProductMenu()">Batal</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="productMoveModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100150">
     <div class="modal modal-sheet" style="max-width:720px;width:94vw;max-height:88vh;display:flex;flex-direction:column">
       <div class="sheet-handle"></div>
