@@ -3134,22 +3134,72 @@
       
         <section id="page-marketing" class="page" hidden>
           <div class="page-head">
-            <div><h1>Marketing</h1><p>Finish Good (packing masterbox) vs Ruahan — hari ini / kemarin / besok.</p></div>
-            <input type="date" id="mktDate" onchange="loadMarketing()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem" />
+            <div><h1>Marketing</h1><p>Output FG · Siap kirim · Instruksi ke gudang</p></div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+              <input type="date" id="mktDate" onchange="loadMarketing()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem" />
+              <button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal()">+ Instruksi kirim</button>
+            </div>
           </div>
-          <div class="grid-kpi">
-            <div class="kpi"><div class="label">FG plan</div><div class="value" id="mktFgPlan">—</div></div>
-            <div class="kpi"><div class="label">FG actual</div><div class="value" id="mktFgAct">—</div></div>
-            <div class="kpi"><div class="label">Ruahan plan</div><div class="value" id="mktRuPlan">—</div></div>
-            <div class="kpi"><div class="label">Ruahan actual</div><div class="value" id="mktRuAct">—</div></div>
+          <div class="mod-tabs" id="mktTabs">
+            <button type="button" class="mod-tab active" data-mtab="hari" onclick="setMktTab('hari')">Hari ini</button>
+            <button type="button" class="mod-tab" data-mtab="kemarin" onclick="setMktTab('kemarin')">Output FG kemarin</button>
+            <button type="button" class="mod-tab" data-mtab="kirim" onclick="setMktTab('kirim')">Instruksi kirim</button>
           </div>
-          <div class="card" style="margin-bottom:1rem">
-            <h3>Finish Good (packing masterbox)</h3>
-            <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktFgBody"></tbody></table></div>
+          <div id="mktPaneHari" class="mod-pane">
+            <div class="grid-kpi">
+              <div class="kpi"><div class="label">FG plan</div><div class="value" id="mktFgPlan">—</div></div>
+              <div class="kpi"><div class="label">FG actual</div><div class="value" id="mktFgAct">—</div></div>
+              <div class="kpi"><div class="label">Ruahan plan</div><div class="value" id="mktRuPlan">—</div></div>
+              <div class="kpi"><div class="label">Ruahan actual</div><div class="value" id="mktRuAct">—</div></div>
+            </div>
+            <div class="card" style="margin-bottom:1rem">
+              <h3>Finish Good (packing masterbox)</h3>
+              <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktFgBody"></tbody></table></div>
+            </div>
+            <div class="card">
+              <h3>Ruahan (proses lain)</h3>
+              <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Proses</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktRuBody"></tbody></table></div>
+            </div>
           </div>
-          <div class="card">
-            <h3>Ruahan (proses lain)</h3>
-            <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Proses</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktRuBody"></tbody></table></div>
+          <div id="mktPaneKemarin" class="mod-pane" hidden>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.65rem">
+                <h3 style="margin:0">Output FG kemarin <span id="mktYestLabel" style="font-weight:500;color:var(--text-muted);font-size:0.85rem"></span></h3>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktYesterdayFg()">Refresh</button>
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Hanya packing masterbox. Pilih baris → buat instruksi kirim ke gudang.</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th></th><th>Produk</th><th>Actual FG</th><th>No SO (plan)</th><th>Stok FG*</th><th></th></tr></thead>
+                  <tbody id="mktYestBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
+              <p style="font-size:0.7rem;color:var(--text-muted);margin:0.5rem 0 0">*Stok FG dari warehouse_movements jika ada. Qty usulan kirim = min(stok, sisa SO) saat buat instruksi.</p>
+            </div>
+          </div>
+          <div id="mktPaneKirim" class="mod-pane" hidden>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem;flex-wrap:wrap;gap:0.5rem">
+                <h3 style="margin:0">Instruksi kirim ke gudang</h3>
+                <button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal()">+ Baru</button>
+              </div>
+              <div class="toolbar" style="margin-bottom:0.5rem">
+                <select id="shipReqStatusFilter" onchange="renderShipRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.6rem">
+                  <option value="">Semua</option>
+                  <option value="requested">requested</option>
+                  <option value="picked">picked</option>
+                  <option value="shipped">shipped</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th></th></tr></thead>
+                  <tbody id="shipReqBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -3437,6 +3487,7 @@
           <div class="mod-tabs" id="gudangTabs" role="tablist">
             <button type="button" class="mod-tab active" data-gtab="stok" onclick="setGudangTab('stok')">Stok</button>
             <button type="button" class="mod-tab" data-gtab="terima" onclick="setGudangTab('terima')">Terima</button>
+            <button type="button" class="mod-tab" data-gtab="kirim" onclick="setGudangTab('kirim')">Kirim</button>
             <button type="button" class="mod-tab" data-gtab="mutasi" onclick="setGudangTab('mutasi')">Mutasi</button>
           </div>
           <div id="gudang-pane-stok" class="gudang-pane">
@@ -3471,6 +3522,21 @@
                 </tr></thead>
                 <tbody id="gudangBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
               </table>
+            </div>
+          </div>
+          <div id="gudang-pane-kirim" class="gudang-pane" hidden>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem">
+                <h3 style="margin:0">Antrian kirim (dari Marketing)</h3>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Instruksi yang statusnya <strong>requested</strong> menunggu gudang. Setelah siap, tandai picked / shipped.</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th></th></tr></thead>
+                  <tbody id="gudangShipBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div id="gudang-pane-mutasi" class="gudang-pane" hidden>
@@ -7206,9 +7272,285 @@ function fillOperatorList(selectedEmail) {
           statusPill(x.status) + '</td></tr>').join("");
     }
 
+    function setMktTab(tab) {
+      tab = tab || "hari";
+      document.querySelectorAll("#mktTabs .mod-tab").forEach(function(btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-mtab") === tab);
+      });
+      if ($("mktPaneHari")) $("mktPaneHari").hidden = tab !== "hari";
+      if ($("mktPaneKemarin")) $("mktPaneKemarin").hidden = tab !== "kemarin";
+      if ($("mktPaneKirim")) $("mktPaneKirim").hidden = tab !== "kirim";
+      if (tab === "kemarin") try { loadMktYesterdayFg(); } catch (e) {}
+      if (tab === "kirim") try { loadShipRequests(); } catch (e2) {}
+      if (tab === "hari") try { loadMarketing(); } catch (e3) {}
+    }
 
-    
-    
+    function mktYesterdayStr() {
+      var t = new Date();
+      t.setDate(t.getDate() - 1);
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      return t.getFullYear() + "-" + z(t.getMonth() + 1) + "-" + z(t.getDate());
+    }
+
+    async function loadMktYesterdayFg() {
+      if (!sb) return;
+      var yest = mktYesterdayStr();
+      if ($("mktYestLabel")) $("mktYestLabel").textContent = "· " + yest;
+      var body = $("mktYestBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      var { data: pls } = await sb.from("plans").select("plan_id,product_id,no_so,order_id,machine_id,target_qty").eq("plan_date", yest).limit(800);
+      var fgPlans = (pls || []).filter(function(p) { return isFgMachine(p.machine_id); });
+      if (!fgPlans.length) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada plan FG kemarin</td></tr>';
+        return;
+      }
+      var ids = fgPlans.map(function(p) { return p.plan_id; });
+      var actBy = {};
+      for (var i = 0; i < ids.length; i += 80) {
+        var chunk = ids.slice(i, i + 80);
+        var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", chunk);
+        (reps || []).forEach(function(r) {
+          actBy[r.plan_id] = (actBy[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
+        });
+      }
+      // aggregate by product
+      var byProd = {};
+      fgPlans.forEach(function(p) {
+        var act = actBy[p.plan_id] || 0;
+        if (!(act > 0)) return;
+        if (!byProd[p.product_id]) byProd[p.product_id] = { product_id: p.product_id, actual: 0, nos: {} };
+        byProd[p.product_id].actual += act;
+        if (p.no_so) byProd[p.product_id].nos[p.no_so] = true;
+      });
+      // stock FG rough from movements
+      var stockMap = {};
+      try {
+        var pids = Object.keys(byProd);
+        if (pids.length) {
+          var { data: movs } = await sb.from("warehouse_movements").select("product_id,qty,movement_type").in("product_id", pids.slice(0, 100)).limit(3000);
+          (movs || []).forEach(function(m) {
+            var q = Number(m.qty) || 0;
+            var t = String(m.movement_type || "");
+            if (!stockMap[m.product_id]) stockMap[m.product_id] = 0;
+            if (/^in|^fg|in_fg/i.test(t)) stockMap[m.product_id] += q;
+            else if (/^out|ship|kirim/i.test(t)) stockMap[m.product_id] -= q;
+            else stockMap[m.product_id] += q;
+          });
+        }
+      } catch (eS) {}
+      var list = Object.values(byProd).sort(function(a, b) { return b.actual - a.actual; });
+      if (!list.length) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada laporan FG kemarin</td></tr>';
+        return;
+      }
+      if (body) body.innerHTML = list.map(function(x) {
+        var nos = Object.keys(x.nos || {}).join(", ") || "—";
+        var st = stockMap[x.product_id];
+        return "<tr>" +
+          '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" /></td>' +
+          "<td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(productLabel(x.product_id)) + "</div></td>" +
+          "<td><strong>" + formatNum(x.actual) + "</strong></td>" +
+          "<td style='font-size:0.78rem'>" + esc(nos) + "</td>" +
+          "<td>" + (st != null ? formatNum(st) : "—") + "</td>" +
+          '<td><button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal(\'' + String(x.product_id).replace(/'/g, "") + '\',' + Number(x.actual) + ')">Kirim</button></td></tr>';
+      }).join("");
+    }
+
+    var shipReqList = [];
+    async function loadShipRequests() {
+      if (!sb) return;
+      var { data, error } = await sb.from("ship_requests")
+        .select("*, ship_request_lines(id,product_id,qty,unit,notes)")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) {
+        var msg = esc(error.message) + " — jalankan ship_requests.sql";
+        if ($("shipReqBody")) $("shipReqBody").innerHTML = '<tr><td colspan="6" class="empty">' + msg + "</td></tr>";
+        if ($("gudangShipBody")) $("gudangShipBody").innerHTML = '<tr><td colspan="6" class="empty">' + msg + "</td></tr>";
+        shipReqList = [];
+        return;
+      }
+      shipReqList = data || [];
+      renderShipRequests();
+    }
+    function renderShipRequests() {
+      var stf = ($("shipReqStatusFilter") && $("shipReqStatusFilter").value) || "";
+      var role = currentRole();
+      var list = shipReqList.filter(function(r) {
+        if (stf && r.status !== stf) return false;
+        if (role === "gudang" && !stf && ["cancelled"].indexOf(r.status) >= 0) return false;
+        return true;
+      });
+      function rowHtml(r, forGudang) {
+        var n = (r.ship_request_lines || []).length;
+        var acts = "";
+        if (forGudang || role === "gudang" || role === "admin") {
+          if (r.status === "requested") {
+            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
+            acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'shipped\')">Shipped</button>';
+          } else if (r.status === "picked") {
+            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'shipped\')">Shipped</button>';
+          }
+        }
+        if ((role === "marketing" || role === "admin") && r.status === "requested") {
+          acts += ' <button type="button" class="btn btn-ghost btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'cancelled\')">Batal</button>';
+        }
+        var lines = (r.ship_request_lines || []).map(function(l) {
+          return esc(l.product_id) + " × " + formatNum(l.qty);
+        }).join("<br>");
+        return "<tr>" +
+          "<td><strong>" + esc(r.ship_id) + "</strong></td>" +
+          "<td>" + esc(String(r.request_date || "").slice(0, 10)) + "</td>" +
+          "<td>" + esc(r.customer_name || "—") + "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(r.no_so || "") + "</div></td>" +
+          "<td>" + esc(r.status || "") + "</td>" +
+          "<td style='font-size:0.78rem'>" + (lines || (n + " item")) + "</td>" +
+          "<td style='white-space:nowrap'>" + acts + "</td></tr>";
+      }
+      if ($("shipReqBody")) {
+        $("shipReqBody").innerHTML = list.length
+          ? list.map(function(r) { return rowHtml(r, false); }).join("")
+          : '<tr><td colspan="6" class="empty">Belum ada instruksi kirim</td></tr>';
+      }
+      if ($("gudangShipBody")) {
+        var gList = shipReqList.filter(function(r) {
+          return r.status === "requested" || r.status === "picked";
+        });
+        $("gudangShipBody").innerHTML = gList.length
+          ? gList.map(function(r) { return rowHtml(r, true); }).join("")
+          : '<tr><td colspan="6" class="empty">Tidak ada antrian kirim</td></tr>';
+      }
+    }
+    async function updateShipStatus(shipId, status) {
+      if (!sb || !shipId) return;
+      var { error } = await sb.from("ship_requests").update({
+        status: status,
+        updated_at: new Date().toISOString()
+      }).eq("ship_id", shipId);
+      if (error) return toast(error.message, true);
+      // shipped → potong stok FG (out)
+      if (status === "shipped") {
+        try {
+          var { data: lines } = await sb.from("ship_request_lines").select("*").eq("ship_id", shipId);
+          for (var i = 0; i < (lines || []).length; i++) {
+            var l = lines[i];
+            await sb.from("warehouse_movements").insert({
+              product_id: l.product_id,
+              qty: Number(l.qty) || 0,
+              unit: l.unit || "pcs",
+              movement_type: "out_ship",
+              notes: "Kirim " + shipId,
+              ref_id: shipId,
+              created_at: new Date().toISOString()
+            });
+          }
+        } catch (eM) { console.warn(eM); }
+      }
+      toast("Status → " + status);
+      loadShipRequests();
+    }
+    function openShipRequestModal(productId, qty) {
+      if ($("shipReqId")) $("shipReqId").value = "";
+      if ($("shipReqDate")) $("shipReqDate").value = todayStr();
+      if ($("shipReqCustomer")) $("shipReqCustomer").value = "";
+      if ($("shipReqSo")) $("shipReqSo").value = "";
+      if ($("shipReqNotes")) $("shipReqNotes").value = "";
+      if ($("shipReqLines")) $("shipReqLines").innerHTML = "";
+      addShipReqLine(productId ? { product_id: productId, qty: qty || "", unit: "pcs" } : null);
+      fillShipSoSelect();
+      var m = $("shipRequestModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+    }
+    function closeShipRequestModal() {
+      var m = $("shipRequestModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+    }
+    async function fillShipSoSelect() {
+      var sel = $("shipReqSoSelect");
+      if (!sel || !sb) return;
+      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").not("status", "in", '("done","cancelled","canceled")').order("created_at", { ascending: false }).limit(80);
+      sel.innerHTML = '<option value="">— Opsional pilih SO —</option>';
+      (data || []).forEach(function(o) {
+        var opt = document.createElement("option");
+        opt.value = o.order_id;
+        opt.dataset.noso = o.no_so || "";
+        opt.dataset.customer = o.customer_name || "";
+        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "");
+        sel.appendChild(opt);
+      });
+    }
+    function onShipSoChange() {
+      var sel = $("shipReqSoSelect");
+      if (!sel || !sel.value) return;
+      var opt = sel.options[sel.selectedIndex];
+      if ($("shipReqCustomer") && opt.dataset.customer) $("shipReqCustomer").value = opt.dataset.customer;
+      if ($("shipReqSo") && opt.dataset.noso) $("shipReqSo").value = opt.dataset.noso;
+    }
+    function addShipReqLine(line) {
+      line = line || {};
+      var box = $("shipReqLines");
+      if (!box) return;
+      box.insertAdjacentHTML("beforeend",
+        '<div class="ship-line" style="display:grid;grid-template-columns:1.4fr 0.7fr 0.5fr 32px;gap:0.4rem;margin-bottom:0.4rem">' +
+          '<input class="sl-pid" placeholder="Kode FG" value="' + esc(line.product_id || "") + '" />' +
+          '<input class="sl-qty num-input" inputmode="decimal" placeholder="Qty" value="' + (line.qty != null && line.qty !== "" ? esc(String(line.qty)) : "") + '" />' +
+          '<input class="sl-unit" placeholder="Unit" value="' + esc(line.unit || "pcs") + '" />' +
+          '<button type="button" class="btn btn-ghost btn-sm" onclick="this.parentNode.remove()">×</button></div>');
+      try { bindAllThousandInputs(); } catch (e) {}
+    }
+    async function saveShipRequest() {
+      if (!sb) return;
+      var customer = (($("shipReqCustomer") && $("shipReqCustomer").value) || "").trim();
+      var no_so = (($("shipReqSo") && $("shipReqSo").value) || "").trim();
+      var order_id = (($("shipReqSoSelect") && $("shipReqSoSelect").value) || "").trim();
+      var notes = (($("shipReqNotes") && $("shipReqNotes").value) || "").trim();
+      var request_date = (($("shipReqDate") && $("shipReqDate").value) || todayStr());
+      var lines = [];
+      document.querySelectorAll("#shipReqLines .ship-line").forEach(function(el) {
+        var pid = ((el.querySelector(".sl-pid") && el.querySelector(".sl-pid").value) || "").trim();
+        var qty = parseInputNum((el.querySelector(".sl-qty") && el.querySelector(".sl-qty").value) || 0);
+        var unit = ((el.querySelector(".sl-unit") && el.querySelector(".sl-unit").value) || "pcs").trim();
+        if (pid && qty > 0) lines.push({ product_id: pid, qty: qty, unit: unit });
+      });
+      if (!lines.length) return toast("Minimal 1 produk + qty", true);
+      var ship_id = "SHIP-" + Date.now().toString(36).toUpperCase();
+      var header = {
+        ship_id: ship_id,
+        request_date: request_date,
+        customer_name: customer,
+        no_so: no_so,
+        order_id: order_id || null,
+        status: "requested",
+        notes: notes,
+        created_by: (currentUser && currentUser.email) || "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      var { error } = await sb.from("ship_requests").insert(header);
+      if (error) return toast(error.message + " — jalankan ship_requests.sql", true);
+      var lineRows = lines.map(function(l) {
+        return {
+          ship_id: ship_id,
+          product_id: l.product_id,
+          qty: l.qty,
+          unit: l.unit || "pcs"
+        };
+      });
+      var { error: e2 } = await sb.from("ship_request_lines").insert(lineRows);
+      if (e2) return toast(e2.message, true);
+      toast("Instruksi kirim " + ship_id + " dikirim ke gudang");
+      closeShipRequestModal();
+      try { loadShipRequests(); } catch (e) {}
+      try { setMktTab("kirim"); } catch (e3) {}
+    }
+
     // ===== Grid operasional (parity prototipe) =====
     let opsYear = new Date().getFullYear();
     let opsMonth = new Date().getMonth();
@@ -8928,7 +9270,7 @@ function fillOperatorList(selectedEmail) {
       document.querySelectorAll("#gudangTabs .mod-tab").forEach(function(btn) {
         btn.classList.toggle("active", btn.getAttribute("data-gtab") === gudangActiveTab);
       });
-      ["stok", "terima", "mutasi"].forEach(function(t) {
+      ["stok", "terima", "kirim", "mutasi"].forEach(function(t) {
         var pane = $("gudang-pane-" + t);
         if (pane) pane.hidden = t !== gudangActiveTab;
       });
@@ -8939,6 +9281,8 @@ function fillOperatorList(selectedEmail) {
         try { loadGudangStock(); } catch (e) {}
       } else if (gudangActiveTab === "terima") {
         try { loadGudangInbox(); } catch (e) {}
+      } else if (gudangActiveTab === "kirim") {
+        try { loadShipRequests(); } catch (e) {}
       } else if (gudangActiveTab === "mutasi") {
         try {
           var dl = $("whProdList");
@@ -13491,6 +13835,34 @@ function closeOtModal() {
   </div>
 
 
+  <div id="shipRequestModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100170">
+    <div class="modal modal-sheet" style="max-width:520px;width:94vw;max-height:90vh;overflow:auto">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 style="margin:0">Instruksi kirim ke gudang</h2>
+        <p style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)">Marketing → Gudang. Setelah gudang shipped, stok FG dipotong.</p>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="shipReqId" />
+        <div class="field"><label>Tanggal</label><input type="date" id="shipReqDate" /></div>
+        <div class="field"><label>SO (opsional)</label>
+          <select id="shipReqSoSelect" onchange="onShipSoChange()" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)"></select>
+        </div>
+        <div class="field"><label>No SO</label><input id="shipReqSo" placeholder="SO/2026/…" /></div>
+        <div class="field"><label>Customer</label><input id="shipReqCustomer" placeholder="Nama customer" /></div>
+        <div class="field"><label>Catatan</label><input id="shipReqNotes" placeholder="Alamat / ekspedisi / prioritas" /></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.75rem 0 0.35rem">
+          <strong style="font-size:0.85rem">Produk FG</strong>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addShipReqLine()">+ Baris</button>
+        </div>
+        <div id="shipReqLines"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+          <button type="button" class="btn btn-ghost" onclick="closeShipRequestModal()">Batal</button>
+          <button type="button" class="btn btn-primary" onclick="saveShipRequest()">Kirim ke gudang</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="opsProductModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100160">
     <div class="modal modal-sheet" style="max-width:440px;width:94vw;max-height:90vh;overflow:auto">
       <div class="sheet-handle"></div>
