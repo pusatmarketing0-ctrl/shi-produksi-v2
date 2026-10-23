@@ -7456,7 +7456,7 @@ function fillOperatorList(selectedEmail) {
       loadShipRequests();
     }
 
-    /** Gudang: dari instruksi picked → buka form DO terisi otomatis */
+    /** Gudang: dari instruksi picked → buka form DO terisi otomatis (SO/customer/produk) */
     async function createDoFromShip(shipId) {
       if (!sb || !shipId) return;
       var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
@@ -7468,7 +7468,6 @@ function fillOperatorList(selectedEmail) {
       if (r.status !== "picked" && r.status !== "requested") {
         return toast("Hanya instruksi requested/picked yang bisa jadi DO", true);
       }
-      // pastikan picked dulu
       if (r.status === "requested") {
         await sb.from("ship_requests").update({ status: "picked", updated_at: new Date().toISOString() }).eq("ship_id", shipId);
         r.status = "picked";
@@ -7477,50 +7476,69 @@ function fillOperatorList(selectedEmail) {
       lines = lines || r.ship_request_lines || [];
       if (!lines.length) return toast("Instruksi tanpa produk — tidak bisa buat DO", true);
 
+      // resolve SO dari order_id / no_so / customer
+      var order = null;
+      try {
+        if (r.order_id) {
+          var { data: o1 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("order_id", r.order_id).maybeSingle();
+          order = o1;
+        }
+        if (!order && r.no_so) {
+          var { data: o2 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("no_so", r.no_so).limit(1).maybeSingle();
+          order = o2;
+        }
+      } catch (eO) { console.warn(eO); }
+
       closeShipDetail();
-      // buka modal DO
       try {
         await openDeliveryModal("");
       } catch (e) {
-        goPage("delivery");
+        try { goPage("delivery"); } catch (e2) {}
         await openDeliveryModal("");
       }
-      // prefill
+
+      window.__doFromShipId = shipId;
+      if ($("doShipRef")) $("doShipRef").value = shipId;
       if ($("doDate")) $("doDate").value = todayStr();
       if ($("doStatus")) $("doStatus").value = "ready";
-      if ($("doCustomer")) $("doCustomer").value = r.customer_name || "";
       if ($("doNotes")) $("doNotes").value = "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : "");
-      // tandai ship_id di notes/hidden
-      if ($("doShipRef")) $("doShipRef").value = shipId;
-      else {
-        // simpan di notes header juga
-        window.__doFromShipId = shipId;
-      }
-      // pilih SO jika ada
+
+      // pastikan opsi SO ada di dropdown (meski di luar limit 100)
       var sel = $("doSoSelect");
-      if (sel && r.order_id) {
+      if (sel) {
+        var wantId = (order && order.order_id) || r.order_id || "";
+        var wantSo = (order && order.no_so) || r.no_so || "";
+        var wantCust = (order && order.customer_name) || r.customer_name || "";
+        var found = false;
         for (var i = 0; i < sel.options.length; i++) {
-          if (sel.options[i].value === r.order_id) {
+          var opt = sel.options[i];
+          if ((wantId && opt.value === wantId) || (wantSo && String(opt.dataset.noso || "") === String(wantSo))) {
             sel.selectedIndex = i;
-            onDoSoChange();
+            found = true;
             break;
           }
         }
-      } else if (sel && r.no_so) {
-        for (var j = 0; j < sel.options.length; j++) {
-          if (String(sel.options[j].dataset.noso || "") === String(r.no_so)) {
-            sel.selectedIndex = j;
-            onDoSoChange();
-            break;
-          }
+        if (!found && (wantId || wantSo)) {
+          var oNew = document.createElement("option");
+          oNew.value = wantId || ("tmp-" + wantSo);
+          oNew.dataset.noso = wantSo;
+          oNew.dataset.customer = wantCust;
+          oNew.textContent = (wantSo || wantId) + " · " + (wantCust || "");
+          oNew.selected = true;
+          sel.appendChild(oNew);
         }
+        onDoSoChange();
       }
-      // isi baris dari ship lines
+      if ($("doCustomer")) {
+        $("doCustomer").value = (order && order.customer_name) || r.customer_name || ($("doCustomer").value || "");
+      }
+
+      // ganti baris kosong default dengan produk dari instruksi
       if ($("doLines")) $("doLines").innerHTML = "";
       lines.forEach(function(l) {
         addDoLine({ product_id: l.product_id, qty: l.qty, unit: l.unit || "pcs" });
       });
-      toast("Lengkapi DO lalu simpan — setelah shipped, instruksi ikut selesai");
+      toast("SO & produk terisi dari instruksi — cek lalu set status shipped & simpan");
     }
     async function openShipDetail(shipId, nextStatus) {
       var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
@@ -9264,17 +9282,36 @@ function fillOperatorList(selectedEmail) {
     async function fillDoSoSelect(selectedId) {
       var sel = $("doSoSelect");
       if (!sel || !sb) return;
-      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").order("created_at", { ascending: false }).limit(100);
+      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").order("created_at", { ascending: false }).limit(200);
       sel.innerHTML = '<option value="">— Pilih SO —</option>';
+      var hasSel = false;
       (data || []).forEach(function(o) {
         var opt = document.createElement("option");
         opt.value = o.order_id;
         opt.dataset.noso = o.no_so || "";
         opt.dataset.customer = o.customer_name || "";
-        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "");
-        if (selectedId && o.order_id === selectedId) opt.selected = true;
+        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "") + (o.status ? " · " + o.status : "");
+        if (selectedId && o.order_id === selectedId) {
+          opt.selected = true;
+          hasSel = true;
+        }
         sel.appendChild(opt);
       });
+      // jika selectedId tidak ada di list, ambil 1 row dari DB
+      if (selectedId && !hasSel) {
+        try {
+          var { data: one } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("order_id", selectedId).maybeSingle();
+          if (one) {
+            var o2 = document.createElement("option");
+            o2.value = one.order_id;
+            o2.dataset.noso = one.no_so || "";
+            o2.dataset.customer = one.customer_name || "";
+            o2.textContent = (one.no_so || one.order_id) + " · " + (one.customer_name || "");
+            o2.selected = true;
+            sel.appendChild(o2);
+          }
+        } catch (e) {}
+      }
     }
     function onDoSoChange() {
       var sel = $("doSoSelect");
