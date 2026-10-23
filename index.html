@@ -6419,7 +6419,13 @@ function fillOperatorList(selectedEmail) {
           { page: "reports", label: "Lapor", ico: "ico-report" },
           { page: "absences", label: "Cuti", ico: "ico-leave" }
         ],
-        more: []
+        more: [
+          { group: "Saya", items: [
+            { page: "home", label: "Beranda & grade", ico: "ico-home" },
+            { page: "reports", label: "Laporan saya", ico: "ico-report" },
+            { page: "absences", label: "Izin / cuti", ico: "ico-leave" }
+          ]}
+        ]
       },
       gudang: {
         tabs: [
@@ -6431,7 +6437,10 @@ function fillOperatorList(selectedEmail) {
         more: [
           { group: "Gudang", items: [
             { page: "gudang", label: "Stok", ico: "ico-box", tab: "stok" },
-            { page: "gudang", label: "Mutasi", ico: "ico-out", tab: "mutasi" }
+            { page: "gudang", label: "Mutasi", ico: "ico-out", tab: "mutasi" },
+            { page: "gudang", label: "Terima barang", ico: "ico-inbox", tab: "terima" },
+            { page: "gudang", label: "Instruksi kirim", ico: "ico-out", tab: "kirim" },
+            { page: "delivery", label: "Delivery Order", ico: "ico-truck" }
           ]}
         ]
       },
@@ -6443,9 +6452,15 @@ function fillOperatorList(selectedEmail) {
           { page: "marketing", label: "Mkt", ico: "ico-mkt" }
         ],
         more: [
+          { group: "Order", items: [
+            { page: "order-trading", label: "Order Trading", ico: "ico-ot" },
+            { page: "orders", label: "Sales Order", ico: "ico-so" },
+            { page: "marketing", label: "Dashboard Mkt", ico: "ico-mkt" }
+          ]},
           { group: "Operasional", items: [
-            { page: "operasional", label: "Grid", ico: "ico-grid" },
-            { page: "plans", label: "Plan", ico: "ico-plan" }
+            { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "plans", label: "Plan", ico: "ico-plan" },
+            { page: "delivery", label: "Pengiriman / DO", ico: "ico-truck" }
           ]}
         ]
       },
@@ -6465,13 +6480,21 @@ function fillOperatorList(selectedEmail) {
           { page: "pr-ppic", label: "PR", ico: "ico-pr" }
         ],
         more: [
+          { group: "Operasional", items: [
+            { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "plans", label: "Plan produksi", ico: "ico-plan" },
+            { page: "reports", label: "Laporan OP", ico: "ico-report" },
+            { page: "absences", label: "Cuti / absensi", ico: "ico-leave" }
+          ]},
           { group: "Order", items: [
-            { page: "orders", label: "SO", ico: "ico-so" },
-            { page: "order-trading", label: "OT", ico: "ico-ot" }
+            { page: "orders", label: "Sales Order", ico: "ico-so" },
+            { page: "order-trading", label: "Order Trading", ico: "ico-ot" },
+            { page: "pr-ppic", label: "Permintaan beli", ico: "ico-pr" }
           ]},
           { group: "Master", items: [
             { page: "products", label: "Produk", ico: "ico-box" },
-            { page: "routes", label: "Routes", ico: "ico-grid" }
+            { page: "routes", label: "Product routes", ico: "ico-grid" },
+            { page: "accounts", label: "Data akun", ico: "ico-user" }
           ]}
         ]
       },
@@ -6481,7 +6504,13 @@ function fillOperatorList(selectedEmail) {
           { page: "purchasing", label: "PO", ico: "ico-cart" },
           { page: "pr-ppic", label: "PR", ico: "ico-pr" }
         ],
-        more: []
+        more: [
+          { group: "Procurement", items: [
+            { page: "purchasing", label: "Purchase Order", ico: "ico-cart" },
+            { page: "pr-ppic", label: "Permintaan beli", ico: "ico-pr" },
+            { page: "orders", label: "Sales Order", ico: "ico-so" }
+          ]}
+        ]
       },
       qc: {
         tabs: [
@@ -6498,9 +6527,15 @@ function fillOperatorList(selectedEmail) {
           { page: "reports", label: "Lapor", ico: "ico-report" }
         ],
         more: [
+          { group: "Operasional", items: [
+            { page: "operasional", label: "Grid", ico: "ico-grid" },
+            { page: "plans", label: "Plan", ico: "ico-plan" },
+            { page: "reports", label: "Laporan OP", ico: "ico-report" },
+            { page: "absences", label: "Cuti operator", ico: "ico-leave" }
+          ]},
           { group: "Lain", items: [
-            { page: "absences", label: "Cuti", ico: "ico-leave" },
-            { page: "orders", label: "SO", ico: "ico-so" }
+            { page: "orders", label: "Sales Order", ico: "ico-so" },
+            { page: "products", label: "Produk", ico: "ico-box" }
           ]}
         ]
       },
@@ -6512,14 +6547,28 @@ function fillOperatorList(selectedEmail) {
           { page: "purchasing", label: "PO", ico: "ico-cart" }
         ],
         more: [
-          { group: "Supply", items: [
-            { page: "gudang", label: "Gudang", ico: "ico-box" },
+          { group: "Operasional", items: [
+            { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "plans", label: "Plan", ico: "ico-plan" },
+            { page: "reports", label: "Laporan", ico: "ico-report" },
+            { page: "marketing", label: "Marketing", ico: "ico-mkt" }
+          ]},
+          { group: "Order", items: [
+            { page: "orders", label: "Sales Order", ico: "ico-so" },
+            { page: "order-trading", label: "Order Trading", ico: "ico-ot" },
+            { page: "delivery", label: "Pengiriman DO", ico: "ico-truck" }
+          ]},
+          { group: "Supply chain", items: [
+            { page: "pr-ppic", label: "Permintaan beli", ico: "ico-pr" },
+            { page: "purchasing", label: "Purchase / PO", ico: "ico-cart" },
             { page: "qc", label: "QC", ico: "ico-qc" },
-            { page: "delivery", label: "DO", ico: "ico-truck" }
+            { page: "gudang", label: "Gudang", ico: "ico-box" }
           ]},
           { group: "Master", items: [
             { page: "products", label: "Produk", ico: "ico-box" },
-            { page: "accounts", label: "Akun", ico: "ico-user" }
+            { page: "routes", label: "Routes", ico: "ico-grid" },
+            { page: "accounts", label: "Data akun", ico: "ico-user" },
+            { page: "export-data", label: "Export data", ico: "ico-out" }
           ]}
         ]
       }
@@ -6660,60 +6709,89 @@ function fillOperatorList(selectedEmail) {
       return Math.round(adj * 100) / 100;
     }
 
+    function isOwnPlan_(p, email) {
+      if (!p || !email) return false;
+      var em = String(email).toLowerCase().trim();
+      var op = String(p.assigned_operator || "").toLowerCase().trim();
+      if (!op) return false;
+      if (op === em) return true;
+      // kadang tersimpan nama; cocokkan ke profile name
+      var nm = String((currentProfile && currentProfile.name) || "").toLowerCase().trim();
+      if (nm && op === nm) return true;
+      return false;
+    }
     async function loadReportsPage() {
       if (!sb) return;
       const dateEl = $("reportFilterDate");
       if (dateEl && !dateEl.value) dateEl.value = todayStr();
       const date = dateEl ? dateEl.value : todayStr();
       const email = (currentUser && currentUser.email) || "";
+      const onlyMine = (currentRole() === "operator");
 
       // plans for day
       let q = sb.from("plans").select("*").eq("plan_date", date).in("status", ["open","in_progress","draft","done"]);
-      if (!isStaffRole() && email) {
+      if (onlyMine && email) {
+        q = q.eq("assigned_operator", email);
+      } else if (!isStaffRole() && email) {
         q = q.eq("assigned_operator", email);
       }
       const { data: plans, error: e1 } = await q.order("shift");
       if (e1) { toast(e1.message, true); return; }
       reportPlans = plans || [];
+      // double-filter di client (jaga-jaga data bocor / operator beda casing)
+      if (onlyMine && email) {
+        reportPlans = reportPlans.filter(function(p) { return isOwnPlan_(p, email); });
+      }
       reportPlanMap = {};
       reportPlans.forEach(p => { reportPlanMap[p.plan_id] = p; });
 
-      // reports for those plans or by date
+      // reports: hanya dari plan milik operator (bukan seluruh hari)
       const planIds = reportPlans.map(p => p.plan_id);
       let reports = [];
       if (planIds.length) {
-        // chunk in filter if many
         const { data: rdata, error: e2 } = await sb.from("reports").select("*").in("plan_id", planIds.slice(0, 200)).order("created_at", { ascending: false });
         if (e2) toast(e2.message, true);
         else reports = rdata || [];
       }
-      // also reports with report_date = date
-      const { data: r2 } = await sb.from("reports").select("*").eq("report_date", date).order("created_at", { ascending: false });
-      const byId = {};
-      (reports || []).concat(r2 || []).forEach(r => { byId[r.report_id] = r; });
-      reportRows = Object.values(byId);
-      // pastikan plan map lengkap untuk TARGET ADJ (report lama sering target_qty=0)
-      try {
-        var missingPids = [];
-        reportRows.forEach(function(r) {
-          if (r.plan_id && !reportPlanMap[r.plan_id]) missingPids.push(r.plan_id);
-        });
-        missingPids = missingPids.filter(function(v, i, a) { return a.indexOf(v) === i; }).slice(0, 100);
-        if (missingPids.length) {
-          var { data: extraPl } = await sb.from("plans").select("*").in("plan_id", missingPids);
-          (extraPl || []).forEach(function(p) {
-            reportPlanMap[p.plan_id] = p;
-            if (!reportPlans.find(function(x) { return x.plan_id === p.plan_id; })) reportPlans.push(p);
+      // staff: juga ambil reports by date; operator: JANGAN (supaya tidak tarik plan orang lain)
+      if (!onlyMine) {
+        const { data: r2 } = await sb.from("reports").select("*").eq("report_date", date).order("created_at", { ascending: false });
+        const byId = {};
+        (reports || []).concat(r2 || []).forEach(r => { byId[r.report_id] = r; });
+        reportRows = Object.values(byId);
+      } else {
+        reportRows = reports || [];
+      }
+      // pastikan plan map lengkap untuk TARGET ADJ — hanya staff yang boleh tambah plan orang lain
+      if (!onlyMine) {
+        try {
+          var missingPids = [];
+          reportRows.forEach(function(r) {
+            if (r.plan_id && !reportPlanMap[r.plan_id]) missingPids.push(r.plan_id);
           });
-        }
-      } catch (eMx) { console.warn(eMx); }
-      // backfill target di reportRows (tampilan + data di memori)
+          missingPids = missingPids.filter(function(v, i, a) { return a.indexOf(v) === i; }).slice(0, 100);
+          if (missingPids.length) {
+            var { data: extraPl } = await sb.from("plans").select("*").in("plan_id", missingPids);
+            (extraPl || []).forEach(function(p) {
+              reportPlanMap[p.plan_id] = p;
+              if (!reportPlans.find(function(x) { return x.plan_id === p.plan_id; })) reportPlans.push(p);
+            });
+          }
+        } catch (eMx) { console.warn(eMx); }
+      }
       reportRows.forEach(function(r) {
         var eff = reportEffectiveTarget(r, reportPlanMap);
         if (!(Number(r.target_qty) > 0) && eff > 0) r.target_qty = eff;
         if (!(Number(r.target_adj) > 0) && eff > 0) r.target_adj = eff;
       });
-      if (!isStaffRole() && email) {
+      if (onlyMine && email) {
+        reportRows = reportRows.filter(function(r) {
+          return String(r.reported_by || "").toLowerCase() === email.toLowerCase()
+            || isOwnPlan_(reportPlanMap[r.plan_id], email);
+        });
+        // pastikan daftar tugas hanya plan sendiri
+        reportPlans = reportPlans.filter(function(p) { return isOwnPlan_(p, email); });
+      } else if (!isStaffRole() && email) {
         reportRows = reportRows.filter(r => String(r.reported_by || "").toLowerCase() === email.toLowerCase()
           || (reportPlanMap[r.plan_id] && String(reportPlanMap[r.plan_id].assigned_operator || "").toLowerCase() === email.toLowerCase()));
       }
