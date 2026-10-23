@@ -3778,6 +3778,10 @@
             </select>
           </div>
         </div>
+        <div class="field"><label>No. PO Odoo <span style="font-weight:500;color:var(--text-muted)">(wajib)</span></label>
+          <input id="poOdooNo" placeholder="Contoh: P00042 / PO/2026/00123" autocomplete="off" />
+          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Nomor PO resmi dari Odoo — untuk jejak ke sistem utama.</p>
+        </div>
         <div class="field"><label>Catatan</label><input id="poNotes" placeholder="Opsional" /></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin:1rem 0 0.5rem">
           <div>
@@ -10070,6 +10074,7 @@ function fillOperatorList(selectedEmail) {
       if (st) list = list.filter(p => p.status === st);
       if (q) list = list.filter(p =>
         String(p.po_id).toLowerCase().includes(q) ||
+        String(p.no_po_odoo || "").toLowerCase().includes(q) ||
         String(p.supplier_name || "").toLowerCase().includes(q) ||
         String(p.no_so || "").toLowerCase().includes(q) ||
         String(p.order_id || "").toLowerCase().includes(q)
@@ -10080,8 +10085,10 @@ function fillOperatorList(selectedEmail) {
       }
       body.innerHTML = list.map(p => {
         const n = (p.purchase_lines && p.purchase_lines.length) || 0;
+        const odoo = p.no_po_odoo || "";
         return '<tr>' +
-          '<td class="mono"><strong>' + esc(p.po_id) + '</strong></td>' +
+          '<td class="mono"><strong>' + esc(p.po_id) + '</strong>' +
+          (odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(odoo) + '</div>' : '') + '</td>' +
           '<td>' + esc(p.no_so || p.order_id || "—") + '</td>' +
           '<td>' + esc(p.po_date) + '</td>' +
           '<td>' + esc(p.supplier_name || "—") + '</td>' +
@@ -10653,6 +10660,7 @@ function fillOperatorList(selectedEmail) {
         $("poSupplier").value = "";
         $("poStatus").value = "draft";
         $("poNotes").value = "";
+        if ($("poOdooNo")) $("poOdooNo").value = "";
         await fillPoSoSelect("");
         if ($("poFgSelect")) $("poFgSelect").innerHTML = '<option value="">— Semua FG di SO —</option>';
         if ($("poSoHint")) $("poSoHint").textContent = "Pilih SO customer terlebih dahulu.";
@@ -10666,6 +10674,7 @@ function fillOperatorList(selectedEmail) {
         $("poSupplier").value = po.supplier_name || "";
         $("poStatus").value = po.status || "draft";
         $("poNotes").value = po.notes || "";
+        if ($("poOdooNo")) $("poOdooNo").value = po.no_po_odoo || po.odoo_po || "";
         await fillPoSoSelect(po.order_id || "");
         try { await onPoSoChange(); } catch (eSo) {}
         if ($("poSoSelect")) $("poSoSelect").value = po.order_id || "";
@@ -10686,6 +10695,12 @@ function fillOperatorList(selectedEmail) {
       if (!sb) return;
       const order_id = ($("poSoSelect") && $("poSoSelect").value) || "";
       if (!order_id) return toast("Pilih Sales Order dulu — pembelian harus by SO", true);
+      const no_po_odoo = (($("poOdooNo") && $("poOdooNo").value) || "").trim();
+      if (!no_po_odoo) {
+        toast("Isi No. PO Odoo", true);
+        if ($("poOdooNo")) $("poOdooNo").focus();
+        return;
+      }
       const soOpt = $("poSoSelect").options[$("poSoSelect").selectedIndex];
       const no_so = (soOpt && soOpt.dataset.noso) || "";
       let po_id = ($("poEditId").value || "").trim();
@@ -10695,6 +10710,7 @@ function fillOperatorList(selectedEmail) {
         po_id,
         order_id,
         no_so,
+        no_po_odoo: no_po_odoo,
         po_date: $("poDate").value || todayStr(),
         supplier_name: ($("poSupplier").value || "").trim(),
         status: $("poStatus").value || "draft",
@@ -10733,8 +10749,21 @@ function fillOperatorList(selectedEmail) {
       let error;
       if (isNew) {
         ({ error } = await sb.from("purchase_orders").insert(header));
+        // kolom no_po_odoo belum ada → simpan tanpa kolom + taruh di notes
+        if (error && /no_po_odoo|column/i.test(String(error.message || ""))) {
+          var h2 = Object.assign({}, header);
+          delete h2.no_po_odoo;
+          h2.notes = (h2.notes ? h2.notes + " · " : "") + "PO Odoo: " + no_po_odoo;
+          ({ error } = await sb.from("purchase_orders").insert(h2));
+        }
       } else {
         ({ error } = await sb.from("purchase_orders").update(header).eq("po_id", po_id));
+        if (error && /no_po_odoo|column/i.test(String(error.message || ""))) {
+          var h3 = Object.assign({}, header);
+          delete h3.no_po_odoo;
+          h3.notes = (h3.notes ? h3.notes + " · " : "") + "PO Odoo: " + no_po_odoo;
+          ({ error } = await sb.from("purchase_orders").update(h3).eq("po_id", po_id));
+        }
         await sb.from("purchase_lines").delete().eq("po_id", po_id);
       }
       if (error) return toast(error.message, true);
