@@ -14534,7 +14534,7 @@ function closeOtModal() {
     // Service worker
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function() {
-        navigator.serviceWorker.register("./sw.js").catch(function(err) {
+        navigator.serviceWorker.register("./sw.js?v=2").then(function(reg){ try{ reg.update(); }catch(e){} return reg; }).catch(function(err) {
           console.warn("SW register failed", err);
         });
       });
