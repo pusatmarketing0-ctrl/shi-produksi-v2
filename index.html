@@ -7344,15 +7344,18 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       if (body) body.innerHTML = list.map(function(x) {
-        var nos = Object.keys(x.nos || {}).join(", ") || "—";
+        var nosArr = Object.keys(x.nos || {});
+        var nos = nosArr.join(", ") || "—";
+        var nos0 = nosArr[0] || "";
         var st = stockMap[x.product_id];
         return "<tr>" +
-          '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" /></td>' +
+          '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" data-noso="' + esc(nos0) + '" /></td>' +
           "<td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(productLabel(x.product_id)) + "</div></td>" +
           "<td><strong>" + formatNum(x.actual) + "</strong></td>" +
           "<td style='font-size:0.78rem'>" + esc(nos) + "</td>" +
           "<td>" + (st != null ? formatNum(st) : "—") + "</td>" +
-          '<td><button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal(\'' + String(x.product_id).replace(/'/g, "") + '\',' + Number(x.actual) + ')">Kirim</button></td></tr>';
+          '<td><button type="button" class="btn btn-primary btn-sm" onclick=\'openShipRequestModal(' +
+            JSON.stringify(String(x.product_id)) + "," + Number(x.actual) + "," + JSON.stringify(nos0) + ")\'>Kirim</button></td></tr>";
       }).join("");
     }
 
@@ -7360,7 +7363,7 @@ function fillOperatorList(selectedEmail) {
     async function loadShipRequests() {
       if (!sb) return;
       var { data, error } = await sb.from("ship_requests")
-        .select("*, ship_request_lines(id,product_id,qty,unit,notes)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) {
@@ -7370,7 +7373,21 @@ function fillOperatorList(selectedEmail) {
         shipReqList = [];
         return;
       }
-      shipReqList = data || [];
+      var list = data || [];
+      // ambil baris produk terpisah (lebih andal daripada nested select)
+      try {
+        var ids = list.map(function(r) { return r.ship_id; }).filter(Boolean);
+        if (ids.length) {
+          var { data: allLines } = await sb.from("ship_request_lines").select("*").in("ship_id", ids.slice(0, 80));
+          var by = {};
+          (allLines || []).forEach(function(l) {
+            if (!by[l.ship_id]) by[l.ship_id] = [];
+            by[l.ship_id].push(l);
+          });
+          list.forEach(function(r) { r.ship_request_lines = by[r.ship_id] || []; });
+        }
+      } catch (eL) { console.warn(eL); }
+      shipReqList = list;
       renderShipRequests();
     }
     function renderShipRequests() {
@@ -7384,26 +7401,26 @@ function fillOperatorList(selectedEmail) {
       function rowHtml(r, forGudang) {
         var n = (r.ship_request_lines || []).length;
         var acts = "";
+        acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\')">Detail</button> ';
         if (forGudang || role === "gudang" || role === "admin") {
           if (r.status === "requested") {
-            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
-            acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'shipped\')">Shipped</button>';
+            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
           } else if (r.status === "picked") {
-            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'shipped\')">Shipped</button>';
+            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'shipped\')">Shipped</button>';
           }
         }
         if ((role === "marketing" || role === "admin") && r.status === "requested") {
           acts += ' <button type="button" class="btn btn-ghost btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'cancelled\')">Batal</button>';
         }
         var lines = (r.ship_request_lines || []).map(function(l) {
-          return esc(l.product_id) + " × " + formatNum(l.qty);
+          return esc(l.product_id) + " × " + formatNum(l.qty) + " " + esc(l.unit || "");
         }).join("<br>");
         return "<tr>" +
           "<td><strong>" + esc(r.ship_id) + "</strong></td>" +
           "<td>" + esc(String(r.request_date || "").slice(0, 10)) + "</td>" +
           "<td>" + esc(r.customer_name || "—") + "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(r.no_so || "") + "</div></td>" +
           "<td>" + esc(r.status || "") + "</td>" +
-          "<td style='font-size:0.78rem'>" + (lines || (n + " item")) + "</td>" +
+          "<td style='font-size:0.78rem'>" + (lines || (n ? n + " item" : "<span style='color:#b91c1c'>Belum ada baris produk</span>")) + "</td>" +
           "<td style='white-space:nowrap'>" + acts + "</td></tr>";
       }
       if ($("shipReqBody")) {
@@ -7448,15 +7465,82 @@ function fillOperatorList(selectedEmail) {
       toast("Status → " + status);
       loadShipRequests();
     }
-    function openShipRequestModal(productId, qty) {
+    async function openShipDetail(shipId, nextStatus) {
+      var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
+      if (!r && sb) {
+        var { data } = await sb.from("ship_requests").select("*, ship_request_lines(*)").eq("ship_id", shipId).maybeSingle();
+        r = data;
+      }
+      if (!r) return toast("Instruksi tidak ditemukan", true);
+      var lines = r.ship_request_lines || [];
+      if (!lines.length && sb) {
+        var { data: ln } = await sb.from("ship_request_lines").select("*").eq("ship_id", shipId);
+        lines = ln || [];
+      }
+      var linesHtml = lines.length
+        ? '<table style="width:100%;font-size:0.85rem"><thead><tr><th align="left">Produk</th><th align="right">Qty</th><th>Unit</th></tr></thead><tbody>' +
+          lines.map(function(l) {
+            return "<tr><td><strong>" + esc(l.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" +
+              esc(productLabel(l.product_id)) + "</div></td><td align='right'><strong>" + formatNum(l.qty) +
+              "</strong></td><td>" + esc(l.unit || "pcs") + "</td></tr>";
+          }).join("") + "</tbody></table>"
+        : '<div class="empty" style="padding:0.75rem">Tidak ada baris produk di instruksi ini. Minta marketing buat ulang.</div>';
+      if ($("shipDetailTitle")) $("shipDetailTitle").textContent = r.ship_id + " · " + (r.status || "");
+      if ($("shipDetailSub")) {
+        $("shipDetailSub").textContent =
+          (r.customer_name || "—") + " · SO " + (r.no_so || "—") + " · " + String(r.request_date || "").slice(0, 10);
+      }
+      if ($("shipDetailBody")) $("shipDetailBody").innerHTML = linesHtml +
+        (r.notes ? '<p style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">Catatan: ' + esc(r.notes) + "</p>" : "");
+      if ($("shipDetailActions")) {
+        var acts = "";
+        if (nextStatus === "picked" || (r.status === "requested" && (currentRole() === "gudang" || currentRole() === "admin"))) {
+          acts += '<button type="button" class="btn btn-primary" onclick="updateShipStatus(\'' + r.ship_id + '\',\'picked\');closeShipDetail()">Konfirmasi Picked</button>';
+        }
+        if (nextStatus === "shipped" || (r.status === "picked" && (currentRole() === "gudang" || currentRole() === "admin"))) {
+          acts += ' <button type="button" class="btn btn-primary" onclick="updateShipStatus(\'' + r.ship_id + '\',\'shipped\');closeShipDetail()">Konfirmasi Shipped</button>';
+        }
+        acts += ' <button type="button" class="btn btn-ghost" onclick="closeShipDetail()">Tutup</button>';
+        $("shipDetailActions").innerHTML = acts;
+      }
+      var m = $("shipDetailModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+    }
+    function closeShipDetail() {
+      var m = $("shipDetailModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+    }
+
+    function openShipRequestModal(productId, qty, noSo, customer) {
       if ($("shipReqId")) $("shipReqId").value = "";
       if ($("shipReqDate")) $("shipReqDate").value = todayStr();
-      if ($("shipReqCustomer")) $("shipReqCustomer").value = "";
-      if ($("shipReqSo")) $("shipReqSo").value = "";
+      if ($("shipReqCustomer")) $("shipReqCustomer").value = customer || "";
+      if ($("shipReqSo")) $("shipReqSo").value = noSo || "";
       if ($("shipReqNotes")) $("shipReqNotes").value = "";
       if ($("shipReqLines")) $("shipReqLines").innerHTML = "";
       addShipReqLine(productId ? { product_id: productId, qty: qty || "", unit: "pcs" } : null);
-      fillShipSoSelect();
+      fillShipSoSelect().then(function() {
+        // auto-pilih SO jika no_so sudah terisi
+        var sel = $("shipReqSoSelect");
+        var want = (noSo || "").trim();
+        if (sel && want) {
+          for (var i = 0; i < sel.options.length; i++) {
+            if (String(sel.options[i].dataset.noso || "") === want) {
+              sel.selectedIndex = i;
+              onShipSoChange();
+              break;
+            }
+          }
+        }
+      });
       var m = $("shipRequestModal");
       if (m) {
         m.classList.add("show");
@@ -13835,24 +13919,39 @@ function closeOtModal() {
   </div>
 
 
+  <div id="shipDetailModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100175">
+    <div class="modal modal-sheet" style="max-width:440px;width:94vw">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="shipDetailTitle" style="margin:0">Detail kirim</h2>
+        <p id="shipDetailSub" style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+      </div>
+      <div class="sheet-body">
+        <div id="shipDetailBody"></div>
+        <div id="shipDetailActions" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem;justify-content:flex-end"></div>
+      </div>
+    </div>
+  </div>
   <div id="shipRequestModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100170">
     <div class="modal modal-sheet" style="max-width:520px;width:94vw;max-height:90vh;overflow:auto">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
         <h2 style="margin:0">Instruksi kirim ke gudang</h2>
-        <p style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)">Marketing → Gudang. Setelah gudang shipped, stok FG dipotong.</p>
+        <p style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)">Dari output FG — SO terisi otomatis jika ada di plan. Gudang akan lihat daftar produk ini.</p>
       </div>
       <div class="sheet-body">
         <input type="hidden" id="shipReqId" />
-        <div class="field"><label>Tanggal</label><input type="date" id="shipReqDate" /></div>
-        <div class="field"><label>SO (opsional)</label>
+        <div class="field"><label>Tanggal minta kirim</label><input type="date" id="shipReqDate" /></div>
+        <div class="field"><label>SO (otomatis dari plan — boleh kosong)</label>
           <select id="shipReqSoSelect" onchange="onShipSoChange()" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)"></select>
         </div>
-        <div class="field"><label>No SO</label><input id="shipReqSo" placeholder="SO/2026/…" /></div>
-        <div class="field"><label>Customer</label><input id="shipReqCustomer" placeholder="Nama customer" /></div>
-        <div class="field"><label>Catatan</label><input id="shipReqNotes" placeholder="Alamat / ekspedisi / prioritas" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+          <div class="field"><label>No SO</label><input id="shipReqSo" placeholder="Auto / ketik manual" /></div>
+          <div class="field"><label>Customer</label><input id="shipReqCustomer" placeholder="Auto dari SO" /></div>
+        </div>
+        <div class="field"><label>Catatan untuk gudang</label><input id="shipReqNotes" placeholder="Alamat / ekspedisi / prioritas" /></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin:0.75rem 0 0.35rem">
-          <strong style="font-size:0.85rem">Produk FG</strong>
+          <strong style="font-size:0.85rem">Produk FG yang dikirim</strong>
           <button type="button" class="btn btn-ghost btn-sm" onclick="addShipReqLine()">+ Baris</button>
         </div>
         <div id="shipReqLines"></div>
