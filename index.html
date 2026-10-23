@@ -2710,7 +2710,7 @@
                   <tbody id="sisaSoBody"><tr><td colspan="8" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
-              <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Sisa = Qty PO − Actual FG. Produk yang sudah di-close tidak tampil.</p>
+              <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Sisa = Qty PO − Actual. <strong>Actual hanya dari proses FG (packing masterbox)</strong> — proses primer (timbang, sealing, dll.) tidak dihitung. Produk yang sudah di-close tidak tampil.</p>
             </div>
             <div class="card"><h3>Status</h3><div class="empty" id="homeStatusBox"><strong id="homeStatusTitle">Memuat…</strong><span id="homeStatusText"></span></div></div>
           </div>
@@ -11916,23 +11916,44 @@ function fillOperatorList(selectedEmail) {
       (orders || []).forEach(function(o) {
         (o.order_lines || []).forEach(function(l) { if (l.product_id) productIds[l.product_id] = true; });
       });
-      // actual FG dari reports via plans (ringkas: sum reports by product+no_so dari plans)
+      // Actual = HANYA proses FG (packing masterbox), sama seperti grid operasional
+      // Key: product_id||no_so  dan product_id||order_id
       var actMap = {};
       try {
-        var { data: plans } = await sb.from("plans").select("plan_id,product_id,no_so,order_id,machine_id").limit(3000);
-        var planIds = (plans || []).map(function(p) { return p.plan_id; }).filter(Boolean);
+        var needProducts = Object.keys(productIds);
+        var allPlans = [];
+        // ambil plan per batch produk (lebih akurat + lebih banyak data)
+        for (var bi = 0; bi < needProducts.length; bi += 40) {
+          var slice = needProducts.slice(bi, bi + 40);
+          var { data: plBatch } = await sb.from("plans")
+            .select("plan_id,product_id,no_so,order_id,machine_id")
+            .in("product_id", slice)
+            .limit(1500);
+          if (plBatch) allPlans = allPlans.concat(plBatch);
+        }
+        // hanya plan FG
+        var fgPlans = (allPlans || []).filter(function(p) {
+          return isFgMachine(p.machine_id);
+        });
         var planMeta = {};
-        (plans || []).forEach(function(p) { planMeta[p.plan_id] = p; });
-        // batch reports
-        if (planIds.length) {
-          var chunk = planIds.slice(0, 500);
-          var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", chunk).limit(5000);
+        var planIds = [];
+        fgPlans.forEach(function(p) {
+          planMeta[p.plan_id] = p;
+          planIds.push(p.plan_id);
+        });
+        // reports per chunk plan_id
+        for (var ci = 0; ci < planIds.length; ci += 80) {
+          var chunk = planIds.slice(ci, ci + 80);
+          var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", chunk).limit(3000);
           (reps || []).forEach(function(r) {
             var p = planMeta[r.plan_id];
             if (!p) return;
-            // only FG-ish: packing masterbox if machine known - else all
-            var key = String(p.product_id) + "||" + String(p.no_so || p.order_id || "");
-            actMap[key] = (actMap[key] || 0) + (Number(r.actual_qty) || 0);
+            var qty = Number(r.actual_qty) || 0;
+            if (!(qty > 0)) return;
+            var k1 = String(p.product_id) + "||" + String(p.no_so || "");
+            var k2 = String(p.product_id) + "||" + String(p.order_id || "");
+            if (p.no_so) actMap[k1] = (actMap[k1] || 0) + qty;
+            if (p.order_id) actMap[k2] = (actMap[k2] || 0) + qty;
           });
         }
       } catch (eA) { console.warn(eA); }
@@ -11943,11 +11964,14 @@ function fillOperatorList(selectedEmail) {
         if (st === "done" || st === "closed" || st === "completed") return;
         (o.order_lines || []).forEach(function(l) {
           if (opsLineClosed(l, o.notes, l.product_id)) return;
-          var key = String(l.product_id) + "||" + String(o.no_so || o.order_id || "");
+          var keySo = String(l.product_id) + "||" + String(o.no_so || "");
+          var keyOid = String(l.product_id) + "||" + String(o.order_id || "");
           var po = Number(l.qty) || 0;
-          var act = Number(actMap[key]) || 0;
+          // pakai no_so dulu; jika 0 coba order_id (jangan double-sum)
+          var act = Number(actMap[keySo]) || 0;
+          if (!(act > 0) && o.order_id) act = Number(actMap[keyOid]) || 0;
           var sisa = Math.max(0, po - act);
-          if (po > 0 && sisa <= 0 && act >= po) return; // selesai qty
+          if (po > 0 && sisa <= 0 && act >= po) return;
           var pct = po > 0 ? Math.min(100, Math.round((act / po) * 100)) : 0;
           var pname = "";
           try {
