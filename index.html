@@ -9243,15 +9243,107 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       body.innerHTML = list.map(function(d) {
+        var acts = "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
+        if (d.status === "ready" || d.status === "draft") {
+          acts += " <button type='button' class='btn btn-primary btn-sm' onclick='openShipDoModal(" + JSON.stringify(d.delivery_id) + ")'>Kirim</button>";
+        }
+        var odoo = d.no_do_odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(d.no_do_odoo) + "</div>" : "";
         return "<tr>" +
-          "<td><strong>" + esc(d.delivery_id) + "</strong></td>" +
+          "<td><strong>" + esc(d.delivery_id) + "</strong>" + odoo + "</td>" +
           "<td>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
           "<td>" + esc(d.no_so || "—") + "</td>" +
           "<td>" + esc(d.customer_name || "—") + "</td>" +
           "<td>" + esc(d.status || "") + "</td>" +
-          "<td><button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button></td>" +
+          "<td style='white-space:nowrap'>" + acts + "</td>" +
           "</tr>";
       }).join("");
+    }
+
+    function openShipDoModal(doId) {
+      if ($("shipDoId")) $("shipDoId").value = doId || "";
+      if ($("shipDoOdooNo")) $("shipDoOdooNo").value = "";
+      var d = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
+      if ($("shipDoInfo")) {
+        $("shipDoInfo").textContent = d
+          ? (d.delivery_id + " · " + (d.no_so || "—") + " · " + (d.customer_name || "—"))
+          : (doId || "");
+      }
+      var m = $("shipDoModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+      setTimeout(function() { if ($("shipDoOdooNo")) $("shipDoOdooNo").focus(); }, 100);
+    }
+    function closeShipDoModal() {
+      var m = $("shipDoModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+    }
+    async function confirmShipDo() {
+      if (!sb) return;
+      var doId = (($("shipDoId") && $("shipDoId").value) || "").trim();
+      var noDoOdoo = (($("shipDoOdooNo") && $("shipDoOdooNo").value) || "").trim();
+      if (!doId) return toast("DO tidak valid", true);
+      if (!noDoOdoo) {
+        toast("Isi nomor DO Odoo", true);
+        if ($("shipDoOdooNo")) $("shipDoOdooNo").focus();
+        return;
+      }
+      var header = {
+        status: "shipped",
+        no_do_odoo: noDoOdoo,
+        updated_at: new Date().toISOString()
+      };
+      var { error } = await sb.from("deliveries").update(header).eq("delivery_id", doId);
+      if (error && /no_do_odoo|column/i.test(String(error.message || ""))) {
+        // fallback: notes
+        var d0 = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
+        ({ error } = await sb.from("deliveries").update({
+          status: "shipped",
+          notes: ((d0 && d0.notes) ? d0.notes + " · " : "") + "DO Odoo: " + noDoOdoo,
+          updated_at: new Date().toISOString()
+        }).eq("delivery_id", doId));
+      }
+      if (error) return toast(error.message, true);
+
+      // potong stok + tutup ship request
+      try {
+        var { data: lines } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
+        var drow = (deliveryList || []).find(function(x) { return x.delivery_id === doId; }) || {};
+        for (var i = 0; i < (lines || []).length; i++) {
+          await sb.from("warehouse_movements").insert({
+            movement_type: "out_delivery",
+            product_id: lines[i].product_id,
+            qty: lines[i].qty,
+            unit: lines[i].unit || "pcs",
+            order_id: drow.order_id || null,
+            no_so: drow.no_so || "",
+            ref_note: "DO " + doId + " / Odoo " + noDoOdoo,
+            created_by: (currentUser && currentUser.email) || ""
+          });
+        }
+        var shipRef = "";
+        if (drow.notes) {
+          var m = String(drow.notes).match(/SHIP-[A-Z0-9]+/i);
+          if (m) shipRef = m[0];
+        }
+        if (shipRef) {
+          await sb.from("ship_requests").update({
+            status: "shipped",
+            updated_at: new Date().toISOString()
+          }).eq("ship_id", shipRef);
+        }
+      } catch (eM) { console.warn(eM); }
+
+      toast("DO dikirim · Odoo " + noDoOdoo);
+      closeShipDoModal();
+      loadDeliveries();
+      try { loadShipRequests(); } catch (e) {}
     }
     async function openDeliveryModal(doId) {
       $("doLines").innerHTML = "";
@@ -9261,6 +9353,8 @@ function fillOperatorList(selectedEmail) {
       $("doStatus").value = "draft";
       $("doNotes").value = "";
       $("doCustomer").value = "";
+      if ($("doOdooNo")) $("doOdooNo").value = "";
+      if ($("doShipRef")) $("doShipRef").value = "";
       await fillDoSoSelect(doId ? "" : "");
       if (doId) {
         var { data: d } = await sb.from("deliveries").select("*").eq("delivery_id", doId).maybeSingle();
@@ -9269,6 +9363,7 @@ function fillOperatorList(selectedEmail) {
           $("doStatus").value = d.status || "draft";
           $("doNotes").value = d.notes || "";
           $("doCustomer").value = d.customer_name || "";
+          if ($("doOdooNo")) $("doOdooNo").value = d.no_do_odoo || "";
           await fillDoSoSelect(d.order_id || "");
           var { data: lines } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
           (lines || []).forEach(function(l) { addDoLine(l); });
@@ -9338,13 +9433,21 @@ function fillOperatorList(selectedEmail) {
       var no_so = (opt && opt.dataset.noso) || "";
       var do_id = ($("doEditId").value || "").trim() || newDeliveryId();
       var isNew = !($("doEditId").value || "").trim();
+      var st = $("doStatus").value || "draft";
+      var no_do_odoo = (($("doOdooNo") && $("doOdooNo").value) || "").trim();
+      if ((st === "shipped" || st === "delivered") && !no_do_odoo) {
+        toast("Status shipped wajib isi No. DO Odoo — atau pakai tombol Kirim di daftar", true);
+        if ($("doOdooNo")) $("doOdooNo").focus();
+        return;
+      }
       var header = {
         delivery_id: do_id,
         order_id: order_id,
         no_so: no_so,
         customer_name: ($("doCustomer").value || "").trim(),
         delivery_date: $("doDate").value || todayStr(),
-        status: $("doStatus").value || "draft",
+        status: st,
+        no_do_odoo: no_do_odoo || null,
         notes: ($("doNotes").value || "").trim(),
         updated_at: new Date().toISOString()
       };
@@ -9361,9 +9464,22 @@ function fillOperatorList(selectedEmail) {
       });
       if (!lines.length) return toast("Minimal 1 baris FG", true);
       var error;
-      if (isNew) ({ error } = await sb.from("deliveries").insert(header));
-      else {
+      if (isNew) {
+        ({ error } = await sb.from("deliveries").insert(header));
+        if (error && /no_do_odoo|column/i.test(String(error.message || ""))) {
+          var h2 = Object.assign({}, header);
+          delete h2.no_do_odoo;
+          if (no_do_odoo) h2.notes = (h2.notes ? h2.notes + " · " : "") + "DO Odoo: " + no_do_odoo;
+          ({ error } = await sb.from("deliveries").insert(h2));
+        }
+      } else {
         ({ error } = await sb.from("deliveries").update(header).eq("delivery_id", do_id));
+        if (error && /no_do_odoo|column/i.test(String(error.message || ""))) {
+          var h3 = Object.assign({}, header);
+          delete h3.no_do_odoo;
+          if (no_do_odoo) h3.notes = (h3.notes ? h3.notes + " · " : "") + "DO Odoo: " + no_do_odoo;
+          ({ error } = await sb.from("deliveries").update(h3).eq("delivery_id", do_id));
+        }
         await sb.from("delivery_lines").delete().eq("delivery_id", do_id);
       }
       if (error) return toast(error.message, true);
@@ -14193,6 +14309,27 @@ function closeOtModal() {
       </div>
     </div>
   </div>
+  <div id="shipDoModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100180">
+    <div class="modal modal-sheet" style="max-width:400px;width:92vw">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 style="margin:0">Kirim DO</h2>
+        <p id="shipDoInfo" style="margin:0.35rem 0 0;font-size:0.8rem;color:var(--text-muted)"></p>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="shipDoId" />
+        <div class="field">
+          <label>No. DO Odoo <span style="color:#b91c1c">(wajib)</span></label>
+          <input id="shipDoOdooNo" placeholder="Contoh: WH/OUT/2026/00123" autocomplete="off" />
+          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0">Isi nomor DO resmi dari Odoo sebelum status jadi shipped.</p>
+        </div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+          <button type="button" class="btn btn-ghost" onclick="closeShipDoModal()">Batal</button>
+          <button type="button" class="btn btn-primary" onclick="confirmShipDo()">Konfirmasi kirim</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="deliveryModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:560px">
       <div class="sheet-handle"></div>
@@ -14213,6 +14350,9 @@ function closeOtModal() {
             <option value="delivered">delivered</option>
             <option value="cancelled">cancelled</option>
           </select>
+        </div>
+        <div class="field"><label>No. DO Odoo</label>
+          <input id="doOdooNo" placeholder="Wajib jika status shipped" autocomplete="off" />
         </div>
         <div class="field"><label>Catatan</label><input id="doNotes" /></div>
         <div style="font-weight:700;margin:0.75rem 0 0.35rem">Baris produk (FG)</div>
