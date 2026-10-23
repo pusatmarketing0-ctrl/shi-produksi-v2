@@ -2604,6 +2604,102 @@
       background: rgba(255,255,255,0.96); backdrop-filter: blur(16px);
       box-shadow: 0 20px 50px rgba(15,23,42,0.25);
     }
+  
+    /* ===== Operator mobile polish ===== */
+    body.role-operator .page-head p { max-width: 100%; }
+    body.role-operator #page-home .page-head { display: none; }
+    body.role-operator #homeStaff { display: none !important; }
+    body.role-operator #homeOperator { display: block !important; }
+    body.role-operator .main {
+      max-width: 560px;
+      margin: 0 auto;
+      padding-left: 0.85rem;
+      padding-right: 0.85rem;
+    }
+    body.role-operator .op-section-title {
+      font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--text-muted);
+      margin: 0 0 0.55rem; display: flex; align-items: center; gap: 0.4rem;
+    }
+    body.role-operator .op-section-title .cnt {
+      margin-left: auto; background: #f1f5f9; color: #334155;
+      font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 99px; font-weight: 700;
+    }
+    body.role-operator .op-plan-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.85rem 0.95rem;
+      margin-bottom: 0.55rem;
+      box-shadow: 0 2px 10px rgba(15,23,42,0.04);
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    body.role-operator .op-plan-card:active {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(5,150,105,0.12);
+    }
+    body.role-operator .op-plan-card .opc-top {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;
+    }
+    body.role-operator .op-plan-card .opc-prod {
+      font-weight: 700; font-size: 0.92rem; line-height: 1.3; color: var(--text);
+    }
+    body.role-operator .op-plan-card .opc-meta {
+      font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;
+    }
+    body.role-operator .op-plan-card .opc-shift {
+      flex-shrink: 0; background: var(--green-light); color: var(--green);
+      font-size: 0.68rem; font-weight: 800; padding: 0.25rem 0.5rem; border-radius: 8px;
+    }
+    body.role-operator .op-plan-card .opc-row {
+      display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.65rem;
+      font-size: 0.78rem; color: var(--text-muted);
+    }
+    body.role-operator .op-plan-card .opc-row strong { color: var(--text); }
+    body.role-operator .op-plan-card .opc-done {
+      border-color: #a7f3d0; background: #f0fdf4;
+    }
+    body.role-operator .op-plan-card .opc-btn {
+      margin-top: 0.65rem; width: 100%;
+    }
+    body.role-operator .op-empty {
+      text-align: center; padding: 1.25rem 0.75rem;
+      font-size: 0.85rem; color: var(--text-muted);
+      background: #f8fafc; border-radius: 12px; border: 1px dashed var(--border);
+    }
+    body.role-operator #page-reports .desk-only-table { display: none !important; }
+    body.role-operator #page-reports .mobile-cards { display: flex !important; }
+    body.role-operator #page-reports .page-head h1 { font-size: 1.25rem; }
+    body.role-operator #page-reports .toolbar {
+      display: flex; flex-wrap: wrap; gap: 0.45rem;
+    }
+    body.role-operator #page-reports .toolbar input,
+    body.role-operator #page-reports .toolbar select {
+      flex: 1 1 120px; min-width: 0;
+    }
+    body.role-operator .rep-sec {
+      margin-bottom: 1.35rem;
+    }
+    body.role-operator .rep-sec h3 {
+      font-size: 0.72rem !important; font-weight: 800 !important;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    @media (max-width: 899px) {
+      body.role-operator .topbar .notif-btn + .btn,
+      body.role-operator .topbar button.btn:not(.notif-btn) {
+        /* keep top clean */
+      }
+      body.role-operator .op-hero {
+        border-radius: 18px;
+        margin-bottom: 0.85rem;
+      }
+      body.role-operator .op-grade-card {
+        margin-bottom: 0.85rem;
+        border-radius: 16px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -3100,8 +3196,8 @@
         <section id="page-reports" class="page" hidden>
           <div class="page-head">
             <div>
-              <h1>Laporan operator</h1>
-              <p>Isi actual dari plan yang ditugaskan. Target menyesuaikan downtime.</p>
+              <h1>Laporan</h1>
+              <p id="reportPageSub">Plan ditugaskan ke Anda · isi actual & downtime</p>
             </div>
           </div>
           <div class="toolbar">
@@ -3115,30 +3211,34 @@
             <input type="search" id="reportSearch" placeholder="Cari produk / proses..." oninput="renderReportTasks(); renderReportList()" />
           </div>
 
-          <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 0.65rem;color:var(--text-muted)">Plan perlu dilapor</h3>
-          <div id="reportTaskCards" class="mobile-cards mobile-only" style="margin-bottom:1.5rem"></div>
-          <div class="table-wrap desk-only-table" style="margin-bottom:1.5rem">
-            <table>
-              <thead>
-                <tr>
-                  <th>Shift</th><th>Produk</th><th>Proses</th><th>Target</th><th>Operator</th><th>Status</th><th></th>
-                </tr>
-              </thead>
-              <tbody id="reportTaskBody"></tbody>
-            </table>
+          <div class="rep-sec">
+            <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 0.65rem;color:var(--text-muted)">Perlu dilapor</h3>
+            <div id="reportTaskCards" class="mobile-cards mobile-only" style="margin-bottom:1rem"></div>
+            <div class="table-wrap desk-only-table" style="margin-bottom:1rem">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Shift</th><th>Produk</th><th>Proses</th><th>Target</th><th>Operator</th><th>Status</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="reportTaskBody"></tbody>
+              </table>
+            </div>
           </div>
 
-          <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 0.65rem;color:var(--text-muted)">Laporan tersimpan</h3>
-          <div id="reportListCards" class="mobile-cards mobile-only" style="margin-bottom:1rem"></div>
-          <div class="table-wrap desk-only-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Waktu</th><th>Produk</th><th>Proses</th><th>Actual</th><th>NG</th><th>DT (m)</th><th>Target adj</th><th></th>
-                </tr>
-              </thead>
-              <tbody id="reportListBody"></tbody>
-            </table>
+          <div class="rep-sec">
+            <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 0.65rem;color:var(--text-muted)">Sudah dilapor</h3>
+            <div id="reportListCards" class="mobile-cards mobile-only" style="margin-bottom:1rem"></div>
+            <div class="table-wrap desk-only-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Waktu</th><th>Produk</th><th>Proses</th><th>Operator</th><th>Actual</th><th>NG</th><th>DT (m)</th><th>Target adj</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="reportListBody"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -6649,6 +6749,12 @@ function fillOperatorList(selectedEmail) {
 
     function applyRoleUI() {
       const role = currentRole();
+      try {
+        document.body.className = (document.body.className || "").split(/\s+/).filter(function(c) {
+          return c && c.indexOf("role-") !== 0;
+        }).join(" ");
+        document.body.classList.add("role-" + role);
+      } catch (eR) {}
       document.querySelectorAll(".nav-item[data-roles], .mobile-nav button[data-roles]").forEach(el => {
         const ok = roleAllowed(el.getAttribute("data-roles"));
         el.style.display = ok ? "" : "none";
@@ -6722,6 +6828,7 @@ function fillOperatorList(selectedEmail) {
     }
     async function loadReportsPage() {
       if (!sb) return;
+      try { if (!(operators && operators.length)) await loadOperators(); } catch (eOp) {}
       const dateEl = $("reportFilterDate");
       if (dateEl && !dateEl.value) dateEl.value = todayStr();
       const date = dateEl ? dateEl.value : todayStr();
@@ -6831,49 +6938,67 @@ function fillOperatorList(selectedEmail) {
       });
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada plan untuk dilapor di tanggal ini</td></tr>';
+        const cards0 = $("reportTaskCards");
+        if (cards0) cards0.innerHTML = '<div class="op-empty">Tidak ada plan untuk dilapor di tanggal ini</div>';
         return;
       }
       body.innerHTML = list.map(p => {
         const has = done.has(p.plan_id);
         const btn = has
-          ? '<button type="button" class="btn btn-ghost btn-sm" data-pid="' + encodeURIComponent(p.plan_id) + '" class="rpt-edit">Edit lapor</button>'
-          : '<button type="button" class="btn btn-primary btn-sm rpt-fill" data-pid="' + encodeURIComponent(p.plan_id) + '">Isi laporan</button>';
+          ? '<button type="button" class="btn btn-ghost btn-sm" data-pid="' + encodeURIComponent(p.plan_id) + '">Edit lapor</button>'
+          : '<button type="button" class="btn btn-primary btn-sm" data-pid="' + encodeURIComponent(p.plan_id) + '">Isi laporan</button>';
         return '<tr>' +
           '<td>' + esc(p.shift) + '</td>' +
           '<td>' + esc(productLabel(p.product_id)) + '</td>' +
           '<td>' + esc(machineLabel(p.machine_id)) + '</td>' +
           '<td><strong>' + formatNum(p.target_qty) + '</strong> <span style="color:var(--text-dim)">' + esc(p.unit || "") + '</span></td>' +
-          '<td style="font-size:0.8rem">' + esc(p.assigned_operator || "—") + '</td>' +
+          '<td style="font-size:0.8rem">' + esc(operatorDisplayName(p.assigned_operator || "")) + '</td>' +
           '<td>' + statusPill(p.status) + (has ? ' <span class="pill">Sudah lapor</span>' : "") + '</td>' +
           '<td>' + btn + '</td></tr>';
       }).join("");
       body.querySelectorAll("[data-pid]").forEach(btn => {
         btn.onclick = () => openReportModal(decodeURIComponent(btn.getAttribute("data-pid")));
       });
-      // mobile cards
+      // mobile cards — layout rapi
       const cards = $("reportTaskCards");
       if (cards) {
-        if (!list.length) {
-          cards.innerHTML = '<div class="m-card"><div class="m-sub">Tidak ada plan untuk dilapor</div></div>';
-        } else {
-          cards.innerHTML = list.map(p => {
-            const has = done.has(p.plan_id);
-            return '<div class="m-card">' +
-              '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
-              '<div class="m-sub">' + esc(machineLabel(p.machine_id)) + ' · Shift ' + esc(p.shift) + '</div>' +
-              '<div class="m-row"><span>Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</strong></span>' +
-              '<span>' + (has ? '<span class="pill">Sudah lapor</span>' : statusPill(p.status)) + '</span></div>' +
-              '<div class="m-actions"><button type="button" class="btn ' + (has ? 'btn-ghost' : 'btn-primary') +
-              '" data-pid="' + encodeURIComponent(p.plan_id) + '">' + (has ? 'Edit laporan' : 'Isi laporan') +
-              '</button></div></div>';
-          }).join("");
-          cards.querySelectorAll("[data-pid]").forEach(btn => {
-            btn.onclick = () => openReportModal(decodeURIComponent(btn.getAttribute("data-pid")));
-          });
-        }
+        cards.innerHTML = list.map(p => {
+          const has = done.has(p.plan_id);
+          return '<div class="op-plan-card' + (has ? ' opc-done' : '') + '" data-pid="' + encodeURIComponent(p.plan_id) + '">' +
+            '<div class="opc-top">' +
+              '<div><div class="opc-prod">' + esc(productLabel(p.product_id)) + '</div>' +
+              '<div class="opc-meta">' + esc(machineLabel(p.machine_id)) + (p.unit ? ' · ' + esc(p.unit) : '') + '</div></div>' +
+              '<span class="opc-shift">Shift ' + esc(String(p.shift)) + '</span>' +
+            '</div>' +
+            '<div class="opc-row">' +
+              '<span>Target <strong>' + formatNum(p.target_qty) + '</strong></span>' +
+              '<span>' + (has ? '✓ Sudah lapor' : statusPill(p.status)) + '</span>' +
+            '</div>' +
+            '<button type="button" class="btn ' + (has ? 'btn-ghost' : 'btn-primary') + ' opc-btn" data-pid="' + encodeURIComponent(p.plan_id) + '">' +
+              (has ? 'Edit laporan' : 'Isi laporan') + '</button></div>';
+        }).join("");
+        cards.querySelectorAll("[data-pid]").forEach(btn => {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            openReportModal(decodeURIComponent(btn.getAttribute("data-pid")));
+          };
+        });
       }
     }
 
+    function operatorDisplayName(emailOrName) {
+      var raw = String(emailOrName || "").trim();
+      if (!raw) return "—";
+      var low = raw.toLowerCase();
+      var list = (typeof operators !== "undefined" && operators) ? operators : [];
+      for (var i = 0; i < list.length; i++) {
+        var o = list[i];
+        if (!o) continue;
+        if (String(o.email || "").toLowerCase() === low) return o.name ? (o.name + " · " + o.email) : o.email;
+        if (String(o.name || "").toLowerCase() === low) return o.name + (o.email ? " · " + o.email : "");
+      }
+      return raw;
+    }
     function renderReportList() {
       const body = $("reportListBody");
       if (!body) return;
@@ -6882,21 +7007,24 @@ function fillOperatorList(selectedEmail) {
       if (q) {
         list = list.filter(r => {
           const pl = reportPlanMap[r.plan_id] || {};
-          const blob = [pl.product_id, productLabel(pl.product_id), pl.machine_id, machineLabel(pl.machine_id), r.report_id].join(" ").toLowerCase();
+          const blob = [pl.product_id, productLabel(pl.product_id), pl.machine_id, machineLabel(pl.machine_id), pl.assigned_operator, r.reported_by, r.report_id].join(" ").toLowerCase();
           return blob.includes(q);
         });
       }
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="8" class="empty">Belum ada laporan</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" class="empty">Belum ada laporan</td></tr>';
         return;
       }
       body.innerHTML = list.map(r => {
         const pl = reportPlanMap[r.plan_id] || {};
         const t = r.created_at ? formatDateTimeWib(r.created_at) : "—";
+        const opRaw = pl.assigned_operator || r.reported_by || "";
+        const opName = operatorDisplayName(opRaw);
         return '<tr>' +
           '<td class="mono">' + esc(t) + '</td>' +
           '<td>' + esc(productLabel(pl.product_id || "")) + '</td>' +
           '<td>' + esc(machineLabel(pl.machine_id || "")) + '</td>' +
+          '<td style="font-size:0.8rem">' + esc(opName) + '</td>' +
           '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
           '<td>' + formatNum(r.ng_qty || 0) + '</td>' +
           '<td>' + formatNum(r.downtime_min || 0) + (r.downtime_reason ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(String(r.downtime_reason).split(":")[0]) + '</div>' : '') + '</td>' +
@@ -6918,9 +7046,10 @@ function fillOperatorList(selectedEmail) {
           cards.innerHTML = list.map(r => {
             const pl = reportPlanMap[r.plan_id] || {};
             const tm = r.created_at ? formatDateTimeWib(r.created_at) : "—";
+            const opN = operatorDisplayName(pl.assigned_operator || r.reported_by || "");
             return '<div class="m-card">' +
               '<div class="m-title">' + esc(productLabel(pl.product_id || "")) + '</div>' +
-              '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ' · ' + esc(tm) + '</div>' +
+              '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ' · ' + esc(opN) + ' · ' + esc(tm) + '</div>' +
               '<div class="m-row"><span>Actual <strong>' + formatNum(r.actual_qty) + '</strong></span>' +
               '<span>NG ' + formatNum(r.ng_qty || 0) + '</span><span>DT ' + formatNum(r.downtime_min || 0) + ' m</span>' +
               '<span>Target ' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</span></div>' +
@@ -11622,51 +11751,64 @@ function fillOperatorList(selectedEmail) {
       reportPlanMap = {};
       reportPlans.forEach(p => { reportPlanMap[p.plan_id] = p; });
 
+      function opCardHtml(p, opts) {
+        opts = opts || {};
+        var has = !!opts.has;
+        var extra = opts.extra || "";
+        return '<div class="op-plan-card' + (has ? ' opc-done' : '') + '"' +
+          (opts.clickable ? ' data-pid="' + encodeURIComponent(p.plan_id) + '"' : '') + '>' +
+          '<div class="opc-top"><div>' +
+          '<div class="opc-prod">' + esc(productLabel(p.product_id)) + '</div>' +
+          '<div class="opc-meta">' + esc(machineLabel(p.machine_id)) + extra + '</div></div>' +
+          '<span class="opc-shift">Shift ' + esc(String(p.shift)) + '</span></div>' +
+          '<div class="opc-row"><span>Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") +
+          '</strong></span>' + (has ? '<span>✓ Sudah lapor</span>' : '') + '</div></div>';
+      }
       const todayBox = $("opTodayList");
       if (todayBox) {
         if (!plansToday.length) {
-          todayBox.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Tidak ada jadwal hari ini</div></div>';
+          todayBox.innerHTML = '<div class="op-empty">Tidak ada jadwal hari ini</div>';
         } else {
-          todayBox.innerHTML = plansToday.map(p => {
-            const has = reportedIds.has(p.plan_id);
-            return '<div class="m-card" style="cursor:pointer" data-pid="' + encodeURIComponent(p.plan_id) + '">' +
-              '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
-              '<div class="m-sub">' + esc(machineLabel(p.machine_id)) + ' · Shift ' + esc(p.shift) +
-              (has ? ' · <span class="pill">Sudah lapor</span>' : "") + '</div>' +
-              '<div class="m-row">Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</strong></div></div>';
+          todayBox.innerHTML = plansToday.map(function(p) {
+            return opCardHtml(p, { has: reportedIds.has(p.plan_id), clickable: true });
           }).join("");
-          todayBox.querySelectorAll("[data-pid]").forEach(el => {
-            el.onclick = () => { goPage("reports"); setTimeout(() => openReportModal(decodeURIComponent(el.getAttribute("data-pid"))), 200); };
+          todayBox.querySelectorAll("[data-pid]").forEach(function(el) {
+            el.onclick = function() {
+              goPage("reports");
+              setTimeout(function() { openReportModal(decodeURIComponent(el.getAttribute("data-pid"))); }, 200);
+            };
           });
         }
       }
       const tmrBox = $("opTomorrowList");
       if (tmrBox) {
         if (!plansTomorrow.length) {
-          tmrBox.innerHTML = '<div class="m-card" style="background:transparent;border-style:dashed"><div class="m-sub" style="margin:0;text-align:center">Belum ada jadwal besok</div></div>';
+          tmrBox.innerHTML = '<div class="op-empty">Belum ada jadwal besok</div>';
         } else {
           tmrBox.innerHTML = plansTomorrow.map(function(p) {
-            return '<div class="m-card" style="border-color:#bfdbfe">' +
-              '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
-              '<div class="m-sub">' + esc(machineLabel(p.machine_id)) + ' · Shift ' + esc(p.shift) +
-              (p.status === "draft" ? ' · <span class="pill">draft</span>' : "") + '</div>' +
-              '<div class="m-row">Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</strong></div></div>';
+            return opCardHtml(p, {
+              extra: p.status === "draft" ? " · draft" : "",
+              clickable: false
+            });
           }).join("");
         }
       }
       const pendBox = $("opPendingList");
       if (pendBox) {
         if (!pending.length) {
-          pendBox.innerHTML = '<div class="m-card" style="background:transparent;border-style:dashed"><div class="m-sub" style="margin:0;text-align:center">Tidak ada tunggakan</div></div>';
+          pendBox.innerHTML = '<div class="op-empty">Tidak ada tunggakan</div>';
         } else {
-          pendBox.innerHTML = pending.map(p => {
-            return '<div class="m-card" style="cursor:pointer" data-pid="' + encodeURIComponent(p.plan_id) + '">' +
-              '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
-              '<div class="m-sub">' + esc(p.plan_date) + ' · ' + esc(machineLabel(p.machine_id)) + ' · Shift ' + esc(p.shift) + '</div>' +
-              '<div class="m-row">Target <strong>' + formatNum(p.target_qty) + '</strong></div></div>';
+          pendBox.innerHTML = pending.map(function(p) {
+            return opCardHtml(p, {
+              extra: " · " + esc(p.plan_date || ""),
+              clickable: true
+            });
           }).join("");
-          pendBox.querySelectorAll("[data-pid]").forEach(el => {
-            el.onclick = () => { goPage("reports"); setTimeout(() => openReportModal(decodeURIComponent(el.getAttribute("data-pid"))), 200); };
+          pendBox.querySelectorAll("[data-pid]").forEach(function(el) {
+            el.onclick = function() {
+              goPage("reports");
+              setTimeout(function() { openReportModal(decodeURIComponent(el.getAttribute("data-pid"))); }, 200);
+            };
           });
         }
       }
