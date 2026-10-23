@@ -6343,6 +6343,27 @@ function fillOperatorList(selectedEmail) {
       const byId = {};
       (reports || []).concat(r2 || []).forEach(r => { byId[r.report_id] = r; });
       reportRows = Object.values(byId);
+      // pastikan plan map lengkap untuk TARGET ADJ (report lama sering target_qty=0)
+      try {
+        var missingPids = [];
+        reportRows.forEach(function(r) {
+          if (r.plan_id && !reportPlanMap[r.plan_id]) missingPids.push(r.plan_id);
+        });
+        missingPids = missingPids.filter(function(v, i, a) { return a.indexOf(v) === i; }).slice(0, 100);
+        if (missingPids.length) {
+          var { data: extraPl } = await sb.from("plans").select("*").in("plan_id", missingPids);
+          (extraPl || []).forEach(function(p) {
+            reportPlanMap[p.plan_id] = p;
+            if (!reportPlans.find(function(x) { return x.plan_id === p.plan_id; })) reportPlans.push(p);
+          });
+        }
+      } catch (eMx) { console.warn(eMx); }
+      // backfill target di reportRows (tampilan + data di memori)
+      reportRows.forEach(function(r) {
+        var eff = reportEffectiveTarget(r, reportPlanMap);
+        if (!(Number(r.target_qty) > 0) && eff > 0) r.target_qty = eff;
+        if (!(Number(r.target_adj) > 0) && eff > 0) r.target_adj = eff;
+      });
       if (!isStaffRole() && email) {
         reportRows = reportRows.filter(r => String(r.reported_by || "").toLowerCase() === email.toLowerCase()
           || (reportPlanMap[r.plan_id] && String(reportPlanMap[r.plan_id].assigned_operator || "").toLowerCase() === email.toLowerCase()));
@@ -6452,7 +6473,7 @@ function fillOperatorList(selectedEmail) {
           '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
           '<td>' + formatNum(r.ng_qty || 0) + '</td>' +
           '<td>' + formatNum(r.downtime_min || 0) + (r.downtime_reason ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(String(r.downtime_reason).split(":")[0]) + '</div>' : '') + '</td>' +
-          '<td>' + formatNum(reportEffectiveTarget(r)) + '</td>' +
+          '<td>' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</td>' +
           '<td><button type="button" class="btn btn-ghost btn-sm" data-rid="' + encodeURIComponent(r.report_id) + '">Edit</button></td></tr>';
       }).join("");
       body.querySelectorAll("[data-rid]").forEach(btn => {
@@ -6474,7 +6495,8 @@ function fillOperatorList(selectedEmail) {
               '<div class="m-title">' + esc(productLabel(pl.product_id || "")) + '</div>' +
               '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ' · ' + esc(tm) + '</div>' +
               '<div class="m-row"><span>Actual <strong>' + formatNum(r.actual_qty) + '</strong></span>' +
-              '<span>NG ' + formatNum(r.ng_qty || 0) + '</span><span>DT ' + formatNum(r.downtime_min || 0) + ' m</span></div>' +
+              '<span>NG ' + formatNum(r.ng_qty || 0) + '</span><span>DT ' + formatNum(r.downtime_min || 0) + ' m</span>' +
+              '<span>Target ' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</span></div>' +
               '<div class="m-actions"><button type="button" class="btn btn-ghost" data-rid="' +
               encodeURIComponent(r.report_id) + '">Edit</button></div></div>';
           }).join("");
@@ -7027,9 +7049,15 @@ function fillOperatorList(selectedEmail) {
       var t = Number(r && r.target_qty);
       if (a > 0) return a;
       if (t > 0) return t;
-      if (planById && r && r.plan_id && planById[r.plan_id]) {
-        var pt = Number(planById[r.plan_id].target_qty) || 0;
-        if (pt > 0) return pt;
+      var plan = null;
+      if (planById && r && r.plan_id) plan = planById[r.plan_id];
+      if (!plan && r && r.plan_id && typeof reportPlanMap !== "undefined") plan = reportPlanMap[r.plan_id];
+      if (plan) {
+        var pt = Number(plan.target_qty) || 0;
+        if (pt > 0) {
+          var dt = Number(r && r.downtime_min) || 0;
+          return typeof calcTargetAdj === "function" ? calcTargetAdj(pt, dt) : pt;
+        }
       }
       return 0;
     }
