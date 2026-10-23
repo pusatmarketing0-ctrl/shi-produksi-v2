@@ -6452,7 +6452,7 @@ function fillOperatorList(selectedEmail) {
           '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
           '<td>' + formatNum(r.ng_qty || 0) + '</td>' +
           '<td>' + formatNum(r.downtime_min || 0) + (r.downtime_reason ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(String(r.downtime_reason).split(":")[0]) + '</div>' : '') + '</td>' +
-          '<td>' + formatNum(r.target_adj != null ? r.target_adj : r.target_qty) + '</td>' +
+          '<td>' + formatNum(reportEffectiveTarget(r)) + '</td>' +
           '<td><button type="button" class="btn btn-ghost btn-sm" data-rid="' + encodeURIComponent(r.report_id) + '">Edit</button></td></tr>';
       }).join("");
       body.querySelectorAll("[data-rid]").forEach(btn => {
@@ -6569,8 +6569,18 @@ function fillOperatorList(selectedEmail) {
 
     document.getElementById("btnSaveReport") && (document.getElementById("btnSaveReport").onclick = async () => {
       const plan_id = $("rpPlanId").value;
-      const plan = reportPlanMap[plan_id] || reportPlans.find(p => p.plan_id === plan_id);
+      let plan = reportPlanMap[plan_id] || reportPlans.find(p => p.plan_id === plan_id);
       if (!plan_id) return toast("Plan kosong", true);
+      // pastikan target dari plan (cache bisa kosong)
+      if ((!plan || !(Number(plan.target_qty) > 0)) && sb) {
+        try {
+          const { data: plDb } = await sb.from("plans").select("*").eq("plan_id", plan_id).maybeSingle();
+          if (plDb) {
+            plan = plDb;
+            reportPlanMap[plan_id] = plDb;
+          }
+        } catch (ePl) { console.warn(ePl); }
+      }
       const actual_qty = parseInputNum($("rpActual").value);
       const ng_qty = parseInputNum($("rpNg").value);
       const downtime_min = parseInputNum($("rpDt").value);
@@ -6586,6 +6596,9 @@ function fillOperatorList(selectedEmail) {
         : dtDetail;
       const notes = ($("rpNotes").value || "").trim();
       const target_qty = plan ? Number(plan.target_qty) || 0 : 0;
+      if (!(target_qty > 0)) {
+        toast("Target plan kosong — cek plan di menu Plan", true);
+      }
       const target_adj = calcTargetAdj(target_qty, downtime_min);
       const report_date = plan && plan.plan_date ? plan.plan_date : ((($("reportFilterDate") && $("reportFilterDate").value) || todayStr()));
       const reported_by = (currentUser && currentUser.email) || "";
@@ -7009,6 +7022,17 @@ function fillOperatorList(selectedEmail) {
       if (pct >= 80) return { name: "Pejuang", icon: "💪" };
       return { name: "Tunas", icon: "🌱" };
     }
+    function reportEffectiveTarget(r, planById) {
+      var a = Number(r && r.target_adj);
+      var t = Number(r && r.target_qty);
+      if (a > 0) return a;
+      if (t > 0) return t;
+      if (planById && r && r.plan_id && planById[r.plan_id]) {
+        var pt = Number(planById[r.plan_id].target_qty) || 0;
+        if (pt > 0) return pt;
+      }
+      return 0;
+    }
     async function loadRanking() {
       if (!sb) return;
       const from = ($("rankFrom") && $("rankFrom").value) || (todayStr().slice(0, 8) + "01");
@@ -7017,13 +7041,26 @@ function fillOperatorList(selectedEmail) {
       if ($("rankTo") && !$("rankTo").value) $("rankTo").value = to;
       const { data: reps, error } = await sb.from("reports").select("*").gte("report_date", from).lte("report_date", to).limit(2000);
       if (error) return toast(error.message, true);
+      // fallback target dari plans jika report.target_qty/adj kosong / 0
+      var planById = {};
+      try {
+        var pids = [];
+        (reps || []).forEach(function(r) {
+          if (r.plan_id && !(Number(r.target_adj) > 0) && !(Number(r.target_qty) > 0)) pids.push(r.plan_id);
+        });
+        pids = pids.filter(function(v, i, a) { return a.indexOf(v) === i; }).slice(0, 200);
+        if (pids.length) {
+          var { data: pls } = await sb.from("plans").select("plan_id,target_qty").in("plan_id", pids);
+          (pls || []).forEach(function(p) { planById[p.plan_id] = p; });
+        }
+      } catch (eP) { console.warn(eP); }
       const by = {};
       (reps || []).forEach(r => {
         const em = r.reported_by || "";
         if (!em) return;
         if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0 };
         by[em].actual += Number(r.actual_qty) || 0;
-        by[em].target += Number(r.target_adj != null ? r.target_adj : r.target_qty) || 0;
+        by[em].target += reportEffectiveTarget(r, planById);
         by[em].n += 1;
       });
       const list = Object.values(by).map(x => {
@@ -10461,7 +10498,7 @@ function fillOperatorList(selectedEmail) {
         let ma = 0, mt = 0;
         (mtdReps || []).forEach(function(r) {
           ma += Number(r.actual_qty) || 0;
-          mt += Number(r.target_adj != null ? r.target_adj : r.target_qty) || 0;
+          mt += reportEffectiveTarget(r);
         });
         const mp = mt > 0 ? Math.round((ma / mt) * 1000) / 10 : 0;
         const g = (typeof opGrade === "function") ? opGrade(mp) : { name: "Tunas", icon: "🌱" };
