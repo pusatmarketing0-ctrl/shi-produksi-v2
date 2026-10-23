@@ -10320,44 +10320,52 @@ function fillOperatorList(selectedEmail) {
     }
 
 
-    function openOpsPlanPicker(day, g, planIds) {
-      const rows = (plansCache || plans || []).filter(p => planIds.indexOf(p.plan_id) >= 0);
-      const list = rows.length ? rows : planIds.map(id => ({ plan_id: id }));
-      let html = '<p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">' +
-        esc(g.product_id) + ' · ' + esc(day) + ' · ' + list.length + ' plan</p><div style="display:flex;flex-direction:column;gap:0.5rem">';
-      list.forEach(p => {
+    async function openOpsPlanPicker(day, g, planIds) {
+      planIds = planIds || [];
+      var cache = (typeof plans !== "undefined" && Array.isArray(plans)) ? plans : [];
+      var rows = cache.filter(function(p) { return planIds.indexOf(p.plan_id) >= 0; });
+      if (rows.length < planIds.length && sb) {
+        try {
+          var { data } = await sb.from("plans").select("*").in("plan_id", planIds.slice(0, 50));
+          if (data && data.length) rows = data;
+        } catch (eF) { console.warn(eF); }
+      }
+      var list = rows.length ? rows : planIds.map(function(id) { return { plan_id: id }; });
+      var html = '<p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">' +
+        esc(g.product_id) + " · " + esc(day) + " · " + list.length + " plan</p><div style=\"display:flex;flex-direction:column;gap:0.5rem\">";
+      list.forEach(function(p) {
         html += '<div style="border:1px solid var(--border);border-radius:12px;padding:0.65rem;margin-bottom:0.45rem">' +
           '<button type="button" class="btn btn-ghost" style="justify-content:flex-start;text-align:left;width:100%" data-pid="' +
           esc(p.plan_id) + '"><strong>' + esc(p.plan_id) + '</strong><br/><span style="font-size:0.75rem">' +
-          'Shift ' + esc(p.shift || "-") + ' · ' + esc(p.machine_id || "") + ' · target ' + formatNum(p.target_qty) +
-          ' · ' + esc(p.assigned_operator || "(belum assign)") + ' · ' + esc(p.status || "") +
-          '</span></button>' +
-          '<div style="display:flex;gap:0.35rem;margin-top:0.4rem;align-items:center">' +
+          "Shift " + esc(p.shift || "-") + " · " + esc(p.machine_id || "") + " · target " + formatNum(p.target_qty) +
+          " · " + esc(p.assigned_operator || "(belum assign)") + " · " + esc(p.status || "") +
+          "</span></button>" +
+          '<div style="display:flex;gap:0.35rem;margin-top:0.4rem;align-items:center;flex-wrap:wrap">' +
           '<input type="date" class="ops-move-date" data-mpid="' + esc(p.plan_id) + '" value="' + esc(day) + '" style="border:1px solid var(--border);border-radius:8px;padding:0.25rem 0.4rem;font-size:0.8rem" />' +
           '<button type="button" class="btn btn-sm btn-primary ops-move-btn" data-mpid="' + esc(p.plan_id) + '">Pindah tanggal</button>' +
-          '</div></div>';
+          "</div></div>";
       });
-      html += '</div>';
+      html += "</div>";
       if ($("opsPlanPickerBody")) $("opsPlanPickerBody").innerHTML = html;
       if ($("opsPlanPickerModal")) {
         $("opsPlanPickerModal").classList.add("show");
         document.body.classList.add("modal-open");
       }
-      const box = $("opsPlanPickerBody") || document;
-      box.querySelectorAll("[data-pid]").forEach(btn => {
+      var box = $("opsPlanPickerBody") || document;
+      box.querySelectorAll("[data-pid]").forEach(function(btn) {
         btn.onclick = function() {
           closeOpsPlanPicker();
-          const pid = btn.getAttribute("data-pid");
+          var pid = btn.getAttribute("data-pid");
           goPage("plans");
-          setTimeout(function() { editPlan(pid); }, 250);
+          setTimeout(function() { try { editPlan(pid); } catch (eE) {} }, 250);
         };
       });
-      box.querySelectorAll(".ops-move-btn").forEach(btn => {
+      box.querySelectorAll(".ops-move-btn").forEach(function(btn) {
         btn.onclick = async function(e) {
           e.stopPropagation();
-          const pid = btn.getAttribute("data-mpid");
-          const inp = box.querySelector('.ops-move-date[data-mpid="' + pid + '"]');
-          const nd = inp && inp.value;
+          var pid = btn.getAttribute("data-mpid");
+          var inp = box.querySelector('.ops-move-date[data-mpid="' + pid + '"]');
+          var nd = inp && inp.value;
           if (!nd) return toast("Pilih tanggal", true);
           await movePlanDate(pid, nd);
           closeOpsPlanPicker();
