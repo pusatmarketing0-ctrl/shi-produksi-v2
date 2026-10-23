@@ -7300,7 +7300,18 @@ function fillOperatorList(selectedEmail) {
           "<div>OP: <strong>" + formatNum(opsMenuCtx.op_total || 0) + "</strong></div>";
       }
       var dbSt = String(opsMenuCtx.db_status || "").toLowerCase();
-      var closed = !!(opsMenuCtx.line_closed) || dbSt === "done" || dbSt === "closed" || opsMenuCtx.status === "DONE";
+      // recompute closed dari status + line_closed
+      try {
+        if (!opsMenuCtx.line_closed && opsMenuCtx.order_id && sb) {
+          // async soft-check di background tidak blok UI; status utama dari cache
+        }
+      } catch (e0) {}
+      var closed = !!(opsMenuCtx.line_closed) || dbSt === "done" || dbSt === "closed" || String(opsMenuCtx.status || "").toUpperCase() === "DONE";
+      // sinkron status tampilan
+      if (closed && String(opsMenuCtx.status || "").toUpperCase() !== "DONE") {
+        opsMenuCtx.status = "DONE";
+        opsMenuCtx.line_closed = true;
+      }
       if ($("btnOpsClose")) $("btnOpsClose").style.display = closed ? "none" : "";
       if ($("btnOpsReopen")) $("btnOpsReopen").style.display = closed ? "" : "none";
       if ($("opsCloseForm")) $("opsCloseForm").style.display = closed ? "none" : "";
@@ -7770,6 +7781,13 @@ function fillOperatorList(selectedEmail) {
             if (!groups[key].so_mark_day && o.order_date) groups[key].so_mark_day = String(o.order_date).slice(0, 10);
             if (o.ot_id) groups[key].from_ot = true;
             if (!groups[key].order_id && o.order_id) groups[key].order_id = o.order_id;
+            if (!groups[key].order_status) groups[key].order_status = o.status || "";
+            if (!groups[key].db_status) groups[key].db_status = o.status || "";
+            // penting: sync close per produk (sebelumnya terlewat jika grup sudah ada dari plan)
+            if (opsLineClosed(l, o.notes, pid)) {
+              groups[key].line_closed = true;
+              groups[key].status = "DONE";
+            }
             return;
           }
           groups[key] = {
@@ -7796,12 +7814,17 @@ function fillOperatorList(selectedEmail) {
             plan_total: 0,
             act_total: 0,
             op_total: 0,
-            status: "open"
+            status: opsLineClosed(l, o.notes, pid) ? "DONE" : "OPEN"
           };
         });
       });
 
-      
+      // final: pastikan status = DONE jika line_closed
+      Object.keys(groups).forEach(function(k) {
+        var g = groups[k];
+        g.status = opsStatusOf(g);
+      });
+
       // Tandai rentang PO → ETA di setiap baris SO/FG (grid)
       Object.keys(groups).forEach(function(k) {
         var g = groups[k];
