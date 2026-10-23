@@ -208,11 +208,30 @@
       border: none; background: transparent; padding: 0.62rem 0.85rem; border-radius: 10px;
       font-size: 0.875rem; font-weight: 500; color: var(--text-muted); cursor: pointer; text-align: left;
       transition: background 0.12s, color 0.12s;
+      position: relative;
     }
     .nav-item:hover { background: var(--green-light); color: var(--green); }
     .nav-item.active {
       background: var(--green-light); color: var(--green); font-weight: 600;
       box-shadow: inset 3px 0 0 var(--green);
+    }
+    .nav-item .nav-count {
+      margin-left: auto;
+      min-width: 18px; height: 18px; padding: 0 5px;
+      border-radius: 99px; background: #ef4444; color: #fff;
+      font-size: 0.65rem; font-weight: 700; line-height: 18px; text-align: center;
+      flex-shrink: 0;
+    }
+    .layout.sidebar-collapsed .nav-item .nav-count {
+      position: absolute; top: 4px; right: 4px; margin: 0;
+      min-width: 16px; height: 16px; line-height: 16px; font-size: 0.6rem;
+    }
+    .mobile-nav button { position: relative; }
+    .mobile-nav .nav-count {
+      position: absolute; top: 2px; right: 8px;
+      min-width: 15px; height: 15px; padding: 0 4px;
+      border-radius: 99px; background: #ef4444; color: #fff;
+      font-size: 0.58rem; font-weight: 700; line-height: 15px; text-align: center;
     }
 
     .main { padding: 1.35rem 1.35rem 2.5rem; max-width: 1120px; width: 100%; }
@@ -6744,7 +6763,13 @@ function fillOperatorList(selectedEmail) {
       }
       toast(report_id ? "Laporan diperbarui" : "Laporan disimpan");
       try { await applyWipFromReport(plan, report_id, actual_qty); } catch (eW) {}
-      try { await applyFgFromReport(plan, report_id, actual_qty); } catch (eF) { console.warn(eF); }
+      try {
+        // pastikan master proses sudah ada (deteksi FG)
+        if (!(machines && machines.length)) {
+          try { await loadMachines(); } catch (eM) {}
+        }
+        await applyFgFromReport(plan, report_id, actual_qty);
+      } catch (eF) { console.warn(eF); }
       closeReportModal();
       await loadReportsPage();
       try { if (currentRole() === "operator") loadOperatorHome(); } catch (e) {}
@@ -7225,9 +7250,19 @@ function fillOperatorList(selectedEmail) {
 
     // ===== Marketing =====
     function isFgMachine(machineId) {
+      if (!machineId) return false;
       const m = (machines || []).find(x => String(x.machine_id) === String(machineId));
-      const name = ((m && m.name) || machineId || "").toLowerCase();
-      return name.includes("masterbox") || name.includes("master box") || name.includes("packing master") || name.includes("fg");
+      const name = ((m && (m.name || m.process_name || m.label)) || String(machineId) || "").toLowerCase();
+      const cat = String((m && (m.category || m.type || m.process_type || m.jenis)) || "").toLowerCase();
+      if (m && (m.is_fg === true || m.is_fg === "true" || m.is_fg === 1)) return true;
+      if (cat === "fg" || cat === "finish_good" || cat === "finisgood" || cat.indexOf("finish") >= 0) return true;
+      // nama proses: packing masterbox / master box / FG
+      if (name.indexOf("masterbox") >= 0 || name.indexOf("master box") >= 0) return true;
+      if (name.indexOf("packing master") >= 0) return true;
+      if (/\bfg\b/.test(name) || name.indexOf("finish good") >= 0 || name.indexOf("finisgood") >= 0) return true;
+      // packing + (box|karton|master)
+      if (name.indexOf("packing") >= 0 && (name.indexOf("box") >= 0 || name.indexOf("karton") >= 0 || name.indexOf("master") >= 0)) return true;
+      return false;
     }
     async function loadMarketing() {
       if (!sb) return;
@@ -8905,24 +8940,27 @@ function fillOperatorList(selectedEmail) {
       if (!sb || !plan || !(actual_qty > 0)) return;
       const product_id = plan.product_id;
       const machine_id = plan.machine_id;
+      const isFg = isFgMachine(machine_id);
       try {
-        // 1) credit WIP current process
-        const { data: cur } = await sb.from("wip_stock").select("qty,unit").eq("product_id", product_id).eq("machine_id", machine_id).maybeSingle();
-        const nextQty = (cur ? Number(cur.qty) || 0 : 0) + actual_qty;
-        await sb.from("wip_stock").upsert({
-          product_id, machine_id, qty: nextQty, unit: plan.unit || (cur && cur.unit) || "pcs",
-          updated_at: new Date().toISOString()
-        }, { onConflict: "product_id,machine_id" });
+        // 1) credit WIP hanya untuk proses PRIMER (bukan FG)
+        //    FG masuk stok gudang lewat applyFgFromReport, bukan WIP
+        if (!isFg) {
+          const { data: cur } = await sb.from("wip_stock").select("qty,unit").eq("product_id", product_id).eq("machine_id", machine_id).maybeSingle();
+          const nextQty = (cur ? Number(cur.qty) || 0 : 0) + actual_qty;
+          await sb.from("wip_stock").upsert({
+            product_id, machine_id, qty: nextQty, unit: plan.unit || (cur && cur.unit) || "pcs",
+            updated_at: new Date().toISOString()
+          }, { onConflict: "product_id,machine_id" });
+        }
 
-        // 2) find route step + depends_on
+        // 2) kurangi WIP step sebelumnya (primer & FG sama-sama konsumsi input)
         const routes = (productRoutes || routesCache || []).filter(r => String(r.product_id) === String(product_id));
         const step = routes.find(r => String(r.machine_id) === String(machine_id));
         if (!step) return;
         const dep = String(step.depends_on || "").trim();
         if (!dep) return;
-        // depends_on can be step number or machine_id
         let prevMachine = dep;
-        if (/^\\d+$/.test(dep)) {
+        if (/^\d+$/.test(dep)) {
           const prev = routes.find(r => String(r.step) === dep);
           if (prev) prevMachine = prev.machine_id;
         }
@@ -12464,6 +12502,35 @@ function fillOperatorList(selectedEmail) {
           "</button>" + kids + "</div>";
       }).join("");
     }
+    function applyNavBadges(groups) {
+      // jumlah per data-page dari sub-item antrian
+      var byPage = {};
+      (groups || []).forEach(function(g) {
+        (g.items || []).forEach(function(it) {
+          if (!it.page) return;
+          byPage[it.page] = (byPage[it.page] || 0) + (Number(it.count) || 0);
+        });
+        // jika grup punya page tanpa items
+        if (g.page && !(g.items && g.items.length)) {
+          byPage[g.page] = (byPage[g.page] || 0) + (Number(g.count) || 0);
+        }
+      });
+      function putBadge(btn, n) {
+        if (!btn) return;
+        var old = btn.querySelector(".nav-count");
+        if (old) old.remove();
+        if (n > 0) {
+          var sp = document.createElement("span");
+          sp.className = "nav-count";
+          sp.textContent = n > 99 ? "99+" : String(n);
+          btn.appendChild(sp);
+        }
+      }
+      document.querySelectorAll(".sidebar .nav-item[data-page], .mobile-nav button[data-page]").forEach(function(btn) {
+        var page = btn.getAttribute("data-page");
+        putBadge(btn, byPage[page] || 0);
+      });
+    }
     function renderNotifItems(groups) {
       var total = 0;
       (groups || []).forEach(function(g) {
@@ -12476,6 +12543,7 @@ function fillOperatorList(selectedEmail) {
         $("homeInboxList").innerHTML = buildNotifTreeHtml(groups, false);
       }
       setNotifBadge(total);
+      try { applyNavBadges(groups); } catch (eB) {}
     }
     async function loadInboxNotifs() {
       if (!sb) return;
@@ -12529,19 +12597,39 @@ function fillOperatorList(selectedEmail) {
         }
         // —— Gudang ——
         if (role === "gudang" || role === "admin") {
-          var { data: gl } = await sb.from("purchase_lines").select("id,qty,qty_received,qty_qc_passed,qc_status").eq("qc_status", "passed").limit(80);
+          var gItems = [];
           var nRecv = 0;
-          (gl || []).forEach(function(l) {
-            var need = Number(l.qty_qc_passed) || Number(l.qty) || 0;
-            var got = Number(l.qty_received) || 0;
-            if (got < need) nRecv++;
-          });
-          if (nRecv) {
+          try {
+            var { data: gl } = await sb.from("purchase_lines").select("id,qty,qty_received,qty_qc_passed,qc_status").eq("qc_status", "passed").limit(80);
+            (gl || []).forEach(function(l) {
+              var need = Number(l.qty_qc_passed) || Number(l.qty) || 0;
+              var got = Number(l.qty_received) || 0;
+              if (got < need) nRecv++;
+            });
+          } catch (eG1) {}
+          if (nRecv) gItems.push({ label: "Menunggu terima", count: nRecv, page: "gudang", icon: "📥" });
+          var nShipReq = 0, nShipPick = 0;
+          try {
+            var { data: ships } = await sb.from("ship_requests").select("ship_id,status").in("status", ["requested", "picked"]).limit(80);
+            (ships || []).forEach(function(s) {
+              if (s.status === "picked") nShipPick++;
+              else nShipReq++;
+            });
+          } catch (eG2) {}
+          if (nShipReq) gItems.push({ label: "Instruksi kirim (baru)", count: nShipReq, page: "gudang", icon: "📤" });
+          if (nShipPick) gItems.push({ label: "Siap buat DO", count: nShipPick, page: "gudang", icon: "📋" });
+          var nDoReady = 0;
+          try {
+            var { data: dos } = await sb.from("deliveries").select("delivery_id").eq("status", "ready").limit(50);
+            nDoReady = (dos || []).length;
+          } catch (eG3) {}
+          if (nDoReady) gItems.push({ label: "DO siap kirim", count: nDoReady, page: "delivery", icon: "🚚" });
+          if (gItems.length) {
             groups.push({
               label: "Gudang",
               icon: "📦",
-              count: nRecv,
-              items: [{ label: "Menunggu terima", count: nRecv, page: "gudang", icon: "📥" }],
+              count: gItems.reduce(function(s, x) { return s + (x.count || 0); }, 0),
+              items: gItems,
               open: true
             });
           }
