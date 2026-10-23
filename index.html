@@ -3530,7 +3530,7 @@
                 <h3 style="margin:0">Antrian kirim (dari Marketing)</h3>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
               </div>
-              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Instruksi yang statusnya <strong>requested</strong> menunggu gudang. Setelah siap, tandai picked / shipped.</p>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Antrian sampai <strong>Picked</strong>. Untuk kirim keluar, klik <strong>Buat DO</strong> dan isi DO (status shipped) — wajib.</p>
               <div class="table-wrap">
                 <table>
                   <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th></th></tr></thead>
@@ -7406,7 +7406,7 @@ function fillOperatorList(selectedEmail) {
           if (r.status === "requested") {
             acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
           } else if (r.status === "picked") {
-            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'shipped\')">Shipped</button>';
+            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buat DO</button>';
           }
         }
         if ((role === "marketing" || role === "admin") && r.status === "requested") {
@@ -7439,31 +7439,84 @@ function fillOperatorList(selectedEmail) {
     }
     async function updateShipStatus(shipId, status) {
       if (!sb || !shipId) return;
+      // shipped hanya boleh lewat DO
+      if (status === "shipped") {
+        return toast("Shipped hanya lewat DO — klik Buat DO", true);
+      }
       var { error } = await sb.from("ship_requests").update({
         status: status,
         updated_at: new Date().toISOString()
       }).eq("ship_id", shipId);
       if (error) return toast(error.message, true);
-      // shipped → potong stok FG (out)
-      if (status === "shipped") {
-        try {
-          var { data: lines } = await sb.from("ship_request_lines").select("*").eq("ship_id", shipId);
-          for (var i = 0; i < (lines || []).length; i++) {
-            var l = lines[i];
-            await sb.from("warehouse_movements").insert({
-              product_id: l.product_id,
-              qty: Number(l.qty) || 0,
-              unit: l.unit || "pcs",
-              movement_type: "out_ship",
-              notes: "Kirim " + shipId,
-              ref_id: shipId,
-              created_at: new Date().toISOString()
-            });
-          }
-        } catch (eM) { console.warn(eM); }
-      }
       toast("Status → " + status);
       loadShipRequests();
+    }
+
+    /** Gudang: dari instruksi picked → buka form DO terisi otomatis */
+    async function createDoFromShip(shipId) {
+      if (!sb || !shipId) return;
+      var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
+      if (!r) {
+        var { data } = await sb.from("ship_requests").select("*").eq("ship_id", shipId).maybeSingle();
+        r = data;
+      }
+      if (!r) return toast("Instruksi tidak ditemukan", true);
+      if (r.status !== "picked" && r.status !== "requested") {
+        return toast("Hanya instruksi requested/picked yang bisa jadi DO", true);
+      }
+      // pastikan picked dulu
+      if (r.status === "requested") {
+        await sb.from("ship_requests").update({ status: "picked", updated_at: new Date().toISOString() }).eq("ship_id", shipId);
+        r.status = "picked";
+      }
+      var { data: lines } = await sb.from("ship_request_lines").select("*").eq("ship_id", shipId);
+      lines = lines || r.ship_request_lines || [];
+      if (!lines.length) return toast("Instruksi tanpa produk — tidak bisa buat DO", true);
+
+      closeShipDetail();
+      // buka modal DO
+      try {
+        await openDeliveryModal("");
+      } catch (e) {
+        goPage("delivery");
+        await openDeliveryModal("");
+      }
+      // prefill
+      if ($("doDate")) $("doDate").value = todayStr();
+      if ($("doStatus")) $("doStatus").value = "ready";
+      if ($("doCustomer")) $("doCustomer").value = r.customer_name || "";
+      if ($("doNotes")) $("doNotes").value = "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : "");
+      // tandai ship_id di notes/hidden
+      if ($("doShipRef")) $("doShipRef").value = shipId;
+      else {
+        // simpan di notes header juga
+        window.__doFromShipId = shipId;
+      }
+      // pilih SO jika ada
+      var sel = $("doSoSelect");
+      if (sel && r.order_id) {
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === r.order_id) {
+            sel.selectedIndex = i;
+            onDoSoChange();
+            break;
+          }
+        }
+      } else if (sel && r.no_so) {
+        for (var j = 0; j < sel.options.length; j++) {
+          if (String(sel.options[j].dataset.noso || "") === String(r.no_so)) {
+            sel.selectedIndex = j;
+            onDoSoChange();
+            break;
+          }
+        }
+      }
+      // isi baris dari ship lines
+      if ($("doLines")) $("doLines").innerHTML = "";
+      lines.forEach(function(l) {
+        addDoLine({ product_id: l.product_id, qty: l.qty, unit: l.unit || "pcs" });
+      });
+      toast("Lengkapi DO lalu simpan — setelah shipped, instruksi ikut selesai");
     }
     async function openShipDetail(shipId, nextStatus) {
       var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
@@ -7494,11 +7547,12 @@ function fillOperatorList(selectedEmail) {
         (r.notes ? '<p style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">Catatan: ' + esc(r.notes) + "</p>" : "");
       if ($("shipDetailActions")) {
         var acts = "";
-        if (nextStatus === "picked" || (r.status === "requested" && (currentRole() === "gudang" || currentRole() === "admin"))) {
+        var role = currentRole();
+        if (nextStatus === "picked" || (r.status === "requested" && (role === "gudang" || role === "admin"))) {
           acts += '<button type="button" class="btn btn-primary" onclick="updateShipStatus(\'' + r.ship_id + '\',\'picked\');closeShipDetail()">Konfirmasi Picked</button>';
         }
-        if (nextStatus === "shipped" || (r.status === "picked" && (currentRole() === "gudang" || currentRole() === "admin"))) {
-          acts += ' <button type="button" class="btn btn-primary" onclick="updateShipStatus(\'' + r.ship_id + '\',\'shipped\');closeShipDetail()">Konfirmasi Shipped</button>';
+        if (r.status === "picked" && (role === "gudang" || role === "admin" || role === "marketing")) {
+          acts += ' <button type="button" class="btn btn-primary" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buat DO (wajib)</button>';
         }
         acts += ' <button type="button" class="btn btn-ghost" onclick="closeShipDetail()">Tutup</button>';
         $("shipDetailActions").innerHTML = acts;
@@ -9289,10 +9343,27 @@ function fillOperatorList(selectedEmail) {
             });
           }
         } catch (eM) {}
+        // tutup instruksi kirim terkait
+        try {
+          var shipRef = (window.__doFromShipId || (($("doShipRef") && $("doShipRef").value) || "")).trim();
+          if (!shipRef && header.notes) {
+            var m = String(header.notes).match(/SHIP-[A-Z0-9]+/i);
+            if (m) shipRef = m[0];
+          }
+          if (shipRef) {
+            await sb.from("ship_requests").update({
+              status: "shipped",
+              updated_at: new Date().toISOString()
+            }).eq("ship_id", shipRef);
+            window.__doFromShipId = "";
+            if ($("doShipRef")) $("doShipRef").value = "";
+          }
+        } catch (eShip) { console.warn(eShip); }
       }
-      toast("DO disimpan");
+      toast("DO disimpan" + (header.status === "shipped" ? " · instruksi kirim → shipped" : ""));
       closeDeliveryModal();
       loadDeliveries();
+      try { loadShipRequests(); } catch (eR) {}
     }
 
     async function saveWhFromProduction() {
@@ -14062,6 +14133,7 @@ function closeOtModal() {
       <div class="sheet-head"><h2 id="doModalTitle">DO baru</h2></div>
       <div class="sheet-body">
         <input type="hidden" id="doEditId" />
+        <input type="hidden" id="doShipRef" />
         <div class="field"><label>Sales Order</label>
           <select id="doSoSelect" onchange="onDoSoChange()"><option value="">— Pilih SO —</option></select>
         </div>
