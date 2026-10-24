@@ -7727,6 +7727,33 @@ function fillOperatorList(selectedEmail) {
       renderGilingBomInto("plSoGilingBom", fg, mid, { normalFieldsId: "plSoNormalFields" }).catch(function(){});
     }
 
+    function isMaterialProductId(pid) {
+      var id = String(pid || "").trim();
+      if (!id) return false;
+      if (/^(BB|RM|BK|BP)[-_]?\d/i.test(id)) return true;
+      var p = (products || []).find(function(x) { return String(x.product_id) === id; });
+      var cat = String((p && p.category) || "").toLowerCase();
+      return cat.indexOf("bahan") >= 0 || cat === "bb" || cat === "rm" || cat === "raw";
+    }
+    /** Produk yang ditampilkan di grid operasional (FG). Giling bahan → for_product / BOM. */
+    function resolveOpsRowProductId(p) {
+      if (!p) return "";
+      var fp = String(p.for_product_id || "").trim();
+      if (fp) return fp;
+      var pid = String(p.product_id || "").trim();
+      var gil = (typeof isGilingMachine === "function") && isGilingMachine(p.machine_id);
+      // giling bahan tanpa for_product: reverse BOM (1 bahan → 1 FG)
+      if (gil && isMaterialProductId(pid)) {
+        var mats = (window.__bomRows || []).filter(function(b) {
+          return String(b.material_product_id) === pid;
+        });
+        if (mats.length === 1 && mats[0].fg_product_id) return String(mats[0].fg_product_id);
+        // banyak FG pakai bahan sama / belum ada BOM → jangan tampil baris BB
+        return "";
+      }
+      // proses non-giling tapi product material → tetap tampil (jarang)
+      return pid;
+    }
     function isGilingMachine(machineId) {
       const m = (machines || []).find(x => String(x.machine_id) === String(machineId));
       const blob = ((m && (m.name || m.process_name || "")) + " " + (machineId || "")).toLowerCase();
@@ -9130,6 +9157,7 @@ function fillOperatorList(selectedEmail) {
     async function loadOperasional() {
       if (!sb) return;
       try { await loadOperators(); } catch (eOp) { console.warn(eOp); }
+      try { await loadBom(true); } catch (eBom) { console.warn(eBom); }
       const { start, end, daysInMonth } = opsMonthStartEnd();
       opsDays = [];
       for (let d = 1; d <= daysInMonth; d++) {
@@ -9212,9 +9240,12 @@ function fillOperatorList(selectedEmail) {
       });
 
       const groups = {};
+      // pastikan BOM siap untuk reverse-map giling → FG
+      try { if (!window.__bomRows) { /* sync best-effort */ } } catch (eB) {}
       planList.forEach(p => {
-        // giling bahan: for_product_id = FG → gabung ke baris FG (sistem lama)
-        const rowPid = String(p.for_product_id || "").trim() || String(p.product_id);
+        // sistem lama: plan giling bahan TIDAK jadi baris BB — ikut baris FG
+        const rowPid = resolveOpsRowProductId(p);
+        if (!rowPid) return; // orphan giling bahan → skip baris
         const key = rowPid + "||" + String(p.no_so || p.order_id || "");
         if (!groups[key]) {
           const ord = p.order_id ? orderMap[p.order_id] : null;
@@ -9313,7 +9344,8 @@ function fillOperatorList(selectedEmail) {
       // Rebuild planDay properly: FG qty or all if product has no FG plans
       const plansByGroupDay = {};
       planList.forEach(p => {
-        const rowPid = String(p.for_product_id || "").trim() || String(p.product_id);
+        const rowPid = resolveOpsRowProductId(p);
+        if (!rowPid) return;
         const key = rowPid + "||" + String(p.no_so || p.order_id || "");
         const day = String(p.plan_date).slice(0, 10);
         const k2 = key + "@@" + day;
@@ -9421,7 +9453,11 @@ function fillOperatorList(selectedEmail) {
         if (byFg) Object.keys(byFg).forEach(function(d) { g.po_mark_days[d] = true; });
       });
 
-      opsRows = Object.values(groups).sort((a, b) => String(a.product_id).localeCompare(String(b.product_id)));
+      opsRows = Object.values(groups).filter(function(g) {
+        // jangan tampilkan baris bahan baku murni (giling harusnya di FG)
+        if (isMaterialProductId(g.product_id) && !(g._planFg > 0)) return false;
+        return true;
+      }).sort((a, b) => String(a.product_id).localeCompare(String(b.product_id)));
 
       // daily summary + today panel
       opsDayMeta = {};
