@@ -2835,6 +2835,61 @@
     }
     #profileModal .sheet-head { display: none; }
 
+  
+    /* OT list cards */
+    .ot-list { display: flex; flex-direction: column; gap: 0.55rem; padding: 0.65rem; }
+    .ot-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.9rem 1rem;
+      background: rgba(255,255,255,0.92);
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.5rem 0.75rem;
+      align-items: start;
+    }
+    .ot-card:hover {
+      border-color: #86efac;
+      box-shadow: 0 4px 18px rgba(5,150,105,0.1);
+    }
+    .ot-card-id { font-size: 0.78rem; font-weight: 800; color: #047857; letter-spacing: 0.02em; }
+    .ot-card-cust { font-size: 1rem; font-weight: 700; color: var(--text); margin-top: 0.15rem; }
+    .ot-card-prods { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.45; }
+    .ot-card-prods strong { color: var(--text); font-weight: 600; }
+    .ot-card-ref { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem; }
+    .ot-card-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
+    .ot-status {
+      display: inline-flex; align-items: center;
+      font-size: 0.68rem; font-weight: 800;
+      padding: 0.28rem 0.55rem; border-radius: 99px;
+      text-transform: uppercase; letter-spacing: 0.03em;
+      border: 1px solid transparent;
+    }
+    .ot-status.draft { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+    .ot-status.menunggu_so_trading { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .ot-status.so_siap { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .ot-status.so_dibagikan { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+    .ot-status.dp_diterima { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .ot-status.terbit_produksi { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .ot-status.cancelled { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    #otModal .ot-modal-banner {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 0.75rem; flex-wrap: wrap;
+      padding: 0.85rem 1.1rem 0.5rem;
+    }
+    #otModal .ot-modal-banner h2 { margin: 0; font-size: 1.1rem; font-weight: 800; }
+    #otModal .ot-modal-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; }
+    #otModal .sheet-head { display: none; }
+    #otStatusBox {
+      margin-top: 0.85rem !important;
+      padding: 0.85rem !important;
+      border-radius: 14px !important;
+      background: #f0fdf4 !important;
+      border: 1px solid #bbf7d0;
+    }
+
   </style>
 </head>
 <body>
@@ -3382,7 +3437,7 @@
           <div class="page-head">
             <div>
               <h1>Order Trading</h1>
-              <p>Info order Marketing → SO CV Trading → share DP → Odoo → produksi. Track record saling terhubung.</p>
+              <p>Marketing → CV Trading → DP → Odoo → produksi. Semua referensi saling terhubung.</p>
             </div>
             <button class="btn btn-primary" type="button" id="btnOtNew" onclick="openOtModal()">+ Order Trading</button>
           </div>
@@ -4466,10 +4521,16 @@
   </div>
 
   <div id="otModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:640px">
+    <div class="modal modal-sheet" style="max-width:560px;padding-top:0.35rem">
       <div class="sheet-handle"></div>
-      <div class="sheet-head"><h2 id="otModalTitle">Order Trading</h2></div>
-      <div class="sheet-body">
+      <div class="ot-modal-banner">
+        <div>
+          <h2 id="otModalTitle">Order Trading</h2>
+          <div class="ot-modal-sub" id="otModalSub">Customer akhir · produk · lampiran</div>
+        </div>
+        <span class="ot-status draft" id="otModalStatusPill" style="display:none">—</span>
+      </div>
+      <div class="sheet-body" style="padding-top:0.35rem">
         <input type="hidden" id="otEditId" />
         <div class="field"><label>Customer akhir</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
         <div class="field"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
@@ -14115,6 +14176,10 @@ function fillOperatorList(selectedEmail) {
       if ($("btnOtNew")) $("btnOtNew").style.display = (role === "marketing" || role === "admin") ? "" : "none";
     }
 
+    function otStatusClass(st) {
+      st = String(st || "draft");
+      return "ot-status " + st.replace(/[^a-z0-9_]/gi, "");
+    }
     function renderOrderTrading() {
       const box = $("otList");
       if (!box) return;
@@ -14125,35 +14190,43 @@ function fillOperatorList(selectedEmail) {
       if (q) {
         rows = rows.filter(function(r) {
           const lines = otLinesCache[r.ot_id] || [];
-          const blob = [r.ot_id, r.customer_name, r.no_so, r.so_trading_no, r.status].concat(lines.map(function(l) { return l.product_id; })).join(" ").toLowerCase();
+          const names = lines.map(function(l) {
+            try { return productLabel(l.product_id); } catch (e) { return l.product_id; }
+          });
+          const blob = [r.ot_id, r.customer_name, r.no_so, r.so_trading_no, r.status].concat(lines.map(function(l) { return l.product_id; })).concat(names).join(" ").toLowerCase();
           return blob.indexOf(q) >= 0;
         });
       }
       if (!rows.length) {
-        box.innerHTML = "<div style='padding:1.25rem;color:var(--text-muted);text-align:center'>Belum ada Order Trading</div>";
+        box.innerHTML = "<div class='ot-list'><div style='padding:2rem;color:var(--text-muted);text-align:center'>Belum ada Order Trading</div></div>";
         return;
       }
-      const showPrice = currentRole() === "marketing" || currentRole() === "trading" || currentRole() === "admin";
-      let html = "<table class='data-table' style='width:100%;font-size:0.8rem'><thead><tr>" +
-        "<th>OT</th><th>Customer</th><th>Produk</th><th>Status</th><th>Ref</th><th></th></tr></thead><tbody>";
+      let html = "<div class='ot-list'>";
       rows.forEach(function(r) {
         const lines = otLinesCache[r.ot_id] || [];
-        const prod = lines.slice(0, 3).map(function(l) {
-          return esc(l.product_id) + " × " + formatNum(l.qty);
-        }).join("<br>") + (lines.length > 3 ? "<br>…" : "");
+        const prodHtml = lines.slice(0, 4).map(function(l) {
+          var d = (typeof otProductDisplay === "function") ? otProductDisplay(l.product_id) : { name: "", id: l.product_id };
+          var nm = d.name || d.id || l.product_id;
+          return "<div><strong>" + esc(nm) + "</strong>" +
+            (d.id && d.name ? " <span style='opacity:0.7'>(" + esc(d.id) + ")</span>" : "") +
+            " · " + formatNum(l.qty) + "</div>";
+        }).join("") + (lines.length > 4 ? "<div>+" + (lines.length - 4) + " produk lain</div>" : "");
         const ref = [];
-        if (r.so_trading_no) ref.push("SO-TRD: " + esc(r.so_trading_no));
-        if (r.no_so) ref.push("Odoo: " + esc(r.no_so));
-        if (r.order_id) ref.push("ORD: " + esc(r.order_id));
-        html += "<tr style='cursor:pointer' onclick='openOtModal(" + JSON.stringify(r.ot_id) + ")'>" +
-          "<td><strong>" + esc(r.ot_id) + "</strong></td>" +
-          "<td>" + esc(r.customer_name || "—") + "</td>" +
-          "<td>" + (prod || "—") + "</td>" +
-          "<td><span class='pill'>" + esc(otStatusLabel(r.status)) + "</span></td>" +
-          "<td style='font-size:0.72rem;color:var(--text-muted)'>" + (ref.join("<br>") || "—") + "</td>" +
-          "<td><button type='button' class='btn btn-ghost btn-sm' onclick='event.stopPropagation();openOtModal(" + JSON.stringify(r.ot_id) + ")'>Detail</button></td></tr>";
+        if (r.so_trading_no) ref.push("SO Trading: " + esc(r.so_trading_no));
+        if (r.no_so) ref.push("SO Odoo: " + esc(r.no_so));
+        html += "<div class='ot-card' onclick='openOtModal(" + JSON.stringify(r.ot_id) + ")'>" +
+          "<div>" +
+            "<div class='ot-card-id'>" + esc(r.ot_id) + "</div>" +
+            "<div class='ot-card-cust'>" + esc(r.customer_name || "—") + "</div>" +
+            "<div class='ot-card-prods'>" + (prodHtml || "—") + "</div>" +
+            (ref.length ? "<div class='ot-card-ref'>" + ref.join(" · ") + "</div>" : "") +
+          "</div>" +
+          "<div class='ot-card-right'>" +
+            "<span class='" + otStatusClass(r.status) + "'>" + esc(otStatusLabel(r.status)) + "</span>" +
+            "<button type='button' class='btn btn-ghost btn-sm' onclick='event.stopPropagation();openOtModal(" + JSON.stringify(r.ot_id) + ")'>Detail →</button>" +
+          "</div></div>";
       });
-      html += "</tbody></table>";
+      html += "</div>";
       box.innerHTML = html;
     }
 
@@ -14455,6 +14528,8 @@ function closeOtModal() {
 
       if ($("otEditId")) $("otEditId").value = otId || "";
       if ($("otModalTitle")) $("otModalTitle").textContent = otId ? "Detail Order Trading" : "Order Trading baru";
+      if ($("otModalSub")) $("otModalSub").textContent = otId ? "Edit data · lampiran · alur status" : "Isi customer & baris produk";
+      if ($("otModalStatusPill")) { $("otModalStatusPill").style.display = "none"; }
       if ($("otCustomer")) $("otCustomer").value = "";
       if ($("otNote")) $("otNote").value = "";
       if ($("otSoTradingNo")) $("otSoTradingNo").value = "";
@@ -14487,6 +14562,12 @@ function closeOtModal() {
         }
         if ($("otCustomer")) $("otCustomer").value = row.customer_name || "";
         if ($("otNote")) $("otNote").value = row.note || "";
+        if ($("otModalStatusPill")) {
+          $("otModalStatusPill").style.display = "";
+          $("otModalStatusPill").className = otStatusClass(row.status);
+          $("otModalStatusPill").textContent = otStatusLabel(row.status);
+        }
+        if ($("otModalSub")) $("otModalSub").textContent = (row.ot_id || "") + (row.customer_name ? " · " + row.customer_name : "");
         if ($("otSoTradingNo")) $("otSoTradingNo").value = row.so_trading_no || "";
         if ($("otSoTradingNote")) $("otSoTradingNote").value = row.so_trading_note || "";
         if ($("otNoSo")) $("otNoSo").value = row.no_so || "";
@@ -14521,9 +14602,11 @@ function closeOtModal() {
       try { otBindCustomerInput(); } catch (e) {}
       try { bindAllThousandInputs(); } catch (e) {}
       try {
-        document.querySelectorAll("#otLines .ot-prod").forEach(function(inp) {
+        document.querySelectorAll("#otLines .ot-line").forEach(function(wrap) {
+          var inp = wrap.querySelector(".ot-prod");
+          if (!inp) return;
           delete inp.dataset.otCombo;
-          otBindLineProduct(inp);
+          otBindLineProduct(inp, wrap);
         });
       } catch (e2) {}
     }
