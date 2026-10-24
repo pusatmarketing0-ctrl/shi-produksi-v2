@@ -4195,12 +4195,11 @@
     <div class="modal" style="max-width:520px">
       <h2>Plan by SO</h2>
       <div class="field"><label>Sales Order</label>
-        <select id="plSoSelect" onchange="onPlanSoChange()">
-          <option value="">— Pilih SO —</option>
-        </select>
+        <input id="plSoSelect" type="text" placeholder="Ketik no SO / customer..." autocomplete="off" />
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Cari lalu pilih dari daftar</p>
       </div>
       <div class="field"><label>Produk di SO</label>
-        <select id="plSoProduct" onchange="refreshPlanSoGilingBom()"><option value="">— Pilih produk —</option></select>
+        <input id="plSoProduct" type="text" placeholder="Pilih SO dulu, lalu cari produk..." autocomplete="off" />
       </div>
       <div class="field"><label>Tanggal</label><input id="plSoDate" type="date" /></div>
       <div class="field"><label>Shift</label>
@@ -4875,6 +4874,53 @@
         fromMaster.push({ id: name, label: name, sub: "dari SO", search: name });
       });
       return fromMaster;
+    }
+    function scItemsOrders() {
+      return (allOrders || []).filter(function(o) {
+        var st = String(o.status || "").toLowerCase();
+        return st !== "cancelled" && st !== "closed";
+      }).map(function(o) {
+        var n = (o.lines || o.order_lines || []).length;
+        var label = (o.no_so || o.order_id) + " · " + (o.customer_name || "-") + (n ? " (" + n + " item)" : "");
+        return {
+          id: o.order_id,
+          label: label,
+          sub: (o.status || "") + (o.order_date ? " · " + String(o.order_date).slice(0, 10) : ""),
+          search: [o.order_id, o.no_so, o.customer_name, o.status].join(" ")
+        };
+      });
+    }
+    function scItemsSoProducts() {
+      var oid = "";
+      var inp = $("plSoSelect");
+      if (inp) oid = inp.dataset.scId || resolveOrderIdFromInput(inp.value) || "";
+      var order = (allOrders || []).find(function(o) { return o.order_id === oid; });
+      if (!order) return [];
+      return (order.lines || order.order_lines || []).map(function(L) {
+        var pl = "";
+        try { pl = productLabel(L.product_id); } catch (e) { pl = L.product_id; }
+        return {
+          id: L.product_id,
+          label: pl,
+          sub: "qty " + (L.qty || 0) + " " + (L.unit || "pcs"),
+          search: [L.product_id, pl].join(" "),
+          qty: L.qty,
+          unit: L.unit
+        };
+      });
+    }
+    function resolveOrderIdFromInput(text) {
+      var t = String(text || "").trim();
+      if (!t) return "";
+      // pure uuid-like or id stored
+      if ($("plSoSelect") && $("plSoSelect").dataset.scId) return $("plSoSelect").dataset.scId;
+      // match no_so or order_id
+      var hit = (allOrders || []).find(function(o) {
+        return o.order_id === t || o.no_so === t ||
+          (o.no_so && t.indexOf(o.no_so) === 0) ||
+          String(t).indexOf(o.order_id) >= 0;
+      });
+      return hit ? hit.order_id : t;
     }
     function scItemsOperator() {
       return (operators || []).map(function(o) {
@@ -5597,9 +5643,51 @@
         allOrders = [];
       }
     }
+    function bindPlanSoCombos() {
+      var soInp = $("plSoSelect");
+      var prodInp = $("plSoProduct");
+      if (soInp) {
+        soInp.dataset.scBound = "";
+        attachSearchCombo(soInp, scItemsOrders, {
+          valueMode: "id-name",
+          placeholder: "Ketik no SO / customer...",
+          onPick: function(id, label, input) {
+            if (input) {
+              input.dataset.scId = id;
+              input.value = label || id;
+            }
+            onPlanSoChange();
+          }
+        });
+      }
+      if (prodInp) {
+        prodInp.dataset.scBound = "";
+        attachSearchCombo(prodInp, scItemsSoProducts, {
+          valueMode: "id-name",
+          placeholder: "Ketik produk di SO...",
+          onPick: function(id, label, input) {
+            if (input) {
+              input.dataset.scId = id;
+              input.value = label || id;
+            }
+            // auto fill target from line
+            var oid = ($("plSoSelect") && $("plSoSelect").dataset.scId) || resolveOrderIdFromInput($("plSoSelect") && $("plSoSelect").value);
+            var order = (allOrders || []).find(function(o) { return o.order_id === oid; });
+            var lines = order ? (order.lines || order.order_lines || []) : [];
+            var L = lines.find(function(x) { return String(x.product_id) === String(id); });
+            if (L) {
+              if ($("plSoTarget")) $("plSoTarget").value = L.qty || "";
+              if ($("plSoUnit")) $("plSoUnit").value = L.unit || "pcs";
+            }
+            try { refreshPlanSoGilingBom(); } catch (e) {}
+          }
+        });
+      }
+    }
     async function openPlanSoModal() {
       fillPlanDatalists();
       try { await loadOperators(); } catch (e) { console.warn(e); }
+      try { if (!(allOrders && allOrders.length)) await loadOrdersForPlan(); } catch (e2) {}
       $("plSoDate").value = ($("planFilterDate") && $("planFilterDate").value) || todayStr();
       $("plSoShift").value = "1";
       $("plSoMachine").value = "";
@@ -5607,66 +5695,56 @@
       $("plSoUnit").value = "pcs";
       fillOperatorSelect("plSoOperator", "plSoOperatorHint", "");
       $("plSoHint").textContent = "";
-      const sel = $("plSoSelect");
-      sel.innerHTML = '<option value="">— Pilih SO —</option>';
-      const usable = (allOrders || []).filter(o => {
-        const st = String(o.status || "").toLowerCase();
+      if ($("plSoSelect")) {
+        $("plSoSelect").value = "";
+        $("plSoSelect").dataset.scId = "";
+      }
+      if ($("plSoProduct")) {
+        $("plSoProduct").value = "";
+        $("plSoProduct").dataset.scId = "";
+      }
+      var usable = (allOrders || []).filter(function(o) {
+        var st = String(o.status || "").toLowerCase();
         return st !== "cancelled" && st !== "closed";
       });
       if (!usable.length) {
-        sel.innerHTML += '<option value="" disabled>Belum ada SO — isi menu Sales Order dulu</option>';
-        $("plSoHint").textContent = "SO masih kosong. Bisa pakai By produk atau Plan masal sementara.";
+        $("plSoHint").textContent = "SO masih kosong. Isi menu Sales Order dulu, atau pakai By produk / Plan masal.";
       } else {
-        usable.forEach(o => {
-          const opt = document.createElement("option");
-          opt.value = o.order_id;
-          const n = (o.lines || []).length;
-          opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "-") + (n ? " (" + n + " item)" : "");
-          sel.appendChild(opt);
-        });
+        $("plSoHint").textContent = usable.length + " SO aktif — ketik untuk mencari.";
       }
-      $("plSoProduct").innerHTML = '<option value="">— Pilih produk —</option>';
       $("planSoModal").classList.add("show");
-      if (!allOrders.length) loadOrdersForPlan().then(() => {
-        // refresh select if loaded late
-        if ($("planSoModal").classList.contains("show") && allOrders.length) {
-          const cur = $("plSoSelect").value;
-          openPlanSoModal();
-          if (cur) { $("plSoSelect").value = cur; onPlanSoChange(); }
-        }
-      });
+      document.body.classList.add("modal-open");
+      bindPlanSoCombos();
+      try { mountAllSearchCombos(); } catch (e3) {}
     }
-    function closePlanSoModal() { $("planSoModal").classList.remove("show"); document.body.classList.remove("modal-open"); }
+    function closePlanSoModal() {
+      $("planSoModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
     function onPlanSoChange() {
-      const oid = $("plSoSelect").value;
-      setTimeout(function(){ try{ refreshPlanSoGilingBom(); }catch(e){} }, 50);
-      const order = (allOrders || []).find(o => o.order_id === oid);
-      const ps = $("plSoProduct");
-      ps.innerHTML = '<option value="">— Pilih produk —</option>';
-      if (!order) return;
-      const lines = order.lines || [];
+      var oid = ($("plSoSelect") && $("plSoSelect").dataset.scId) || resolveOrderIdFromInput($("plSoSelect") && $("plSoSelect").value);
+      if ($("plSoProduct")) {
+        $("plSoProduct").value = "";
+        $("plSoProduct").dataset.scId = "";
+        $("plSoProduct").dataset.scBound = "";
+      }
+      bindPlanSoCombos();
+      var order = (allOrders || []).find(function(o) { return o.order_id === oid; });
+      if (!order) {
+        $("plSoHint").textContent = "Pilih SO dari daftar pencarian.";
+        return;
+      }
+      var lines = order.lines || order.order_lines || [];
       if (!lines.length) {
         $("plSoHint").textContent = "SO ini belum punya baris produk (order_lines).";
         return;
       }
-      lines.forEach(L => {
-        const opt = document.createElement("option");
-        opt.value = L.product_id;
-        opt.textContent = productLabel(L.product_id) + " · qty " + (L.qty || 0);
-        opt.dataset.qty = L.qty || 0;
-        opt.dataset.unit = L.unit || "pcs";
-        ps.appendChild(opt);
-      });
-      $("plSoHint").textContent = (order.no_so || order.order_id) + " — pilih produk lalu proses & target.";
-      ps.onchange = () => {
-        const o = ps.options[ps.selectedIndex];
-        if (o && o.dataset.qty) $("plSoTarget").value = o.dataset.qty;
-        if (o && o.dataset.unit) $("plSoUnit").value = o.dataset.unit;
-      };
+      $("plSoHint").textContent = (order.no_so || order.order_id) + " · " + lines.length + " produk — ketik untuk pilih.";
+      setTimeout(function() { try { refreshPlanSoGilingBom(); } catch (e) {} }, 50);
     }
     document.getElementById("btnSavePlanSo") && (document.getElementById("btnSavePlanSo").onclick = async () => {
-      const order_id = $("plSoSelect").value;
-      const product_id = $("plSoProduct").value;
+      const order_id = ($("plSoSelect").dataset.scId) || resolveOrderIdFromInput($("plSoSelect").value);
+      const product_id = ($("plSoProduct").dataset.scId) || resolveProductId($("plSoProduct").value);
       const plan_date = $("plSoDate").value;
       const shift = $("plSoShift").value;
       const machine_id = resolveMachineId($("plSoMachine").value);
@@ -7494,7 +7572,7 @@ function fillOperatorList(selectedEmail) {
       renderGilingBomInto("plGilingBom", fg, mid, { normalFieldsId: "plNormalFields", skipExpand: skip }).catch(function(){});
     }
     function refreshPlanSoGilingBom() {
-      var fg = ($("plSoProduct") && $("plSoProduct").value) || "";
+      var fg = ($("plSoProduct") && ($("plSoProduct").dataset.scId || resolveProductId($("plSoProduct").value))) || "";
       var mid = resolveMachineId(($("plSoMachine") && $("plSoMachine").value) || "");
       renderGilingBomInto("plSoGilingBom", fg, mid, { normalFieldsId: "plSoNormalFields" }).catch(function(){});
     }
