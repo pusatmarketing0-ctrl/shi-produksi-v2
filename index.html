@@ -2915,7 +2915,71 @@
       display: block !important;
     }
 
-  </style>
+  
+    /* Revisi target — pilihan aksi */
+    .rev-action-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem 0.85rem;
+      border: 1.5px solid var(--border, #e2e8f0);
+      border-radius: 12px;
+      cursor: pointer;
+      background: #fff;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+      margin: 0;
+    }
+    .rev-action-card:hover {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+    .rev-action-card input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+    .rev-action-dot {
+      flex: 0 0 auto;
+      width: 1.15rem;
+      height: 1.15rem;
+      margin-top: 0.1rem;
+      border-radius: 50%;
+      border: 2px solid #94a3b8;
+      background: #fff;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .rev-action-card input[type="radio"]:checked + .rev-action-dot {
+      border-color: #059669;
+      background: #059669;
+      box-shadow: inset 0 0 0 3px #fff;
+    }
+    .rev-action-card:has(input:checked) {
+      border-color: #059669;
+      background: #ecfdf5;
+      box-shadow: 0 0 0 1px #05966933;
+    }
+    .rev-action-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 0;
+    }
+    .rev-action-body strong {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.3;
+    }
+    .rev-action-body small {
+      font-size: 0.75rem;
+      color: var(--text-muted, #64748b);
+      line-height: 1.35;
+    }
+
+    </style>
 </head>
 <body>
   <div id="pwaBar" class="pwa-bar" role="dialog" aria-label="Pasang aplikasi">
@@ -4780,18 +4844,30 @@
       <input type="hidden" id="revApproveReqId" />
       <div class="field">
         <label>Pilih aksi</label>
-        <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.35rem">
-          <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;cursor:pointer">
-            <input type="radio" name="revAction" value="eval" checked style="margin-top:0.2rem" onchange="syncRevApproveUi()" />
-            <span><b>Sesuaikan target penilaian</b><br/><span style="font-size:0.72rem;color:var(--text-muted)">Plan tetap, ranking pakai target baru</span></span>
+        <div class="rev-action-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.4rem">
+          <label class="rev-action-card">
+            <input type="radio" name="revAction" value="eval" checked onchange="syncRevApproveUi()" />
+            <span class="rev-action-dot" aria-hidden="true"></span>
+            <span class="rev-action-body">
+              <strong>Sesuaikan target penilaian</strong>
+              <small>Plan tetap · ranking pakai target baru</small>
+            </span>
           </label>
-          <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;cursor:pointer">
-            <input type="radio" name="revAction" value="reassign" style="margin-top:0.2rem" onchange="syncRevApproveUi()" />
-            <span><b>Pindah ke operator lain</b><br/><span style="font-size:0.72rem;color:var(--text-muted)">Operator yang lebih longgar</span></span>
+          <label class="rev-action-card">
+            <input type="radio" name="revAction" value="reassign" onchange="syncRevApproveUi()" />
+            <span class="rev-action-dot" aria-hidden="true"></span>
+            <span class="rev-action-body">
+              <strong>Pindah ke operator lain</strong>
+              <small>Pilih operator yang lebih longgar</small>
+            </span>
           </label>
-          <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;cursor:pointer">
-            <input type="radio" name="revAction" value="cancel" style="margin-top:0.2rem" onchange="syncRevApproveUi()" />
-            <span><b>Batalkan plan</b><br/><span style="font-size:0.72rem;color:var(--text-muted)">Status cancelled · tidak masuk ranking</span></span>
+          <label class="rev-action-card">
+            <input type="radio" name="revAction" value="cancel" onchange="syncRevApproveUi()" />
+            <span class="rev-action-dot" aria-hidden="true"></span>
+            <span class="rev-action-body">
+              <strong>Batalkan plan</strong>
+              <small>Status cancelled · tidak masuk ranking</small>
+            </span>
           </label>
         </div>
       </div>
