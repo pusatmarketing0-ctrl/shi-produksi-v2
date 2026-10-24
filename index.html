@@ -3913,7 +3913,7 @@
   <div id="planProductModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:560px">
       <div class="sheet-handle"></div>
-      <div class="sheet-head"><h2>Plan by produk (auto routes)</h2></div>
+      <div class="sheet-head"><h2>Plan by produk</h2></div>
       <div class="sheet-body">
         <div class="field"><label>Tanggal</label><input id="ppDate" type="date" /></div>
         <div class="field"><label>Shift</label>
@@ -3922,7 +3922,7 @@
         <div class="field"><label>Produk</label>
           <input id="ppProduct" placeholder="Kode atau nama..." autocomplete="off" onchange="onPpProductChange()" oninput="onPpProductChange()" />
         </div>
-        <p id="ppHint" style="font-size:0.78rem;color:var(--text-muted);margin:0.25rem 0 0.75rem">Pilih produk yang punya routes — step muncul otomatis.</p>
+        <p id="ppHint" style="font-size:0.78rem;color:var(--text-muted);margin:0.25rem 0 0.75rem">Pilih FG — routes otomatis. Step giling: isi target per bahan (BOM), sama seperti sistem lama.</p>
         <div id="ppSteps"></div>
         <button type="button" class="btn btn-ghost btn-sm" style="width:100%;margin-top:0.5rem;border-style:dashed" onclick="addPpManualStep()">+ Step manual</button>
       </div>
@@ -7255,7 +7255,7 @@ function fillOperatorList(selectedEmail) {
       $("ppShift").value = "1";
       $("ppProduct").value = "";
       $("ppSteps").innerHTML = "";
-      $("ppHint").textContent = "Pilih produk yang punya routes — step muncul otomatis.";
+      $("ppHint").textContent = "Pilih FG — routes otomatis. Step giling: isi target per bahan (BOM), sama seperti sistem lama.";
       $("planProductModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { mountAllSearchCombos(); } catch (e) {}
@@ -7291,62 +7291,149 @@ function fillOperatorList(selectedEmail) {
 
     function isGilingMachine(machineId) {
       const m = (machines || []).find(x => String(x.machine_id) === String(machineId));
-      const blob = ((m && m.name) || "") + " " + (machineId || "");
-      return /giling/i.test(blob);
+      const blob = ((m && (m.name || m.process_name || "")) + " " + (machineId || "")).toLowerCase();
+      return blob.indexOf("giling") >= 0;
     }
 
+    /**
+     * Sistem lama: step Giling pada plan FG
+     * - tidak membuat plan "FG + giling"
+     * - auto tampil bahan dari BOM
+     * - PPIC isi target (dan operator) per bahan
+     * - simpan → plan per bahan, for_product_id = FG
+     */
     async function expandGilingBomInPp(fgId) {
       const box = $("ppSteps");
       if (!box || !fgId) return;
-      const gilingEls = Array.from(box.querySelectorAll(".pp-step")).filter(el => {
+      const gilingEls = Array.from(box.querySelectorAll(".pp-step")).filter(function(el) {
         const mid = (el.querySelector(".pp-machine") && el.querySelector(".pp-machine").value) || "";
         return isGilingMachine(mid);
       });
       if (!gilingEls.length) return;
       if (!window.__bomRows) await loadBom(true);
-      const mats = (window.__bomRows || []).filter(b => String(b.fg_product_id) === String(fgId));
-      if (!mats.length) {
-        // allow manual add
-        gilingEls.forEach(el => {
-          const tip = document.createElement("div");
-          tip.style.cssText = "font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem";
-          tip.innerHTML = 'Belum ada BOM. <button type="button" class="btn btn-ghost btn-sm pp-add-bom">+ Bahan manual</button>';
-          el.appendChild(tip);
-          tip.querySelector(".pp-add-bom").onclick = function() {
-            openBomEditor(fgId);
-          };
+      const mats = (window.__bomRows || []).filter(function(b) {
+        return String(b.fg_product_id) === String(fgId);
+      });
+
+      gilingEls.forEach(function(el) {
+        // mode giling: sembunyikan target FG di step induk (hanya rincian bahan)
+        el.classList.add("pp-step-giling");
+        el.setAttribute("data-giling", "1");
+        const qtyField = el.querySelector(".pp-qty");
+        const unitField = el.querySelector(".pp-unit");
+        const opField = el.querySelector(".pp-op");
+        // hide parent FG target/operator — diganti BOM
+        [qtyField, unitField, opField].forEach(function(inp) {
+          if (!inp) return;
+          var f = inp.closest(".field") || inp.parentElement;
+          if (f) f.style.display = "none";
         });
-        return;
-      }
-      gilingEls.forEach(el => {
-        const wrap = document.createElement("div");
+        // hapus wrap lama jika ada
+        var oldW = el.querySelector(".pp-bom-wrap");
+        if (oldW) oldW.remove();
+
+        var wrap = document.createElement("div");
         wrap.className = "pp-bom-wrap";
-        wrap.style.cssText = "margin-top:0.5rem;padding:0.5rem;background:#f0fdf4;border-radius:10px;border:1px dashed var(--green-soft)";
-        wrap.innerHTML = '<div style="font-size:0.72rem;font-weight:700;color:var(--green);margin-bottom:0.35rem">Bahan giling (BOM) → plan terpisah, for_product = FG</div>' +
-          mats.map(b =>
-            '<div class="pp-bom-row" data-mat="' + esc(b.material_product_id) + '" style="display:grid;grid-template-columns:1fr 100px 70px;gap:0.35rem;margin-bottom:0.35rem;align-items:center">' +
-            '<span style="font-size:0.8rem">' + esc(b.material_product_id) + '</span>' +
-            '<input class="pp-bom-qty num-input" inputmode="decimal" placeholder="target" data-ratio="' + esc(b.qty_per_fg) + '" />' +
-            '<span style="font-size:0.75rem">' + esc(b.unit || "gr") + '</span></div>'
-          ).join("") +
-          '<button type="button" class="btn btn-ghost btn-sm pp-add-bom" style="margin-top:0.25rem">+ Bahan lain</button>';
-        el.appendChild(wrap);
-        wrap.querySelectorAll(".pp-bom-qty").forEach(inp => { try { bindThousandInput(inp, true); } catch (e) {} });
-        wrap.querySelector(".pp-add-bom").onclick = function() { openBomEditor(fgId); };
-        // auto fill bom qty when parent target changes
-        const parentQty = el.querySelector(".pp-qty");
-        if (parentQty) {
-          parentQty.addEventListener("input", function() {
-            const tq = parseInputNum(parentQty.value);
-            wrap.querySelectorAll(".pp-bom-qty").forEach(inp => {
-              const ratio = Number(inp.getAttribute("data-ratio")) || 1;
-              inp.value = formatInputNum(tq * ratio, true);
-            });
-          });
+        wrap.style.cssText = "margin-top:0.5rem;padding:0.65rem;background:#f0fdf4;border-radius:12px;border:1px dashed #86efac";
+
+        var head = '<div style="font-size:0.72rem;font-weight:800;color:#047857;margin-bottom:0.35rem">Bahan giling (seperti sistem lama)</div>' +
+          '<p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 0.5rem;line-height:1.35">' +
+          'Plan tersimpan <strong>per bahan</strong> · for_product = FG · bukan baris FG+giling. Isi target tiap bahan.</p>';
+
+        var rowsHtml = "";
+        if (mats.length) {
+          rowsHtml = mats.map(function(b) {
+            return ppBomRowHtml(b.material_product_id, "", b.unit || "gr", b.qty_per_fg, "");
+          }).join("");
+        } else {
+          rowsHtml = '<p class="pp-bom-empty" style="font-size:0.78rem;color:#b45309;margin:0 0 0.45rem">Belum ada BOM. Tambah bahan manual (bisa disimpan ke master BOM).</p>';
         }
+
+        wrap.innerHTML = head +
+          '<div class="pp-bom-list">' + rowsHtml + '</div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.45rem">' +
+          '<button type="button" class="btn btn-ghost btn-sm pp-add-mat">+ Bahan</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm pp-open-bom">Kelola BOM FG</button>' +
+          '</div>';
+        el.appendChild(wrap);
+
+        wrap.querySelectorAll(".pp-bom-qty, .pp-bom-op").forEach(function(inp) {
+          try { if (inp.classList.contains("pp-bom-qty")) bindThousandInput(inp, true); } catch (e) {}
+        });
+        wrap.querySelector(".pp-add-mat").onclick = function() {
+          addPpBomMaterialRow(wrap.querySelector(".pp-bom-list"), fgId);
+        };
+        wrap.querySelector(".pp-open-bom").onclick = function() {
+          try { openBomEditor(fgId); } catch (e) { toast("Buka menu BOM / Giling", true); }
+        };
+        try { mountAllSearchCombos(); } catch (e) {}
+        fillPpBomOperatorSelects(wrap);
       });
     }
-    function ppStepRowHtml(machineId, step, target, unit, opEmail) {
+
+    function ppBomRowHtml(matId, qty, unit, ratio, opEmail) {
+      var label = "";
+      try { label = productLabel(matId) || matId; } catch (e) { label = matId; }
+      return '<div class="pp-bom-row" data-mat="' + esc(matId || "") + '" data-ratio="' + esc(ratio != null ? ratio : 1) + '" style="border:1px solid #bbf7d0;border-radius:10px;padding:0.55rem;margin-bottom:0.4rem;background:#fff">' +
+        '<div style="display:flex;justify-content:space-between;gap:0.35rem;align-items:flex-start;margin-bottom:0.35rem">' +
+        '<div style="font-size:0.82rem;font-weight:600">' + esc(label) +
+        (matId ? '<div style="font-size:0.68rem;color:var(--text-muted);font-weight:500">' + esc(matId) + '</div>' : "") +
+        '</div>' +
+        '<button type="button" class="btn btn-ghost btn-sm" style="padding:0.2rem 0.4rem" onclick="this.closest(\'.pp-bom-row\').remove()">✕</button></div>' +
+        (!matId ?
+          '<div class="field" style="margin:0 0 0.35rem"><label>Bahan</label><input class="pp-bom-mat-input" placeholder="Kode / nama bahan..." autocomplete="off" /></div>' : "") +
+        '<div style="display:grid;grid-template-columns:1fr 70px;gap:0.35rem">' +
+        '<div class="field" style="margin:0"><label>Target</label><input class="pp-bom-qty num-input" inputmode="decimal" value="' + esc(qty ? formatInputNum(qty, true) : "") + '" placeholder="0" /></div>' +
+        '<div class="field" style="margin:0"><label>Satuan</label><input class="pp-bom-unit" value="' + esc(unit || "gr") + '" /></div></div>' +
+        '<div class="field" style="margin:0.35rem 0 0"><label>Operator (opsional)</label><input type="text" class="pp-bom-op pp-op-search" placeholder="Ketik operator..." autocomplete="off" value="' + esc(opEmail || "") + '" /></div>' +
+        (!matId ? '<label style="display:flex;align-items:center;gap:0.35rem;font-size:0.72rem;margin-top:0.4rem;color:var(--text-muted)"><input type="checkbox" class="pp-bom-save-master" /> Simpan ke BOM FG</label>' : "") +
+        '</div>';
+    }
+
+    function addPpBomMaterialRow(listEl, fgId) {
+      if (!listEl) return;
+      var empty = listEl.querySelector(".pp-bom-empty");
+      if (empty) empty.remove();
+      listEl.insertAdjacentHTML("beforeend", ppBomRowHtml("", "", "gr", 1, ""));
+      var row = listEl.lastElementChild;
+      row.querySelectorAll(".pp-bom-qty").forEach(function(inp) {
+        try { bindThousandInput(inp, true); } catch (e) {}
+      });
+      // product search on mat input
+      var matInp = row.querySelector(".pp-bom-mat-input");
+      if (matInp) {
+        try {
+          attachSearchCombo(matInp, function() { return scItemsProduct ? scItemsProduct() : []; }, {
+            valueMode: "id",
+            onPick: function(id, label, input) {
+              row.setAttribute("data-mat", id);
+              if (input) input.value = (label || id);
+            }
+          });
+        } catch (e) {}
+      }
+      fillPpBomOperatorSelects(row);
+      try { mountAllSearchCombos(); } catch (e) {}
+    }
+
+    function fillPpBomOperatorSelects(root) {
+      var scope = root || document;
+      scope.querySelectorAll(".pp-bom-op").forEach(function(inp) {
+        if (inp._comboMounted) return;
+        try {
+          attachSearchCombo(inp, function() { return scItemsOperator ? scItemsOperator() : []; }, {
+            valueMode: "id-name",
+            onPick: function(id, label, input) {
+              var o = (operators || []).find(function(x) { return String(x.email) === String(id); });
+              if (input) input.value = o ? ((o.name || id) + " — " + id) : id;
+            }
+          });
+          inp._comboMounted = true;
+        } catch (e) {}
+      });
+    }
+
+        function ppStepRowHtml(machineId, step, target, unit, opEmail) {
       const mid = machineId || "";
       return '<div class="pp-step" style="border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.5rem;background:#fafdfb">' +
         '<div style="font-size:0.8rem;font-weight:600;margin-bottom:0.45rem">Step ' + esc(step || "?") + ' · ' + esc(machineLabel(mid)) + '</div>' +
@@ -7428,49 +7515,101 @@ function fillOperatorList(selectedEmail) {
       const shift = $("ppShift").value || "1";
       if (!product_id || !plan_date) return toast("Produk & tanggal wajib", true);
       const rows = [];
+      const bomToSave = []; // { fg, mat, qty_per_fg, unit }
       document.querySelectorAll("#ppSteps .pp-step").forEach(function(el) {
         let machine_id = (el.querySelector(".pp-machine") && el.querySelector(".pp-machine").value) || "";
         const mi = el.querySelector(".pp-machine-input");
         if (mi && mi.value) machine_id = resolveMachineId(mi.value);
-        const target_qty = parseInputNum(el.querySelector(".pp-qty") && el.querySelector(".pp-qty").value);
-        const unit = ((el.querySelector(".pp-unit") && el.querySelector(".pp-unit").value) || "pcs").trim();
-        const op = resolveOperatorEmail((el.querySelector(".pp-op") && el.querySelector(".pp-op").value) || "");
-        if (!machine_id || target_qty <= 0) return;
-        const gil = (typeof isGilingMachine === "function") ? isGilingMachine(machine_id) : /giling/i.test(machine_id);
+        if (!machine_id) return;
+        const gil = isGilingMachine(machine_id);
+        const parentQty = parseInputNum(el.querySelector(".pp-qty") && el.querySelector(".pp-qty").value);
+        const parentUnit = ((el.querySelector(".pp-unit") && el.querySelector(".pp-unit").value) || "pcs").trim();
+        const parentOp = resolveOperatorEmail((el.querySelector(".pp-op") && el.querySelector(".pp-op").value) || "");
+
+        if (gil) {
+          // sistem lama: HANYA plan per bahan, for_product_id = FG
+          var bomRows = el.querySelectorAll(".pp-bom-row");
+          var anyMat = false;
+          bomRows.forEach(function(br) {
+            var mat = br.getAttribute("data-mat") || "";
+            var matInp = br.querySelector(".pp-bom-mat-input");
+            if ((!mat || mat === "") && matInp && matInp.value) {
+              mat = resolveProductId(matInp.value) || String(matInp.value).trim();
+              br.setAttribute("data-mat", mat);
+            }
+            var mq = parseInputNum(br.querySelector(".pp-bom-qty") && br.querySelector(".pp-bom-qty").value);
+            var mu = ((br.querySelector(".pp-bom-unit") && br.querySelector(".pp-bom-unit").value) || "gr").trim();
+            var mop = resolveOperatorEmail((br.querySelector(".pp-bom-op") && br.querySelector(".pp-bom-op").value) || "") || parentOp;
+            if (!mat || mq <= 0) return;
+            anyMat = true;
+            rows.push({
+              plan_id: newPlanId(),
+              plan_date: plan_date,
+              shift: shift,
+              product_id: mat,
+              machine_id: machine_id,
+              target_qty: mq,
+              unit: mu,
+              assigned_operator: mop,
+              status: mop ? "open" : "draft",
+              for_product_id: product_id,
+              created_by: (currentUser && currentUser.email) || "",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            var saveMaster = br.querySelector(".pp-bom-save-master");
+            if (saveMaster && saveMaster.checked) {
+              bomToSave.push({ fg_product_id: product_id, material_product_id: mat, qty_per_fg: mq, unit: mu });
+            }
+          });
+          if (!anyMat && parentQty > 0) {
+            // fallback: tidak ada bahan → 1 plan FG+giling (jarang)
+            rows.push({
+              plan_id: newPlanId(),
+              plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
+              target_qty: parentQty, unit: parentUnit,
+              assigned_operator: parentOp,
+              status: parentOp ? "open" : "draft",
+              for_product_id: product_id,
+              created_by: (currentUser && currentUser.email) || "",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
+          return;
+        }
+
+        // step non-giling: plan biasa product = FG
+        if (parentQty <= 0) return;
         rows.push({
           plan_id: newPlanId(),
-          plan_date, shift, product_id, machine_id, target_qty, unit,
-          assigned_operator: op,
-          status: op ? "open" : "draft",
-          for_product_id: gil ? product_id : "",
+          plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
+          target_qty: parentQty, unit: parentUnit,
+          assigned_operator: parentOp,
+          status: parentOp ? "open" : "draft",
+          for_product_id: "",
           created_by: (currentUser && currentUser.email) || "",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
-        el.querySelectorAll(".pp-bom-row").forEach(function(br) {
-          const mat = br.getAttribute("data-mat");
-          const mq = parseInputNum(br.querySelector(".pp-bom-qty") && br.querySelector(".pp-bom-qty").value);
-          const unitEl = br.querySelectorAll("span");
-          const mu = unitEl.length ? unitEl[unitEl.length - 1].textContent : "gr";
-          if (!mat || mq <= 0) return;
-          rows.push({
-            plan_id: newPlanId(),
-            plan_date, shift,
-            product_id: mat,
-            machine_id: machine_id,
-            target_qty: mq,
-            unit: String(mu || "gr").trim(),
-            assigned_operator: op,
-            status: op ? "open" : "draft",
-            for_product_id: product_id,
-            created_by: (currentUser && currentUser.email) || "",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        });
       });
-      if (!rows.length) return toast("Isi minimal 1 step dengan proses & target > 0", true);
+      if (!rows.length) return toast("Isi target bahan giling atau step lain (target > 0)", true);
+      // simpan ke master BOM jika dicentang
+      for (var bi = 0; bi < bomToSave.length; bi++) {
+        try {
+          var b = bomToSave[bi];
+          await sb.from("product_bom").upsert({
+            fg_product_id: b.fg_product_id,
+            material_product_id: b.material_product_id,
+            qty_per_fg: Number(b.qty_per_fg) || 1,
+            unit: b.unit || "gr",
+            notes: "dari plan"
+          }, { onConflict: "fg_product_id,material_product_id" });
+        } catch (eB) { console.warn(eB); }
+      }
+      if (bomToSave.length) try { await loadBom(true); } catch (e) {}
       await bulkInsertPlans(rows);
+      toast(rows.length + " plan tersimpan" + (bomToSave.length ? " · BOM diperbarui" : ""));
       closePlanProductModal();
       if ($("planFilterDate")) $("planFilterDate").value = plan_date;
       await loadPlans();
@@ -8636,22 +8775,24 @@ function fillOperatorList(selectedEmail) {
 
       const groups = {};
       planList.forEach(p => {
-        const key = String(p.product_id) + "||" + String(p.no_so || p.order_id || "");
+        // giling bahan: for_product_id = FG → gabung ke baris FG (sistem lama)
+        const rowPid = String(p.for_product_id || "").trim() || String(p.product_id);
+        const key = rowPid + "||" + String(p.no_so || p.order_id || "");
         if (!groups[key]) {
           const ord = p.order_id ? orderMap[p.order_id] : null;
           let poQty = 0;
           if (ord && ord.order_lines) {
             (ord.order_lines || []).forEach(l => {
-              if (String(l.product_id) === String(p.product_id)) poQty += Number(l.qty) || 0;
+              if (String(l.product_id) === String(rowPid)) poQty += Number(l.qty) || 0;
             });
           }
           var lineClosed = false;
           if (ord) {
-            var lnHit = (ord.order_lines || []).find(function(l) { return String(l.product_id) === String(p.product_id); });
-            lineClosed = opsLineClosed(lnHit, ord.notes, p.product_id);
+            var lnHit = (ord.order_lines || []).find(function(l) { return String(l.product_id) === String(rowPid); });
+            lineClosed = opsLineClosed(lnHit, ord.notes, rowPid);
           }
           groups[key] = {
-            product_id: p.product_id,
+            product_id: rowPid,
             no_so: p.no_so || (ord && ord.no_so) || "",
             order_id: p.order_id || "",
             order_date: (ord && ord.order_date) || "",
@@ -8734,7 +8875,8 @@ function fillOperatorList(selectedEmail) {
       // Rebuild planDay properly: FG qty or all if product has no FG plans
       const plansByGroupDay = {};
       planList.forEach(p => {
-        const key = String(p.product_id) + "||" + String(p.no_so || p.order_id || "");
+        const rowPid = String(p.for_product_id || "").trim() || String(p.product_id);
+        const key = rowPid + "||" + String(p.no_so || p.order_id || "");
         const day = String(p.plan_date).slice(0, 10);
         const k2 = key + "@@" + day;
         if (!plansByGroupDay[k2]) plansByGroupDay[k2] = { fg: 0, all: 0, primer: false };
