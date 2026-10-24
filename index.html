@@ -2890,6 +2890,31 @@
       border: 1px solid #bbf7d0;
     }
 
+  
+    .ot-line-head {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 0.5rem; margin-bottom: 0.55rem;
+    }
+    .ot-line-num {
+      font-size: 0.68rem; font-weight: 800; color: #047857;
+      background: #ecfdf5; border: 1px solid #a7f3d0;
+      border-radius: 8px; padding: 0.15rem 0.45rem;
+    }
+    .ot-prod-name {
+      font-size: 0.82rem; color: var(--text); margin-top: 0.35rem;
+      line-height: 1.35; min-height: 1.1em;
+    }
+    .ot-prod-name strong { font-weight: 700; }
+    .ot-line {
+      border: 1px solid var(--border) !important;
+      border-radius: 14px !important;
+      padding: 0.85rem !important;
+      margin-bottom: 0.55rem !important;
+      background: rgba(255,255,255,0.95) !important;
+      box-shadow: 0 2px 10px rgba(15,23,42,0.04);
+      display: block !important;
+    }
+
   </style>
 </head>
 <body>
@@ -14486,31 +14511,121 @@ async function otCreateCustomer(name) {
       });
     }
 
-function otAddLine(line) {
+function otProductDisplay(productId) {
+      var id = String(productId || "").trim();
+      if (!id) return { input: "", name: "", id: "" };
+      var name = "";
+      try {
+        var p = (products || []).find(function(x) { return String(x.product_id) === id; });
+        if (p && p.name) name = String(p.name).trim();
+      } catch (e) {}
+      if (!name) {
+        try {
+          var full = productLabel(id);
+          if (full && full !== id) {
+            name = full.indexOf(id) === 0
+              ? full.replace(id, "").replace(/^[·\-—\s]+/, "").trim()
+              : full;
+          }
+        } catch (e2) {}
+      }
+      return {
+        id: id,
+        name: name,
+        input: name ? (id + " — " + name) : id
+      };
+    }
+    function otUpdateLineProdName(wrap, productId) {
+      if (!wrap) return;
+      var el = wrap.querySelector(".ot-prod-name");
+      if (!el) return;
+      var d = otProductDisplay(productId);
+      if (d.name) {
+        el.innerHTML = "<strong>" + esc(d.name) + "</strong>";
+        el.style.display = "";
+      } else if (d.id) {
+        el.innerHTML = "<span style='opacity:0.75'>Kode " + esc(d.id) + "</span>";
+        el.style.display = "";
+      } else {
+        el.textContent = "";
+        el.style.display = "none";
+      }
+    }
+    function otRenumberLines() {
+      var box = $("otLines");
+      if (!box) return;
+      box.querySelectorAll(".ot-line").forEach(function(w, i) {
+        var n = w.querySelector(".ot-line-num");
+        if (n) n.textContent = "#" + (i + 1);
+      });
+    }
+    function otBindLineSubtotal(wrap) {
+      if (!wrap) return;
+      function recalc() {
+        var q = parseInputNum(wrap.querySelector(".ot-qty") && wrap.querySelector(".ot-qty").value);
+        var h = parseInputNum(wrap.querySelector(".ot-harga") && wrap.querySelector(".ot-harga").value);
+        var sub = wrap.querySelector(".ot-subtotal");
+        if (sub) sub.value = (q > 0 && h > 0) ? formatInputNum(q * h, true) : "";
+      }
+      ["ot-qty", "ot-harga"].forEach(function(cls) {
+        var el = wrap.querySelector("." + cls);
+        if (el) {
+          el.addEventListener("input", recalc);
+          el.addEventListener("change", recalc);
+        }
+      });
+      recalc();
+    }
+    function otAddLine(line) {
       const box = $("otLines");
       if (!box) return;
       const wrap = document.createElement("div");
       wrap.className = "ot-line card";
-      wrap.style.cssText = "padding:0.65rem;margin-bottom:0.45rem;display:grid;grid-template-columns:1fr 1fr;gap:0.4rem";
+      // jangan pakai grid inline lama
+      wrap.style.cssText = "";
+      const n = box.querySelectorAll(".ot-line").length + 1;
       const showPrice = currentRole() === "marketing" || currentRole() === "trading" || currentRole() === "admin";
-      const prodVal = esc((line && (line.product_id || line.product_name)) ? (line.product_id || line.product_name) : "");
+      const pid = (line && line.product_id) ? String(line.product_id) : "";
+      const disp = otProductDisplay(pid);
+      const prodVal = esc(disp.input || "");
       const qtyVal = (line && line.qty != null) ? formatInputNum(line.qty, true) : "";
       const hargaVal = (line && line.harga != null) ? formatInputNum(line.harga, true) : "";
       const hppVal = (line && line.hpp != null) ? formatInputNum(line.hpp, true) : "";
       wrap.innerHTML =
-        "<div class='field' style='margin:0'><label>Produk</label><input class='ot-prod search-combo' data-combo='product' placeholder='Cari produk...' value='" + prodVal + "' autocomplete='off' /></div>" +
-        "<div class='field' style='margin:0'><label>Qty</label><input class='ot-qty input-thousand' inputmode='decimal' placeholder='0' value='" + qtyVal + "' /></div>" +
-        (showPrice
-          ? "<div class='field' style='margin:0'><label>Harga</label><input class='ot-harga input-thousand' inputmode='decimal' placeholder='0' value='" + hargaVal + "' /></div>" +
-            "<div class='field' style='margin:0'><label>HPP</label><input class='ot-hpp input-thousand' inputmode='decimal' placeholder='0' value='" + hppVal + "' /></div>"
-          : "") +
-        "<div style='grid-column:1/-1;text-align:right'><button type='button' class='btn btn-ghost btn-sm ot-del'>Hapus</button></div>";
+        "<div class='ot-line-head'>" +
+          "<span class='ot-line-num'>#" + n + "</span>" +
+          "<button type='button' class='btn btn-ghost btn-sm ot-del' style='color:#b91c1c'>Hapus</button>" +
+        "</div>" +
+        "<div class='field' style='margin:0 0 0.45rem'>" +
+          "<label>Produk</label>" +
+          "<input class='ot-prod search-combo' data-combo='product' placeholder='Ketik kode atau nama produk...' value='" + prodVal + "' autocomplete='off' />" +
+          "<div class='ot-prod-name'" + (disp.name ? "" : " style='display:none'") + ">" +
+            (disp.name ? ("<strong>" + esc(disp.name) + "</strong>") : "") +
+          "</div>" +
+        "</div>" +
+        "<div style='display:grid;grid-template-columns:1fr 1fr;gap:0.45rem'>" +
+          "<div class='field' style='margin:0'><label>Qty</label>" +
+            "<input class='ot-qty input-thousand' inputmode='decimal' placeholder='0' value='" + qtyVal + "' /></div>" +
+          (showPrice
+            ? "<div class='field' style='margin:0'><label>Harga jual</label>" +
+                "<input class='ot-harga input-thousand' inputmode='decimal' placeholder='0' value='" + hargaVal + "' /></div>" +
+              "<div class='field' style='margin:0'><label>HPP</label>" +
+                "<input class='ot-hpp input-thousand' inputmode='decimal' placeholder='0' value='" + hppVal + "' /></div>" +
+              "<div class='field' style='margin:0'><label>Subtotal</label>" +
+                "<input class='ot-subtotal' disabled placeholder='—' style='background:#f8fafc' /></div>"
+            : "<div class='field' style='margin:0'></div>") +
+        "</div>";
       box.appendChild(wrap);
-      wrap.querySelector(".ot-del").onclick = function() { wrap.remove(); };
+      wrap.querySelector(".ot-del").onclick = function() {
+        wrap.remove();
+        otRenumberLines();
+      };
       try {
         bindAllThousandInputs();
         var prodInp = wrap.querySelector(".ot-prod");
-        otBindLineProduct(prodInp);
+        otBindLineProduct(prodInp, wrap);
+        if (showPrice) otBindLineSubtotal(wrap);
+        if (pid) otUpdateLineProdName(wrap, pid);
       } catch (e) { console.warn(e); }
     }
 
