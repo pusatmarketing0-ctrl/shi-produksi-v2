@@ -4473,13 +4473,13 @@
         <input type="hidden" id="otEditId" />
         <div class="field"><label>Customer akhir</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
         <div class="field"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0">
-          <strong style="font-size:0.85rem">Produk</strong>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="otAddLine()">+ Baris</button>
+        <div class="ot-section-title">
+          Baris produk
+          <button type="button" class="btn btn-ghost btn-sm ot-sec-act" onclick="otAddLine()">+ Baris</button>
         </div>
         <div id="otLines"></div>
-                <div id="otFilesBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(15,23,42,0.04);display:none">
-          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.45rem">Lampiran (Google Drive)</div>
+        <div id="otFilesBox" class="ot-files-premium" style="display:none">
+          <div class="ot-section-title" style="margin-top:0">Lampiran (Google Drive)</div>
           <div id="otDropZone" style="border:1.5px dashed #94a3b8;border-radius:12px;padding:1rem;text-align:center;background:rgba(255,255,255,0.6);cursor:pointer">
             <div style="font-size:0.85rem;font-weight:600;color:var(--text)">Klik atau tarik file ke sini</div>
             <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem">Bisa banyak file sekaligus · PDF / gambar · maks ~6 MB per file</div>
@@ -14321,7 +14321,11 @@ async function otCreateCustomer(name) {
         // label may already be "id — name"
         input.value = label.indexOf(id) === 0 ? label : (id + " — " + label);
       } else input.value = id || label || "";
+      input.dataset.scId = (id && id !== "__create__") ? id : "";
       otHideCombo();
+      if (typeof opts.onPick === "function") {
+        try { opts.onPick(id, label, input); } catch (eP) {}
+      }
     }
     function otFilterItems(all, q) {
       q = String(q || "").toLowerCase().trim();
@@ -14369,14 +14373,32 @@ async function otCreateCustomer(name) {
         setTimeout(otHideCombo, 180);
       });
     }
-    function otBindLineProduct(input) {
+    function otBindLineProduct(input, wrap) {
       if (!input) return;
+      wrap = wrap || input.closest(".ot-line");
       delete input.dataset.otCombo;
+      // initial name from current value
+      try {
+        var pid0 = resolveProductId(input.value) || (input.dataset.scId || "");
+        if (pid0) otUpdateLineProdName(wrap, pid0);
+      } catch (e0) {}
       otBindCombo(input, function() {
         return (typeof scItemsProduct === "function") ? scItemsProduct() : [];
       }, {
         valueMode: "id-name",
-        onCreate: function(raw) { return otCreateProduct(raw); }
+        onCreate: function(raw) { return otCreateProduct(raw); },
+        onPick: function(id, label, inp) {
+          if (inp) {
+            inp.dataset.scId = id;
+            var d = otProductDisplay(id);
+            inp.value = d.input || label || id;
+          }
+          otUpdateLineProdName(wrap, id);
+        }
+      });
+      input.addEventListener("change", function() {
+        var pid = resolveProductId(input.value) || input.dataset.scId || "";
+        otUpdateLineProdName(wrap, pid);
       });
     }
     function otBindCustomerInput() {
