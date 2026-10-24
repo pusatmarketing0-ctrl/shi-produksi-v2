@@ -3823,7 +3823,7 @@
             <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
               <input type="date" id="rankFrom" />
               <input type="date" id="rankTo" />
-              <button class="btn btn-primary" type="button" onclick="loadRanking()">Hitung</button>
+              <button class="btn btn-primary" type="button" onclick="loadRanking()">Hitung</button><p style="font-size:0.72rem;color:var(--text-muted);margin:0.35rem 0 0;width:100%">Shift = <b>375 menit</b>. Plan yang belum dilapor dihitung actual 0 (menurunkan %).</p>
             </div>
           </div>
           <div class="table-wrap">
@@ -7197,14 +7197,15 @@ function fillOperatorList(selectedEmail) {
       const r = (currentProfile && currentProfile.role) || "";
       return ["admin","ppic","korlap","marketing"].includes(r);
     }
+    /** Menit kerja efektif per shift (bukan 480). */
+    var SHIFT_MINUTES = 375;
     function calcTargetAdj(target, downtimeMin) {
-      // simple: no hour length known — adj = target (downtime recorded only)
-      // if later shift hours known, formula can change
       const t = Number(target) || 0;
       const dt = Number(downtimeMin) || 0;
-      // assume 8h shift = 480 min; reduce target proportional when dt > 0
+      const base = SHIFT_MINUTES > 0 ? SHIFT_MINUTES : 375;
+      // target disesuaikan proporsional: (base - downtime) / base
       if (dt <= 0) return t;
-      const adj = t * Math.max(0, (480 - dt) / 480);
+      const adj = t * Math.max(0, (base - dt) / base);
       return Math.round(adj * 100) / 100;
     }
 
@@ -7522,7 +7523,7 @@ function fillOperatorList(selectedEmail) {
       try { syncDtCategoryUi(); } catch (e) {}
       $("rpHint").textContent = existing
         ? "Sudah ada laporan untuk plan ini — simpan akan memperbarui (bukan buat baru)."
-        : "Target adj dihitung otomatis dari downtime (basis 480 menit/shift). 1 plan = 1 laporan.";
+        : "Target adj dihitung otomatis dari downtime (basis 375 menit/shift). 1 plan = 1 laporan.";
       $("reportModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { bindAllThousandInputs(); } catch (e) {}
@@ -8335,14 +8336,39 @@ function fillOperatorList(selectedEmail) {
         }
       } catch (eP) { console.warn(eP); }
       const by = {};
+      const reportedPlanIds = {};
       (reps || []).forEach(r => {
         const em = r.reported_by || "";
         if (!em) return;
-        if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0 };
+        if (r.plan_id) reportedPlanIds[String(r.plan_id)] = true;
+        if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0, reported: 0, missed: 0 };
         by[em].actual += Number(r.actual_qty) || 0;
         by[em].target += reportEffectiveTarget(r, planById);
         by[em].n += 1;
+        by[em].reported += 1;
       });
+      // Plan yang sudah lewat / sampai hari ini, ada operator, belum ada laporan
+      // → actual 0, target = target plan (menurunkan rata-rata)
+      try {
+        var { data: openPlans } = await sb.from("plans").select("plan_id,plan_date,target_qty,assigned_operator,status")
+          .gte("plan_date", from)
+          .lte("plan_date", to)
+          .in("status", ["open", "in_progress", "done", "draft"])
+          .limit(3000);
+        (openPlans || []).forEach(function(pl) {
+          if (reportedPlanIds[String(pl.plan_id)]) return;
+          var em = String(pl.assigned_operator || "").trim();
+          if (!em || em === "-" || em.toLowerCase() === "null") return;
+          // draft tanpa operator sudah di-skip; draft dengan operator ikut dihitung
+          var tgt = Number(pl.target_qty) || 0;
+          if (tgt <= 0) return;
+          if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0, reported: 0, missed: 0 };
+          by[em].target += tgt;
+          by[em].n += 1;
+          by[em].missed = (by[em].missed || 0) + 1;
+          // actual tidak ditambah (0)
+        });
+      } catch (eM) { console.warn("ranking miss plans", eM); }
       const list = Object.values(by).map(x => {
         const pct = x.target > 0 ? (x.actual / x.target) * 100 : 0;
         return Object.assign(x, { pct: Math.round(pct * 10) / 10, grade: opGrade(pct) });
@@ -12427,25 +12453,40 @@ function fillOperatorList(selectedEmail) {
       if ($("opTarget")) $("opTarget").textContent = formatNum(target);
       if ($("opActual")) $("opActual").textContent = formatNum(actual);
       if ($("opNg")) $("opNg").textContent = formatNum(ng);
-      // Grade MTD (bulan ini)
+      // Grade MTD (bulan ini) — termasuk plan belum dilapor (actual 0)
       try {
         const from = today.slice(0, 8) + "01";
-        const { data: mtdReps } = await sb.from("reports").select("actual_qty,target_qty,target_adj,reported_by,report_date")
+        const { data: mtdReps } = await sb.from("reports").select("actual_qty,target_qty,target_adj,reported_by,report_date,plan_id")
           .eq("reported_by", email)
           .gte("report_date", from)
           .lte("report_date", today)
           .limit(500);
         let ma = 0, mt = 0;
+        var donePlans = {};
         (mtdReps || []).forEach(function(r) {
           ma += Number(r.actual_qty) || 0;
           mt += reportEffectiveTarget(r);
+          if (r.plan_id) donePlans[String(r.plan_id)] = true;
         });
+        try {
+          var { data: myPlans } = await sb.from("plans").select("plan_id,target_qty,status")
+            .eq("assigned_operator", email)
+            .gte("plan_date", from)
+            .lte("plan_date", today)
+            .in("status", ["open", "in_progress", "done", "draft"])
+            .limit(500);
+          (myPlans || []).forEach(function(pl) {
+            if (donePlans[String(pl.plan_id)]) return;
+            var tgt = Number(pl.target_qty) || 0;
+            if (tgt > 0) mt += tgt;
+          });
+        } catch (eMiss) {}
         const mp = mt > 0 ? Math.round((ma / mt) * 1000) / 10 : 0;
         const g = (typeof opGrade === "function") ? opGrade(mp) : { name: "Tunas", icon: "🌱" };
         if ($("opGradeIcon")) $("opGradeIcon").textContent = g.icon || "🌱";
         if ($("opGradeName")) $("opGradeName").textContent = g.name || "Tunas";
         if ($("opGradePct")) $("opGradePct").textContent = mt > 0 ? (mp + "%") : "—";
-        if ($("opGradeSub")) $("opGradeSub").textContent = "Grade bulan ini (MTD) · " + formatNum(ma) + " / " + formatNum(mt) + " · 95%+ Pionir · 90–94% Penggerak · 80–89% Pejuang · <80% Tunas";
+        if ($("opGradeSub")) $("opGradeSub").textContent = "Grade MTD · " + formatNum(ma) + " / " + formatNum(mt) + " (plan belum lapor = 0) · basis shift 375 mnt · 95%+ Pionir";
       } catch (eG) { console.warn(eG); }
       if ($("opDt")) $("opDt").textContent = formatNum(dt);
 
