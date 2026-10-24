@@ -3125,7 +3125,7 @@
               <div class="op-grade-icon" id="opGradeIcon">🌱</div>
               <div>
                 <div class="op-grade-name" id="opGradeName">Tunas</div>
-                <div class="op-grade-sub" id="opGradeSub">Grade bulan ini (MTD) · dari laporan Anda</div>
+                <div class="op-grade-sub" id="opGradeSub">Grade MTD · rata-rata sama ranking · plan belum lapor = 0</div>
               </div>
               <div class="op-grade-pct">
                 <strong id="opGradePct">—</strong>
@@ -4677,6 +4677,12 @@
             <option value="cancelled">cancelled</option>
           </select>
         </div>
+        <div class="field" id="plEvalWrap">
+          <label>Target penilaian (opsional)</label>
+          <input id="plEvalTarget" type="number" min="0" step="any" placeholder="Kosong = pakai target plan / kapasitas proses" inputmode="decimal" />
+          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Untuk ranking. Bisa lebih kecil dari target plan jika overload.</p>
+        </div>
+        <div id="plRevInfo" style="display:none;font-size:0.78rem;padding:0.5rem 0.65rem;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;margin-bottom:0.5rem"></div>
       </div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closePlanModal()">Batal</button>
@@ -4691,6 +4697,17 @@
       <p id="reportModalSub" style="font-size:0.8rem;color:var(--text-muted);margin:-0.35rem 0 1rem"></p>
       <input type="hidden" id="rpPlanId" />
       <input type="hidden" id="rpReportId" />
+      <div id="rpEvalBox" style="margin-bottom:0.75rem;padding:0.65rem 0.75rem;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.8rem">
+        <div style="font-weight:700;color:#047857;margin-bottom:0.25rem">Target penilaian</div>
+        <div id="rpEvalText">—</div>
+      </div>
+      <div id="rpRevBox" style="margin-bottom:0.75rem;padding:0.65rem 0.75rem;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;display:none">
+        <div style="font-weight:700;color:#c2410c;margin-bottom:0.35rem">Minta revisi target</div>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 0.4rem">Jika target plan di luar kemampuan shift (375 mnt). Korlap/PPIC akan sesuaikan <b>target penilaian</b>.</p>
+        <input id="rpRevNote" placeholder="Alasan (contoh: target terlalu tinggi untuk 1 orang)" style="width:100%;margin-bottom:0.4rem" />
+        <button type="button" class="btn btn-ghost btn-sm" id="btnRequestRevision" onclick="requestPlanRevision()">Kirim permintaan revisi</button>
+        <p id="rpRevStatus" style="font-size:0.72rem;margin:0.35rem 0 0;color:#c2410c"></p>
+      </div>
       <div class="field"><label>Actual qty</label><input id="rpActual" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
       <div class="field"><label>NG qty</label><input id="rpNg" type="number" min="0" step="any" value="0" inputmode="decimal" /></div>
       <div class="field"><label>Downtime (menit)</label><input id="rpDt" type="number" min="0" step="1" value="0" inputmode="numeric" /></div>
@@ -6092,6 +6109,20 @@
       $("plUnit").value = row ? (row.unit || "pcs") : (defaults.unit || "pcs");
       var st = row ? (row.status || "open") : (defaults.status || "open");
       $("plStatus").value = st;
+      if ($("plEvalTarget")) {
+        $("plEvalTarget").value = row && row.eval_target != null && Number(row.eval_target) > 0
+          ? formatInputNum(row.eval_target, true) : "";
+      }
+      if ($("plRevInfo")) {
+        if (row && row.revision_status === "requested") {
+          $("plRevInfo").style.display = "block";
+          $("plRevInfo").innerHTML = "<b>Operator minta revisi target</b><br/>" + esc(row.revision_note || "—") +
+            "<br/><span style='color:var(--text-muted)'>Isi Target penilaian lalu simpan (status revisi → approved).</span>";
+        } else {
+          $("plRevInfo").style.display = "none";
+          $("plRevInfo").innerHTML = "";
+        }
+      }
       fillOperatorList(row ? (row.assigned_operator || "") : (defaults.assigned_operator || ""));
 
       window.__planModalDefaults = defaults || {};
@@ -6175,12 +6206,21 @@
         if (warn && !(await appConfirm(warn + "\n\nLanjut simpan plan?", "Peringatan stok WIP"))) return;
       } catch (eC) {}
 
+      const eval_target = parseInputNum($("plEvalTarget") && $("plEvalTarget").value);
       const payload = {
         plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
         target_qty: target_qty, unit: unit,
         assigned_operator: assigned_operator, status: status,
         updated_at: new Date().toISOString()
       };
+      if (eval_target > 0) {
+        payload.eval_target = eval_target;
+        if (editingPlanId) {
+          payload.revision_status = "approved";
+        }
+      } else if (editingPlanId) {
+        payload.eval_target = null;
+      }
       if (isGilingMachine(machine_id)) {
         // edit bahan: jaga for_product jika ada di defaults/row
         payload.for_product_id = defs.for_product_id || product_id;
@@ -6871,12 +6911,13 @@ function fillOperatorList(selectedEmail) {
       const name = $("mName").value.trim();
       const line = $("mLine").value.trim() || "-";
       const unit = $("mUnit").value.trim() || "pcs";
+      const capacity_per_shift = parseInputNum($("mCapShift") && $("mCapShift").value) || 0;
       if (!machine_id || !name) return toast("Kode & nama wajib", true);
       let error;
       if (editingMachineId) {
-        ({ error } = await sb.from("machines").update({ name, line, unit }).eq("machine_id", editingMachineId));
+        ({ error } = await sb.from("machines").update({ name, line, unit, capacity_per_shift }).eq("machine_id", editingMachineId));
       } else {
-        ({ error } = await sb.from("machines").insert({ machine_id, name, line, unit, capacity_per_hour: 0, active: true }));
+        ({ error } = await sb.from("machines").insert({ machine_id, name, line, unit, capacity_per_hour: 0, capacity_per_shift, active: true }));
       }
       if (error) return toast(error.message, true);
       toast("Proses disimpan");
@@ -7199,6 +7240,53 @@ function fillOperatorList(selectedEmail) {
     }
     /** Menit kerja efektif per shift (bukan 480). */
     var SHIFT_MINUTES = 375;
+
+    /** Target untuk ranking/penilaian (opsi 2): eval_target > kapasitas proses > target plan */
+    function getProcessCapacityPerShift(machineId) {
+      var m = (machines || []).find(function(x) { return String(x.machine_id) === String(machineId); });
+      if (!m) return 0;
+      var cShift = Number(m.capacity_per_shift);
+      if (cShift > 0) return cShift;
+      var cHour = Number(m.capacity_per_hour);
+      if (cHour > 0) {
+        var mins = (typeof SHIFT_MINUTES === "number" && SHIFT_MINUTES > 0) ? SHIFT_MINUTES : 375;
+        return Math.round(cHour * (mins / 60) * 100) / 100;
+      }
+      return 0;
+    }
+    function getPlanEvalTarget(plan) {
+      if (!plan) return 0;
+      var evalT = Number(plan.eval_target);
+      if (evalT > 0) return evalT;
+      var t = Number(plan.target_qty) || 0;
+      var cap = getProcessCapacityPerShift(plan.machine_id);
+      if (cap > 0 && t > 0) return Math.min(t, cap);
+      return t;
+    }
+    async function requestPlanRevision() {
+      if (!sb || !currentUser) return;
+      var planId = $("rpPlanId") && $("rpPlanId").value;
+      if (!planId) return toast("Plan kosong", true);
+      var note = (($("rpRevNote") && $("rpRevNote").value) || "").trim();
+      if (!note) return toast("Isi alasan revisi target", true);
+      var payload = {
+        revision_status: "requested",
+        revision_note: note,
+        updated_at: new Date().toISOString()
+      };
+      var { error } = await sb.from("plans").update(payload).eq("plan_id", planId);
+      if (error) {
+        toast(error.message + " — jalankan SQL kolom revision_status / revision_note / eval_target", true);
+        return;
+      }
+      if (reportPlanMap[planId]) {
+        reportPlanMap[planId].revision_status = "requested";
+        reportPlanMap[planId].revision_note = note;
+      }
+      if ($("rpRevStatus")) $("rpRevStatus").textContent = "Permintaan terkirim ke Korlap/PPIC.";
+      toast("Permintaan revisi target terkirim");
+    }
+
     function calcTargetAdj(target, downtimeMin) {
       const t = Number(target) || 0;
       const dt = Number(downtimeMin) || 0;
@@ -7502,8 +7590,33 @@ function fillOperatorList(selectedEmail) {
       $("rpPlanId").value = planId;
       $("rpReportId").value = existing ? existing.report_id : "";
       $("reportModalTitle").textContent = existing ? "Edit laporan" : "Isi laporan";
+      var evalT = getPlanEvalTarget(pl);
+      var planT = Number(pl.target_qty) || 0;
+      var unit = pl.unit || "";
       $("reportModalSub").textContent = productLabel(pl.product_id || "") + " · " + machineLabel(pl.machine_id || "") +
-        " · Shift " + (pl.shift || "?") + " · Target " + formatNum(pl.target_qty || 0) + " " + (pl.unit || "");
+        " · Shift " + (pl.shift || "?") + " · Target plan " + formatNum(planT) + " " + unit;
+      if ($("rpEvalText")) {
+        var cap = getProcessCapacityPerShift(pl.machine_id);
+        var bits = ["Plan: <b>" + formatNum(planT) + "</b> " + unit];
+        if (Number(pl.eval_target) > 0) bits.push("Penilaian (manual): <b>" + formatNum(pl.eval_target) + "</b>");
+        else if (cap > 0) bits.push("Kapasitas proses/shift: <b>" + formatNum(cap) + "</b>");
+        bits.push("→ Dipakai ranking: <b>" + formatNum(evalT) + "</b> " + unit);
+        $("rpEvalText").innerHTML = bits.join("<br/>");
+      }
+      if ($("rpRevBox")) {
+        var isOp = currentRole() === "operator";
+        $("rpRevBox").style.display = isOp ? "block" : "none";
+        if ($("rpRevNote")) $("rpRevNote").value = "";
+        if ($("rpRevStatus")) {
+          if (pl.revision_status === "requested") {
+            $("rpRevStatus").textContent = "Menunggu revisi: " + (pl.revision_note || "");
+          } else if (pl.revision_status === "approved") {
+            $("rpRevStatus").textContent = "Revisi disetujui. Target penilaian: " + formatNum(pl.eval_target || evalT);
+          } else {
+            $("rpRevStatus").textContent = "";
+          }
+        }
+      }
       $("rpActual").value = existing ? formatInputNum(existing.actual_qty, true) : "";
       $("rpNg").value = existing ? formatInputNum(existing.ng_qty || 0, true) : "0";
       $("rpDt").value = existing ? formatInputNum(existing.downtime_min || 0, false) : "0";
@@ -7567,8 +7680,9 @@ function fillOperatorList(selectedEmail) {
         ? (dtDetail ? (dtCat + ": " + dtDetail) : dtCat)
         : dtDetail;
       const notes = ($("rpNotes").value || "").trim();
-      const target_qty = plan ? Number(plan.target_qty) || 0 : 0;
-      if (!(target_qty > 0)) {
+      const planTarget = plan ? Number(plan.target_qty) || 0 : 0;
+      const target_qty = plan ? (getPlanEvalTarget(plan) || planTarget) : 0;
+      if (!(planTarget > 0) && !(target_qty > 0)) {
         toast("Target plan kosong — cek plan di menu Plan", true);
       }
       const target_adj = calcTargetAdj(target_qty, downtime_min);
@@ -8360,7 +8474,7 @@ function fillOperatorList(selectedEmail) {
           var em = String(pl.assigned_operator || "").trim();
           if (!em || em === "-" || em.toLowerCase() === "null") return;
           // draft tanpa operator sudah di-skip; draft dengan operator ikut dihitung
-          var tgt = Number(pl.target_qty) || 0;
+          var tgt = getPlanEvalTarget(pl) || Number(pl.target_qty) || 0;
           if (tgt <= 0) return;
           if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0, reported: 0, missed: 0 };
           by[em].target += tgt;
@@ -12439,16 +12553,28 @@ function fillOperatorList(selectedEmail) {
       if ($("opBadgePending")) $("opBadgePending").textContent = allPendingCount + " belum lapor";
       if ($("opPendingCount")) $("opPendingCount").textContent = String(pending.length);
 
+      // Pencapaian hari ini = actual laporan / target semua plan hari ini
+      // (plan belum lapor = actual 0, tetap masuk penyebut → sama logika ranking)
+      var planMapToday = {};
+      plansToday.forEach(function(p) { planMapToday[p.plan_id] = p; });
       let target = 0, actual = 0, ng = 0, dt = 0;
-      plansToday.forEach(p => { target += Number(p.target_qty) || 0; });
-      reportsToday.forEach(r => {
+      plansToday.forEach(function(p) { target += Number(p.target_qty) || 0; });
+      reportsToday.forEach(function(r) {
         actual += Number(r.actual_qty) || 0;
         ng += Number(r.ng_qty) || 0;
         dt += Number(r.downtime_min) || 0;
+        // jika sudah lapor, ganti target plan dengan target_adj (setelah downtime, basis 375 mnt)
+        try {
+          var eff = reportEffectiveTarget(r, planMapToday);
+          var raw = Number((planMapToday[r.plan_id] && planMapToday[r.plan_id].target_qty) || r.target_qty) || 0;
+          if (eff > 0 && raw > 0 && Math.abs(eff - raw) > 0.01) {
+            target = target - raw + eff;
+          }
+        } catch (eEff) {}
       });
       const pct = target > 0 ? Math.round((actual / target) * 1000) / 10 : 0;
       const reject = actual > 0 ? Math.round((ng / actual) * 1000) / 10 : 0;
-            if ($("opPct")) $("opPct").textContent = target ? formatPct(pct) : "—";
+      if ($("opPct")) $("opPct").textContent = target ? formatPct(pct) : "—";
       if ($("opReject")) $("opReject").textContent = formatPct(reject);
       if ($("opTarget")) $("opTarget").textContent = formatNum(target);
       if ($("opActual")) $("opActual").textContent = formatNum(actual);
@@ -12477,7 +12603,7 @@ function fillOperatorList(selectedEmail) {
             .limit(500);
           (myPlans || []).forEach(function(pl) {
             if (donePlans[String(pl.plan_id)]) return;
-            var tgt = Number(pl.target_qty) || 0;
+            var tgt = getPlanEvalTarget(pl) || Number(pl.target_qty) || 0;
             if (tgt > 0) mt += tgt;
           });
         } catch (eMiss) {}
