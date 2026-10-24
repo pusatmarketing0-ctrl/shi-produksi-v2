@@ -4727,13 +4727,7 @@
       <div id="rpEvalBox" style="margin-bottom:0.75rem;padding:0.65rem 0.75rem;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.8rem">
         <div style="font-weight:700;color:#047857;margin-bottom:0.25rem">Target penilaian</div>
         <div id="rpEvalText">—</div>
-      </div>
-      <div id="rpRevBox" style="margin-bottom:0.75rem;padding:0.65rem 0.75rem;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;display:none">
-        <div style="font-weight:700;color:#c2410c;margin-bottom:0.35rem">Minta revisi target</div>
-        <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 0.4rem">Jika target plan di luar kemampuan shift (375 mnt). Korlap/PPIC akan sesuaikan <b>target penilaian</b>.</p>
-        <input id="rpRevNote" placeholder="Alasan (contoh: target terlalu tinggi untuk 1 orang)" style="width:100%;margin-bottom:0.4rem" />
-        <button type="button" class="btn btn-ghost btn-sm" id="btnRequestRevision" onclick="requestPlanRevision()">Kirim permintaan revisi</button>
-        <p id="rpRevStatus" style="font-size:0.72rem;margin:0.35rem 0 0;color:#c2410c"></p>
+        <p id="rpRevStatus" style="font-size:0.72rem;margin:0.4rem 0 0;color:#c2410c;display:none"></p>
       </div>
       <div class="field"><label>Actual qty</label><input id="rpActual" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
       <div class="field"><label>NG qty</label><input id="rpNg" type="number" min="0" step="any" value="0" inputmode="decimal" /></div>
@@ -4753,28 +4747,69 @@
       <div class="field"><label>Detail kendala (opsional)</label><input id="rpDtReason" placeholder="Contoh: roller macet, material kosong..." /></div>
       <div class="field"><label>Catatan</label><input id="rpNotes" placeholder="opsional" /></div>
       <p id="rpHint" style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem"></p>
-      <div class="modal-actions modal-actions-end">
+      <div class="modal-actions" style="display:flex;flex-wrap:wrap;gap:0.45rem;justify-content:flex-end;align-items:center">
         <button class="btn btn-ghost" type="button" onclick="closeReportModal()">Batal</button>
+        <button class="btn btn-ghost" type="button" id="btnOpenRevRequest" style="display:none;border-color:#fdba74;color:#c2410c" onclick="openRevRequestModal()">Minta revisi</button>
         <button class="btn btn-primary" type="button" id="btnSaveReport">Simpan laporan</button>
       </div>
     </div>
   </div>
 
-  
-  <div id="revApproveModal" class="modal-bg">
+  <div id="revRequestModal" class="modal-bg">
     <div class="modal" style="max-width:420px">
-      <h2>Setujui revisi target</h2>
+      <h2>Minta revisi plan</h2>
+      <p id="revRequestInfo" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem"></p>
+      <input type="hidden" id="revRequestPlanId" />
+      <div class="field">
+        <label>Alasan revisi <span style="color:#b91c1c">*</span></label>
+        <textarea id="revRequestNote" rows="3" placeholder="Contoh: target terlalu tinggi untuk 1 orang di shift 375 menit" style="width:100%;resize:vertical;font-family:inherit;padding:0.65rem;border-radius:10px;border:1px solid var(--border)"></textarea>
+      </div>
+      <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 0.75rem">PPIC/Korlap bisa: sesuaikan target penilaian, pindah operator, atau batalkan plan.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" onclick="closeRevRequestModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="requestPlanRevision()">Kirim permintaan</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="revApproveModal" class="modal-bg">
+    <div class="modal" style="max-width:460px">
+      <h2>Proses revisi plan</h2>
       <p id="revApproveInfo" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem"></p>
       <input type="hidden" id="revApprovePlanId" />
       <input type="hidden" id="revApproveReqId" />
-      <div class="field"><label>Target penilaian baru</label>
+      <div class="field">
+        <label>Pilih aksi</label>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.35rem">
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;cursor:pointer">
+            <input type="radio" name="revAction" value="eval" checked style="margin-top:0.2rem" onchange="syncRevApproveUi()" />
+            <span><b>Sesuaikan target penilaian</b><br/><span style="font-size:0.72rem;color:var(--text-muted)">Plan tetap, ranking pakai target baru</span></span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;cursor:pointer">
+            <input type="radio" name="revAction" value="reassign" style="margin-top:0.2rem" onchange="syncRevApproveUi()" />
+            <span><b>Pindah ke operator lain</b><br/><span style="font-size:0.72rem;color:var(--text-muted)">Operator yang lebih longgar</span></span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.55rem 0.65rem;border:1px solid var(--border);border-radius:10px;cursor:pointer">
+            <input type="radio" name="revAction" value="cancel" style="margin-top:0.2rem" onchange="syncRevApproveUi()" />
+            <span><b>Batalkan plan</b><br/><span style="font-size:0.72rem;color:var(--text-muted)">Status cancelled · tidak masuk ranking</span></span>
+          </label>
+        </div>
+      </div>
+      <div class="field" id="revApproveEvalWrap">
+        <label>Target penilaian baru</label>
         <input id="revApproveEval" type="number" min="0" step="any" inputmode="decimal" placeholder="Wajib diisi" />
-        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Angka ini dipakai ranking (boleh lebih kecil dari target plan).</p>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Dipakai ranking (boleh lebih kecil dari target plan).</p>
+      </div>
+      <div class="field" id="revApproveOpWrap" style="display:none">
+        <label>Operator baru</label>
+        <input id="revApproveOpSearch" type="text" placeholder="Cari operator…" autocomplete="off" />
+        <input type="hidden" id="revApproveOpEmail" />
+        <div id="revApproveOpList" style="max-height:140px;overflow:auto;border:1px solid var(--border);border-radius:10px;margin-top:0.35rem;display:none"></div>
       </div>
       <div class="field"><label>Catatan (opsional)</label><input id="revApproveNote" placeholder="Catatan persetujuan" /></div>
       <div class="modal-actions">
         <button class="btn btn-ghost" type="button" onclick="closeRevApproveModal()">Batal</button>
-        <button class="btn btn-primary" type="button" onclick="confirmRevApprove()">Setujui &amp; hitung ulang</button>
+        <button class="btn btn-primary" type="button" onclick="confirmRevApprove()">Proses</button>
       </div>
     </div>
   </div>
@@ -7335,12 +7370,32 @@ function fillOperatorList(selectedEmail) {
       return { ok: true, data: data && data[0] };
     }
 
-    async function requestPlanRevision() {
-      if (!sb || !currentUser) return;
+    function openRevRequestModal() {
       var planId = $("rpPlanId") && $("rpPlanId").value;
       if (!planId) return toast("Plan kosong", true);
-      var note = (($("rpRevNote") && $("rpRevNote").value) || "").trim();
-      if (!note) return toast("Isi alasan revisi target", true);
+      var pl = reportPlanMap[planId] || (reportPlans || []).find(function(p) { return p.plan_id === planId; }) || {};
+      if ($("revRequestPlanId")) $("revRequestPlanId").value = planId;
+      if ($("revRequestNote")) $("revRequestNote").value = "";
+      if ($("revRequestInfo")) {
+        $("revRequestInfo").innerHTML =
+          "<b>" + esc(productLabel(pl.product_id || "")) + "</b><br/>" +
+          esc(machineLabel(pl.machine_id || "")) + " · Shift " + esc(pl.shift || "?") + "<br/>" +
+          "Target plan: <b>" + formatNum(pl.target_qty || 0) + "</b> " + esc(pl.unit || "");
+      }
+      if ($("revRequestModal")) $("revRequestModal").classList.add("show");
+      document.body.classList.add("modal-open");
+      setTimeout(function() { try { $("revRequestNote").focus(); } catch (e) {} }, 100);
+    }
+    function closeRevRequestModal() {
+      if ($("revRequestModal")) $("revRequestModal").classList.remove("show");
+      // keep report modal open
+    }
+    async function requestPlanRevision() {
+      if (!sb || !currentUser) return;
+      var planId = ($("revRequestPlanId") && $("revRequestPlanId").value) || ($("rpPlanId") && $("rpPlanId").value);
+      if (!planId) return toast("Plan kosong", true);
+      var note = (($("revRequestNote") && $("revRequestNote").value) || ($("rpRevNote") && $("rpRevNote").value) || "").trim();
+      if (!note) return toast("Isi alasan revisi", true);
 
       var plan = reportPlanMap[planId] || (reportPlans || []).find(function(p) { return p.plan_id === planId; });
       if (!plan && sb) {
@@ -7399,7 +7454,11 @@ function fillOperatorList(selectedEmail) {
         reportPlanMap[planId].revision_status = "requested";
         reportPlanMap[planId].revision_note = noteTagged;
       }
-      if ($("rpRevStatus")) $("rpRevStatus").textContent = "Menunggu persetujuan PPIC/Korlap. Cek menu Revisi target.";
+      if ($("rpRevStatus")) {
+        $("rpRevStatus").style.display = "";
+        $("rpRevStatus").textContent = "Menunggu persetujuan PPIC/Korlap.";
+      }
+      try { closeRevRequestModal(); } catch (e0) {}
       toast("Permintaan revisi terkirim — menunggu persetujuan");
       try { await loadRevisionRequests(); } catch (e) {}
     }
@@ -7582,6 +7641,44 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+        function getRevAction() {
+      var els = document.querySelectorAll('input[name="revAction"]');
+      for (var i = 0; i < els.length; i++) if (els[i].checked) return els[i].value;
+      return "eval";
+    }
+    function syncRevApproveUi() {
+      var act = getRevAction();
+      if ($("revApproveEvalWrap")) $("revApproveEvalWrap").style.display = act === "eval" ? "" : "none";
+      if ($("revApproveOpWrap")) $("revApproveOpWrap").style.display = act === "reassign" ? "" : "none";
+    }
+    function bindRevOpSearch() {
+      var inp = $("revApproveOpSearch");
+      var list = $("revApproveOpList");
+      if (!inp || inp.dataset.bound) return;
+      inp.dataset.bound = "1";
+      inp.addEventListener("input", function() {
+        var q = (inp.value || "").toLowerCase().trim();
+        var ops = (operators || []).filter(function(o) {
+          var em = String(o.email || "").toLowerCase();
+          var nm = String(o.name || "").toLowerCase();
+          return !q || em.indexOf(q) >= 0 || nm.indexOf(q) >= 0;
+        }).slice(0, 12);
+        if (!list) return;
+        if (!ops.length) { list.style.display = "none"; list.innerHTML = ""; return; }
+        list.style.display = "block";
+        list.innerHTML = ops.map(function(o) {
+          return '<div class="combo-item" style="padding:0.45rem 0.65rem;cursor:pointer;border-bottom:1px solid var(--border)" data-em="' +
+            esc(o.email) + '"><strong>' + esc(o.name || o.email) + '</strong><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(o.email) + '</div></div>';
+        }).join("");
+        list.querySelectorAll("[data-em]").forEach(function(el) {
+          el.onclick = function() {
+            if ($("revApproveOpEmail")) $("revApproveOpEmail").value = el.getAttribute("data-em");
+            inp.value = el.querySelector("strong") ? el.querySelector("strong").textContent : el.getAttribute("data-em");
+            list.style.display = "none";
+          };
+        });
+      });
+    }
     function openRevApproveModal(planId, reqId) {
       var r = revisionRows.find(function(x) {
         return x.plan_id === planId && (!reqId || String(x.id || "") === String(reqId));
@@ -7593,6 +7690,10 @@ function fillOperatorList(selectedEmail) {
       var suggest = Number(r.eval_target) > 0 ? r.eval_target : (cap > 0 ? Math.min(Number(r.target_qty) || 0, cap) : Math.round((Number(r.target_qty) || 0) * 0.8));
       if ($("revApproveEval")) $("revApproveEval").value = suggest > 0 ? suggest : "";
       if ($("revApproveNote")) $("revApproveNote").value = "";
+      if ($("revApproveOpEmail")) $("revApproveOpEmail").value = "";
+      if ($("revApproveOpSearch")) $("revApproveOpSearch").value = "";
+      var radios = document.querySelectorAll('input[name="revAction"]');
+      for (var i = 0; i < radios.length; i++) radios[i].checked = radios[i].value === "eval";
       if ($("revApproveInfo")) {
         $("revApproveInfo").innerHTML =
           "<b>" + esc(r.product_id) + "</b> · " + esc(r.machine_id) + "<br/>" +
@@ -7600,6 +7701,8 @@ function fillOperatorList(selectedEmail) {
           "Target plan: <b>" + formatNum(r.target_qty) + "</b> " + esc(r.unit || "") + "<br/>" +
           "Alasan: " + esc(String(r.revision_note || "").replace(/^\[REVISI\]\s*/, "") || "—");
       }
+      syncRevApproveUi();
+      bindRevOpSearch();
       if ($("revApproveModal")) $("revApproveModal").classList.add("show");
       document.body.classList.add("modal-open");
     }
@@ -7628,40 +7731,86 @@ function fillOperatorList(selectedEmail) {
       if (!sb) return;
       var planId = $("revApprovePlanId") && $("revApprovePlanId").value;
       var reqId = $("revApproveReqId") && $("revApproveReqId").value;
-      var evalT = parseInputNum($("revApproveEval") && $("revApproveEval").value);
       var note = (($("revApproveNote") && $("revApproveNote").value) || "").trim();
+      var act = getRevAction();
       if (!planId) return;
-      if (!(evalT > 0)) return toast("Isi target penilaian baru", true);
 
-      // update tabel revisi
-      if (reqId) {
-        await sb.from("plan_revision_requests").update({
-          status: "approved",
-          eval_target: evalT,
-          resolved_at: new Date().toISOString(),
-          resolved_by: (currentUser && currentUser.email) || ""
-        }).eq("id", reqId);
-      } else {
-        await sb.from("plan_revision_requests").update({
-          status: "approved",
-          eval_target: evalT,
-          resolved_at: new Date().toISOString(),
-          resolved_by: (currentUser && currentUser.email) || ""
-        }).eq("plan_id", planId).eq("status", "requested");
+      var resolvedBy = (currentUser && currentUser.email) || "";
+      var now = new Date().toISOString();
+      var msg = "";
+
+      if (act === "eval") {
+        var evalT = parseInputNum($("revApproveEval") && $("revApproveEval").value);
+        if (!(evalT > 0)) return toast("Isi target penilaian baru", true);
+        if (reqId) {
+          await sb.from("plan_revision_requests").update({
+            status: "approved", eval_target: evalT, resolved_at: now, resolved_by: resolvedBy
+          }).eq("id", reqId);
+        } else {
+          await sb.from("plan_revision_requests").update({
+            status: "approved", eval_target: evalT, resolved_at: now, resolved_by: resolvedBy
+          }).eq("plan_id", planId).eq("status", "requested");
+        }
+        var { error } = await sb.from("plans").update({
+          eval_target: evalT, revision_status: "approved", updated_at: now
+        }).eq("plan_id", planId);
+        if (error) console.warn(error);
+        await recalcReportsForPlan(planId, evalT);
+        msg = "Target penilaian diubah · ranking dihitung ulang";
+      } else if (act === "reassign") {
+        var opEmail = (($("revApproveOpEmail") && $("revApproveOpEmail").value) || "").trim();
+        if (!opEmail) return toast("Pilih operator baru", true);
+        if (reqId) {
+          await sb.from("plan_revision_requests").update({
+            status: "approved", resolved_at: now, resolved_by: resolvedBy,
+            reason: note ? undefined : undefined
+          }).eq("id", reqId);
+          await sb.from("plan_revision_requests").update({
+            status: "approved", resolved_at: now, resolved_by: resolvedBy
+          }).eq("id", reqId);
+        } else {
+          await sb.from("plan_revision_requests").update({
+            status: "approved", resolved_at: now, resolved_by: resolvedBy
+          }).eq("plan_id", planId).eq("status", "requested");
+        }
+        var payloadOp = {
+          assigned_operator: opEmail,
+          status: "open",
+          revision_status: "approved",
+          updated_at: now
+        };
+        var rOp = await sb.from("plans").update(payloadOp).eq("plan_id", planId);
+        if (rOp.error) {
+          // tanpa revision_status
+          rOp = await sb.from("plans").update({
+            assigned_operator: opEmail, status: "open", updated_at: now
+          }).eq("plan_id", planId);
+          if (rOp.error) return toast(rOp.error.message, true);
+        }
+        msg = "Plan dipindah ke " + opEmail;
+      } else if (act === "cancel") {
+        if (!(await appConfirm("Batalkan plan ini? Tidak akan masuk ranking operator.", "Batalkan plan"))) return;
+        if (reqId) {
+          await sb.from("plan_revision_requests").update({
+            status: "approved", resolved_at: now, resolved_by: resolvedBy
+          }).eq("id", reqId);
+        } else {
+          await sb.from("plan_revision_requests").update({
+            status: "approved", resolved_at: now, resolved_by: resolvedBy
+          }).eq("plan_id", planId).eq("status", "requested");
+        }
+        var rC = await sb.from("plans").update({
+          status: "cancelled", revision_status: "approved", updated_at: now
+        }).eq("plan_id", planId);
+        if (rC.error) {
+          rC = await sb.from("plans").update({ status: "cancelled", updated_at: now }).eq("plan_id", planId);
+          if (rC.error) return toast(rC.error.message, true);
+        }
+        msg = "Plan dibatalkan";
       }
 
-      // update plan
-      var payload = {
-        eval_target: evalT,
-        revision_status: "approved",
-        updated_at: new Date().toISOString()
-      };
-      var { error } = await sb.from("plans").update(payload).eq("plan_id", planId);
-      if (error) console.warn(error);
-
-      await recalcReportsForPlan(planId, evalT);
       closeRevApproveModal();
-      toast("Revisi disetujui · ranking dihitung ulang");
+      toast(msg || "Selesai");
       await loadRevisionRequests();
       try { if (typeof loadRanking === "function") await loadRanking(); } catch (e) {}
     }
@@ -8006,18 +8155,20 @@ function fillOperatorList(selectedEmail) {
         bits.push("→ Dipakai ranking: <b>" + formatNum(evalT) + "</b> " + unit);
         $("rpEvalText").innerHTML = bits.join("<br/>");
       }
-      if ($("rpRevBox")) {
-        var isOp = currentRole() === "operator";
-        $("rpRevBox").style.display = isOp ? "block" : "none";
-        if ($("rpRevNote")) $("rpRevNote").value = "";
-        if ($("rpRevStatus")) {
-          if (pl.revision_status === "requested") {
-            $("rpRevStatus").textContent = "Menunggu revisi: " + (pl.revision_note || "");
-          } else if (pl.revision_status === "approved") {
-            $("rpRevStatus").textContent = "Revisi disetujui. Target penilaian: " + formatNum(pl.eval_target || evalT);
-          } else {
-            $("rpRevStatus").textContent = "";
-          }
+      var isOp = currentRole() === "operator";
+      if ($("btnOpenRevRequest")) {
+        $("btnOpenRevRequest").style.display = isOp ? "" : "none";
+      }
+      if ($("rpRevStatus")) {
+        if (pl.revision_status === "requested") {
+          $("rpRevStatus").style.display = "";
+          $("rpRevStatus").textContent = "Menunggu revisi: " + (pl.revision_note || "");
+        } else if (pl.revision_status === "approved") {
+          $("rpRevStatus").style.display = "";
+          $("rpRevStatus").textContent = "Revisi disetujui. Target penilaian: " + formatNum(pl.eval_target || evalT);
+        } else {
+          $("rpRevStatus").style.display = "none";
+          $("rpRevStatus").textContent = "";
         }
       }
       $("rpActual").value = existing ? formatInputNum(existing.actual_qty, true) : "";
