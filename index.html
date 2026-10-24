@@ -3595,24 +3595,35 @@
 
         <section id="page-absences" class="page" hidden>
           <div class="page-head">
-            <div><h1>Cuti / Ijin</h1><p>Operator ajukan tidak masuk; PPIC/korlap melihat untuk ubah plan.</p></div>
-            <button class="btn btn-primary" type="button" onclick="openAbsenceModal()">+ Ajukan</button>
+            <div><h1>Cuti / Ijin &amp; Revisi target</h1><p>Pengajuan cuti dan permintaan revisi target plan — PPIC/Korlap setujui atau tolak.</p></div>
+            <button class="btn btn-primary" type="button" onclick="openAbsenceModal()">+ Ajukan cuti</button>
           </div>
           <div class="toolbar">
             <input type="date" id="absFrom" onchange="loadAbsences()" />
             <input type="date" id="absTo" onchange="loadAbsences()" />
             <select id="absFilter" onchange="loadAbsences()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem">
-              <option value="">Semua status</option>
+              <option value="">Semua status cuti</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="loadAbsences();loadRevisionRequests()">Refresh</button>
           </div>
+          <h3 style="font-size:0.85rem;margin:0.5rem 0 0.4rem;color:var(--text-muted)">Cuti / ijin</h3>
           <div id="absCards" class="mobile-cards mobile-only"></div>
           <div class="table-wrap desk-only-table">
             <table>
               <thead><tr><th>Tanggal</th><th>Operator</th><th>Jenis</th><th>Alasan</th><th>Status</th><th></th></tr></thead>
               <tbody id="absBody"></tbody>
+            </table>
+          </div>
+          <h3 style="font-size:0.85rem;margin:1.25rem 0 0.4rem;color:var(--text-muted)">Revisi target plan <span id="revPendingBadge" class="pill" style="display:none;margin-left:0.35rem"></span></h3>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 0.5rem">Operator minta target diturunkan. Setujui → isi target penilaian → ranking dihitung ulang otomatis.</p>
+          <div id="revCards" class="mobile-cards mobile-only"></div>
+          <div class="table-wrap desk-only-table">
+            <table>
+              <thead><tr><th>Tanggal</th><th>Operator</th><th>Plan / Produk</th><th>Target plan</th><th>Alasan</th><th>Status</th><th></th></tr></thead>
+              <tbody id="revBody"></tbody>
             </table>
           </div>
         </section>
@@ -4729,6 +4740,24 @@
       <div class="modal-actions modal-actions-end">
         <button class="btn btn-ghost" type="button" onclick="closeReportModal()">Batal</button>
         <button class="btn btn-primary" type="button" id="btnSaveReport">Simpan laporan</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="revApproveModal" class="modal-bg">
+    <div class="modal" style="max-width:420px">
+      <h2>Setujui revisi target</h2>
+      <p id="revApproveInfo" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem"></p>
+      <input type="hidden" id="revApprovePlanId" />
+      <div class="field"><label>Target penilaian baru</label>
+        <input id="revApproveEval" type="number" min="0" step="any" inputmode="decimal" placeholder="Wajib diisi" />
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Angka ini dipakai ranking (boleh lebih kecil dari target plan).</p>
+      </div>
+      <div class="field"><label>Catatan (opsional)</label><input id="revApproveNote" placeholder="Catatan persetujuan" /></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" onclick="closeRevApproveModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="confirmRevApprove()">Setujui &amp; hitung ulang</button>
       </div>
     </div>
   </div>
@@ -7272,19 +7301,194 @@ function fillOperatorList(selectedEmail) {
       var payload = {
         revision_status: "requested",
         revision_note: note,
+        revision_requested_at: new Date().toISOString(),
+        revision_requested_by: currentUser.email || "",
         updated_at: new Date().toISOString()
       };
       var { error } = await sb.from("plans").update(payload).eq("plan_id", planId);
       if (error) {
-        toast(error.message + " — jalankan SQL kolom revision_status / revision_note / eval_target", true);
-        return;
+        // fallback tanpa kolom ekstra
+        var { error: e2 } = await sb.from("plans").update({
+          revision_status: "requested",
+          revision_note: note,
+          updated_at: new Date().toISOString()
+        }).eq("plan_id", planId);
+        if (e2) {
+          toast(e2.message + " — jalankan SQL kolom revision_* / eval_target", true);
+          return;
+        }
       }
       if (reportPlanMap[planId]) {
         reportPlanMap[planId].revision_status = "requested";
         reportPlanMap[planId].revision_note = note;
       }
-      if ($("rpRevStatus")) $("rpRevStatus").textContent = "Permintaan terkirim ke Korlap/PPIC.";
-      toast("Permintaan revisi target terkirim");
+      if ($("rpRevStatus")) $("rpRevStatus").textContent = "Menunggu persetujuan PPIC/Korlap (seperti cuti).";
+      toast("Permintaan revisi terkirim — menunggu persetujuan");
+      try { loadRevisionRequests(); } catch (e) {}
+    }
+
+    let revisionRows = [];
+    async function loadRevisionRequests() {
+      if (!sb) return;
+      var role = currentRole();
+      var staff = ["admin", "ppic", "korlap"].includes(role);
+      var q = sb.from("plans").select("plan_id,plan_date,product_id,machine_id,target_qty,eval_target,unit,assigned_operator,revision_status,revision_note,shift,status")
+        .in("revision_status", ["requested", "approved", "rejected"])
+        .order("plan_date", { ascending: false })
+        .limit(150);
+      if (role === "operator" && currentUser) {
+        q = q.eq("assigned_operator", currentUser.email);
+      }
+      var { data, error } = await q;
+      if (error) {
+        console.warn(error);
+        revisionRows = [];
+      } else {
+        revisionRows = data || [];
+      }
+      renderRevisionRequests();
+      // badge
+      var pending = revisionRows.filter(function(r) { return r.revision_status === "requested"; }).length;
+      var badge = $("revPendingBadge");
+      if (badge) {
+        if (pending && staff) {
+          badge.style.display = "";
+          badge.textContent = pending + " pending";
+        } else badge.style.display = "none";
+      }
+    }
+    function renderRevisionRequests() {
+      var body = $("revBody");
+      var cards = $("revCards");
+      var staff = ["admin", "ppic", "korlap"].includes(currentRole());
+      if (!body && !cards) return;
+      if (!revisionRows.length) {
+        if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada permintaan revisi</td></tr>';
+        if (cards) cards.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada permintaan revisi</div></div>';
+        return;
+      }
+      function rowHtml(r) {
+        var st = r.revision_status || "requested";
+        var acts = "";
+        if (staff && st === "requested") {
+          acts = '<button class="btn btn-sm btn-primary" data-revid="' + esc(r.plan_id) + '" data-revact="approve">Setuju</button> ' +
+            '<button class="btn btn-sm btn-danger" data-revid="' + esc(r.plan_id) + '" data-revact="reject">Tolak</button>';
+        }
+        return '<tr>' +
+          '<td class="mono">' + esc(String(r.plan_date || "").slice(0, 10)) + '</td>' +
+          '<td>' + esc(r.assigned_operator || "—") + '</td>' +
+          '<td><strong>' + esc(r.product_id) + '</strong><div style="font-size:0.72rem;color:var(--text-muted)">' +
+          esc(r.machine_id) + " · " + esc(r.plan_id) + '</div></td>' +
+          '<td>' + formatNum(r.target_qty) + (r.eval_target ? ' → <b>' + formatNum(r.eval_target) + '</b>' : '') + '</td>' +
+          '<td style="max-width:180px;font-size:0.78rem">' + esc(r.revision_note || "—") + '</td>' +
+          '<td>' + statusPill(st === "requested" ? "pending" : st) + '</td>' +
+          '<td>' + acts + '</td></tr>';
+      }
+      if (body) {
+        body.innerHTML = revisionRows.map(rowHtml).join("");
+        body.querySelectorAll("[data-revid]").forEach(function(btn) {
+          btn.onclick = function() {
+            var id = btn.getAttribute("data-revid");
+            var act = btn.getAttribute("data-revact");
+            if (act === "approve") openRevApproveModal(id);
+            else rejectPlanRevision(id);
+          };
+        });
+      }
+      if (cards) {
+        cards.innerHTML = revisionRows.map(function(r) {
+          var st = r.revision_status || "requested";
+          var acts = "";
+          if (staff && st === "requested") {
+            acts = '<div style="display:flex;gap:0.35rem;margin-top:0.45rem">' +
+              '<button class="btn btn-sm btn-primary" type="button" onclick="openRevApproveModal(\'' + esc(r.plan_id) + '\')">Setuju</button>' +
+              '<button class="btn btn-sm btn-danger" type="button" onclick="rejectPlanRevision(\'' + esc(r.plan_id) + '\')">Tolak</button></div>';
+          }
+          return '<div class="m-card"><div class="m-title">' + esc(String(r.plan_date || "").slice(0, 10)) + ' · ' + esc(r.product_id) +
+            '</div><div class="m-sub">' + esc(r.assigned_operator || "") + ' · target ' + formatNum(r.target_qty) +
+            '</div><div class="m-sub">' + esc(r.revision_note || "") + '</div><div class="m-row">' +
+            statusPill(st === "requested" ? "pending" : st) + '</div>' + acts + '</div>';
+        }).join("");
+      }
+    }
+    function openRevApproveModal(planId) {
+      var r = revisionRows.find(function(x) { return x.plan_id === planId; });
+      if (!r) return toast("Plan tidak ditemukan", true);
+      if ($("revApprovePlanId")) $("revApprovePlanId").value = planId;
+      var cap = getProcessCapacityPerShift(r.machine_id);
+      var suggest = Number(r.eval_target) > 0 ? r.eval_target : (cap > 0 ? Math.min(Number(r.target_qty) || 0, cap) : Math.round((Number(r.target_qty) || 0) * 0.8));
+      if ($("revApproveEval")) $("revApproveEval").value = suggest > 0 ? suggest : "";
+      if ($("revApproveNote")) $("revApproveNote").value = "";
+      if ($("revApproveInfo")) {
+        $("revApproveInfo").innerHTML =
+          "<b>" + esc(r.product_id) + "</b> · " + esc(r.machine_id) + "<br/>" +
+          "Operator: " + esc(r.assigned_operator || "—") + "<br/>" +
+          "Target plan: <b>" + formatNum(r.target_qty) + "</b> " + esc(r.unit || "") + "<br/>" +
+          "Alasan: " + esc(r.revision_note || "—");
+      }
+      if ($("revApproveModal")) $("revApproveModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closeRevApproveModal() {
+      if ($("revApproveModal")) $("revApproveModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+    async function recalcReportsForPlan(planId, evalTarget) {
+      if (!sb || !planId) return;
+      var base = Number(evalTarget) || 0;
+      if (!(base > 0)) return;
+      try {
+        var { data: reps } = await sb.from("reports").select("report_id,downtime_min,actual_qty").eq("plan_id", planId);
+        for (var i = 0; i < (reps || []).length; i++) {
+          var r = reps[i];
+          var adj = calcTargetAdj(base, Number(r.downtime_min) || 0);
+          await sb.from("reports").update({
+            target_qty: base,
+            target_adj: adj,
+            updated_at: new Date().toISOString()
+          }).eq("report_id", r.report_id);
+        }
+      } catch (e) { console.warn("recalc reports", e); }
+    }
+    async function confirmRevApprove() {
+      if (!sb) return;
+      var planId = $("revApprovePlanId") && $("revApprovePlanId").value;
+      var evalT = parseInputNum($("revApproveEval") && $("revApproveEval").value);
+      var note = (($("revApproveNote") && $("revApproveNote").value) || "").trim();
+      if (!planId) return;
+      if (!(evalT > 0)) return toast("Isi target penilaian baru", true);
+      var payload = {
+        eval_target: evalT,
+        revision_status: "approved",
+        revision_note: note ? (("Disetujui: " + note) + (revisionRows.find(function(x){return x.plan_id===planId;}) ? " | " + (revisionRows.find(function(x){return x.plan_id===planId;}).revision_note || "") : "")) : undefined,
+        updated_at: new Date().toISOString()
+      };
+      // keep original note if no extra
+      var orig = revisionRows.find(function(x) { return x.plan_id === planId; });
+      if (orig && orig.revision_note && !note) {
+        delete payload.revision_note; // keep
+      } else if (orig && note) {
+        payload.revision_note = orig.revision_note + " → Disetujui: " + note;
+      }
+      var { error } = await sb.from("plans").update(payload).eq("plan_id", planId);
+      if (error) return toast(error.message, true);
+      await recalcReportsForPlan(planId, evalT);
+      closeRevApproveModal();
+      toast("Revisi disetujui · laporan & ranking dihitung ulang");
+      await loadRevisionRequests();
+      try { if (typeof loadRanking === "function") await loadRanking(); } catch (e) {}
+      try { if (currentRole() === "operator") await loadOperatorHome(); } catch (e2) {}
+    }
+    async function rejectPlanRevision(planId) {
+      if (!sb || !planId) return;
+      if (!(await appConfirm("Tolak permintaan revisi target plan ini?", "Tolak revisi"))) return;
+      var { error } = await sb.from("plans").update({
+        revision_status: "rejected",
+        updated_at: new Date().toISOString()
+      }).eq("plan_id", planId);
+      if (error) return toast(error.message, true);
+      toast("Permintaan revisi ditolak");
+      await loadRevisionRequests();
     }
 
     function calcTargetAdj(target, downtimeMin) {
@@ -14188,7 +14392,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "export-data") { try { initExportPage(); } catch (eEx) {} }
       if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
       if (page === "order-trading") { try { loadOrderTrading(); } catch (e) {} }
-      if (page === "absences") { try { loadAbsences(); } catch (e) {} }
+      if (page === "absences") { try { loadAbsences(); } catch (e) {} try { loadRevisionRequests(); } catch (eR) {} }
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
       if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
