@@ -12283,8 +12283,14 @@ function fillOperatorList(selectedEmail) {
           }).join(", ");
           var prIdSafe = String(pr.pr_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
           var btn = "";
-          if (forPurchase && (pr.status === "open" || pr.status === "partial")) {
+          var st = String(pr.status || "open").toLowerCase();
+          if (forPurchase && (st === "open" || st === "submitted" || st === "pending")) {
             btn = "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"openPoFromPr('" + prIdSafe + "')\">Buat PO</button>";
+          } else if (forPurchase && st === "partial") {
+            btn = "<span style=\"font-size:0.72rem;color:#c2410c\">Partial</span> " +
+              "<button type=\"button\" class=\"btn btn-sm btn-ghost\" onclick=\"markPrOrdered('" + prIdSafe + "')\">Tandai selesai</button>";
+          } else if (forPurchase && (st === "ordered" || st === "done" || st === "closed")) {
+            btn = "<span style=\"font-size:0.75rem;color:#059669;font-weight:700\">Sudah ada PO</span>";
           } else {
             btn = '<span style="font-size:0.75rem;color:var(--text-muted)">' + esc(pr.status) + '</span>';
           }
@@ -12301,6 +12307,17 @@ function fillOperatorList(selectedEmail) {
       var bodyPpic = $("prPpicBody");
       if (bodyPpic) bodyPpic.innerHTML = prRowsHtml(false);
     }
+    async function markPrOrdered(prId) {
+      if (!sb || !prId) return;
+      if (!(await appConfirm("Tandai PR ini sudah selesai (PO sudah dibuat)?", "Tandai selesai"))) return;
+      var { error } = await sb.from("purchase_requests").update({
+        status: "ordered",
+        updated_at: new Date().toISOString()
+      }).eq("pr_id", prId);
+      if (error) return toast(error.message, true);
+      toast("PR ditandai ordered");
+      await loadPurchaseRequests();
+    }
     async function openPoFromPr(prId) {
       var pr = (prList || []).find(function(x) { return x.pr_id === prId; });
       if (!pr) return toast("PR tidak ditemukan", true);
@@ -12311,6 +12328,7 @@ function fillOperatorList(selectedEmail) {
           await onPoSoChange();
         }
         if ($("poNotes")) $("poNotes").value = "Dari " + pr.pr_id + (pr.notes ? (" — " + pr.notes) : "");
+        window.__poFromPrId = pr.pr_id;
         $("poLines").innerHTML = "";
         (pr.purchase_request_lines || []).forEach(function(l) {
           addPoLine({
@@ -12326,9 +12344,8 @@ function fillOperatorList(selectedEmail) {
       } catch (e) {
         toast(String(e.message || e), true);
       }
-      try {
-        await sb.from("purchase_requests").update({ status: "partial", updated_at: new Date().toISOString() }).eq("pr_id", prId);
-      } catch (e2) {}
+      // Jangan ubah status di sini — status jadi ordered saat PO berhasil disimpan
+      window.__poFromPrId = prId;
     }
     async function loadPurchaseOrders() {
       if (!sb) return;
@@ -13050,8 +13067,24 @@ function fillOperatorList(selectedEmail) {
       const { error: e2 } = await sb.from("purchase_lines").insert(lines);
       if (e2) return toast(e2.message, true);
       toast(isNew ? "PO dibuat" : "PO diperbarui");
+      // Tandai PR terkait sudah dilayani (jangan tampil Buat PO lagi)
+      try {
+        var prIdDone = window.__poFromPrId || "";
+        if (!prIdDone && header.notes) {
+          var mPr = String(header.notes).match(/Dari\s+(PR-[A-Z0-9]+)/i);
+          if (mPr) prIdDone = mPr[1];
+        }
+        if (prIdDone) {
+          await sb.from("purchase_requests").update({
+            status: "ordered",
+            updated_at: new Date().toISOString()
+          }).eq("pr_id", prIdDone);
+          window.__poFromPrId = null;
+        }
+      } catch (ePr) { console.warn(ePr); }
       closePoModal();
       await loadPurchaseOrders();
+      try { await loadPurchaseRequests(); } catch (eL) {}
     }
 
     // Drag-drop: pindah plan antar tanggal di grid operasional
