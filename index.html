@@ -4200,15 +4200,17 @@
         </select>
       </div>
       <div class="field"><label>Produk di SO</label>
-        <select id="plSoProduct"><option value="">— Pilih produk —</option></select>
+        <select id="plSoProduct" onchange="refreshPlanSoGilingBom()"><option value="">— Pilih produk —</option></select>
       </div>
       <div class="field"><label>Tanggal</label><input id="plSoDate" type="date" /></div>
       <div class="field"><label>Shift</label>
         <select id="plSoShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
       </div>
       <div class="field"><label>Proses</label>
-        <input id="plSoMachine" placeholder="Kode atau nama proses" />
+        <input id="plSoMachine" placeholder="Kode atau nama proses" onchange="refreshPlanSoGilingBom()" onblur="refreshPlanSoGilingBom()" />
       </div>
+      <div id="plSoGilingBom"></div>
+      <div id="plSoNormalFields">
       <div class="field"><label>Target</label><input id="plSoTarget" type="number" min="0" step="any" /></div>
       <div class="field"><label>Satuan</label><input id="plSoUnit" value="pcs" /></div>
       <div class="field"><label>Operator (dari database)</label>
@@ -4216,6 +4218,7 @@
           <option value="">— Belum assign (draft) —</option>
         </select>
         <p id="plSoOperatorHint" style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0"></p>
+      </div>
       </div>
       <p id="plSoHint" style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem"></p>
       <div class="modal-actions">
@@ -4412,13 +4415,15 @@
           </select>
         </div>
         <div class="field"><label>Produk</label>
-          <input id="plProduct" placeholder="Ketik kode atau nama..." autocomplete="off" />
+          <input id="plProduct" placeholder="Ketik kode atau nama..." autocomplete="off" onchange="refreshPlanGilingBom()" onblur="refreshPlanGilingBom()" />
           <datalist id="plProductList"></datalist>
         </div>
         <div class="field"><label>Proses</label>
-          <input id="plMachine" placeholder="Ketik kode atau nama..." autocomplete="off" />
+          <input id="plMachine" placeholder="Ketik kode atau nama..." autocomplete="off" onchange="refreshPlanGilingBom()" onblur="refreshPlanGilingBom()" />
           <datalist id="plMachineList"></datalist>
         </div>
+        <div id="plGilingBom"></div>
+        <div id="plNormalFields">
         <div class="field"><label>Target</label><input id="plTarget" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
         <div class="field"><label>Satuan</label><input id="plUnit" placeholder="pcs" value="pcs" autocomplete="off" /></div>
         <div class="field"><label>Operator (dari database)</label>
@@ -4426,6 +4431,7 @@
             <option value="">— Belum assign (draft) —</option>
           </select>
           <p id="plOperatorHint" style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0">Memuat daftar operator…</p>
+        </div>
         </div>
         <div class="field"><label>Status</label>
           <select id="plStatus">
@@ -5633,6 +5639,7 @@
     function closePlanSoModal() { $("planSoModal").classList.remove("show"); document.body.classList.remove("modal-open"); }
     function onPlanSoChange() {
       const oid = $("plSoSelect").value;
+      setTimeout(function(){ try{ refreshPlanSoGilingBom(); }catch(e){} }, 50);
       const order = (allOrders || []).find(o => o.order_id === oid);
       const ps = $("plSoProduct");
       ps.innerHTML = '<option value="">— Pilih produk —</option>';
@@ -5669,12 +5676,40 @@
       let status = assigned_operator ? "open" : "draft";
       if (!order_id || !product_id || !plan_date || !machine_id) return toast("SO, produk, tanggal, proses wajib", true);
       const order = (allOrders || []).find(o => o.order_id === order_id);
+      const no_so = order ? (order.no_so || "") : "";
+
+      if (isGilingMachine(machine_id)) {
+        var packed = collectGilingBomRows("plSoGilingBom", {
+          plan_date: plan_date,
+          shift: shift,
+          machine_id: machine_id,
+          assigned_operator: assigned_operator,
+          status: status,
+          order_id: order_id,
+          no_so: no_so,
+          for_product_id: product_id,
+          _fg: product_id,
+          created_by: (currentUser && currentUser.email) || ""
+        });
+        if (packed && packed.rows && packed.rows.length) {
+          await persistBomExtras(packed.bomToSave);
+          await bulkInsertPlans(packed.rows);
+          toast(packed.rows.length + " plan giling dari SO disimpan");
+          closePlanSoModal();
+          if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+          await loadPlans();
+          try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e) {}
+          return;
+        }
+      }
+
       const payload = {
         plan_id: newPlanId(),
         plan_date, shift, product_id, machine_id, target_qty, unit,
         assigned_operator, status,
         order_id,
-        no_so: order ? (order.no_so || "") : "",
+        no_so: no_so,
+        for_product_id: isGilingMachine(machine_id) ? product_id : "",
         created_by: (currentUser && currentUser.email) || "",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -5745,6 +5780,7 @@
       $("plStatus").value = st;
       fillOperatorList(row ? (row.assigned_operator || "") : (defaults.assigned_operator || ""));
 
+      window.__planModalDefaults = defaults || {};
       $("planModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { mountAllSearchCombos(); } catch (e) {}
@@ -5755,8 +5791,9 @@
         var p2 = (products || []).find(function(x) { return String(x.product_id) === String(prodId); });
         $("plProduct").value = prodId + (p2 && p2.name ? " — " + p2.name : "");
       }
+      try { refreshPlanGilingBom(); } catch (eG) {}
     }
-    function closePlanModal() { $("planModal").classList.remove("show"); document.body.classList.remove("modal-open"); document.body.classList.remove("modal-open"); editingPlanId = null; }
+    function closePlanModal() { $("planModal").classList.remove("show"); document.body.classList.remove("modal-open"); editingPlanId = null; window.__planModalDefaults = {}; var h=$("plGilingBom"); if(h){h.innerHTML="";h.style.display="none";} var n=$("plNormalFields"); if(n)n.style.display=""; }
     async function editPlan(id) {
       if (currentRole() === "operator") {
         toast("Operator hanya mengisi laporan, tidak bisa edit plan", true);
@@ -5783,19 +5820,60 @@
       const machine_id = resolveMachineId($("plMachine").value);
       const target_qty = parseInputNum($("plTarget").value);
       const unit = ($("plUnit").value || "pcs").trim();
-      try {
-        const warn = await checkRouteStockBeforePlan(product_id, machine_id, target_qty);
-        if (warn && !(await appConfirm(warn + "\n\nLanjut simpan plan?", "Peringatan stok WIP"))) return;
-      } catch (eC) {}
       let assigned_operator = resolveOperatorEmail($("plOperator").value || "");
       let status = $("plStatus").value || "open";
       if (!plan_date || !product_id || !machine_id) return toast("Tanggal, produk, proses wajib", true);
       if (!assigned_operator && status === "open") status = "draft";
+
+      var defs = window.__planModalDefaults || {};
+      var order_id = defs.order_id || "";
+      var no_so = defs.no_so || "";
+
+      // Giling baru (bukan edit): multi plan per bahan
+      if (!editingPlanId && isGilingMachine(machine_id)) {
+        var packed = collectGilingBomRows("plGilingBom", {
+          plan_date: plan_date,
+          shift: shift,
+          machine_id: machine_id,
+          assigned_operator: assigned_operator,
+          status: status,
+          order_id: order_id,
+          no_so: no_so,
+          for_product_id: product_id,
+          _fg: product_id,
+          created_by: (currentUser && currentUser.email) || ""
+        });
+        if (packed && packed.rows && packed.rows.length) {
+          await persistBomExtras(packed.bomToSave);
+          await bulkInsertPlans(packed.rows);
+          toast(packed.rows.length + " plan giling (bahan) disimpan");
+          closePlanModal();
+          if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+          try { await loadPlans(); } catch (e) {}
+          try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e2) {}
+          return;
+        }
+        // no materials filled → fallback single FG+giling
+      }
+
+      try {
+        const warn = await checkRouteStockBeforePlan(product_id, machine_id, target_qty);
+        if (warn && !(await appConfirm(warn + "\n\nLanjut simpan plan?", "Peringatan stok WIP"))) return;
+      } catch (eC) {}
+
       const payload = {
-        plan_date, shift, product_id, machine_id, target_qty, unit,
-        assigned_operator, status,
+        plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
+        target_qty: target_qty, unit: unit,
+        assigned_operator: assigned_operator, status: status,
         updated_at: new Date().toISOString()
       };
+      if (isGilingMachine(machine_id)) {
+        // edit bahan: jaga for_product jika ada di defaults/row
+        payload.for_product_id = defs.for_product_id || product_id;
+      }
+      if (order_id) payload.order_id = order_id;
+      if (no_so) payload.no_so = no_so;
+
       let error;
       if (editingPlanId) {
         ({ error } = await sb.from("plans").update(payload).eq("plan_id", editingPlanId));
@@ -5815,6 +5893,7 @@
       closePlanModal();
       if ($("planFilterDate")) $("planFilterDate").value = plan_date;
       await loadPlans();
+      try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e3) {}
     });
 
 
@@ -7287,6 +7366,137 @@ function fillOperatorList(selectedEmail) {
       try { mountAllSearchCombos(); } catch (e) {}
       // expand giling with BOM materials (async)
       expandGilingBomInPp(pid).catch(function(){});
+    }
+
+
+    /** Panel BOM giling generik (plan tunggal / by SO / grid) */
+    async function renderGilingBomInto(hostId, fgId, machineId, opts) {
+      opts = opts || {};
+      var host = $(hostId);
+      if (!host) return false;
+      host.innerHTML = "";
+      var normalId = opts.normalFieldsId;
+      var normal = normalId ? $(normalId) : null;
+      if (!fgId || !machineId || !isGilingMachine(machineId)) {
+        host.style.display = "none";
+        if (normal) normal.style.display = "";
+        return false;
+      }
+      // edit mode satu plan bahan: jangan expand multi
+      if (opts.skipExpand) {
+        host.style.display = "none";
+        if (normal) normal.style.display = "";
+        return false;
+      }
+      if (!window.__bomRows) await loadBom(true);
+      var mats = (window.__bomRows || []).filter(function(b) {
+        return String(b.fg_product_id) === String(fgId);
+      });
+      host.style.display = "block";
+      if (normal) normal.style.display = "none";
+
+      var wrap = document.createElement("div");
+      wrap.className = "pp-bom-wrap";
+      wrap.style.cssText = "margin:0.5rem 0;padding:0.65rem;background:#f0fdf4;border-radius:12px;border:1px dashed #86efac";
+      wrap.innerHTML =
+        '<div style="font-size:0.72rem;font-weight:800;color:#047857;margin-bottom:0.25rem">Giling — bahan (sistem lama)</div>' +
+        '<p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 0.5rem;line-height:1.35">Simpan plan <strong>per bahan</strong>, for_product = FG. Isi target tiap bahan.</p>' +
+        '<div class="pp-bom-list"></div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.45rem">' +
+        '<button type="button" class="btn btn-ghost btn-sm gbom-add">+ Bahan</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm gbom-master">Kelola BOM</button></div>';
+      host.appendChild(wrap);
+      var list = wrap.querySelector(".pp-bom-list");
+      if (mats.length) {
+        mats.forEach(function(b) {
+          list.insertAdjacentHTML("beforeend", ppBomRowHtml(b.material_product_id, "", b.unit || "gr", b.qty_per_fg, ""));
+        });
+      } else {
+        list.innerHTML = '<p class="pp-bom-empty" style="font-size:0.78rem;color:#b45309;margin:0 0 0.45rem">Belum ada BOM. Tambah bahan manual.</p>';
+      }
+      list.querySelectorAll(".pp-bom-qty").forEach(function(inp) {
+        try { bindThousandInput(inp, true); } catch (e) {}
+      });
+      wrap.querySelector(".gbom-add").onclick = function() {
+        addPpBomMaterialRow(list, fgId);
+      };
+      wrap.querySelector(".gbom-master").onclick = function() {
+        try { openBomEditor(fgId); } catch (e) { toast("Buka menu BOM / Giling", true); }
+      };
+      fillPpBomOperatorSelects(wrap);
+      try { mountAllSearchCombos(); } catch (e) {}
+      return true;
+    }
+
+    function collectGilingBomRows(hostId, base) {
+      var host = $(hostId);
+      if (!host || host.style.display === "none") return null;
+      var rows = [];
+      var bomToSave = [];
+      host.querySelectorAll(".pp-bom-row").forEach(function(br) {
+        var mat = br.getAttribute("data-mat") || "";
+        var matInp = br.querySelector(".pp-bom-mat-input");
+        if ((!mat || mat === "") && matInp && matInp.value) {
+          mat = resolveProductId(matInp.value) || String(matInp.value).trim();
+        }
+        var mq = parseInputNum(br.querySelector(".pp-bom-qty") && br.querySelector(".pp-bom-qty").value);
+        var mu = ((br.querySelector(".pp-bom-unit") && br.querySelector(".pp-bom-unit").value) || "gr").trim();
+        var mop = resolveOperatorEmail((br.querySelector(".pp-bom-op") && br.querySelector(".pp-bom-op").value) || "");
+        if (!mat || mq <= 0) return;
+        var row = Object.assign({}, base, {
+          plan_id: newPlanId(),
+          product_id: mat,
+          target_qty: mq,
+          unit: mu,
+          assigned_operator: mop || base.assigned_operator || "",
+          status: (mop || base.assigned_operator) ? (base.status || "open") : "draft",
+          for_product_id: base.for_product_id || base._fg || "",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        if (!row.created_by) row.created_by = (currentUser && currentUser.email) || "";
+        rows.push(row);
+        var saveMaster = br.querySelector(".pp-bom-save-master");
+        if (saveMaster && saveMaster.checked) {
+          bomToSave.push({
+            fg_product_id: row.for_product_id,
+            material_product_id: mat,
+            qty_per_fg: mq,
+            unit: mu
+          });
+        }
+      });
+      return { rows: rows, bomToSave: bomToSave };
+    }
+
+    async function persistBomExtras(bomToSave) {
+      if (!bomToSave || !bomToSave.length || !sb) return;
+      for (var i = 0; i < bomToSave.length; i++) {
+        var b = bomToSave[i];
+        try {
+          await sb.from("product_bom").upsert({
+            fg_product_id: b.fg_product_id,
+            material_product_id: b.material_product_id,
+            qty_per_fg: Number(b.qty_per_fg) || 1,
+            unit: b.unit || "gr",
+            notes: "dari plan"
+          }, { onConflict: "fg_product_id,material_product_id" });
+        } catch (e) { console.warn(e); }
+      }
+      try { await loadBom(true); } catch (e2) {}
+    }
+
+    function refreshPlanGilingBom() {
+      var fg = resolveProductId(($("plProduct") && $("plProduct").value) || "");
+      var mid = resolveMachineId(($("plMachine") && $("plMachine").value) || "");
+      // jika edit plan yang sudah bahan (punya for_product di row) — skip multi expand
+      var skip = !!editingPlanId;
+      renderGilingBomInto("plGilingBom", fg, mid, { normalFieldsId: "plNormalFields", skipExpand: skip }).catch(function(){});
+    }
+    function refreshPlanSoGilingBom() {
+      var fg = ($("plSoProduct") && $("plSoProduct").value) || "";
+      var mid = resolveMachineId(($("plSoMachine") && $("plSoMachine").value) || "");
+      renderGilingBomInto("plSoGilingBom", fg, mid, { normalFieldsId: "plSoNormalFields" }).catch(function(){});
     }
 
     function isGilingMachine(machineId) {
@@ -9320,6 +9530,7 @@ function fillOperatorList(selectedEmail) {
                 plan_date: day,
                 product_id: pid,
                 no_so: noSo,
+                order_id: (g && g.order_id) || "",
                 shift: "1"
               });
             } catch (e) { console.warn(e); }
