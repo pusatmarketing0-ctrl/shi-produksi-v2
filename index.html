@@ -12166,12 +12166,11 @@ function fillOperatorList(selectedEmail) {
       var arrived = Number(line.qty_arrived) || 0;
       var sisa = Math.max(0, qty - arrived);
       if (sisa <= 0 && !line.awaiting_eta) return toast("Tidak ada sisa qty yang menunggu ETA", true);
-      if (sisa <= 0) sisa = qty - arrived;
+      if (sisa <= 0) sisa = Math.max(0, qty - arrived);
       var etaRaw = await appPrompt({
         title: "ETA sisa kiriman vendor",
         message: "Produk " + (line.product_id || "") + " · datang " + formatNum(arrived) + " / PO " + formatNum(qty) +
-          " · sisa " + formatNum(sisa) + "
-Konfirmasi ke vendor — isi ETA kedatangan sisa (YYYY-MM-DD):",
+          " · sisa " + formatNum(sisa) + "\nKonfirmasi ke vendor - isi ETA kedatangan sisa (YYYY-MM-DD):",
         defaultValue: (line.replace_eta || line.eta_date || todayStr()).toString().slice(0, 10),
         okText: "Update ETA",
         cancelText: "Batal"
@@ -12184,12 +12183,11 @@ Konfirmasi ke vendor — isi ETA kedatangan sisa (YYYY-MM-DD):",
         awaiting_eta: false
       }).eq("id", lineId);
       if (error) return toast(error.message, true);
-      toast("ETA sisa " + eta + " disimpan · gudang menunggu kedatangan berikutnya");
+      toast("ETA sisa " + eta + " disimpan - gudang menunggu kedatangan berikutnya");
       try { loadPurchaseOrders(); } catch (e) {}
       try { loadGudangInbox(); } catch (e2) {}
     }
 
-    /** Purchase: set ETA kekurangan (kirim ulang vendor) + buat baris pengganti */
     async function purchaseSetReplaceEta(lineId) {
       if (!sb || !lineId) return;
       var role = (typeof currentRole === "function" ? currentRole() : "") || "";
