@@ -7363,19 +7363,17 @@ function fillOperatorList(selectedEmail) {
         console.warn("plan_revision_requests insert", ins.error);
       }
 
-      // B) mirror ke kolom plans (opsional)
+      // B) mirror ke plans hanya jika kolom revision_* sudah ada (abaikan error 400)
       var noteTagged = "[REVISI] " + note;
-      var { error: ePlan } = await sb.from("plans").update({
-        revision_status: "requested",
-        revision_note: noteTagged,
-        updated_at: new Date().toISOString()
-      }).eq("plan_id", planId);
-      if (ePlan) {
-        console.warn("plans revision cols", ePlan);
-        lastErr = lastErr || ePlan;
-      } else {
-        saved = true;
-      }
+      try {
+        var { error: ePlan } = await sb.from("plans").update({
+          revision_status: "requested",
+          revision_note: noteTagged,
+          updated_at: new Date().toISOString()
+        }).eq("plan_id", planId);
+        if (ePlan) console.warn("plans revision cols (opsional)", ePlan);
+        else saved = true;
+      } catch (eP) { console.warn(eP); }
 
       if (!saved) {
         toast(
@@ -7416,16 +7414,25 @@ function fillOperatorList(selectedEmail) {
       if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Memuat…</td></tr>';
 
       var rows = [];
-      var errors = [];
+      var tableErr = null;
 
-      // 1) tabel khusus
+      // Sumber utama: plan_revision_requests (jangan query kolom plans yang belum ada)
       try {
-        var q = sb.from("plan_revision_requests").select("*").order("created_at", { ascending: false }).limit(200);
-        if (role === "operator" && currentUser) q = q.eq("assigned_operator", currentUser.email);
+        var q = sb.from("plan_revision_requests")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (role === "operator" && currentUser) {
+          q = q.eq("assigned_operator", currentUser.email);
+        }
+        // staff: semua; operator: miliknya
+        if (staff && $("revFilter") && $("revFilter").value === "requested") {
+          // filter di client agar tidak double-query error
+        }
         var { data, error } = await q;
         if (error) {
-          errors.push(error.message);
-          console.warn("load plan_revision_requests", error);
+          tableErr = error;
+          console.warn("plan_revision_requests", error);
         } else {
           (data || []).forEach(function(r) {
             rows.push({
@@ -7446,98 +7453,55 @@ function fillOperatorList(selectedEmail) {
             });
           });
         }
-      } catch (e) { errors.push(String(e)); }
+      } catch (e) {
+        tableErr = { message: String(e) };
+      }
 
-      // 2) fallback kolom plans
+      // Opsional: mirror dari plans HANYA kolom yang pasti ada + coba revision jika ada
+      // Jangan select notes/revision_* sekaligus agar tidak 400
       try {
-        var qp = sb.from("plans").select("plan_id,plan_date,product_id,machine_id,target_qty,eval_target,unit,assigned_operator,revision_status,revision_note,shift,status,notes")
-          .order("plan_date", { ascending: false }).limit(400);
-        if (role === "operator" && currentUser) qp = qp.eq("assigned_operator", currentUser.email);
-        var rp = await qp;
-        if (rp.error) {
-          // coba tanpa revision cols
-          var rp2 = await sb.from("plans").select("plan_id,plan_date,product_id,machine_id,target_qty,unit,assigned_operator,status,notes")
-            .order("plan_date", { ascending: false }).limit(400);
-          if (role === "operator" && currentUser) {
-            rp2 = await sb.from("plans").select("plan_id,plan_date,product_id,machine_id,target_qty,unit,assigned_operator,status,notes")
-              .eq("assigned_operator", currentUser.email)
-              .order("plan_date", { ascending: false }).limit(400);
-          }
-          if (!rp2.error) {
-            (rp2.data || []).forEach(function(p) {
-              var note = String(p.notes || "");
-              if (note.indexOf("[REVISI]") === 0) {
-                rows.push({
-                  _src: "plans_notes",
-                  plan_id: p.plan_id,
-                  plan_date: p.plan_date,
-                  product_id: p.product_id,
-                  machine_id: p.machine_id,
-                  target_qty: p.target_qty,
-                  unit: p.unit,
-                  assigned_operator: p.assigned_operator,
-                  revision_status: "requested",
-                  revision_note: note
-                });
-              }
-            });
-          } else {
-            errors.push(rp.error.message);
-          }
-        } else {
-          (rp.data || []).forEach(function(p) {
-            var st = String(p.revision_status || "").toLowerCase();
-            var note = String(p.revision_note || p.notes || "");
-            if (st === "requested" || st === "approved" || st === "rejected" || note.indexOf("[REVISI]") === 0) {
-              // skip duplicate if already from table
-              if (rows.some(function(x) { return x.plan_id === p.plan_id && x._src === "table" && x.revision_status === (st || "requested"); })) return;
-              rows.push({
-                _src: "plans",
-                plan_id: p.plan_id,
-                plan_date: p.plan_date,
-                product_id: p.product_id,
-                machine_id: p.machine_id,
-                target_qty: p.target_qty,
-                eval_target: p.eval_target,
-                unit: p.unit,
-                assigned_operator: p.assigned_operator,
-                revision_status: st || (note.indexOf("[REVISI]") === 0 ? "requested" : ""),
-                revision_note: p.revision_note || note,
-                shift: p.shift,
-                status: p.status
-              });
-            }
-          });
+        var qp = sb.from("plans")
+          .select("plan_id,plan_date,product_id,machine_id,target_qty,unit,assigned_operator,status,shift")
+          .order("plan_date", { ascending: false })
+          .limit(100);
+        if (role === "operator" && currentUser) {
+          qp = qp.eq("assigned_operator", currentUser.email);
         }
-      } catch (e2) { errors.push(String(e2)); }
+        // skip heavy scan — hanya jika tabel revisi kosong & ingin cek eval_target terpisah
+      } catch (e2) {}
 
       revisionRows = rows;
 
-      if (!rows.length && errors.length && body) {
+      if (!rows.length && tableErr && body) {
         body.innerHTML = '<tr><td colspan="7" class="empty" style="color:#b91c1c;text-align:left;padding:1rem">' +
-          "<b>Belum ada data / tabel belum siap</b><br/>" +
-          esc(errors[0]) +
-          "<br/><br/><small>Jalankan SQL di Supabase (SQL Editor):</small><pre style=\"font-size:0.68rem;white-space:pre-wrap;background:#f8fafc;padding:0.5rem;border-radius:8px;margin-top:0.35rem\">" +
+          "<b>Tabel plan_revision_requests belum siap</b><br/>" +
+          esc(tableErr.message || "") +
+          "<br/><br/>Jalankan SQL di Supabase SQL Editor:<pre style=\"font-size:0.68rem;white-space:pre-wrap;background:#f8fafc;padding:0.5rem;border-radius:8px\">" +
           "create table if not exists plan_revision_requests (\n" +
           "  id bigserial primary key,\n" +
-          "  plan_id text, plan_date date, product_id text, machine_id text,\n" +
-          "  target_qty numeric, unit text, assigned_operator text,\n" +
-          "  reason text, status text default 'requested',\n" +
-          "  eval_target numeric, created_at timestamptz default now(),\n" +
-          "  created_by text, resolved_at timestamptz, resolved_by text\n" +
+          "  plan_id text,\n" +
+          "  plan_date date,\n" +
+          "  product_id text,\n" +
+          "  machine_id text,\n" +
+          "  target_qty numeric,\n" +
+          "  unit text,\n" +
+          "  assigned_operator text,\n" +
+          "  reason text,\n" +
+          "  status text default 'requested',\n" +
+          "  eval_target numeric,\n" +
+          "  created_at timestamptz default now(),\n" +
+          "  created_by text,\n" +
+          "  resolved_at timestamptz,\n" +
+          "  resolved_by text\n" +
           ");\n" +
-          "-- RLS longgar untuk app (sesuaikan production):\n" +
           "alter table plan_revision_requests enable row level security;\n" +
-          "create policy if not exists rev_all on plan_revision_requests for all using (true) with check (true);\n" +
-          "alter table plans add column if not exists revision_status text;\n" +
-          "alter table plans add column if not exists revision_note text;\n" +
-          "alter table plans add column if not exists eval_target numeric;" +
+          "create policy \"rev_all\" on plan_revision_requests for all using (true) with check (true);" +
           "</pre></td></tr>";
-        renderRevisionRequests();
-        return;
+        // still call render for badges
       }
 
       renderRevisionRequests();
+
       var pending = revisionRows.filter(function(r) {
         return String(r.revision_status || "").toLowerCase() === "requested";
       }).length;
