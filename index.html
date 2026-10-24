@@ -4766,6 +4766,7 @@
       <h2>Setujui revisi target</h2>
       <p id="revApproveInfo" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem"></p>
       <input type="hidden" id="revApprovePlanId" />
+      <input type="hidden" id="revApproveReqId" />
       <div class="field"><label>Target penilaian baru</label>
         <input id="revApproveEval" type="number" min="0" step="any" inputmode="decimal" placeholder="Wajib diisi" />
         <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Angka ini dipakai ranking (boleh lebih kecil dari target plan).</p>
@@ -7312,49 +7313,101 @@ function fillOperatorList(selectedEmail) {
       if (cap > 0 && t > 0) return Math.min(t, cap);
       return t;
     }
+
+    /** Tabel khusus revisi (lebih andal dari kolom plans saja) */
+    async function ensureRevisionRow(plan, note) {
+      if (!sb || !plan) return { ok: false };
+      var row = {
+        plan_id: plan.plan_id,
+        plan_date: plan.plan_date || null,
+        product_id: plan.product_id || "",
+        machine_id: plan.machine_id || "",
+        target_qty: Number(plan.target_qty) || 0,
+        unit: plan.unit || "pcs",
+        assigned_operator: plan.assigned_operator || (currentUser && currentUser.email) || "",
+        reason: note,
+        status: "requested",
+        created_at: new Date().toISOString(),
+        created_by: (currentUser && currentUser.email) || ""
+      };
+      var { data, error } = await sb.from("plan_revision_requests").insert(row).select("*").limit(1);
+      if (error) return { ok: false, error: error };
+      return { ok: true, data: data && data[0] };
+    }
+
     async function requestPlanRevision() {
       if (!sb || !currentUser) return;
       var planId = $("rpPlanId") && $("rpPlanId").value;
       if (!planId) return toast("Plan kosong", true);
       var note = (($("rpRevNote") && $("rpRevNote").value) || "").trim();
       if (!note) return toast("Isi alasan revisi target", true);
+
+      var plan = reportPlanMap[planId] || (reportPlans || []).find(function(p) { return p.plan_id === planId; });
+      if (!plan && sb) {
+        try {
+          var { data: pl } = await sb.from("plans").select("*").eq("plan_id", planId).maybeSingle();
+          plan = pl;
+        } catch (e) {}
+      }
+      if (!plan) plan = { plan_id: planId, assigned_operator: currentUser.email };
+
+      var saved = false;
+      var lastErr = null;
+
+      // A) tabel plan_revision_requests (utama)
+      var ins = await ensureRevisionRow(plan, note);
+      if (ins.ok) {
+        saved = true;
+      } else {
+        lastErr = ins.error;
+        console.warn("plan_revision_requests insert", ins.error);
+      }
+
+      // B) mirror ke kolom plans (opsional)
       var noteTagged = "[REVISI] " + note;
-      var payload = {
+      var { error: ePlan } = await sb.from("plans").update({
         revision_status: "requested",
         revision_note: noteTagged,
         updated_at: new Date().toISOString()
-      };
-      var { error } = await sb.from("plans").update(payload).eq("plan_id", planId);
-      if (error) {
-        console.warn("rev update1", error);
-        // coba satu per satu kolom
-        var { error: e2 } = await sb.from("plans").update({
-          revision_status: "requested",
-          updated_at: new Date().toISOString()
-        }).eq("plan_id", planId);
-        if (e2) {
-          // last resort: notes field on plan if exists
-          var { error: e3 } = await sb.from("plans").update({ notes: noteTagged }).eq("plan_id", planId);
-          if (e3) {
-            toast("Gagal simpan revisi: " + (e2.message || error.message) +
-              " — di Supabase SQL jalankan alter table plans add column if not exists revision_status text; add column if not exists revision_note text;", true);
-            return;
-          }
-          toast("Tersimpan sementara di notes — tambahkan kolom revision_status di Supabase", true);
-        } else {
-          await sb.from("plans").update({ revision_note: noteTagged }).eq("plan_id", planId);
-        }
+      }).eq("plan_id", planId);
+      if (ePlan) {
+        console.warn("plans revision cols", ePlan);
+        lastErr = lastErr || ePlan;
+      } else {
+        saved = true;
       }
+
+      if (!saved) {
+        toast(
+          "Gagal simpan permintaan. Jalankan SQL di Supabase:\n\n" +
+          "create table if not exists plan_revision_requests (\n" +
+          "  id bigserial primary key,\n" +
+          "  plan_id text, plan_date date, product_id text, machine_id text,\n" +
+          "  target_qty numeric, unit text, assigned_operator text,\n" +
+          "  reason text, status text default 'requested',\n" +
+          "  eval_target numeric, created_at timestamptz default now(),\n" +
+          "  created_by text, resolved_at timestamptz, resolved_by text\n" +
+          ");\n" +
+          "alter table plans add column if not exists revision_status text;\n" +
+          "alter table plans add column if not exists revision_note text;\n" +
+          "alter table plans add column if not exists eval_target numeric;\n\n" +
+          (lastErr ? lastErr.message : ""),
+          true
+        );
+        return;
+      }
+
       if (reportPlanMap[planId]) {
         reportPlanMap[planId].revision_status = "requested";
-        reportPlanMap[planId].revision_note = note;
+        reportPlanMap[planId].revision_note = noteTagged;
       }
-      if ($("rpRevStatus")) $("rpRevStatus").textContent = "Menunggu persetujuan PPIC/Korlap (seperti cuti).";
+      if ($("rpRevStatus")) $("rpRevStatus").textContent = "Menunggu persetujuan PPIC/Korlap. Cek menu Revisi target.";
       toast("Permintaan revisi terkirim — menunggu persetujuan");
-      try { loadRevisionRequests(); } catch (e) {}
+      try { await loadRevisionRequests(); } catch (e) {}
     }
 
     let revisionRows = [];
+
     async function loadRevisionRequests() {
       if (!sb) return;
       var role = currentRole();
@@ -7362,95 +7415,160 @@ function fillOperatorList(selectedEmail) {
       var body = $("revBody");
       if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Memuat…</td></tr>';
 
-      async function tryQuery(selectCols, withFilter) {
-        var q = sb.from("plans").select(selectCols).order("plan_date", { ascending: false }).limit(300);
-        if (withFilter) q = q.in("revision_status", ["requested", "approved", "rejected"]);
+      var rows = [];
+      var errors = [];
+
+      // 1) tabel khusus
+      try {
+        var q = sb.from("plan_revision_requests").select("*").order("created_at", { ascending: false }).limit(200);
         if (role === "operator" && currentUser) q = q.eq("assigned_operator", currentUser.email);
-        return await q;
-      }
-
-      var selectFull = "plan_id,plan_date,product_id,machine_id,target_qty,eval_target,unit,assigned_operator,revision_status,revision_note,shift,status";
-      var selectMin = "plan_id,plan_date,product_id,machine_id,target_qty,unit,assigned_operator,status";
-      var data = null, error = null;
-
-      // 1) full + filter
-      var r1 = await tryQuery(selectFull, true);
-      if (!r1.error) {
-        data = r1.data;
-      } else {
-        console.warn("rev query1", r1.error);
-        // 2) select * filter
-        var r2 = await tryQuery("*", true);
-        if (!r2.error) {
-          data = r2.data;
+        var { data, error } = await q;
+        if (error) {
+          errors.push(error.message);
+          console.warn("load plan_revision_requests", error);
         } else {
-          console.warn("rev query2", r2.error);
-          // 3) no filter — client filter (kolom mungkin belum ada / RLS)
-          var r3 = await tryQuery("*", false);
-          if (r3.error) {
-            error = r3.error;
-          } else {
-            data = (r3.data || []).filter(function(p) {
-              var st = String(p.revision_status || "").toLowerCase();
-              var note = String(p.revision_note || "");
-              return st === "requested" || st === "approved" || st === "rejected" ||
-                note.indexOf("[REVISI]") === 0 || note.indexOf("REVISI:") === 0;
+          (data || []).forEach(function(r) {
+            rows.push({
+              _src: "table",
+              id: r.id,
+              plan_id: r.plan_id,
+              plan_date: r.plan_date,
+              product_id: r.product_id,
+              machine_id: r.machine_id,
+              target_qty: r.target_qty,
+              eval_target: r.eval_target,
+              unit: r.unit,
+              assigned_operator: r.assigned_operator,
+              revision_status: r.status || "requested",
+              revision_note: r.reason || "",
+              shift: r.shift || "",
+              status: r.status
             });
-          }
+          });
         }
+      } catch (e) { errors.push(String(e)); }
+
+      // 2) fallback kolom plans
+      try {
+        var qp = sb.from("plans").select("plan_id,plan_date,product_id,machine_id,target_qty,eval_target,unit,assigned_operator,revision_status,revision_note,shift,status,notes")
+          .order("plan_date", { ascending: false }).limit(400);
+        if (role === "operator" && currentUser) qp = qp.eq("assigned_operator", currentUser.email);
+        var rp = await qp;
+        if (rp.error) {
+          // coba tanpa revision cols
+          var rp2 = await sb.from("plans").select("plan_id,plan_date,product_id,machine_id,target_qty,unit,assigned_operator,status,notes")
+            .order("plan_date", { ascending: false }).limit(400);
+          if (role === "operator" && currentUser) {
+            rp2 = await sb.from("plans").select("plan_id,plan_date,product_id,machine_id,target_qty,unit,assigned_operator,status,notes")
+              .eq("assigned_operator", currentUser.email)
+              .order("plan_date", { ascending: false }).limit(400);
+          }
+          if (!rp2.error) {
+            (rp2.data || []).forEach(function(p) {
+              var note = String(p.notes || "");
+              if (note.indexOf("[REVISI]") === 0) {
+                rows.push({
+                  _src: "plans_notes",
+                  plan_id: p.plan_id,
+                  plan_date: p.plan_date,
+                  product_id: p.product_id,
+                  machine_id: p.machine_id,
+                  target_qty: p.target_qty,
+                  unit: p.unit,
+                  assigned_operator: p.assigned_operator,
+                  revision_status: "requested",
+                  revision_note: note
+                });
+              }
+            });
+          } else {
+            errors.push(rp.error.message);
+          }
+        } else {
+          (rp.data || []).forEach(function(p) {
+            var st = String(p.revision_status || "").toLowerCase();
+            var note = String(p.revision_note || p.notes || "");
+            if (st === "requested" || st === "approved" || st === "rejected" || note.indexOf("[REVISI]") === 0) {
+              // skip duplicate if already from table
+              if (rows.some(function(x) { return x.plan_id === p.plan_id && x._src === "table" && x.revision_status === (st || "requested"); })) return;
+              rows.push({
+                _src: "plans",
+                plan_id: p.plan_id,
+                plan_date: p.plan_date,
+                product_id: p.product_id,
+                machine_id: p.machine_id,
+                target_qty: p.target_qty,
+                eval_target: p.eval_target,
+                unit: p.unit,
+                assigned_operator: p.assigned_operator,
+                revision_status: st || (note.indexOf("[REVISI]") === 0 ? "requested" : ""),
+                revision_note: p.revision_note || note,
+                shift: p.shift,
+                status: p.status
+              });
+            }
+          });
+        }
+      } catch (e2) { errors.push(String(e2)); }
+
+      revisionRows = rows;
+
+      if (!rows.length && errors.length && body) {
+        body.innerHTML = '<tr><td colspan="7" class="empty" style="color:#b91c1c;text-align:left;padding:1rem">' +
+          "<b>Belum ada data / tabel belum siap</b><br/>" +
+          esc(errors[0]) +
+          "<br/><br/><small>Jalankan SQL di Supabase (SQL Editor):</small><pre style=\"font-size:0.68rem;white-space:pre-wrap;background:#f8fafc;padding:0.5rem;border-radius:8px;margin-top:0.35rem\">" +
+          "create table if not exists plan_revision_requests (\n" +
+          "  id bigserial primary key,\n" +
+          "  plan_id text, plan_date date, product_id text, machine_id text,\n" +
+          "  target_qty numeric, unit text, assigned_operator text,\n" +
+          "  reason text, status text default 'requested',\n" +
+          "  eval_target numeric, created_at timestamptz default now(),\n" +
+          "  created_by text, resolved_at timestamptz, resolved_by text\n" +
+          ");\n" +
+          "-- RLS longgar untuk app (sesuaikan production):\n" +
+          "alter table plan_revision_requests enable row level security;\n" +
+          "create policy if not exists rev_all on plan_revision_requests for all using (true) with check (true);\n" +
+          "alter table plans add column if not exists revision_status text;\n" +
+          "alter table plans add column if not exists revision_note text;\n" +
+          "alter table plans add column if not exists eval_target numeric;" +
+          "</pre></td></tr>";
+        renderRevisionRequests();
+        return;
       }
 
-      if (error) {
-        revisionRows = [];
-        if (body) {
-          body.innerHTML = '<tr><td colspan="7" class="empty" style="color:#b91c1c">Gagal muat: ' + esc(error.message) +
-            '<br/><small>Jalankan SQL: alter table plans add column revision_status text; add revision_note text; add eval_target numeric;</small></td></tr>';
-        }
-        toast("Revisi target: " + error.message, true);
-      } else {
-        revisionRows = data || [];
-      }
       renderRevisionRequests();
       var pending = revisionRows.filter(function(r) {
-        return String(r.revision_status || "").toLowerCase() === "requested" ||
-          String(r.revision_note || "").indexOf("[REVISI]") === 0;
+        return String(r.revision_status || "").toLowerCase() === "requested";
       }).length;
       var badge = $("revPendingBadge");
       if (badge) {
-        if (pending && staff) {
-          badge.style.display = "";
-          badge.textContent = pending + " pending";
-        } else badge.style.display = "none";
+        if (pending && staff) { badge.style.display = ""; badge.textContent = pending + " pending"; }
+        else badge.style.display = "none";
       }
       var navB = $("navRevBadge");
       if (navB) {
-        if (pending && staff) {
-          navB.style.display = "";
-          navB.textContent = String(pending);
-        } else {
-          navB.style.display = "none";
-        }
+        if (pending && staff) { navB.style.display = ""; navB.textContent = String(pending); }
+        else navB.style.display = "none";
       }
     }
+
     function renderRevisionRequests() {
       var body = $("revBody");
       var cards = $("revCards");
       var staff = ["admin", "ppic", "korlap"].includes(currentRole());
       if (!body && !cards) return;
-      var filt = ($("revFilter") && $("revFilter").value) || "requested";
+      var filt = ($("revFilter") && $("revFilter").value);
+      if (filt === undefined || filt === null) filt = "requested";
       var rows = revisionRows.slice();
       if (filt) {
         rows = rows.filter(function(r) {
-          var st = String(r.revision_status || "").toLowerCase();
-          if (filt === "requested") {
-            return st === "requested" || st === "pending" || String(r.revision_note || "").indexOf("[REVISI]") === 0;
-          }
-          return st === filt;
+          return String(r.revision_status || "").toLowerCase() === String(filt).toLowerCase();
         });
       }
       if (!rows.length) {
         if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada permintaan revisi' +
-          (filt === "requested" ? " pending" : "") + '</td></tr>';
+          (filt === "requested" ? " pending" : "") + '. Operator ajukan dari form laporan.</td></tr>';
         if (cards) cards.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada data</div></div>';
         return;
       }
@@ -7458,8 +7576,8 @@ function fillOperatorList(selectedEmail) {
         var st = r.revision_status || "requested";
         var acts = "";
         if (staff && st === "requested") {
-          acts = '<button class="btn btn-sm btn-primary" data-revid="' + esc(r.plan_id) + '" data-revact="approve">Setuju</button> ' +
-            '<button class="btn btn-sm btn-danger" data-revid="' + esc(r.plan_id) + '" data-revact="reject">Tolak</button>';
+          acts = '<button class="btn btn-sm btn-primary" data-revid="' + esc(r.plan_id) + '" data-revsid="' + esc(String(r.id || "")) + '" data-revact="approve">Setuju</button> ' +
+            '<button class="btn btn-sm btn-danger" data-revid="' + esc(r.plan_id) + '" data-revsid="' + esc(String(r.id || "")) + '" data-revact="reject">Tolak</button>';
         }
         return '<tr>' +
           '<td class="mono">' + esc(String(r.plan_date || "").slice(0, 10)) + '</td>' +
@@ -7467,7 +7585,7 @@ function fillOperatorList(selectedEmail) {
           '<td><strong>' + esc(r.product_id) + '</strong><div style="font-size:0.72rem;color:var(--text-muted)">' +
           esc(r.machine_id) + " · " + esc(r.plan_id) + '</div></td>' +
           '<td>' + formatNum(r.target_qty) + (r.eval_target ? ' → <b>' + formatNum(r.eval_target) + '</b>' : '') + '</td>' +
-          '<td style="max-width:180px;font-size:0.78rem">' + esc(r.revision_note || "—") + '</td>' +
+          '<td style="max-width:180px;font-size:0.78rem">' + esc(String(r.revision_note || "").replace(/^\[REVISI\]\s*/, "")) + '</td>' +
           '<td>' + statusPill(st === "requested" ? "pending" : st) + '</td>' +
           '<td>' + acts + '</td></tr>';
       }
@@ -7476,9 +7594,10 @@ function fillOperatorList(selectedEmail) {
         body.querySelectorAll("[data-revid]").forEach(function(btn) {
           btn.onclick = function() {
             var id = btn.getAttribute("data-revid");
+            var sid = btn.getAttribute("data-revsid");
             var act = btn.getAttribute("data-revact");
-            if (act === "approve") openRevApproveModal(id);
-            else rejectPlanRevision(id);
+            if (act === "approve") openRevApproveModal(id, sid);
+            else rejectPlanRevision(id, sid);
           };
         });
       }
@@ -7488,20 +7607,24 @@ function fillOperatorList(selectedEmail) {
           var acts = "";
           if (staff && st === "requested") {
             acts = '<div style="display:flex;gap:0.35rem;margin-top:0.45rem">' +
-              '<button class="btn btn-sm btn-primary" type="button" onclick="openRevApproveModal(\'' + esc(r.plan_id) + '\')">Setuju</button>' +
-              '<button class="btn btn-sm btn-danger" type="button" onclick="rejectPlanRevision(\'' + esc(r.plan_id) + '\')">Tolak</button></div>';
+              '<button class="btn btn-sm btn-primary" type="button" onclick="openRevApproveModal(\'' + esc(r.plan_id) + '\',\'' + esc(String(r.id || "")) + '\')">Setuju</button>' +
+              '<button class="btn btn-sm btn-danger" type="button" onclick="rejectPlanRevision(\'' + esc(r.plan_id) + '\',\'' + esc(String(r.id || "")) + '\')">Tolak</button></div>';
           }
           return '<div class="m-card"><div class="m-title">' + esc(String(r.plan_date || "").slice(0, 10)) + ' · ' + esc(r.product_id) +
             '</div><div class="m-sub">' + esc(r.assigned_operator || "") + ' · target ' + formatNum(r.target_qty) +
-            '</div><div class="m-sub">' + esc(r.revision_note || "") + '</div><div class="m-row">' +
+            '</div><div class="m-sub">' + esc(String(r.revision_note || "").replace(/^\[REVISI\]\s*/, "")) + '</div><div class="m-row">' +
             statusPill(st === "requested" ? "pending" : st) + '</div>' + acts + '</div>';
         }).join("");
       }
     }
-    function openRevApproveModal(planId) {
-      var r = revisionRows.find(function(x) { return x.plan_id === planId; });
-      if (!r) return toast("Plan tidak ditemukan", true);
+
+    function openRevApproveModal(planId, reqId) {
+      var r = revisionRows.find(function(x) {
+        return x.plan_id === planId && (!reqId || String(x.id || "") === String(reqId));
+      }) || revisionRows.find(function(x) { return x.plan_id === planId; });
+      if (!r) return toast("Data revisi tidak ditemukan — refresh menu Revisi target", true);
       if ($("revApprovePlanId")) $("revApprovePlanId").value = planId;
+      if ($("revApproveReqId")) $("revApproveReqId").value = reqId || r.id || "";
       var cap = getProcessCapacityPerShift(r.machine_id);
       var suggest = Number(r.eval_target) > 0 ? r.eval_target : (cap > 0 ? Math.min(Number(r.target_qty) || 0, cap) : Math.round((Number(r.target_qty) || 0) * 0.8));
       if ($("revApproveEval")) $("revApproveEval").value = suggest > 0 ? suggest : "";
@@ -7511,7 +7634,7 @@ function fillOperatorList(selectedEmail) {
           "<b>" + esc(r.product_id) + "</b> · " + esc(r.machine_id) + "<br/>" +
           "Operator: " + esc(r.assigned_operator || "—") + "<br/>" +
           "Target plan: <b>" + formatNum(r.target_qty) + "</b> " + esc(r.unit || "") + "<br/>" +
-          "Alasan: " + esc(r.revision_note || "—");
+          "Alasan: " + esc(String(r.revision_note || "").replace(/^\[REVISI\]\s*/, "") || "—");
       }
       if ($("revApproveModal")) $("revApproveModal").classList.add("show");
       document.body.classList.add("modal-open");
@@ -7525,7 +7648,7 @@ function fillOperatorList(selectedEmail) {
       var base = Number(evalTarget) || 0;
       if (!(base > 0)) return;
       try {
-        var { data: reps } = await sb.from("reports").select("report_id,downtime_min,actual_qty").eq("plan_id", planId);
+        var { data: reps } = await sb.from("reports").select("report_id,downtime_min").eq("plan_id", planId);
         for (var i = 0; i < (reps || []).length; i++) {
           var r = reps[i];
           var adj = calcTargetAdj(base, Number(r.downtime_min) || 0);
@@ -7540,43 +7663,68 @@ function fillOperatorList(selectedEmail) {
     async function confirmRevApprove() {
       if (!sb) return;
       var planId = $("revApprovePlanId") && $("revApprovePlanId").value;
+      var reqId = $("revApproveReqId") && $("revApproveReqId").value;
       var evalT = parseInputNum($("revApproveEval") && $("revApproveEval").value);
       var note = (($("revApproveNote") && $("revApproveNote").value) || "").trim();
       if (!planId) return;
       if (!(evalT > 0)) return toast("Isi target penilaian baru", true);
+
+      // update tabel revisi
+      if (reqId) {
+        await sb.from("plan_revision_requests").update({
+          status: "approved",
+          eval_target: evalT,
+          resolved_at: new Date().toISOString(),
+          resolved_by: (currentUser && currentUser.email) || ""
+        }).eq("id", reqId);
+      } else {
+        await sb.from("plan_revision_requests").update({
+          status: "approved",
+          eval_target: evalT,
+          resolved_at: new Date().toISOString(),
+          resolved_by: (currentUser && currentUser.email) || ""
+        }).eq("plan_id", planId).eq("status", "requested");
+      }
+
+      // update plan
       var payload = {
         eval_target: evalT,
         revision_status: "approved",
-        revision_note: note ? (("Disetujui: " + note) + (revisionRows.find(function(x){return x.plan_id===planId;}) ? " | " + (revisionRows.find(function(x){return x.plan_id===planId;}).revision_note || "") : "")) : undefined,
         updated_at: new Date().toISOString()
       };
-      // keep original note if no extra
-      var orig = revisionRows.find(function(x) { return x.plan_id === planId; });
-      if (orig && orig.revision_note && !note) {
-        delete payload.revision_note; // keep
-      } else if (orig && note) {
-        payload.revision_note = orig.revision_note + " → Disetujui: " + note;
-      }
       var { error } = await sb.from("plans").update(payload).eq("plan_id", planId);
-      if (error) return toast(error.message, true);
+      if (error) console.warn(error);
+
       await recalcReportsForPlan(planId, evalT);
       closeRevApproveModal();
-      toast("Revisi disetujui · laporan & ranking dihitung ulang");
+      toast("Revisi disetujui · ranking dihitung ulang");
       await loadRevisionRequests();
       try { if (typeof loadRanking === "function") await loadRanking(); } catch (e) {}
-      try { if (currentRole() === "operator") await loadOperatorHome(); } catch (e2) {}
     }
-    async function rejectPlanRevision(planId) {
+    async function rejectPlanRevision(planId, reqId) {
       if (!sb || !planId) return;
       if (!(await appConfirm("Tolak permintaan revisi target plan ini?", "Tolak revisi"))) return;
-      var { error } = await sb.from("plans").update({
+      if (reqId) {
+        await sb.from("plan_revision_requests").update({
+          status: "rejected",
+          resolved_at: new Date().toISOString(),
+          resolved_by: (currentUser && currentUser.email) || ""
+        }).eq("id", reqId);
+      } else {
+        await sb.from("plan_revision_requests").update({
+          status: "rejected",
+          resolved_at: new Date().toISOString(),
+          resolved_by: (currentUser && currentUser.email) || ""
+        }).eq("plan_id", planId).eq("status", "requested");
+      }
+      await sb.from("plans").update({
         revision_status: "rejected",
         updated_at: new Date().toISOString()
       }).eq("plan_id", planId);
-      if (error) return toast(error.message, true);
       toast("Permintaan revisi ditolak");
       await loadRevisionRequests();
     }
+
 
     function calcTargetAdj(target, downtimeMin) {
       const t = Number(target) || 0;
