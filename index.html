@@ -3999,7 +3999,7 @@
               <table class="data-table">
                 <thead><tr>
                   <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
-                  <th>Qty</th><th>Diterima</th><th>Sisa</th><th>QC</th><th></th>
+                  <th>Qty PO</th><th>Datang</th><th>QC lulus</th><th>Stok</th><th>Status</th><th></th>
                 </tr></thead>
                 <tbody id="gudangBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
               </table>
@@ -4050,7 +4050,7 @@
           <div class="page-head">
             <div>
               <h1>Quality Control</h1>
-              <p>QC dulu → Purchase ETA jika tolak → gudang terima yang lulus.</p>
+              <p>Gudang catat barang sampai → QC cek kualitas → Gudang validasi stok lulus QC. Jika qty datang kurang, Purchase update ETA sisa.</p>
             </div>
             <button class="btn btn-ghost" type="button" onclick="loadQcInbox()">Refresh</button>
           </div>
@@ -11740,7 +11740,7 @@ function fillOperatorList(selectedEmail) {
     async function loadGudangInbox() {
       if (!sb) return;
       var body = $("gudangBody");
-      if (body) body.innerHTML = '<tr><td colspan="10" class="empty">Memuat…</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="11" class="empty">Memuat…</td></tr>';
       try { loadGudangStock(); } catch (eS) {}
       var { data: pos, error } = await sb.from("purchase_orders")
         .select("po_id,no_so,order_id,po_date,status,purchase_lines(*)")
@@ -11748,7 +11748,7 @@ function fillOperatorList(selectedEmail) {
         .order("po_date", { ascending: false })
         .limit(150);
       if (error) {
-        if (body) body.innerHTML = '<tr><td colspan="10" class="empty">' + esc(error.message) + '</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="11" class="empty">' + esc(error.message) + '</td></tr>';
         return;
       }
       gudangRows = [];
@@ -11762,11 +11762,15 @@ function fillOperatorList(selectedEmail) {
             vendor_name: l.vendor_name || po.supplier_name || "",
             eta_date: l.eta_date ? String(l.eta_date).slice(0,10) : "",
             qty: Number(l.qty) || 0,
+            qty_arrived: Number(l.qty_arrived) || 0,
             qty_received: Number(l.qty_received) || 0,
             qty_qc_passed: Number(l.qty_qc_passed) || 0,
+            qty_qc_failed: Number(l.qty_qc_failed) || 0,
             unit: l.unit || "pcs",
             kategori: l.kategori || "",
-            qc_status: l.qc_status || "pending"
+            qc_status: l.qc_status || "pending",
+            awaiting_eta: !!l.awaiting_eta,
+            replace_eta: l.replace_eta ? String(l.replace_eta).slice(0,10) : ""
           });
         });
       });
@@ -11778,58 +11782,143 @@ function fillOperatorList(selectedEmail) {
       var q = (($("gudangSearch") && $("gudangSearch").value) || "").toLowerCase().trim();
       var f = ($("gudangFilter") && $("gudangFilter").value) || "open";
       var list = gudangRows.filter(function(r) {
-        if (f === "open" && r.qty_received >= r.qty) return false;
-        if (f === "eta" && !r.eta_date) return false;
+        var arrived = Number(r.qty_arrived) || 0;
+        var received = Number(r.qty_received) || 0;
+        var qty = Number(r.qty) || 0;
+        var passed = Number(r.qty_qc_passed) || 0;
+        if (f === "open") {
+          // masih ada yang belum sampai penuh ATAU belum stok penuh dari lulus QC
+          if (arrived >= qty && received >= passed && passed > 0) return false;
+          if (arrived >= qty && passed <= 0 && (r.qc_status === "failed")) return false;
+        }
+        if (f === "eta" && !r.eta_date && !r.awaiting_eta) return false;
         if (!q) return true;
         var blob = (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name).toLowerCase();
         return blob.indexOf(q) >= 0;
       });
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada data</td></tr>';
+        body.innerHTML = '<tr><td colspan="11" class="empty">Tidak ada data</td></tr>';
         return;
       }
       body.innerHTML = list.map(function(r) {
-        var sisa = Math.max(0, r.qty - r.qty_received);
         var pname = "";
         try {
           var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
           pname = p ? p.name : "";
         } catch (e) {}
-        var qc = r.qc_status || "pending";
-        var qcLabel = qc === "passed" ? "Lulus" : (qc === "failed" ? "Tolak" : "Pending");
-        var qcColor = qc === "passed" ? "#059669" : (qc === "failed" ? "#b91c1c" : "#a16207");
+        var arrived = Number(r.qty_arrived) || 0;
+        var passed = Number(r.qty_qc_passed) || 0;
+        var received = Number(r.qty_received) || 0;
+        var qty = Number(r.qty) || 0;
+        var stLabel = "", stColor = "#64748b";
+        if (arrived <= 0) { stLabel = "Menunggu datang"; stColor = "#a16207"; }
+        else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
+        else if ((r.qc_status || "pending") === "pending" || (passed + (Number(r.qty_qc_failed)||0)) < arrived) {
+          stLabel = "Menunggu QC"; stColor = "#2563eb";
+        } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
+        else { stLabel = "Selesai"; stColor = "#059669"; }
         return "<tr>" +
           "<td>" + esc(r.po_id) + "</td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
           "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
           "<td>" + esc(r.vendor_name || "—") + "</td>" +
-          "<td>" + esc(r.eta_date || "—") + "</td>" +
-          "<td>" + formatNum(r.qty) + " " + esc(r.unit) + "</td>" +
-          "<td>" + formatNum(r.qty_received) + "</td>" +
-          "<td>" + formatNum(sisa) + "</td>" +
-          "<td style='font-weight:700;color:" + qcColor + "'>" + qcLabel + "</td>" +
+          "<td>" + esc(r.replace_eta || r.eta_date || "—") + (r.awaiting_eta ? "<div style='font-size:0.65rem;color:#c2410c'>Perlu ETA sisa</div>" : "") + "</td>" +
+          "<td>" + formatNum(qty) + " " + esc(r.unit) + "</td>" +
+          "<td>" + formatNum(arrived) + "</td>" +
+          "<td>" + formatNum(passed) + "</td>" +
+          "<td>" + formatNum(received) + "</td>" +
+          "<td style='font-weight:700;font-size:0.75rem;color:" + stColor + "'>" + stLabel + "</td>" +
           "<td>" + gudangActionHtml(r) + "</td></tr>";
       }).join("");
     }
     function gudangActionHtml(r) {
-      var passed2 = Number(r.qty_qc_passed) || 0;
-      if ((r.qc_status || "") === "passed" && passed2 <= 0) passed2 = Number(r.qty) || 0;
-      var sisaG2 = Math.max(0, passed2 - (Number(r.qty_received) || 0));
-      if ((r.qc_status || "pending") === "pending" && passed2 <= 0) {
-        return "<span style=\"font-size:0.72rem;color:#a16207\">Menunggu QC</span>";
+      var qty = Number(r.qty) || 0;
+      var arrived = Number(r.qty_arrived) || 0;
+      var passed = Number(r.qty_qc_passed) || 0;
+      var received = Number(r.qty_received) || 0;
+      var failed = Number(r.qty_qc_failed) || 0;
+      var qcDone = passed + failed;
+      var btns = [];
+      // 1) Barang sampai (sebelum / selain QC)
+      if (arrived < qty) {
+        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangArrive(" +
+          Number(r.line_id) + ")\">Barang sampai</button>");
       }
-      if (sisaG2 > 0) {
-        // Hanya line_id — data lain diambil dari gudangRows (hindari putus quote di onclick)
-        return "<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangReceive(" +
-          Number(r.line_id) + ")\">Terima</button>";
+      // 2) Menunggu QC
+      if (arrived > qcDone) {
+        btns.push("<span style=\"font-size:0.7rem;color:#2563eb;display:block;margin-top:0.2rem\">→ QC cek " + formatNum(arrived - qcDone) + "</span>");
       }
-      return "<span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span>";
+      // 3) Validasi stok setelah QC lulus
+      var sisaStok = Math.max(0, passed - received);
+      if (sisaStok > 0) {
+        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"gudangReceive(" +
+          Number(r.line_id) + ")\">Validasi stok</button>");
+      }
+      if (!btns.length) {
+        return "<span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span>";
+      }
+      return btns.join(" ");
     }
+
+    /** Gudang: catat qty yang fisik datang (sebelum QC) */
+    async function gudangArrive(lineId) {
+      if (!sb || !lineId) return;
+      var rowG = (gudangRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
+      var qty = Number(rowG.qty) || 0;
+      var already = Number(rowG.qty_arrived) || 0;
+      var sisa = Math.max(0, qty - already);
+      if (sisa <= 0) return toast("Qty PO sudah tercatat datang penuh", true);
+      var raw = await appPrompt({
+        title: "Barang sampai",
+        message: "Qty PO: " + formatNum(qty) + " · Sudah datang: " + formatNum(already) +
+          " · Sisa: " + formatNum(sisa) + "\nIsi qty yang baru datang sekarang:",
+        defaultValue: String(sisa),
+        okText: "Catat datang",
+        cancelText: "Batal"
+      });
+      if (raw == null) return;
+      var n = parseInputNum(raw);
+      if (!(n > 0)) return toast("Qty tidak valid", true);
+      if (n > sisa) return toast("Maks. sisa: " + formatNum(sisa), true);
+      var totalArrived = already + n;
+      var awaiting = totalArrived < qty;
+      var payload = {
+        qty_arrived: totalArrived,
+        awaiting_eta: awaiting
+      };
+      // soft status for QC queue
+      if (!(rowG.qc_status) || rowG.qc_status === "pending") {
+        /* keep pending */
+      }
+      var { error } = await sb.from("purchase_lines").update(payload).eq("id", lineId);
+      if (error) {
+        // fallback tanpa qty_arrived / awaiting_eta
+        toast(error.message + " — jalankan SQL: alter table purchase_lines add column if not exists qty_arrived numeric default 0; add column if not exists awaiting_eta boolean default false;", true);
+        return;
+      }
+      var msg = "Datang +" + formatNum(n) + " → total datang " + formatNum(totalArrived);
+      if (awaiting) {
+        msg += " · Sisa " + formatNum(qty - totalArrived) + " → Purchase perlu konfirmasi ETA vendor";
+        try {
+          // flag di PO level notes optional
+          await sb.from("purchase_orders").update({
+            updated_at: new Date().toISOString()
+          }).eq("po_id", rowG.po_id);
+        } catch (e) {}
+      } else {
+        msg += " · Siap antre QC";
+      }
+      toast(msg);
+      loadGudangInbox();
+      try { loadGudangDash(); } catch (e) {}
+      try { if (typeof loadPurchase === "function") loadPurchase(); } catch (e2) {}
+    }
+
+    /** Gudang: validasi stok = masuk gudang dari qty lulus QC */
     async function gudangReceive(lineId) {
       if (!sb || !lineId) return;
       var rowG = (gudangRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
       var alreadyReceived = Number(rowG.qty_received) || 0;
-      var maxQty = Number(rowG.qty) || 0;
       var productId = rowG.product_id || "";
       var unit = rowG.unit || "pcs";
       var poId = rowG.po_id || "";
@@ -11837,17 +11926,17 @@ function fillOperatorList(selectedEmail) {
       var qcPassed = Number(rowG.qty_qc_passed) || 0;
       var qcSt = rowG.qc_status || "pending";
       if (qcPassed <= 0 && qcSt !== "passed" && qcSt !== "partial") {
-        return toast("Belum QC / belum ada qty lulus. Selesaikan QC dulu.", true);
+        return toast("Belum ada qty lulus QC. Selesaikan QC dulu.", true);
       }
-      if ((qcSt === "passed" || qcSt === "partial") && qcPassed <= 0) qcPassed = maxQty;
+      if ((qcSt === "passed" || qcSt === "partial") && qcPassed <= 0) qcPassed = Number(rowG.qty_arrived) || Number(rowG.qty) || 0;
       var sisaQc = Math.max(0, qcPassed - alreadyReceived);
-      if (sisaQc <= 0) return toast("Qty lulus QC sudah diterima penuh di gudang", true);
+      if (sisaQc <= 0) return toast("Qty lulus QC sudah divalidasi stok penuh", true);
       var raw = await appPrompt({
-        title: "Penerimaan gudang",
-        message: "Lulus QC: " + formatNum(qcPassed) + " · Sudah di gudang: " + formatNum(alreadyReceived) +
-          " · Sisa boleh terima: " + formatNum(sisaQc),
+        title: "Validasi stok gudang",
+        message: "Lulus QC: " + formatNum(qcPassed) + " · Sudah stok: " + formatNum(alreadyReceived) +
+          " · Sisa validasi: " + formatNum(sisaQc),
         defaultValue: String(sisaQc),
-        okText: "Terima",
+        okText: "Masuk stok",
         cancelText: "Batal"
       });
       if (raw == null) return;
@@ -11866,13 +11955,14 @@ function fillOperatorList(selectedEmail) {
           po_id: poId,
           no_so: noSo,
           qc_status: "passed",
-          ref_note: "Terima gudang setelah QC, line " + lineId,
+          ref_note: "Validasi stok setelah QC, line " + lineId,
           created_by: (currentUser && currentUser.email) || ""
         });
       } catch (eM) {}
-      toast("Diterima +" + formatNum(n) + " → total " + formatNum(total));
+      toast("Stok +" + formatNum(n) + " → total " + formatNum(total));
       loadGudangInbox();
       try { loadGudangDash(); } catch (e) {}
+      try { loadGudangStock(); } catch (e3) {}
     }
 
     var qcRows = [];
@@ -11881,7 +11971,7 @@ function fillOperatorList(selectedEmail) {
       var body = $("qcBody");
       if (body) body.innerHTML = '<tr><td colspan="8" class="empty">Memuat…</td></tr>';
       var { data: pos, error } = await sb.from("purchase_orders")
-        .select("po_id,no_so,status,purchase_lines(id,product_id,qty,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta)")
+        .select("po_id,no_so,status,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta,awaiting_eta)")
         .neq("status", "cancelled")
         .order("po_date", { ascending: false })
         .limit(150);
@@ -11894,7 +11984,16 @@ function fillOperatorList(selectedEmail) {
         (po.purchase_lines || []).forEach(function(l) {
           var qOrd = Number(l.qty) || 0;
           if (qOrd <= 0) return;
-          // QC dulu — tampilkan semua baris PO (belum perlu diterima gudang)
+          var arrived = Number(l.qty_arrived) || 0;
+          // QC hanya setelah gudang catat barang sampai (qty_arrived > 0)
+          // legacy: jika qty_arrived belum ada kolom / 0 tapi sudah ada qc → tetap tampil
+          var qcp = Number(l.qty_qc_passed) || 0;
+          var qcf = Number(l.qty_qc_failed) || 0;
+          if (arrived <= 0 && qcp <= 0 && qcf <= 0 && (l.qc_status || "pending") === "pending") {
+            // belum datang — skip dari antrian QC
+            return;
+          }
+          if (arrived <= 0 && (qcp > 0 || qcf > 0)) arrived = qcp + qcf; // legacy
           qcRows.push({
             line_id: l.id,
             po_id: po.po_id,
@@ -11902,9 +12001,10 @@ function fillOperatorList(selectedEmail) {
             product_id: l.product_id,
             vendor_name: l.vendor_name || "",
             qty: qOrd,
+            qty_arrived: arrived,
             qty_received: Number(l.qty_received) || 0,
-            qty_qc_passed: Number(l.qty_qc_passed) || 0,
-            qty_qc_failed: Number(l.qty_qc_failed) || 0,
+            qty_qc_passed: qcp,
+            qty_qc_failed: qcf,
             unit: l.unit || "pcs",
             qc_status: l.qc_status || "pending",
             qc_notes: l.qc_notes || "",
@@ -11963,37 +12063,44 @@ function fillOperatorList(selectedEmail) {
     async function qcDecide(lineId, result) {
       if (!sb || !lineId) return;
       var row = (qcRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
-      // Alur: QC dulu (berdasarkan qty PO / datang), baru gudang terima yang lulus
-      var qtyPo = Number(row.qty) || Number(row.qty_received) || 0;
-      if (qtyPo <= 0) return toast("Qty PO tidak valid", true);
+      // QC berdasarkan qty yang sudah datang di gudang
+      var qtyArrived = Number(row.qty_arrived) || 0;
+      var alreadyPass = Number(row.qty_qc_passed) || 0;
+      var alreadyFail = Number(row.qty_qc_failed) || 0;
+      if (qtyArrived <= 0) return toast("Belum ada barang datang. Gudang klik Barang sampai dulu.", true);
+      var pendingQc = Math.max(0, qtyArrived - alreadyPass - alreadyFail);
+      if (pendingQc <= 0) return toast("Semua qty yang datang sudah di-QC", true);
 
-      var defaultPass = result === "passed" ? qtyPo : 0;
+      var defaultPass = result === "passed" ? pendingQc : 0;
       var passRaw = await appPrompt({
-        title: "QC dulu — qty LULUS",
-        message: "Qty PO: " + formatNum(qtyPo) + " " + (row.unit || "") +
-          "\nQC dilakukan SEBELUM gudang terima.\nIsi qty yang LULUS:",
+        title: "QC — qty LULUS",
+        message: "Datang: " + formatNum(qtyArrived) + " · Belum QC: " + formatNum(pendingQc) + " " + (row.unit || "") +
+          "\nIsi qty yang LULUS dari batch ini:",
         defaultValue: String(defaultPass),
         okText: "Lanjut",
         cancelText: "Batal"
       });
       if (passRaw == null) return;
-      var qtyPass = parseInputNum(passRaw);
-      if (qtyPass < 0 || qtyPass > qtyPo) return toast("Qty lulus tidak valid", true);
+      var qtyPassBatch = parseInputNum(passRaw);
+      if (qtyPassBatch < 0 || qtyPassBatch > pendingQc) return toast("Qty lulus tidak valid (maks " + formatNum(pendingQc) + ")", true);
 
-      var qtyFailSuggest = Math.max(0, qtyPo - qtyPass);
+      var qtyFailSuggest = Math.max(0, pendingQc - qtyPassBatch);
       var failRaw = await appPrompt({
         title: "QC — qty TOLAK",
-        message: "Qty lulus: " + formatNum(qtyPass) + "\nSisa dari PO: " + formatNum(qtyFailSuggest) +
+        message: "Lulus batch: " + formatNum(qtyPassBatch) + "\nSisa batch: " + formatNum(qtyFailSuggest) +
           "\nIsi qty yang DITOLAK (boleh 0):",
         defaultValue: String(qtyFailSuggest),
         okText: "Lanjut",
         cancelText: "Batal"
       });
       if (failRaw == null) return;
-      var qtyFail = parseInputNum(failRaw);
-      if (qtyFail < 0 || qtyPass + qtyFail > qtyPo + 1e-9) {
-        return toast("Lulus + Tolak tidak boleh melebihi qty PO", true);
+      var qtyFailBatch = parseInputNum(failRaw);
+      if (qtyFailBatch < 0 || qtyPassBatch + qtyFailBatch > pendingQc + 1e-9) {
+        return toast("Lulus + Tolak tidak boleh melebihi qty belum QC", true);
       }
+      var qtyPass = alreadyPass + qtyPassBatch;
+      var qtyFail = alreadyFail + qtyFailBatch;
+      var qtyPo = qtyArrived;
 
       var notes = await appPrompt({
         title: "Catatan QC",
@@ -12005,7 +12112,8 @@ function fillOperatorList(selectedEmail) {
       if (notes == null) return;
 
       var qcStatus = "pending";
-      if (qtyPass + qtyFail >= qtyPo - 1e-9) {
+      var baseArrived = Number(row.qty_arrived) || qtyArrived || qtyPo;
+      if (qtyPass + qtyFail >= baseArrived - 1e-9) {
         if (qtyFail <= 0) qcStatus = "passed";
         else if (qtyPass <= 0) qcStatus = "failed";
         else qcStatus = "partial";
@@ -12038,11 +12146,47 @@ function fillOperatorList(selectedEmail) {
         });
       } catch (eL) {}
 
-      var msg = "QC: lulus " + formatNum(qtyPass) + " · tolak " + formatNum(qtyFail);
-      if (qtyFail > 0) msg += " — Purchase set ETA kekurangan / kirim ulang";
+      var msg = "QC: lulus " + formatNum(qtyPass) + " · tolak " + formatNum(qtyFail) + " → Gudang validasi stok";
+      if (qtyFail > 0) msg += " — Gudang validasi stok yang lulus; Purchase set ETA jika ada sisa/tolak";
       else msg += " — gudang boleh terima yang lulus";
       toast(msg);
       loadQcInbox();
+    }
+
+    /** Purchase: set ETA sisa kiriman (qty datang kurang) ATAU kekurangan QC tolak */
+    async function purchaseSetSisaEta(lineId) {
+      if (!sb || !lineId) return;
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      if (role !== "admin" && role !== "purchasing" && role !== "ppic") {
+        return toast("Hanya Purchase / PPIC / Admin yang boleh set ETA", true);
+      }
+      var { data: line, error: e0 } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      if (e0 || !line) return toast((e0 && e0.message) || "Baris PO tidak ditemukan", true);
+      var qty = Number(line.qty) || 0;
+      var arrived = Number(line.qty_arrived) || 0;
+      var sisa = Math.max(0, qty - arrived);
+      if (sisa <= 0 && !line.awaiting_eta) return toast("Tidak ada sisa qty yang menunggu ETA", true);
+      if (sisa <= 0) sisa = qty - arrived;
+      var etaRaw = await appPrompt({
+        title: "ETA sisa kiriman vendor",
+        message: "Produk " + (line.product_id || "") + " · datang " + formatNum(arrived) + " / PO " + formatNum(qty) +
+          " · sisa " + formatNum(sisa) + "
+Konfirmasi ke vendor — isi ETA kedatangan sisa (YYYY-MM-DD):",
+        defaultValue: (line.replace_eta || line.eta_date || todayStr()).toString().slice(0, 10),
+        okText: "Update ETA",
+        cancelText: "Batal"
+      });
+      if (etaRaw == null || !String(etaRaw).trim()) return;
+      var eta = String(etaRaw).trim().slice(0, 10);
+      var { error } = await sb.from("purchase_lines").update({
+        replace_eta: eta,
+        eta_date: eta,
+        awaiting_eta: false
+      }).eq("id", lineId);
+      if (error) return toast(error.message, true);
+      toast("ETA sisa " + eta + " disimpan · gudang menunggu kedatangan berikutnya");
+      try { loadPurchaseOrders(); } catch (e) {}
+      try { loadGudangInbox(); } catch (e2) {}
     }
 
     /** Purchase: set ETA kekurangan (kirim ulang vendor) + buat baris pengganti */
@@ -12054,8 +12198,12 @@ function fillOperatorList(selectedEmail) {
       }
       var { data: line, error: e0 } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
       if (e0 || !line) return toast((e0 && e0.message) || "Baris PO tidak ditemukan", true);
+      // jika partial arrival, arahkan ke sisa ETA
+      if (line.awaiting_eta || (Number(line.qty_arrived) > 0 && Number(line.qty_arrived) < Number(line.qty))) {
+        return purchaseSetSisaEta(lineId);
+      }
       var failQty = Number(line.qty_qc_failed) || 0;
-      if (failQty <= 0) return toast("Baris ini tidak punya qty tolak QC", true);
+      if (failQty <= 0) return toast("Baris ini tidak punya qty tolak QC / sisa datang", true);
 
       var etaRaw = await appPrompt({
         title: "ETA kekurangan (Purchase)",
@@ -12186,7 +12334,7 @@ function fillOperatorList(selectedEmail) {
     }
     async function loadPurchaseOrders() {
       if (!sb) return;
-      const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id)").order("po_date", { ascending: false }).limit(200);
+      const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id,awaiting_eta,qty,qty_arrived)").order("po_date", { ascending: false }).limit(200);
       const body = $("poBody");
       if (error) {
         if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Jalankan batch4_purchasing.sql + batch4b_po_by_so.sql — ' + esc(error.message) + '</td></tr>';
@@ -12215,11 +12363,14 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       body.innerHTML = list.map(p => {
-        const n = (p.purchase_lines && p.purchase_lines.length) || 0;
+        const lines = p.purchase_lines || [];
+        const n = lines.length;
+        const needEta = lines.some(function(l) { return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty)); });
         const odoo = p.no_po_odoo || "";
         return '<tr>' +
           '<td class="mono"><strong>' + esc(p.po_id) + '</strong>' +
-          (odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(odoo) + '</div>' : '') + '</td>' +
+          (odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(odoo) + '</div>' : '') +
+          (needEta ? '<div style="font-size:0.7rem;color:#c2410c;font-weight:700">Perlu ETA sisa</div>' : '') + '</td>' +
           '<td>' + esc(p.no_so || p.order_id || "—") + '</td>' +
           '<td>' + esc(p.po_date) + '</td>' +
           '<td>' + esc(p.supplier_name || "—") + '</td>' +
