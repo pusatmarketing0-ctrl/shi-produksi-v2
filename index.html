@@ -3485,14 +3485,14 @@
             <button class="btn btn-primary" type="button" onclick="openPlanChooser()">+ Buat plan</button>
           </div>
           <div class="toolbar">
-            <input type="date" id="planFilterDate" onchange="loadPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
-            <select id="planFilterShift" onchange="renderPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
+            <input type="date" id="planFilterDate" onchange="pageState.plans={page:1};loadPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
+            <select id="planFilterShift" onchange="pageState.plans={page:1};renderPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
               <option value="">Semua shift</option>
               <option value="1">Shift 1</option>
               <option value="2">Shift 2</option>
               <option value="3">Shift 3</option>
             </select>
-            <select id="planFilterStatus" onchange="renderPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
+            <select id="planFilterStatus" onchange="pageState.plans={page:1};renderPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
               <option value="">Semua status</option>
               <option value="draft">Draft</option>
               <option value="open">Open</option>
@@ -3500,7 +3500,7 @@
               <option value="done">Done</option>
               <option value="cancelled">Cancelled</option>
             </select>
-            <input type="search" id="planSearch" placeholder="Cari produk / proses / operator..." oninput="renderPlans()" />
+            <input type="search" id="planSearch" placeholder="Cari produk / proses / operator..." oninput="pageState.plans={page:1};renderPlans()" />
             <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanImportPage()">Import Excel</button>
             <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanPaste()">Tempel cepat</button>
             <button class="btn btn-ghost btn-sm" type="button" onclick="openKorlapAssign()" data-roles="admin,ppic,korlap">Assign OP (Korlap)</button>
@@ -5772,12 +5772,12 @@
       (function() {
         const cards = $("planCards");
         if (!cards) return;
-        if (!list.length) {
+        if (!pageList.length) {
           cards.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada plan di filter ini</div></div>';
           return;
         }
         const canEdit = currentRole() !== "operator";
-        cards.innerHTML = list.map(function(p) {
+        cards.innerHTML = pageList.map(function(p) {
           return '<div class="m-card">' +
             '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
             '<div class="m-sub">' + esc(p.plan_date) + ' · Shift ' + esc(p.shift) + ' · ' + esc(machineLabel(p.machine_id)) + '</div>' +
@@ -12558,7 +12558,7 @@ function fillOperatorList(selectedEmail) {
       function btn(label, p, extra) {
         var dis = (p < 1 || p > pages) ? " disabled" : "";
         var cls = "pg-btn" + (extra || "");
-        return '<button type="button" class="' + cls + '"' + dis + ' onclick="' + setFn + '(' + p + ')">' + label + '</button>';
+        return '<button type="button" class="' + cls + '"' + dis + ' onclick="' + setFn + p + ')">' + label + '</button>';
       }
       var nums = "";
       var start = Math.max(1, page - 2);
@@ -15496,7 +15496,7 @@ function fillOperatorList(selectedEmail) {
           "<input class='pl-prep num-input' placeholder='0' value='" + (line.qty_prepared != null ? formatInputNum(line.qty_prepared, true) : "") + "' /></div>" +
         "<div class='field' style='margin:0'><label style='font-size:0.68rem'>Satuan</label>" +
           "<input class='pl-unit' placeholder='pcs' value='" + esc(line.unit || "pcs") + "' /></div>" +
-        "<button type='button' class='btn btn-danger btn-sm' style='margin-bottom:2px' onclick='this.closest(".pick-line").remove()'>×</button></div>";
+        "<button type='button' class='btn btn-danger btn-sm' style='margin-bottom:2px' onclick=\"this.closest('.pick-line').remove()\">×</button></div>";
     }
     function pickAddLine(line) {
       var box = $("pickLines");
