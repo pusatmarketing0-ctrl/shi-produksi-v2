@@ -2979,8 +2979,35 @@
       line-height: 1.35;
     }
 
-    th.sort-th { cursor: pointer; user-select: none; }
-    th.sort-th:hover { color: var(--primary, #0d9f6e); }
+    th.sort-th { cursor: pointer; user-select: none; transition: color .15s ease; }
+    th.sort-th:hover { color: #0d9f6e; }
+    .pg-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; padding: 0.7rem 0.85rem; flex-wrap: wrap;
+      border-top: 1px solid rgba(13,159,110,0.12);
+      background: linear-gradient(180deg, rgba(13,159,110,0.03), transparent);
+    }
+    .pg-info { font-size: 0.78rem; color: var(--text-muted); }
+    .pg-info strong { color: #0d9f6e; font-weight: 700; }
+    .pg-nav { display: flex; align-items: center; gap: 0.35rem; }
+    .pg-btn {
+      min-width: 34px; height: 34px; padding: 0 0.55rem;
+      border-radius: 10px; border: 1px solid rgba(13,159,110,0.22);
+      background: #fff; color: #065f46; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .pg-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: #ecfdf5;
+      border-color: #0d9f6e;
+      box-shadow: 0 6px 14px rgba(13,159,110,0.15);
+    }
+    .pg-btn.active {
+      background: linear-gradient(180deg, #10b981, #059669);
+      color: #fff; border-color: #059669;
+      box-shadow: 0 6px 14px rgba(13,159,110,0.28);
+    }
+    .pg-btn:disabled { opacity: 0.35; cursor: default; }
     </style>
 </head>
 <body>
@@ -3175,7 +3202,7 @@
                   <tbody id="hdBody"><tr><td colspan="9" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
-              <div id="hdPager" style="display:flex;justify-content:space-between;align-items:center;padding:0.55rem 0.75rem;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border)"></div>
+              <div id="hdPager" class="pg-bar"></div>
             </div>
           </div>
           <!-- Operator home (phone-first) -->
@@ -3838,7 +3865,7 @@
                   <tbody id="poBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
-              <div id="poPager" style="display:flex;justify-content:space-between;align-items:center;padding:0.55rem 0.75rem;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border)"></div>
+              <div id="poPager" class="pg-bar"></div>
             </div>
           </div>
         </section>
@@ -12422,6 +12449,24 @@ function fillOperatorList(selectedEmail) {
       poList = data || [];
       renderPurchaseOrders();
     }
+    function buildPagerHtml(page, pages, from, to, total, setFn) {
+      function btn(label, p, extra) {
+        var dis = (p < 1 || p > pages) ? " disabled" : "";
+        var cls = "pg-btn" + (extra || "");
+        return '<button type="button" class="' + cls + '"' + dis + ' onclick="' + setFn + '(' + p + ')">' + label + '</button>';
+      }
+      var nums = "";
+      var start = Math.max(1, page - 2);
+      var end = Math.min(pages, start + 4);
+      if (end - start < 4) start = Math.max(1, end - 4);
+      for (var i = start; i <= end; i++) {
+        nums += btn(String(i), i, i === page ? " active" : "");
+      }
+      return '<div class="pg-info">Menampilkan <strong>' + from + '–' + to + '</strong> dari <strong>' + total + '</strong></div>' +
+        '<div class="pg-nav">' +
+        btn("‹", page - 1) + nums + btn("›", page + 1) +
+        '</div>';
+    }
     var poPage = 1;
     var poSortKey = "date";
     var poSortDir = -1;
@@ -12499,9 +12544,7 @@ function fillOperatorList(selectedEmail) {
       });
       var from = (poPage - 1) * pageSize + 1;
       var to = Math.min(poPage * pageSize, list.length);
-      var prev = poPage > 1 ? '<button type="button" class="btn btn-ghost btn-sm" onclick="poSetPage(' + (poPage - 1) + ')">‹ Prev</button>' : '<span></span>';
-      var next = poPage < pages ? '<button type="button" class="btn btn-ghost btn-sm" onclick="poSetPage(' + (poPage + 1) + ')">Next ›</button>' : '<span></span>';
-      if ($("poPager")) $("poPager").innerHTML = prev + '<span>' + from + '–' + to + ' dari ' + list.length + ' · hal ' + poPage + '/' + pages + '</span>' + next;
+      if ($("poPager")) $("poPager").innerHTML = buildPagerHtml(poPage, pages, from, to, list.length, "poSetPage");
     }
     function productSearchLabel(p) {
       if (!p) return "";
@@ -15262,9 +15305,7 @@ function fillOperatorList(selectedEmail) {
       }).join("");
       var from = (hdPage - 1) * pageSize + 1;
       var to = Math.min(hdPage * pageSize, list.length);
-      var prev = hdPage > 1 ? '<button type="button" class="btn btn-ghost btn-sm" onclick="hdSetPage(' + (hdPage - 1) + ')">‹ Prev</button>' : '<span></span>';
-      var next = hdPage < pages ? '<button type="button" class="btn btn-ghost btn-sm" onclick="hdSetPage(' + (hdPage + 1) + ')">Next ›</button>' : '<span></span>';
-      if ($("hdPager")) $("hdPager").innerHTML = prev + '<span>' + from + '–' + to + ' dari ' + list.length + ' · hal ' + hdPage + '/' + pages + '</span>' + next;
+      if ($("hdPager")) $("hdPager").innerHTML = buildPagerHtml(hdPage, pages, from, to, list.length, "hdSetPage");
     }
     function homeOpenPlan(planId) {
       if ($("planFilterDate")) $("planFilterDate").value = ($("hdDate") && $("hdDate").value) || todayStr();
