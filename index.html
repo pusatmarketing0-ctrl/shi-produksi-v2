@@ -16020,11 +16020,10 @@ function fillOperatorList(selectedEmail) {
           html += " <button type='button' class='btn btn-ghost' onclick='savePick(\"cancelled\")'>Batalkan</button>";
         }
       } else if (st === "partial" || st === "prepared") {
-        var isChildBo = !!(p && p.parent_pick_id);
         if (isWh) {
           html += " <button type='button' class='btn btn-primary' onclick='savePick(\"handover\")'>" +
             (shortfall ? "Serahkan sebagian" : "Serahkan ke produksi") + "</button>";
-          if (shortfall && !isChildBo) {
+          if (shortfall) {
             html += " <button type='button' class='btn btn-ghost' onclick='createPickBackorder()'>Buat back order (sisa)</button>";
           }
         }
@@ -16065,15 +16064,12 @@ function fillOperatorList(selectedEmail) {
         }
         status = "prepared";
         if (!allFull) {
-          var parentBo = ($("pickParentId") && $("pickParentId").value || "").trim();
-          if (!parentBo) {
-            var wantBo = await appConfirm(
-              "Qty siap kurang dari yang diminta.\n\nPilih Ya untuk membuat back order sisa, atau Tidak untuk lanjut tanpa back order.",
-              "Validasi parsial",
-              { yesText: "Ya, buat back order", noText: "Tidak, tanpa back order" }
-            );
-            pendingBackorder = !!wantBo;
-          }
+          var wantBo = await appConfirm(
+            "Qty siap kurang dari yang diminta.\n\nPilih Ya untuk membuat back order sisa, atau Tidak untuk lanjut tanpa back order.",
+            "Validasi parsial",
+            { yesText: "Ya, buat back order", noText: "Tidak, tanpa back order" }
+          );
+          pendingBackorder = !!wantBo;
         }
       }
       var payload = {
