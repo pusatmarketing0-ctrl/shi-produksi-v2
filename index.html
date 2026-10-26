@@ -2979,6 +2979,8 @@
       line-height: 1.35;
     }
 
+    th.sort-th { cursor: pointer; user-select: none; }
+    th.sort-th:hover { color: var(--primary, #0d9f6e); }
     </style>
 </head>
 <body>
@@ -3140,32 +3142,40 @@
             </div>
             <div class="toolbar" style="margin-top:0.75rem;flex-wrap:wrap">
               <input type="date" id="hdDate" onchange="loadHomeDaily()" />
-              <select id="hdShift" onchange="renderHomeDaily()">
+              <select id="hdShift" onchange="hdPage=1;renderHomeDaily()">
                 <option value="">Semua shift</option>
                 <option value="1">Shift 1</option>
                 <option value="2">Shift 2</option>
                 <option value="3">Shift 3</option>
               </select>
-              <select id="hdProcess" onchange="renderHomeDaily()"><option value="">Semua proses</option></select>
-              <select id="hdStatus" onchange="renderHomeDaily()">
+              <select id="hdProcess" onchange="hdPage=1;renderHomeDaily()"><option value="">Semua proses</option></select>
+              <select id="hdStatus" onchange="hdPage=1;renderHomeDaily()">
                 <option value="">Semua status</option>
                 <option value="done">Sudah laporan</option>
                 <option value="pending">Belum laporan</option>
               </select>
-              <input type="search" id="hdSearch" placeholder="Cari produk / operator / SO…" oninput="renderHomeDaily()" />
+              <input type="search" id="hdSearch" placeholder="Cari produk / operator / SO…" oninput="hdPage=1;renderHomeDaily()" />
             </div>
             <div class="card" style="margin-top:0.65rem;padding:0;overflow:hidden">
               <div class="table-wrap">
                 <table class="data-table">
                   <thead>
                     <tr>
-                      <th>Shift</th><th>Proses</th><th>Produk</th><th>SO</th>
-                      <th>Operator</th><th>Target</th><th>Actual</th><th>Status</th><th></th>
+                      <th class="sort-th" onclick="hdSort('shift')">Shift</th>
+                      <th class="sort-th" onclick="hdSort('machine')">Proses</th>
+                      <th class="sort-th" onclick="hdSort('product')">Produk</th>
+                      <th class="sort-th" onclick="hdSort('so')">SO</th>
+                      <th class="sort-th" onclick="hdSort('op')">Operator</th>
+                      <th class="sort-th" onclick="hdSort('target')">Target</th>
+                      <th class="sort-th" onclick="hdSort('actual')">Actual</th>
+                      <th class="sort-th" onclick="hdSort('status')">Status</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody id="hdBody"><tr><td colspan="9" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
+              <div id="hdPager" style="display:flex;justify-content:space-between;align-items:center;padding:0.55rem 0.75rem;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border)"></div>
             </div>
           </div>
           <!-- Operator home (phone-first) -->
@@ -3802,8 +3812,8 @@
           </div>
           <div id="purchasing-pane-po" class="mod-pane" hidden>
             <div class="toolbar">
-              <input type="search" id="poSearch" placeholder="Cari PO / SO / supplier / produk..." oninput="renderPurchaseOrders()" />
-              <select id="poStatusFilter" onchange="renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <input type="search" id="poSearch" placeholder="Cari PO / SO / supplier / produk..." oninput="poPage=1;renderPurchaseOrders()" />
+              <select id="poStatusFilter" onchange="poPage=1;renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
                 <option value="">Semua status</option>
                 <option value="draft">draft</option>
                 <option value="ordered">ordered</option>
@@ -3816,10 +3826,19 @@
             <div class="card" style="padding:0;overflow:hidden">
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>PO</th><th>No SO</th><th>Tanggal</th><th>Supplier</th><th>Status</th><th>Item</th><th></th></tr></thead>
+                  <thead><tr>
+                    <th class="sort-th" onclick="poSort('po')">PO</th>
+                    <th class="sort-th" onclick="poSort('so')">No SO</th>
+                    <th class="sort-th" onclick="poSort('date')">Tanggal</th>
+                    <th class="sort-th" onclick="poSort('supplier')">Supplier</th>
+                    <th class="sort-th" onclick="poSort('status')">Status</th>
+                    <th class="sort-th" onclick="poSort('items')">Item</th>
+                    <th></th>
+                  </tr></thead>
                   <tbody id="poBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
+              <div id="poPager" style="display:flex;justify-content:space-between;align-items:center;padding:0.55rem 0.75rem;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border)"></div>
             </div>
           </div>
         </section>
@@ -12403,6 +12422,16 @@ function fillOperatorList(selectedEmail) {
       poList = data || [];
       renderPurchaseOrders();
     }
+    var poPage = 1;
+    var poSortKey = "date";
+    var poSortDir = -1;
+    function poSort(key) {
+      if (poSortKey === key) poSortDir = -poSortDir;
+      else { poSortKey = key; poSortDir = 1; }
+      poPage = 1;
+      renderPurchaseOrders();
+    }
+    function poSetPage(p) { poPage = p; renderPurchaseOrders(); }
     function renderPurchaseOrders() {
       const body = $("poBody");
       if (!body) return;
@@ -12425,11 +12454,31 @@ function fillOperatorList(selectedEmail) {
           String(p.order_id || "").toLowerCase().includes(q) ||
           prodHit;
       });
+      list.sort(function(a, b) {
+        function val(p) {
+          if (poSortKey === "po") return p.po_id || "";
+          if (poSortKey === "so") return p.no_so || p.order_id || "";
+          if (poSortKey === "date") return p.po_date || "";
+          if (poSortKey === "supplier") return p.supplier_name || "";
+          if (poSortKey === "status") return p.status || "";
+          if (poSortKey === "items") return (p.purchase_lines || []).length;
+          return "";
+        }
+        var va = val(a), vb = val(b);
+        if (typeof va === "number" && typeof vb === "number") return (va - vb) * poSortDir;
+        return String(va).localeCompare(String(vb)) * poSortDir;
+      });
+      var pageSize = 20;
+      var pages = Math.max(1, Math.ceil(list.length / pageSize));
+      if (poPage > pages) poPage = pages;
+      if (poPage < 1) poPage = 1;
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada PO</td></tr>';
+        if ($("poPager")) $("poPager").innerHTML = "";
         return;
       }
-      body.innerHTML = list.map(p => {
+      var slice = list.slice((poPage - 1) * pageSize, poPage * pageSize);
+      body.innerHTML = slice.map(p => {
         const lines = p.purchase_lines || [];
         const n = lines.length;
         const needEta = lines.some(function(l) { return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty)); });
@@ -12448,6 +12497,11 @@ function fillOperatorList(selectedEmail) {
       body.querySelectorAll("[data-poid]").forEach(btn => {
         btn.onclick = function() { openPoModal(btn.getAttribute("data-poid")); };
       });
+      var from = (poPage - 1) * pageSize + 1;
+      var to = Math.min(poPage * pageSize, list.length);
+      var prev = poPage > 1 ? '<button type="button" class="btn btn-ghost btn-sm" onclick="poSetPage(' + (poPage - 1) + ')">‹ Prev</button>' : '<span></span>';
+      var next = poPage < pages ? '<button type="button" class="btn btn-ghost btn-sm" onclick="poSetPage(' + (poPage + 1) + ')">Next ›</button>' : '<span></span>';
+      if ($("poPager")) $("poPager").innerHTML = prev + '<span>' + from + '–' + to + ' dari ' + list.length + ' · hal ' + poPage + '/' + pages + '</span>' + next;
     }
     function productSearchLabel(p) {
       if (!p) return "";
@@ -15125,6 +15179,19 @@ function fillOperatorList(selectedEmail) {
       }
       renderHomeDaily();
     }
+    var hdPage = 1;
+    var hdSortKey = "shift";
+    var hdSortDir = 1;
+    function hdSort(key) {
+      if (hdSortKey === key) hdSortDir = -hdSortDir;
+      else { hdSortKey = key; hdSortDir = 1; }
+      hdPage = 1;
+      renderHomeDaily();
+    }
+    function hdSetPage(p) {
+      hdPage = p;
+      renderHomeDaily();
+    }
     function renderHomeDaily() {
       var body = $("hdBody");
       if (!body) return;
@@ -15149,11 +15216,33 @@ function fillOperatorList(selectedEmail) {
       if ($("hdDone")) $("hdDone").textContent = formatNum(done);
       if ($("hdPendingHint")) $("hdPendingHint").textContent = "Belum laporan: " + formatNum(total - done);
       if ($("hdPct")) $("hdPct").textContent = total ? Math.round((done / total) * 100) + "%" : "—";
+      list.sort(function(a, b) {
+        function val(r) {
+          if (hdSortKey === "shift") return Number(r.shift) || 0;
+          if (hdSortKey === "machine") return machineLabel(r.machine_id) || "";
+          if (hdSortKey === "product") return r.product_id || "";
+          if (hdSortKey === "so") return r.no_so || "";
+          if (hdSortKey === "op") return r.operator || "";
+          if (hdSortKey === "target") return Number(r.target) || 0;
+          if (hdSortKey === "actual") return Number(r.actual) || 0;
+          if (hdSortKey === "status") return r.reported ? 1 : 0;
+          return "";
+        }
+        var va = val(a), vb = val(b);
+        if (typeof va === "number" && typeof vb === "number") return (va - vb) * hdSortDir;
+        return String(va).localeCompare(String(vb)) * hdSortDir;
+      });
+      var pageSize = 20;
+      var pages = Math.max(1, Math.ceil(list.length / pageSize));
+      if (hdPage > pages) hdPage = pages;
+      if (hdPage < 1) hdPage = 1;
+      var slice = list.slice((hdPage - 1) * pageSize, hdPage * pageSize);
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada plan untuk filter ini</td></tr>';
+        if ($("hdPager")) $("hdPager").innerHTML = "";
         return;
       }
-      body.innerHTML = list.map(function(r) {
+      body.innerHTML = slice.map(function(r) {
         var stHtml = r.reported
           ? '<span style="color:#059669;font-weight:700">Sudah</span>'
           : '<span style="color:#b91c1c;font-weight:700">Belum</span>';
@@ -15171,6 +15260,11 @@ function fillOperatorList(selectedEmail) {
           "<td>" + stHtml + "</td>" +
           "<td style='white-space:nowrap'>" + acts + "</td></tr>";
       }).join("");
+      var from = (hdPage - 1) * pageSize + 1;
+      var to = Math.min(hdPage * pageSize, list.length);
+      var prev = hdPage > 1 ? '<button type="button" class="btn btn-ghost btn-sm" onclick="hdSetPage(' + (hdPage - 1) + ')">‹ Prev</button>' : '<span></span>';
+      var next = hdPage < pages ? '<button type="button" class="btn btn-ghost btn-sm" onclick="hdSetPage(' + (hdPage + 1) + ')">Next ›</button>' : '<span></span>';
+      if ($("hdPager")) $("hdPager").innerHTML = prev + '<span>' + from + '–' + to + ' dari ' + list.length + ' · hal ' + hdPage + '/' + pages + '</span>' + next;
     }
     function homeOpenPlan(planId) {
       if ($("planFilterDate")) $("planFilterDate").value = ($("hdDate") && $("hdDate").value) || todayStr();
