@@ -15512,10 +15512,27 @@ function fillOperatorList(selectedEmail) {
       }
     }
     var pickList = [];
-    function newPickId() {
+    async function newPickId() {
       var d = new Date();
       var z = function(n) { return String(n).padStart(2, "0"); };
-      return "PK" + d.getFullYear().toString().slice(-2) + z(d.getMonth() + 1) + z(d.getDate()) + "-" + (Math.floor(Math.random() * 9000) + 1000);
+      // Format: PKYYMMDD-0001 (berurutan per hari, mudah di-sort)
+      var day = d.getFullYear().toString().slice(-2) + z(d.getMonth() + 1) + z(d.getDate());
+      var prefix = "PK" + day + "-";
+      var maxSeq = 0;
+      function consider(id) {
+        id = String(id || "");
+        if (id.indexOf(prefix) !== 0) return;
+        var n = parseInt(id.slice(prefix.length), 10);
+        if (!isNaN(n) && n > maxSeq) maxSeq = n;
+      }
+      (pickList || []).forEach(function(p) { consider(p.pick_id); });
+      if (sb) {
+        try {
+          var { data } = await sb.from("picks").select("pick_id").like("pick_id", prefix + "%").order("pick_id", { ascending: false }).limit(30);
+          (data || []).forEach(function(r) { consider(r.pick_id); });
+        } catch (e) { console.warn(e); }
+      }
+      return prefix + String(maxSeq + 1).padStart(4, "0");
     }
     function pickStatusLabel(st) {
       var map = { draft: "Draft", requested: "Diminta", partial: "Parsial", prepared: "Siap", handover: "Serah terima", picked: "Selesai", cancelled: "Batal" };
@@ -16003,15 +16020,13 @@ function fillOperatorList(selectedEmail) {
           html += " <button type='button' class='btn btn-ghost' onclick='savePick(\"cancelled\")'>Batalkan</button>";
         }
       } else if (st === "partial" || st === "prepared") {
-        // Setelah validasi (penuh atau kurang) → bisa serahkan; sisa bisa back order
+        var isChildBo = !!(p && p.parent_pick_id);
         if (isWh) {
           html += " <button type='button' class='btn btn-primary' onclick='savePick(\"handover\")'>" +
             (shortfall ? "Serahkan sebagian" : "Serahkan ke produksi") + "</button>";
-          if (shortfall) {
+          if (shortfall && !isChildBo) {
             html += " <button type='button' class='btn btn-ghost' onclick='createPickBackorder()'>Buat back order (sisa)</button>";
           }
-          // izinkan koreksi qty lalu validasi ulang
-          html += " <button type='button' class='btn btn-ghost' onclick='savePick(\"prepare\")'>Update qty siap</button>";
         }
         if (isProd) {
           html += " <span style='font-size:0.78rem;color:var(--text-muted);align-self:center'>" +
@@ -16034,7 +16049,7 @@ function fillOperatorList(selectedEmail) {
     }
     async function savePick(nextStatus) {
       if (!sb) return;
-      var id = ($("pickEditId").value || "").trim() || newPickId();
+      var id = ($("pickEditId").value || "").trim() || (await newPickId());
       var lines = collectPickLines();
       if (!lines.length) return toast("Minimal 1 bahan", true);
       var noOdoo = ($("pickNoOdoo").value || "").trim();
@@ -16050,12 +16065,15 @@ function fillOperatorList(selectedEmail) {
         }
         status = "prepared";
         if (!allFull) {
-          var wantBo = await appConfirm(
-            "Qty siap kurang dari yang diminta.\n\nPilih Ya untuk membuat back order sisa, atau Tidak untuk lanjut tanpa back order.",
-            "Validasi parsial",
-            { yesText: "Ya, buat back order", noText: "Tidak, tanpa back order" }
-          );
-          pendingBackorder = !!wantBo;
+          var parentBo = ($("pickParentId") && $("pickParentId").value || "").trim();
+          if (!parentBo) {
+            var wantBo = await appConfirm(
+              "Qty siap kurang dari yang diminta.\n\nPilih Ya untuk membuat back order sisa, atau Tidak untuk lanjut tanpa back order.",
+              "Validasi parsial",
+              { yesText: "Ya, buat back order", noText: "Tidak, tanpa back order" }
+            );
+            pendingBackorder = !!wantBo;
+          }
         }
       }
       var payload = {
@@ -16129,7 +16147,7 @@ function fillOperatorList(selectedEmail) {
       if (!short.length) return toast("Tidak ada kekurangan", true);
       var noNew = await appPrompt({ title: "No Pick back order", message: "Isi nomor Pick Odoo yang baru (create back order):", defaultValue: "", okText: "Buat", cancelText: "Batal" });
       if (noNew == null || !String(noNew).trim()) return;
-      var id = newPickId();
+      var id = await newPickId();
       var { error } = await sb.from("picks").insert({
         pick_id: id,
         no_pick_odoo: String(noNew).trim(),
