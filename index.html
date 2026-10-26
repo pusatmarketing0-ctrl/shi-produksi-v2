@@ -3128,10 +3128,15 @@
               <button type="button" class="btn btn-ghost btn-sm" onclick="loadHomeDaily()">Refresh</button>
             </div>
             <div class="grid-kpi" id="homeDailyKpi">
-              <div class="kpi"><div class="label">Plan hari ini</div><div class="value" id="hdPlan">—</div><div class="hint">Semua shift</div></div>
-              <div class="kpi"><div class="label">Sudah laporan</div><div class="value" id="hdDone" style="color:#059669">—</div><div class="hint">Ada actual / report</div></div>
-              <div class="kpi"><div class="label">Belum laporan</div><div class="value" id="hdPending" style="color:#b91c1c">—</div><div class="hint">Belum ada report</div></div>
-              <div class="kpi"><div class="label">Pencapaian</div><div class="value" id="hdPct">—</div><div class="hint">Sudah / total plan</div></div>
+              <div class="kpi" style="grid-column:1/-1;max-width:420px">
+                <div class="label">Plan & laporan hari ini</div>
+                <div style="display:flex;align-items:baseline;gap:1.25rem;flex-wrap:wrap;margin:0.35rem 0 0.2rem">
+                  <div><div class="value" id="hdPlan" style="font-size:1.8rem">—</div><div class="hint">Plan</div></div>
+                  <div><div class="value" id="hdDone" style="font-size:1.8rem;color:#059669">—</div><div class="hint">Sudah laporan</div></div>
+                  <div><div class="value" id="hdPct" style="font-size:1.8rem;color:#0d9f6e">—</div><div class="hint">Pencapaian</div></div>
+                </div>
+                <div class="hint" id="hdPendingHint">Belum laporan: —</div>
+              </div>
             </div>
             <div class="toolbar" style="margin-top:0.75rem;flex-wrap:wrap">
               <input type="date" id="hdDate" onchange="loadHomeDaily()" />
@@ -15075,7 +15080,7 @@ function fillOperatorList(selectedEmail) {
       var total = (homeDailyRows || []).length;
       if ($("hdPlan")) $("hdPlan").textContent = formatNum(total);
       if ($("hdDone")) $("hdDone").textContent = formatNum(done);
-      if ($("hdPending")) $("hdPending").textContent = formatNum(total - done);
+      if ($("hdPendingHint")) $("hdPendingHint").textContent = "Belum laporan: " + formatNum(total - done);
       if ($("hdPct")) $("hdPct").textContent = total ? Math.round((done / total) * 100) + "%" : "—";
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada plan untuk filter ini</td></tr>';
