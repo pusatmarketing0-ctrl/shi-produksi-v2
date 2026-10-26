@@ -15748,6 +15748,66 @@ function fillOperatorList(selectedEmail) {
       if ($("pickPhotoFile")) $("pickPhotoFile").value = "";
       setPickPhotoPreview("");
     }
+    function setPickHandoverPhotoPreview(url) {
+      var prev = $("pickHandoverPhotoPrev");
+      var img = $("pickHandoverPhotoImg");
+      var clr = $("btnPickHandoverPhotoClear");
+      if (!url) {
+        if (prev) prev.style.display = "none";
+        if (img) img.removeAttribute("src");
+        if (clr) clr.style.display = "none";
+        return;
+      }
+      if (img) img.src = url;
+      if (prev) prev.style.display = "block";
+      if (clr) clr.style.display = "";
+    }
+    function clearPickHandoverPhoto() {
+      if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = "";
+      if ($("pickHandoverPhotoFile")) $("pickHandoverPhotoFile").value = "";
+      setPickHandoverPhotoPreview("");
+    }
+    async function onPickHandoverPhotoSelected(file) {
+      if (!file) return;
+      if (!/^image\//i.test(file.type || "")) return toast("Pilih file gambar", true);
+      if (file.size > 4 * 1024 * 1024) return toast("Foto max 4 MB", true);
+      var dataUrl = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() { resolve(reader.result); };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      try {
+        var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
+        if (base && dataUrl.indexOf("base64,") >= 0) {
+          toast("Mengupload foto serah terima…");
+          var b64 = String(dataUrl).split("base64,")[1] || "";
+          var res = await fetch(base, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              ot_id: ($("pickEditId") && $("pickEditId").value) || "pick",
+              kind: "pick_handover",
+              fileName: file.name || ("pick-handover-" + Date.now() + ".jpg"),
+              mimeType: file.type || "image/jpeg",
+              base64: b64
+            })
+          });
+          var textResp = await res.text();
+          var data = {};
+          try { data = JSON.parse(textResp); } catch (e1) {}
+          if (data && data.ok && data.url) {
+            if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = data.url;
+            setPickHandoverPhotoPreview(data.url);
+            toast("Foto serah terima tersimpan");
+            return;
+          }
+        }
+      } catch (eUp) { console.warn(eUp); }
+      if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = dataUrl;
+      setPickHandoverPhotoPreview(dataUrl);
+      toast("Foto serah terima siap");
+    }
     async function onPickPhotoSelected(file) {
       if (!file) return;
       if (!/^image\//i.test(file.type || "")) return toast("Pilih file gambar", true);
@@ -15802,7 +15862,10 @@ function fillOperatorList(selectedEmail) {
       $("pickParentId").value = p ? (p.parent_pick_id || "") : "";
       $("pickNoOdoo").value = p ? (p.no_pick_odoo || "") : "";
       $("pickNotes").value = p ? (p.notes || "") : "";
-      if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = p ? (p.handover_photo_url || "") : "";
+      var hoUrl = p ? (p.handover_photo_url || "") : "";
+      if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = hoUrl;
+      if ($("pickHandoverPhotoFile")) $("pickHandoverPhotoFile").value = "";
+      setPickHandoverPhotoPreview(hoUrl);
       // SO
       var soInp = $("pickNoSo");
       if (soInp) {
@@ -15857,6 +15920,14 @@ function fillOperatorList(selectedEmail) {
         fileInp.addEventListener("change", function() {
           var f = fileInp.files && fileInp.files[0];
           if (f) onPickPhotoSelected(f);
+        });
+      }
+      var hoFile = $("pickHandoverPhotoFile");
+      if (hoFile && hoFile.dataset.bound !== "1") {
+        hoFile.dataset.bound = "1";
+        hoFile.addEventListener("change", function() {
+          var f = hoFile.files && hoFile.files[0];
+          if (f) onPickHandoverPhotoSelected(f);
         });
       }
       var m = $("pickModal");
@@ -17698,7 +17769,20 @@ function closeOtModal() {
         <div id="pickLines"></div>
         <div id="pickHandoverBox" style="display:none;margin-top:0.75rem;padding:0.65rem;border:1px dashed #86efac;border-radius:12px;background:#f0fdf4">
           <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.35rem">Serah terima</div>
-          <div class="field"><label>Foto form bertanda tangan</label><input id="pickHandoverPhoto" placeholder="URL foto serah terima" /></div>
+          <div class="field">
+            <label>Foto form bertanda tangan</label>
+            <input type="hidden" id="pickHandoverPhoto" value="" />
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">
+              <label class="btn btn-ghost btn-sm" style="margin:0;cursor:pointer">
+                📷 Ambil / Upload
+                <input type="file" id="pickHandoverPhotoFile" accept="image/*" capture="environment" hidden />
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnPickHandoverPhotoClear" style="display:none" onclick="clearPickHandoverPhoto()">Hapus foto</button>
+            </div>
+            <div id="pickHandoverPhotoPrev" style="margin-top:0.4rem;display:none">
+              <img id="pickHandoverPhotoImg" alt="Preview serah terima" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid var(--border);object-fit:cover" />
+            </div>
+          </div>
         </div>
         <div id="pickActions" style="display:flex;flex-wrap:wrap;gap:0.45rem;justify-content:flex-end;margin-top:1rem"></div>
       </div>
