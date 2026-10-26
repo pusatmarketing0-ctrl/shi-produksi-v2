@@ -3140,6 +3140,7 @@
         <button class="nav-item" data-page="pr-ppic" data-roles="admin,ppic" data-tip="Permintaan beli"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></span><span class="nav-txt">Permintaan</span></button>
         <button class="nav-item" data-page="purchasing" data-roles="admin,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
         <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
+        <button class="nav-item" data-page="pick" data-roles="admin,ppic,gudang,korlap" data-tip="Pick komponen" onclick="goPage('pick')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg></span><span class="nav-txt">Pick komponen</span></button>
         <button class="nav-item" data-page="delivery" data-roles="admin,ppic,gudang,marketing" data-tip="Pengiriman" onclick="goPage('delivery')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h13v10H3z"/><path d="M16 10h4l2 3v4h-6V10z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="18.5" cy="18.5" r="1.5"/></svg></span><span class="nav-txt">Pengiriman</span></button>
         <button class="nav-item" data-page="qc" data-roles="admin,ppic,qc" data-tip="QC" onclick="goPage('qc')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="nav-txt">QC</span></button>
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
@@ -3790,6 +3791,40 @@
         
         
         
+        <section id="page-pick" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Pick komponen</h1>
+              <p>Produksi minta bahan ke gudang · No Pick Odoo · back order jika parsial</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="openPickModal()">+ Pick baru</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="pickSearch" placeholder="Cari no pick / SO / produk..." oninput="renderPicks()" />
+            <select id="pickStatusFilter" onchange="renderPicks()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua status</option>
+              <option value="draft">draft</option>
+              <option value="requested">requested</option>
+              <option value="partial">partial</option>
+              <option value="prepared">prepared</option>
+              <option value="handover">handover</option>
+              <option value="picked">picked</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="loadPicks()">Refresh</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>No Pick</th><th>SO / FG</th><th>Status</th><th>Bahan</th><th>Asal</th><th></th>
+                </tr></thead>
+                <tbody id="pickBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+            <div id="pickPager" class="pg-bar"></div>
+          </div>
+        </section>
         <section id="page-pr-ppic" class="page" hidden>
           <div class="page-head">
             <div>
@@ -12514,7 +12549,8 @@ function fillOperatorList(selectedEmail) {
         bom: function() { renderBomTable(); },
         do: function() { renderDeliveries(); },
         stock: function() { renderGudangStock(); },
-        qc: function() { renderQcInbox(); }
+        qc: function() { renderQcInbox(); },
+        pick: function() { renderPicks(); }
       };
       if (map[key]) map[key]();
     }
@@ -15394,6 +15430,224 @@ function fillOperatorList(selectedEmail) {
       }, 400);
     }
 
+    // ===== Pick komponen =====
+    var pickList = [];
+    function newPickId() {
+      var d = new Date();
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      return "PK" + d.getFullYear().toString().slice(-2) + z(d.getMonth() + 1) + z(d.getDate()) + "-" + (Math.floor(Math.random() * 9000) + 1000);
+    }
+    function pickStatusLabel(st) {
+      var map = { draft: "Draft", requested: "Diminta", partial: "Parsial", prepared: "Siap", handover: "Serah terima", picked: "Selesai", cancelled: "Batal" };
+      return map[st] || st || "—";
+    }
+    async function loadPicks() {
+      if (!sb) return;
+      var body = $("pickBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      var { data, error } = await sb.from("picks").select("*, pick_lines(*)").order("created_at", { ascending: false }).limit(400);
+      if (error) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(error.message) + ' — jalankan pick_komponen.sql</td></tr>';
+        pickList = [];
+        return;
+      }
+      pickList = data || [];
+      renderPicks();
+    }
+    function renderPicks() {
+      var body = $("pickBody");
+      if (!body) return;
+      var q = (($("pickSearch") && $("pickSearch").value) || "").toLowerCase().trim();
+      var st = ($("pickStatusFilter") && $("pickStatusFilter").value) || "";
+      var list = pickList.filter(function(p) {
+        if (st && p.status !== st) return false;
+        if (!q) return true;
+        return (p.pick_id + " " + (p.no_pick_odoo || "") + " " + (p.no_so || "") + " " + (p.product_id || "")).toLowerCase().indexOf(q) >= 0;
+      });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pick</td></tr>';
+        pageOf("pick", [], "pickPager");
+        return;
+      }
+      var pageList = pageOf("pick", list, "pickPager");
+      body.innerHTML = pageList.map(function(p) {
+        var n = (p.pick_lines || []).length;
+        var origin = p.parent_pick_id ? ("Back order · " + p.parent_pick_id) : "Awal";
+        return "<tr>" +
+          "<td><strong>" + esc(p.no_pick_odoo || p.pick_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.pick_id) + "</div></td>" +
+          "<td>" + esc(p.no_so || "—") + "<div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.product_id || "") + "</div></td>" +
+          "<td><span class='badge'>" + esc(pickStatusLabel(p.status)) + "</span></td>" +
+          "<td>" + n + "</td>" +
+          "<td style='font-size:0.75rem'>" + esc(origin) + "</td>" +
+          "<td><button type='button' class='btn btn-sm btn-primary' onclick='openPickModal(" + JSON.stringify(p.pick_id) + ")'>Buka</button></td></tr>";
+      }).join("");
+    }
+    function pickLineHtml(line) {
+      line = line || {};
+      return "<div class='pick-line' style='display:grid;grid-template-columns:1.4fr 0.7fr 0.7fr 0.6fr auto;gap:0.35rem;margin-bottom:0.35rem;align-items:end'>" +
+        "<input class='pl-pid' placeholder='Kode bahan' value='" + esc(line.product_id || "") + "' />" +
+        "<input class='pl-req num-input' placeholder='Qty minta' value='" + (line.qty_request != null ? formatInputNum(line.qty_request, true) : "") + "' />" +
+        "<input class='pl-prep num-input' placeholder='Qty siap' value='" + (line.qty_prepared != null ? formatInputNum(line.qty_prepared, true) : "") + "' />" +
+        "<input class='pl-unit' placeholder='Satuan' value='" + esc(line.unit || "pcs") + "' />" +
+        "<button type='button' class='btn btn-danger btn-sm' onclick='this.parentElement.remove()'>×</button></div>";
+    }
+    function pickAddLine(line) {
+      var box = $("pickLines");
+      if (!box) return;
+      box.insertAdjacentHTML("beforeend", pickLineHtml(line));
+    }
+    function collectPickLines() {
+      var box = $("pickLines");
+      if (!box) return [];
+      return Array.prototype.map.call(box.querySelectorAll(".pick-line"), function(row) {
+        return {
+          product_id: (row.querySelector(".pl-pid").value || "").trim(),
+          qty_request: parseInputNum(row.querySelector(".pl-req").value),
+          qty_prepared: parseInputNum(row.querySelector(".pl-prep").value),
+          unit: (row.querySelector(".pl-unit").value || "pcs").trim() || "pcs"
+        };
+      }).filter(function(l) { return l.product_id; });
+    }
+    function pickFillFromBom() {
+      var fg = resolveProductId(($("pickFg") && $("pickFg").value) || "") || (($("pickFg") && $("pickFg").value) || "").trim();
+      if (!fg) return toast("Isi produk FG dulu", true);
+      var bom = (window.__bomRows || []).filter(function(b) { return String(b.fg_product_id) === String(fg); });
+      if (!bom.length) return toast("BOM FG belum ada", true);
+      var box = $("pickLines");
+      if (box) box.innerHTML = "";
+      bom.forEach(function(b) {
+        pickAddLine({ product_id: b.material_product_id, qty_request: b.qty_per_fg, unit: b.unit || "pcs", qty_prepared: 0 });
+      });
+      toast(bom.length + " bahan dari BOM");
+    }
+    function openPickModal(pickId) {
+      var p = pickId ? pickList.find(function(x) { return x.pick_id === pickId; }) : null;
+      $("pickEditId").value = p ? p.pick_id : "";
+      $("pickParentId").value = p ? (p.parent_pick_id || "") : "";
+      $("pickNoOdoo").value = p ? (p.no_pick_odoo || "") : "";
+      $("pickNoSo").value = p ? (p.no_so || "") : "";
+      $("pickFg").value = p ? (p.product_id || "") : "";
+      $("pickPhoto").value = p ? (p.photo_url || "") : "";
+      $("pickNotes").value = p ? (p.notes || "") : "";
+      if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = p ? (p.handover_photo_url || "") : "";
+      var box = $("pickLines");
+      if (box) box.innerHTML = "";
+      (p && p.pick_lines ? p.pick_lines : []).forEach(function(l) { pickAddLine(l); });
+      if (!p) pickAddLine();
+      $("pickModalTitle").textContent = p ? ("Pick " + (p.no_pick_odoo || p.pick_id)) : "Pick baru";
+      $("pickModalSub").textContent = p ? pickStatusLabel(p.status) : "Draft · kirim ke gudang setelah lengkap";
+      if ($("pickHandoverBox")) $("pickHandoverBox").style.display = (p && (p.status === "prepared" || p.status === "handover" || p.status === "picked")) ? "block" : "none";
+      renderPickActions(p);
+      var m = $("pickModal");
+      m.classList.add("show");
+      m.style.display = "flex";
+      document.body.classList.add("modal-open");
+    }
+    function closePickModal() {
+      var m = $("pickModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      document.body.classList.remove("modal-open");
+    }
+    function renderPickActions(p) {
+      var box = $("pickActions");
+      if (!box) return;
+      var st = p ? p.status : "draft";
+      var role = currentRole();
+      var isWh = role === "gudang" || role === "admin";
+      var isProd = role === "ppic" || role === "admin" || role === "korlap";
+      var html = "<button type='button' class='btn btn-ghost' onclick='closePickModal()'>Tutup</button>";
+      if (!p || st === "draft") {
+        html += " <button type='button' class='btn btn-ghost' onclick='pickFillFromBom()'>Isi dari BOM</button>";
+        html += " <button type='button' class='btn btn-ghost' onclick='savePick(\"draft\")'>Simpan draft</button>";
+        html += " <button type='button' class='btn btn-primary' onclick='savePick(\"requested\")'>Kirim ke gudang</button>";
+      } else if (st === "requested" || st === "partial") {
+        if (isWh) {
+          html += " <button type='button' class='btn btn-primary' onclick='savePick(\"prepare\")'>Validasi qty siap</button>";
+          if (st === "partial") html += " <button type='button' class='btn btn-ghost' onclick='createPickBackorder()'>Buat back order</button>";
+        }
+        if (isProd) html += " <button type='button' class='btn btn-ghost' onclick='savePick(\"cancelled\")'>Batalkan</button>";
+      } else if (st === "prepared") {
+        if (isWh) html += " <button type='button' class='btn btn-primary' onclick='savePick(\"handover\")'>Serahkan</button>";
+      } else if (st === "handover") {
+        if (isProd) html += " <button type='button' class='btn btn-primary' onclick='savePick(\"picked\")'>Terima (done)</button>";
+      }
+      box.innerHTML = html;
+    }
+    async function savePick(nextStatus) {
+      if (!sb) return;
+      var id = ($("pickEditId").value || "").trim() || newPickId();
+      var lines = collectPickLines();
+      if (!lines.length) return toast("Minimal 1 bahan", true);
+      var noOdoo = ($("pickNoOdoo").value || "").trim();
+      if (nextStatus === "requested" && !noOdoo) return toast("No Pick Odoo wajib", true);
+      var status = nextStatus;
+      if (nextStatus === "prepare") {
+        var allFull = lines.every(function(l) { return Number(l.qty_prepared) >= Number(l.qty_request) && Number(l.qty_request) > 0; });
+        var anyPrep = lines.some(function(l) { return Number(l.qty_prepared) > 0; });
+        status = allFull ? "prepared" : (anyPrep ? "partial" : "requested");
+      }
+      var payload = {
+        pick_id: id,
+        no_pick_odoo: noOdoo,
+        no_so: ($("pickNoSo").value || "").trim(),
+        product_id: resolveProductId(($("pickFg").value || "").trim()) || ($("pickFg").value || "").trim(),
+        parent_pick_id: ($("pickParentId").value || "").trim() || null,
+        status: status,
+        notes: ($("pickNotes").value || "").trim(),
+        photo_url: ($("pickPhoto").value || "").trim(),
+        handover_photo_url: ($("pickHandoverPhoto") && $("pickHandoverPhoto").value || "").trim(),
+        updated_at: new Date().toISOString()
+      };
+      if (!($("pickEditId").value || "").trim()) payload.created_by = (currentUser && currentUser.email) || "";
+      if (status === "prepared" || status === "partial") payload.prepared_by = (currentUser && currentUser.email) || "";
+      if (status === "handover") payload.handed_gudang_by = (currentUser && currentUser.email) || "";
+      if (status === "picked") {
+        if (!payload.handover_photo_url) return toast("Isi foto form bertanda tangan", true);
+        payload.handed_prod_by = (currentUser && currentUser.email) || "";
+      }
+      var { error } = await sb.from("picks").upsert(payload);
+      if (error) return toast(error.message, true);
+      await sb.from("pick_lines").delete().eq("pick_id", id);
+      var rows = lines.map(function(l) {
+        return { pick_id: id, product_id: l.product_id, qty_request: l.qty_request, qty_prepared: l.qty_prepared, unit: l.unit };
+      });
+      var ins = await sb.from("pick_lines").insert(rows);
+      if (ins.error) return toast(ins.error.message, true);
+      toast("Pick " + pickStatusLabel(status));
+      closePickModal();
+      await loadPicks();
+    }
+    async function createPickBackorder() {
+      if (!sb) return;
+      var parentId = ($("pickEditId").value || "").trim();
+      if (!parentId) return toast("Simpan pick dulu", true);
+      var lines = collectPickLines();
+      var short = lines.filter(function(l) { return Number(l.qty_request) > Number(l.qty_prepared); }).map(function(l) {
+        return { product_id: l.product_id, qty_request: Number(l.qty_request) - Number(l.qty_prepared), qty_prepared: 0, unit: l.unit };
+      });
+      if (!short.length) return toast("Tidak ada kekurangan", true);
+      var noNew = await appPrompt({ title: "No Pick back order", message: "Isi nomor Pick Odoo yang baru (create back order):", defaultValue: "", okText: "Buat", cancelText: "Batal" });
+      if (noNew == null || !String(noNew).trim()) return;
+      var id = newPickId();
+      var { error } = await sb.from("picks").insert({
+        pick_id: id,
+        no_pick_odoo: String(noNew).trim(),
+        no_so: ($("pickNoSo").value || "").trim(),
+        product_id: ($("pickFg").value || "").trim(),
+        parent_pick_id: parentId,
+        status: "requested",
+        notes: "Back order dari " + parentId,
+        created_by: (currentUser && currentUser.email) || "",
+        updated_at: new Date().toISOString()
+      });
+      if (error) return toast(error.message, true);
+      var rows = short.map(function(l) { return { pick_id: id, product_id: l.product_id, qty_request: l.qty_request, qty_prepared: 0, unit: l.unit }; });
+      var ins = await sb.from("pick_lines").insert(rows);
+      if (ins.error) return toast(ins.error.message, true);
+      toast("Back order dibuat: " + noNew);
+      closePickModal();
+      await loadPicks();
+    }
     function goPage(page) {
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
@@ -15433,6 +15687,7 @@ function fillOperatorList(selectedEmail) {
       if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
       if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
       if (page === "gudang") { try { setGudangTab(gudangActiveTab || "stok"); } catch (eG) {} }
+      if (page === "pick") { try { loadPicks(); } catch (ePk) {} }
       if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
       if (page === "qc") { try { loadQcInbox(); } catch (eQ) {} }
       if (page === "purchasing") { try { setModTab("purchasing", modTabState.purchasing || "inbox"); } catch (ePr) {} }
@@ -16996,6 +17251,36 @@ function closeOtModal() {
       <div class="sheet-body">
         <div id="shipDetailBody"></div>
         <div id="shipDetailActions" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem;justify-content:flex-end"></div>
+      </div>
+    </div>
+  </div>
+  <div id="pickModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100180">
+    <div class="modal modal-sheet" style="max-width:640px;width:94vw;max-height:92vh;overflow:auto">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="pickModalTitle" style="margin:0">Pick komponen</h2>
+        <p id="pickModalSub" style="margin:0.3rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="pickEditId" />
+        <input type="hidden" id="pickParentId" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+          <div class="field"><label>No Pick Odoo</label><input id="pickNoOdoo" placeholder="PICK/2026/001" /></div>
+          <div class="field"><label>No SO</label><input id="pickNoSo" placeholder="SO/..." /></div>
+          <div class="field"><label>Produk FG</label><input id="pickFg" placeholder="Ketik kode / nama FG" autocomplete="off" /></div>
+          <div class="field"><label>Foto form</label><input id="pickPhoto" placeholder="URL foto / Drive" /></div>
+        </div>
+        <div class="field"><label>Catatan</label><input id="pickNotes" placeholder="Opsional" /></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.6rem 0 0.35rem">
+          <strong style="font-size:0.85rem">Bahan</strong>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="pickAddLine()">+ Bahan</button>
+        </div>
+        <div id="pickLines"></div>
+        <div id="pickHandoverBox" style="display:none;margin-top:0.75rem;padding:0.65rem;border:1px dashed #86efac;border-radius:12px;background:#f0fdf4">
+          <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.35rem">Serah terima</div>
+          <div class="field"><label>Foto form bertanda tangan</label><input id="pickHandoverPhoto" placeholder="URL foto serah terima" /></div>
+        </div>
+        <div id="pickActions" style="display:flex;flex-wrap:wrap;gap:0.45rem;justify-content:flex-end;margin-top:1rem"></div>
       </div>
     </div>
   </div>
