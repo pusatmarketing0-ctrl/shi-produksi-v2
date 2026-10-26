@@ -4258,9 +4258,7 @@
         <input type="hidden" id="poEditId" />
         <input type="hidden" id="poSupplier" value="" />
         <div class="field"><label>Sales Order (wajib)</label>
-          <select id="poSoSelect" onchange="onPoSoChange()">
-            <option value="">— Pilih SO —</option>
-          </select>
+          <input id="poSoSelect" type="text" placeholder="Ketik no SO / customer…" autocomplete="off" />
           <p id="poSoHint" style="font-size:0.75rem;color:var(--text-muted);margin:0.3rem 0 0"></p>
         </div>
         <div class="field"><label>Filter FG di SO (opsional)</label>
@@ -9468,31 +9466,22 @@ function fillOperatorList(selectedEmail) {
       if ($("doStatus")) $("doStatus").value = "ready";
       if ($("doNotes")) $("doNotes").value = "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : "");
 
-      // pastikan opsi SO ada di dropdown (meski di luar limit 100)
-      var sel = $("doSoSelect");
-      if (sel) {
+      // pastikan SO terpilih di combobox
+      var inp = $("doSoSelect");
+      if (inp) {
         var wantId = (order && order.order_id) || r.order_id || "";
         var wantSo = (order && order.no_so) || r.no_so || "";
         var wantCust = (order && order.customer_name) || r.customer_name || "";
-        var found = false;
-        for (var i = 0; i < sel.options.length; i++) {
-          var opt = sel.options[i];
-          if ((wantId && opt.value === wantId) || (wantSo && String(opt.dataset.noso || "") === String(wantSo))) {
-            sel.selectedIndex = i;
-            found = true;
-            break;
+        if (wantId) {
+          inp.dataset.scId = wantId;
+          inp.value = (wantSo || wantId) + (wantCust ? (" · " + wantCust) : "");
+          if (!(window.__doSoCache || []).some(function(o) { return o.order_id === wantId; })) {
+            window.__doSoCache = (window.__doSoCache || []).concat([{
+              order_id: wantId, no_so: wantSo, customer_name: wantCust, status: ""
+            }]);
           }
+          onDoSoChange();
         }
-        if (!found && (wantId || wantSo)) {
-          var oNew = document.createElement("option");
-          oNew.value = wantId || ("tmp-" + wantSo);
-          oNew.dataset.noso = wantSo;
-          oNew.dataset.customer = wantCust;
-          oNew.textContent = (wantSo || wantId) + " · " + (wantCust || "");
-          oNew.selected = true;
-          sel.appendChild(oNew);
-        }
-        onDoSoChange();
       }
       if ($("doCustomer")) {
         $("doCustomer").value = (order && order.customer_name) || r.customer_name || ($("doCustomer").value || "");
@@ -11370,44 +11359,50 @@ function fillOperatorList(selectedEmail) {
       if (m) m.classList.add("show");
     }
     async function fillDoSoSelect(selectedId) {
-      var sel = $("doSoSelect");
-      if (!sel || !sb) return;
-      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").order("created_at", { ascending: false }).limit(200);
-      sel.innerHTML = '<option value="">— Pilih SO —</option>';
-      var hasSel = false;
-      (data || []).forEach(function(o) {
-        var opt = document.createElement("option");
-        opt.value = o.order_id;
-        opt.dataset.noso = o.no_so || "";
-        opt.dataset.customer = o.customer_name || "";
-        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "") + (o.status ? " · " + o.status : "");
-        if (selectedId && o.order_id === selectedId) {
-          opt.selected = true;
-          hasSel = true;
-        }
-        sel.appendChild(opt);
-      });
-      // jika selectedId tidak ada di list, ambil 1 row dari DB
-      if (selectedId && !hasSel) {
-        try {
-          var { data: one } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("order_id", selectedId).maybeSingle();
-          if (one) {
-            var o2 = document.createElement("option");
-            o2.value = one.order_id;
-            o2.dataset.noso = one.no_so || "";
-            o2.dataset.customer = one.customer_name || "";
-            o2.textContent = (one.no_so || one.order_id) + " · " + (one.customer_name || "");
-            o2.selected = true;
-            sel.appendChild(o2);
+      var inp = $("doSoSelect");
+      if (!inp || !sb) return;
+      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").order("created_at", { ascending: false }).limit(300);
+      window.__doSoCache = data || [];
+      inp.dataset.scBound = "";
+      attachSearchCombo(inp, function() {
+        return (window.__doSoCache || []).map(function(o) {
+          return {
+            id: o.order_id,
+            label: (o.no_so || o.order_id) + " · " + (o.customer_name || "") + (o.status ? " · " + o.status : ""),
+            sub: o.customer_name || "",
+            search: [o.order_id, o.no_so, o.customer_name].join(" "),
+            customer: o.customer_name || "",
+            noso: o.no_so || ""
+          };
+        });
+      }, {
+        valueMode: "id-name",
+        placeholder: "Ketik no SO / customer…",
+        onPick: function(id, label, input) {
+          if (input) {
+            input.dataset.scId = id;
+            input.value = label || id;
           }
-        } catch (e) {}
+          onDoSoChange();
+        }
+      });
+      if (selectedId) {
+        var hit = (window.__doSoCache || []).find(function(o) { return o.order_id === selectedId; });
+        inp.dataset.scId = selectedId;
+        inp.value = hit ? ((hit.no_so || hit.order_id) + " · " + (hit.customer_name || "")) : selectedId;
+        onDoSoChange();
+      } else {
+        inp.dataset.scId = "";
+        inp.value = "";
       }
     }
     function onDoSoChange() {
-      var sel = $("doSoSelect");
-      if (!sel || !sel.value) return;
-      var opt = sel.options[sel.selectedIndex];
-      if ($("doCustomer") && opt.dataset.customer) $("doCustomer").value = opt.dataset.customer;
+      var inp = $("doSoSelect");
+      if (!inp) return;
+      var id = inp.dataset.scId || "";
+      if (!id) return;
+      var hit = (window.__doSoCache || []).find(function(o) { return o.order_id === id; });
+      if ($("doCustomer") && hit && hit.customer_name) $("doCustomer").value = hit.customer_name;
     }
     function addDoLine(line) {
       line = line || {};
@@ -11423,9 +11418,10 @@ function fillOperatorList(selectedEmail) {
     }
     async function saveDelivery() {
       if (!sb) return;
-      var order_id = ($("doSoSelect") && $("doSoSelect").value) || "";
-      var opt = $("doSoSelect") && $("doSoSelect").options[$("doSoSelect").selectedIndex];
-      var no_so = (opt && opt.dataset.noso) || "";
+      var soInp = $("doSoSelect");
+      var order_id = (soInp && soInp.dataset.scId) || "";
+      var hit = (window.__doSoCache || []).find(function(o) { return o.order_id === order_id; });
+      var no_so = (hit && hit.no_so) || "";
       var do_id = ($("doEditId").value || "").trim() || newDeliveryId();
       var isNew = !($("doEditId").value || "").trim();
       var st = $("doStatus").value || "draft";
@@ -12341,8 +12337,7 @@ function fillOperatorList(selectedEmail) {
       await openPoModal();
       try {
         if ($("poSoSelect") && pr.order_id) {
-          $("poSoSelect").value = pr.order_id;
-          await onPoSoChange();
+          await fillPoSoSelect(pr.order_id);
         }
         if ($("poNotes")) $("poNotes").value = "Dari " + pr.pr_id + (pr.notes ? (" — " + pr.notes) : "");
         window.__poFromPrId = pr.pr_id;
@@ -12601,52 +12596,67 @@ function fillOperatorList(selectedEmail) {
         if (unitInp) unitInp.addEventListener("input", function() { unitInp.dataset.touched = "1"; });
       }
     }
+    var poSoOrdersCache = [];
+    function scItemsPoOrders() {
+      return (poSoOrdersCache || []).map(function(o) {
+        return {
+          id: o.order_id,
+          label: (o.no_so || o.order_id) + " · " + (o.customer_name || "") + " · " + (o.status || ""),
+          sub: o.customer_name || "",
+          search: [o.order_id, o.no_so, o.customer_name, o.status].join(" "),
+          noso: o.no_so || "",
+          customer: o.customer_name || ""
+        };
+      });
+    }
     async function fillPoSoSelect(selectedId) {
-      const sel = $("poSoSelect");
-      if (!sel) return;
-      // load recent open/partial SO
+      const inp = $("poSoSelect");
+      if (!inp) return;
       let orders = [];
       try {
-        const { data } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(100);
+        const { data } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(300);
         orders = data || [];
       } catch (e) {}
-      sel.innerHTML = '<option value="">— Pilih SO —</option>';
-      orders.forEach(o => {
-        const st = String(o.status || "").toLowerCase();
-        if (st === "cancelled" || st === "done") return; // skip closed optional - allow done too for late buy
-        const opt = document.createElement("option");
-        opt.value = o.order_id;
-        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "") + " · " + (o.status || "");
-        opt.dataset.noso = o.no_so || "";
-        opt.dataset.customer = o.customer_name || "";
-        sel.appendChild(opt);
+      poSoOrdersCache = orders.filter(function(o) {
+        var st = String(o.status || "").toLowerCase();
+        return st !== "cancelled";
       });
-      // also include done if needed
-      orders.filter(o => String(o.status).toLowerCase() === "done").slice(0, 20).forEach(o => {
-        if ([].some.call(sel.options, x => x.value === o.order_id)) return;
-        const opt = document.createElement("option");
-        opt.value = o.order_id;
-        opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "") + " · done";
-        opt.dataset.noso = o.no_so || "";
-        sel.appendChild(opt);
+      inp.dataset.scBound = "";
+      attachSearchCombo(inp, scItemsPoOrders, {
+        valueMode: "id-name",
+        placeholder: "Ketik no SO / customer…",
+        onPick: function(id, label, input) {
+          if (input) {
+            input.dataset.scId = id;
+            input.value = label || id;
+          }
+          onPoSoChange();
+        }
       });
-      if (selectedId) sel.value = selectedId;
-      sel.onchange = onPoSoChange;
+      if (selectedId) {
+        var hit = poSoOrdersCache.find(function(o) { return o.order_id === selectedId; });
+        inp.dataset.scId = selectedId;
+        inp.value = hit ? ((hit.no_so || hit.order_id) + " · " + (hit.customer_name || "")) : selectedId;
+        onPoSoChange();
+      } else {
+        inp.dataset.scId = "";
+        inp.value = "";
+      }
     }
 
     async function onPoSoChange() {
-      var sel = $("poSoSelect");
+      var inp = $("poSoSelect");
       var fg = $("poFgSelect");
       var hint = $("poSoHint");
-      if (!sel) return;
-      var orderId = sel.value || "";
+      if (!inp) return;
+      var orderId = (inp.dataset && inp.dataset.scId) || "";
       if (fg) fg.innerHTML = '<option value="">— Semua FG di SO —</option>';
       if (!orderId) {
-        if (hint) hint.textContent = "Pilih SO customer dulu. Vendor diisi di tiap baris bahan.";
+        if (hint) hint.textContent = "Ketik no SO atau customer untuk mencari.";
         return;
       }
-      var opt = sel.options[sel.selectedIndex];
-      var noSo = (opt && opt.dataset.noso) || "";
+      var hit = (poSoOrdersCache || []).find(function(o) { return o.order_id === orderId; });
+      var noSo = (hit && hit.no_so) || "";
       if (hint) hint.textContent = "SO: " + (noSo || orderId) + " — vendor & ETA per baris bahan.";
       (async function() {
         if (!sb || !fg) return;
@@ -12658,7 +12668,6 @@ function fillOperatorList(selectedEmail) {
             var r2 = await sb.from("orders").select("order_lines(product_id,qty)").eq("order_id", orderId).maybeSingle();
             if (r2.data && r2.data.order_lines) lines = r2.data.order_lines;
           }
-          // dedupe
           var seen = {};
           (lines || []).forEach(function(l) {
             var pid = String(l.product_id || "").trim();
@@ -12991,7 +13000,6 @@ function fillOperatorList(selectedEmail) {
         if ($("poOdooNo")) $("poOdooNo").value = po.no_po_odoo || po.odoo_po || "";
         await fillPoSoSelect(po.order_id || "");
         try { await onPoSoChange(); } catch (eSo) {}
-        if ($("poSoSelect")) $("poSoSelect").value = po.order_id || "";
         if ($("poSoHint")) $("poSoHint").textContent = "SO: " + (po.no_so || po.order_id || "—");
         const { data: lines } = await sb.from("purchase_lines").select("*").eq("po_id", poId);
         if (lines && lines.length) lines.forEach(addPoLine);
@@ -13007,16 +13015,17 @@ function fillOperatorList(selectedEmail) {
     }
     async function savePurchaseOrder() {
       if (!sb) return;
-      const order_id = ($("poSoSelect") && $("poSoSelect").value) || "";
-      if (!order_id) return toast("Pilih Sales Order dulu — pembelian harus by SO", true);
+      const soInp = $("poSoSelect");
+      const order_id = (soInp && (soInp.dataset.scId || "")) || "";
+      if (!order_id) return toast("Pilih Sales Order dulu — ketik no SO atau customer", true);
       const no_po_odoo = (($("poOdooNo") && $("poOdooNo").value) || "").trim();
       if (!no_po_odoo) {
         toast("Isi No. PO Odoo", true);
         if ($("poOdooNo")) $("poOdooNo").focus();
         return;
       }
-      const soOpt = $("poSoSelect").options[$("poSoSelect").selectedIndex];
-      const no_so = (soOpt && soOpt.dataset.noso) || "";
+      var soHit = (poSoOrdersCache || []).find(function(o) { return o.order_id === order_id; });
+      const no_so = (soHit && soHit.no_so) || "";
       let po_id = ($("poEditId").value || "").trim();
       const isNew = !po_id;
       if (isNew) po_id = newPoId();
@@ -16879,7 +16888,7 @@ function closeOtModal() {
         <input type="hidden" id="doEditId" />
         <input type="hidden" id="doShipRef" />
         <div class="field"><label>Sales Order</label>
-          <select id="doSoSelect" onchange="onDoSoChange()"><option value="">— Pilih SO —</option></select>
+          <input id="doSoSelect" type="text" placeholder="Ketik no SO / customer…" autocomplete="off" />
         </div>
         <div class="field"><label>Customer</label><input id="doCustomer" placeholder="Nama customer" /></div>
         <div class="field"><label>Tanggal kirim</label><input type="date" id="doDate" /></div>
