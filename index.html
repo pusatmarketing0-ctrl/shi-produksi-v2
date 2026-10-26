@@ -10214,18 +10214,24 @@ function fillOperatorList(selectedEmail) {
       Object.keys(groups).forEach(k => {
         const g = groups[k];
         g.planDay = {};
+        g.planDayFg = {};
         g.primerDay = {};
         opsDays.forEach(day => {
           const cell = plansByGroupDay[k + "@@" + day];
           if (!cell) return;
-          if (cell.fg > 0) g.planDay[day] = cell.fg;
-          else if (cell.primer) { g.primerDay[day] = true; g.planDay[day] = null; }
+          if (cell.fg > 0) {
+            g.planDay[day] = cell.fg;
+            g.planDayFg[day] = cell.fg;
+          } else if (cell.primer) { g.primerDay[day] = true; g.planDay[day] = null; }
           else if (cell.all > 0) g.planDay[day] = cell.all;
         });
         g.plan_total = 0;
+        g.plan_total_fg = 0;
         Object.keys(g.planDay).forEach(d => { g.plan_total += Number(g.planDay[d]) || 0; });
-        // if only primers, plan_total from all
+        Object.keys(g.planDayFg).forEach(d => { g.plan_total_fg += Number(g.planDayFg[d]) || 0; });
+        // grid boleh fallback ke semua proses jika tidak ada FG sama sekali
         if (g.plan_total === 0 && g._planAll) g.plan_total = g._planAll;
+        if (!g.plan_total_fg && g._planFg) g.plan_total_fg = g._planFg;
         g.status = opsStatusOf(g);
       });
 
@@ -10321,7 +10327,8 @@ function fillOperatorList(selectedEmail) {
         let plan = 0, act = 0;
         const opSetDay = {};
         opsRows.forEach(g => {
-          plan += Number(g.planDay[d]) || 0;
+          // ringkasan harian: plan hanya packing masterbox (FG)
+          plan += Number((g.planDayFg && g.planDayFg[d]) || 0);
           act += Number(g.actDay[d]) || 0;
           // OP harian = operator unik (email), bukan jumlah baris produk
           const set = (g.opSetDay && g.opSetDay[d]) || {};
@@ -10358,23 +10365,30 @@ function fillOperatorList(selectedEmail) {
       const yest = yestDate.getFullYear() + "-" + z(yestDate.getMonth() + 1) + "-" + z(yestDate.getDate());
 
       const poMonth = opsRows.reduce((s, g) => s + (Number(g.po_qty) || 0), 0);
-      const planMonth = opsRows.reduce((s, g) => s + (Number(g.plan_total) || 0), 0);
+      // Plan / Actual KPI hanya packing masterbox (FG), bukan semua proses
+      const planMonth = opsRows.reduce((s, g) => s + (Number(g.plan_total_fg) || Number(g._planFg) || 0), 0);
       const actMonth = opsRows.reduce((s, g) => s + (Number(g.act_total) || 0), 0);
       const opMonth = opsRows.reduce((s, g) => s + (Number(g.op_total) || 0), 0);
-      // MTD = from day 1 to today within month
+      // MTD = from day 1 to today within month — plan hanya FG
       let planMtd = 0, actMtd = 0, opMtd = 0;
       opsDays.forEach(d => {
         if (d > today) return;
+        opsRows.forEach(g => {
+          planMtd += Number((g.planDayFg && g.planDayFg[d]) || 0);
+          actMtd += Number((g.actDay && g.actDay[d]) || 0);
+        });
         const m = opsDayMeta[d] || {};
-        planMtd += m.plan || 0;
-        actMtd += m.act || 0;
         opMtd += m.op || 0;
       });
       const planPending = Math.max(0, planMonth - actMonth);
       const poPending = 0; // belum ada flag pending di SO v2
       const poReleased = poMonth - poPending;
-      const planYest = (opsDayMeta[yest] && opsDayMeta[yest].plan) || 0;
-      const actYest = (opsDayMeta[yest] && opsDayMeta[yest].act) || 0;
+      // Kemarin hanya packing masterbox (FG)
+      let planYest = 0, actYest = 0;
+      opsRows.forEach(g => {
+        planYest += Number((g.planDayFg && g.planDayFg[yest]) || 0);
+        actYest += Number((g.actDay && g.actDay[yest]) || 0);
+      });
       // Jml OP = jumlah akun role operator di profiles
       var jmlOpAkun = 0;
       try {
