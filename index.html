@@ -1722,6 +1722,31 @@
     }
     .app-confirm-actions .btn { min-width: 88px; }
     .app-confirm-actions .btn-alt { margin-right: auto; }
+    .pick-img-lightbox {
+      position: fixed; inset: 0; z-index: 200700;
+      background: rgba(0,0,0,0.82);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 1.5rem; gap: 0.75rem;
+    }
+    .pick-img-lightbox[hidden] { display: none !important; }
+    .pick-img-lightbox img {
+      max-width: min(960px, 100%); max-height: 80vh;
+      border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      object-fit: contain; background: #111;
+    }
+    .pick-img-lightbox-close {
+      position: absolute; top: 12px; right: 16px;
+      width: 40px; height: 40px; border: none; border-radius: 999px;
+      background: rgba(255,255,255,0.15); color: #fff; font-size: 1.5rem; cursor: pointer;
+    }
+    .pick-img-lightbox-close:hover { background: rgba(255,255,255,0.28); }
+    .pick-img-lightbox-link {
+      color: #a7f3d0; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+    }
+    .pick-img-lightbox-link:hover { text-decoration: underline; }
+    #pickPhotoImg, #pickHandoverPhotoImg {
+      cursor: zoom-in;
+    }
 
     .op-grade-card {
       margin: 0.75rem 0 0.85rem;
@@ -2438,14 +2463,22 @@
       font-size: 0.65rem; font-weight: 700; line-height: 1;
       box-shadow: 0 1px 4px rgba(239,68,68,0.45);
     }
-    .notif-wrap { position: relative; z-index: 200510; isolation: isolate; }
+    .notif-wrap { position: relative; z-index: 200510; }
     .notif-panel {
-      position: absolute; right: 0; top: calc(100% + 8px);
-      width: min(320px, 92vw); max-height: 72vh; overflow: auto;
+      position: fixed;
+      right: 12px;
+      top: 60px;
+      width: min(340px, calc(100vw - 24px));
+      max-height: min(72vh, calc(100vh - 80px));
+      overflow: auto;
       background: #0f172a; color: #e2e8f0;
       border: 1px solid #1e293b; border-radius: 14px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.35); z-index: 200510;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+      z-index: 200510;
       padding: 0.4rem 0.35rem 0.55rem;
+      /* tetap tajam di atas modal blur */
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
     .notif-panel-head {
       display: flex; justify-content: space-between; align-items: center;
@@ -3020,6 +3053,11 @@
     <button type="button" class="btn btn-primary btn-sm" id="pwaInstall">Pasang</button>
   </div>
   <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+  <div id="pickImgLightbox" class="pick-img-lightbox" hidden onclick="if(event.target===this)closePickImgLightbox()">
+    <button type="button" class="pick-img-lightbox-close" onclick="closePickImgLightbox()" aria-label="Tutup">×</button>
+    <img id="pickImgLightboxImg" alt="Preview foto" />
+    <a id="pickImgLightboxOpen" href="#" target="_blank" rel="noopener" class="pick-img-lightbox-link">Buka di tab baru</a>
+  </div>
   <div id="appConfirmBg" class="app-confirm-bg" hidden>
     <div class="app-confirm-card" role="dialog" aria-modal="true">
       <h3 id="appConfirmTitle">Konfirmasi</h3>
@@ -15773,7 +15811,7 @@ function fillOperatorList(selectedEmail) {
       if (u.indexOf("data:") === 0) return u;
       // Google Drive share/view → thumbnail yang bisa di-preview
       var m = u.match(/\/d\/([a-zA-Z0-9_-]+)/) || u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-      if (m) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w800";
+      if (m) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w1600";
       return u;
     }
     function setPickPhotoPreview(url) {
@@ -15788,15 +15826,54 @@ function fillOperatorList(selectedEmail) {
       }
       if (img) {
         img.onerror = function() {
-          // fallback: coba open link asli di tab baru lewat click
-          img.alt = "Preview gagal — klik untuk buka";
-          img.style.cursor = "pointer";
-          img.onclick = function() { try { window.open(url, "_blank"); } catch (e) {} };
+          img.alt = "Preview gagal — klik untuk perbesar";
+          img.style.cursor = "zoom-in";
+          img.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openPickImgLightbox(url);
+          };
         };
         img.src = toPickPreviewUrl(url);
+        img.style.cursor = "zoom-in";
+        img.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openPickImgLightbox(url);
+        };
+        img.title = "Klik untuk perbesar";
       }
       if (prev) prev.style.display = "block";
       if (clr) clr.style.display = "";
+    }
+    function openPickImgLightbox(url) {
+      if (!url) return;
+      var bg = $("pickImgLightbox");
+      var img = $("pickImgLightboxImg");
+      var link = $("pickImgLightboxOpen");
+      if (!bg || !img) {
+        try { window.open(toPickPreviewUrl(url), "_blank"); } catch (e) {}
+        return;
+      }
+      img.src = toPickPreviewUrl(url);
+      img.onclick = function(e) { e.stopPropagation(); };
+      if (link) {
+        link.href = url.indexOf("data:") === 0 ? url : toPickPreviewUrl(url);
+        link.style.display = url ? "" : "none";
+      }
+      bg.hidden = false;
+      document.body.classList.add("modal-open");
+    }
+    function closePickImgLightbox() {
+      var bg = $("pickImgLightbox");
+      if (bg) bg.hidden = true;
+      var img = $("pickImgLightboxImg");
+      if (img) img.removeAttribute("src");
+      // jangan lepas modal-open kalau form pick masih terbuka
+      var pm = $("pickModal");
+      if (!(pm && (pm.classList.contains("show") || pm.style.display === "flex"))) {
+        document.body.classList.remove("modal-open");
+      }
     }
     function clearPickPhoto() {
       if ($("pickPhoto")) $("pickPhoto").value = "";
@@ -15820,6 +15897,13 @@ function fillOperatorList(selectedEmail) {
           img.onclick = function() { try { window.open(url, "_blank"); } catch (e) {} };
         };
         img.src = toPickPreviewUrl(url);
+        img.style.cursor = "zoom-in";
+        img.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openPickImgLightbox(url);
+        };
+        img.title = "Klik untuk perbesar";
       }
       if (prev) prev.style.display = "block";
       if (clr) clr.style.display = "";
@@ -16152,9 +16236,8 @@ function fillOperatorList(selectedEmail) {
       await loadPicks();
       try { loadInboxNotifs(); } catch (eN) {}
       if (pendingBackorder) {
-        // Pastikan form parent masih terbuka dengan id yang benar
         $("pickEditId").value = id;
-        await createPickBackorder();
+        await createPickBackorder(true); // sudah dikonfirmasi di dialog 3 tombol
         return;
       }
       if (nextStatus === "prepare" || nextStatus === "handover" || status === "prepared" || status === "handover") {
@@ -16163,7 +16246,7 @@ function fillOperatorList(selectedEmail) {
         closePickModal();
       }
     }
-    async function createPickBackorder() {
+    async function createPickBackorder(skipConfirm) {
       if (!sb) return;
       var parentId = ($("pickEditId").value || "").trim();
       if (!parentId) return toast("Simpan pick dulu", true);
@@ -16172,21 +16255,22 @@ function fillOperatorList(selectedEmail) {
         return { product_id: l.product_id, qty_request: Number(l.qty_request) - Number(l.qty_prepared), qty_prepared: 0, unit: l.unit };
       });
       if (!short.length) return toast("Tidak ada kekurangan", true);
-      // Ringkasan qty sisa
-      var summary = short.map(function(l, i) {
-        var name = l.product_id;
-        try { name = productLabel(l.product_id) || l.product_id; } catch (e) {}
-        return (i + 1) + ". " + name + " → sisa " + l.qty_request + " " + (l.unit || "pcs");
-      }).join("\n");
-      var okQty = await appConfirm(
-        "Cek ulang qty back order (sisa):\n\n" + summary + "\n\nLanjut buat back order?",
-        "Konfirmasi qty back order",
-        { yesText: "Ya, buat back order", noText: "Perbaiki qty" }
-      );
-      if (!okQty) return toast("Silakan perbaiki qty siap di form");
+      if (!skipConfirm) {
+        var summary = short.map(function(l, i) {
+          var name = l.product_id;
+          try { name = productLabel(l.product_id) || l.product_id; } catch (e) {}
+          return (i + 1) + ". " + name + " → sisa " + l.qty_request + " " + (l.unit || "pcs");
+        }).join("\n");
+        var okQty = await appConfirm(
+          "Cek ulang qty back order (sisa):\n\n" + summary + "\n\nLanjut buat back order?",
+          "Konfirmasi qty back order",
+          { yesText: "Ya, buat back order", noText: "Perbaiki qty" }
+        );
+        if (!okQty) return toast("Silakan perbaiki qty siap di form");
+      }
       var noNew = await appPrompt({ title: "No Pick back order", message: "Isi nomor Pick Odoo yang baru (create back order):", defaultValue: "", okText: "Buat", cancelText: "Batal" });
       if (noNew == null || !String(noNew).trim()) return;
-      var id = await newPickId();
+var id = await newPickId();
       var { error } = await sb.from("picks").insert({
         pick_id: id,
         no_pick_odoo: String(noNew).trim(),
