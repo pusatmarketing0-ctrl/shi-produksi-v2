@@ -3288,6 +3288,7 @@
               <tbody id="productBody"></tbody>
             </table>
           </div>
+          <div id="productPager" class="pg-bar"></div>
         </section>
 
         <section id="page-machines" class="page" hidden>
@@ -3308,6 +3309,7 @@
               <tbody id="machineBody"></tbody>
             </table>
           </div>
+          <div id="machinePager" class="pg-bar"></div>
         </section>
 
         
@@ -3346,6 +3348,7 @@
               <tbody id="routeProductBody"></tbody>
             </table>
           </div>
+          <div id="routePager" class="pg-bar"></div>
           <div id="routeEditor" class="card" style="display:none; padding-bottom:5rem">
             <div style="margin-bottom:1.1rem">
               <h3 id="routeEditorTitle" style="font-size:1.1rem;margin:0">—</h3>
@@ -3406,6 +3409,7 @@
                 <tbody id="accBody"><tr><td colspan="5" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
+            <div id="accPager" class="pg-bar"></div>
           </div>
           <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">
             Tip: user baru → Sign up di login → muncul di daftar → set role (admin/ppic/operator/…). Nonaktifkan agar tidak dipakai di plan.
@@ -3512,6 +3516,7 @@
               <tbody id="planBody"></tbody>
             </table>
           </div>
+          <div id="planPager" class="pg-bar"></div>
         </section>
         <section id="page-reports" class="page" hidden>
           <div class="page-head">
@@ -3625,6 +3630,7 @@
               <tbody id="orderBody"></tbody>
             </table>
           </div>
+          <div id="orderPager" class="pg-bar"></div>
         </section>
       
         <section id="page-marketing" class="page" hidden>
@@ -3720,6 +3726,7 @@
               <tbody id="absBody"></tbody>
             </table>
           </div>
+          <div id="absPager" class="pg-bar"></div>
         </section>
 
         <section id="page-revisions" class="page" hidden>
@@ -3889,6 +3896,7 @@
                 <tbody id="bomBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
+            <div id="bomPager" class="pg-bar"></div>
           </div>
           <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">Jalankan SQL <code>batch3_bom.sql</code> sekali di Supabase.</p>
         </section>
@@ -4032,6 +4040,7 @@
                   <tbody id="whStockBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
+              <div id="stockPager" class="pg-bar"></div>
               <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Masuk = vendor + FG + sisa · Keluar = pengiriman · Saldo = masuk − keluar</p>
             </div>
           </div>
@@ -4127,6 +4136,7 @@
               <tbody id="qcBody"><tr><td colspan="8" class="empty">Memuat…</td></tr></tbody>
             </table>
           </div>
+          <div id="qcPager" class="pg-bar"></div>
         </section>
         <section id="page-delivery" class="page" hidden>
           <div class="page-head">
@@ -4156,6 +4166,7 @@
               <tbody id="doBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
             </table>
           </div>
+          <div id="doPager" class="pg-bar"></div>
         </section>
       </main>
     </div>
@@ -5704,9 +5715,11 @@
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="8" class="empty">Belum ada plan di filter ini</td></tr>';
         if ($("planCards")) $("planCards").innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada plan di filter ini</div></div>';
+        pageOf("plans", [], "planPager");
         return;
       }
-      body.innerHTML = list.map(p => `
+      var pageList = pageOf("plans", list, "planPager");
+      body.innerHTML = pageList.map(p => `
         <tr>
           <td class="mono">${esc(p.plan_date)}</td>
           <td>${esc(p.shift)}</td>
@@ -5912,8 +5925,10 @@
       if (body) {
         if (!list.length) {
           body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada Sales Order</td></tr>';
+          pageOf("orders", [], "orderPager");
         } else {
-          body.innerHTML = list.map(o => {
+          var pageList = pageOf("orders", list, "orderPager");
+          body.innerHTML = pageList.map(o => {
             const n = (o.order_lines || []).length;
             return '<tr style="cursor:pointer" data-oid="' + encodeURIComponent(o.order_id) + '">' +
               '<td class="mono"><strong>' + esc(o.no_so) + '</strong></td>' +
@@ -6507,9 +6522,11 @@
       if ($("routeKpiSteps")) $("routeKpiSteps").textContent = formatNum((routes || []).length);
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada produk</td></tr>';
+        pageOf("routes", [], "routePager");
         return;
       }
-      body.innerHTML = list.map(function(p) {
+      var pageList = pageOf("routes", list, "routePager");
+      body.innerHTML = pageList.map(function(p) {
         var badge = p.hasRoute
           ? '<span class="pill">Ada routes</span>'
           : '<span class="pill" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">Belum</span>';
@@ -7002,9 +7019,11 @@ function fillOperatorList(selectedEmail) {
       const body = $("productBody");
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="5" class="empty">Belum ada produk</td></tr>';
+        pageOf("products", [], "productPager");
         return;
       }
-      body.innerHTML = list.map(p => `
+      var pageList = pageOf("products", list, "productPager");
+      body.innerHTML = pageList.map(p => `
         <tr>
           <td class="mono">${esc(p.product_id)}</td>
           <td>${esc(p.name)}</td>
@@ -7027,9 +7046,11 @@ function fillOperatorList(selectedEmail) {
       const body = $("machineBody");
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="5" class="empty">Belum ada proses</td></tr>';
+        pageOf("machines", [], "machinePager");
         return;
       }
-      body.innerHTML = list.map(m => `
+      var pageList = pageOf("machines", list, "machinePager");
+      body.innerHTML = pageList.map(m => `
         <tr>
           <td class="mono">${esc(m.machine_id)}</td>
           <td>${esc(m.name)}</td>
@@ -9024,8 +9045,12 @@ function fillOperatorList(selectedEmail) {
       const cards = $("absCards");
       const staff = ["admin","ppic","korlap"].includes(currentRole());
       if (body) {
-        if (!absenceRows.length) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada data</td></tr>';
-        else body.innerHTML = absenceRows.map(a => {
+        if (!absenceRows.length) {
+          body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada data</td></tr>';
+          pageOf("abs", [], "absPager");
+        } else {
+          var pageList = pageOf("abs", absenceRows, "absPager");
+          body.innerHTML = pageList.map(a => {
           return '<tr><td class="mono">' + esc(a.absence_date) + '</td><td>' + esc(a.operator_email || a.operator_name || "") +
             '</td><td>' + esc(a.type || a.absence_type || "") + '</td><td>' + esc(a.reason || "") +
             '</td><td>' + statusPill(a.status || "pending") + '</td><td>' +
@@ -9033,10 +9058,11 @@ function fillOperatorList(selectedEmail) {
               '<button class="btn btn-sm btn-primary" data-aid="' + encodeURIComponent(a.id || a.absence_id || "") + '" data-st="approved">Setuju</button> ' +
               '<button class="btn btn-sm btn-danger" data-aid="' + encodeURIComponent(a.id || a.absence_id || "") + '" data-st="rejected">Tolak</button>' : "") +
             '</td></tr>';
-        }).join("");
-        body.querySelectorAll("[data-aid]").forEach(btn => {
-          btn.onclick = () => setAbsenceStatus(decodeURIComponent(btn.getAttribute("data-aid")), btn.getAttribute("data-st"));
-        });
+          }).join("");
+          body.querySelectorAll("[data-aid]").forEach(btn => {
+            btn.onclick = () => setAbsenceStatus(decodeURIComponent(btn.getAttribute("data-aid")), btn.getAttribute("data-st"));
+          });
+        }
       }
       if (cards) {
         cards.innerHTML = !absenceRows.length
@@ -11064,9 +11090,11 @@ function fillOperatorList(selectedEmail) {
       );
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada BOM</td></tr>';
+        pageOf("bom", [], "bomPager");
         return;
       }
-      body.innerHTML = list.map(b =>
+      var pageList = pageOf("bom", list, "bomPager");
+      body.innerHTML = pageList.map(b =>
         '<tr>' +
         '<td><strong>' + esc(b.fg_product_id) + '</strong></td>' +
         '<td>' + esc(b.material_product_id) + '</td>' +
@@ -11302,9 +11330,11 @@ function fillOperatorList(selectedEmail) {
       });
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pengiriman</td></tr>';
+        pageOf("do", [], "doPager");
         return;
       }
-      body.innerHTML = list.map(function(d) {
+      var pageList = pageOf("do", list, "doPager");
+      body.innerHTML = pageList.map(function(d) {
         var acts = "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
         if (d.status === "ready" || d.status === "draft") {
           acts += " <button type='button' class='btn btn-primary btn-sm' onclick='openShipDoModal(" + JSON.stringify(d.delivery_id) + ")'>Kirim</button>";
@@ -11724,9 +11754,11 @@ function fillOperatorList(selectedEmail) {
       });
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada mutasi gudang</td></tr>';
+        pageOf("stock", [], "stockPager");
         return;
       }
-      body.innerHTML = list.map(function(r) {
+      var pageList = pageOf("stock", list, "stockPager");
+      body.innerHTML = pageList.map(function(r) {
         var name = "";
         try {
           var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
@@ -12121,9 +12153,11 @@ function fillOperatorList(selectedEmail) {
       });
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada data</td></tr>';
+        pageOf("qc", [], "qcPager");
         return;
       }
-      body.innerHTML = list.map(function(r) {
+      var pageList = pageOf("qc", list, "qcPager");
+      body.innerHTML = pageList.map(function(r) {
         var st = r.qc_status || "pending";
         var color = st === "passed" ? "#059669" : (st === "failed" ? "#b91c1c" : (st === "partial" ? "#c2410c" : "#a16207"));
         var label = st === "passed" ? "Lulus" : (st === "failed" ? "Tolak" : (st === "partial" ? "Sebagian" : "Pending"));
@@ -12448,6 +12482,41 @@ function fillOperatorList(selectedEmail) {
       }
       poList = data || [];
       renderPurchaseOrders();
+    }
+    var pageState = {};
+    function pageOf(key, list, pagerId) {
+      var size = 20;
+      var st = pageState[key] || { page: 1 };
+      var pages = Math.max(1, Math.ceil((list || []).length / size));
+      if (st.page > pages) st.page = pages;
+      if (st.page < 1) st.page = 1;
+      pageState[key] = st;
+      var from = list.length ? (st.page - 1) * size + 1 : 0;
+      var to = Math.min(st.page * size, list.length);
+      var el = $(pagerId);
+      if (el) {
+        el.innerHTML = list.length
+          ? buildPagerHtml(st.page, pages, from, to, list.length, "setListPage('" + key + "',")
+          : "";
+      }
+      return (list || []).slice((st.page - 1) * size, st.page * size);
+    }
+    function setListPage(key, p) {
+      pageState[key] = { page: p };
+      var map = {
+        products: function() { renderProducts(); },
+        machines: function() { renderMachines(); },
+        routes: function() { renderRouteProductTable(); },
+        accounts: function() { renderAccounts(); },
+        plans: function() { renderPlans(); },
+        orders: function() { renderOrders(); },
+        abs: function() { renderAbsences(); },
+        bom: function() { renderBomTable(); },
+        do: function() { renderDeliveries(); },
+        stock: function() { renderGudangStock(); },
+        qc: function() { renderQcInbox(); }
+      };
+      if (map[key]) map[key]();
     }
     function buildPagerHtml(page, pages, from, to, total, setFn) {
       function btn(label, p, extra) {
@@ -14601,9 +14670,11 @@ function fillOperatorList(selectedEmail) {
       );
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="5" class="empty">Tidak ada akun</td></tr>';
+        pageOf("accounts", [], "accPager");
         return;
       }
-      body.innerHTML = list.map(a => {
+      var pageList = pageOf("accounts", list, "accPager");
+      body.innerHTML = pageList.map(a => {
         const active = a.active !== false;
         const id = a.id || a.email || "";
         return '<tr>' +
