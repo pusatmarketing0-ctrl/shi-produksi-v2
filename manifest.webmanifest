@@ -2,13 +2,10 @@
   "name": "SHI Produksi",
   "short_name": "SHI Produksi",
   "description": "Sistem produksi PT. Sentra Herbal Internasional",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": ".",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#e8f0ec",
+  "background_color": "#0f172a",
   "theme_color": "#0d9f6e",
-  "lang": "id",
   "icons": [
     {
       "src": "icon-192.png",
