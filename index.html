@@ -15484,24 +15484,51 @@ function fillOperatorList(selectedEmail) {
     }
     function pickLineHtml(line) {
       line = line || {};
-      return "<div class='pick-line' style='display:grid;grid-template-columns:1.4fr 0.7fr 0.7fr 0.6fr auto;gap:0.35rem;margin-bottom:0.35rem;align-items:end'>" +
-        "<input class='pl-pid' placeholder='Kode bahan' value='" + esc(line.product_id || "") + "' />" +
-        "<input class='pl-req num-input' placeholder='Qty minta' value='" + (line.qty_request != null ? formatInputNum(line.qty_request, true) : "") + "' />" +
-        "<input class='pl-prep num-input' placeholder='Qty siap' value='" + (line.qty_prepared != null ? formatInputNum(line.qty_prepared, true) : "") + "' />" +
-        "<input class='pl-unit' placeholder='Satuan' value='" + esc(line.unit || "pcs") + "' />" +
-        "<button type='button' class='btn btn-danger btn-sm' onclick='this.parentElement.remove()'>×</button></div>";
+      var pid = line.product_id || "";
+      var label = "";
+      try { label = pid ? productLabel(pid) : ""; } catch (e) { label = pid; }
+      return "<div class='pick-line' style='display:grid;grid-template-columns:1.5fr 0.7fr 0.7fr 0.55fr auto;gap:0.35rem;margin-bottom:0.45rem;align-items:end'>" +
+        "<div class='field' style='margin:0'><label style='font-size:0.68rem'>Kode bahan</label>" +
+          "<div class='search-combo'><input class='pl-pid' type='text' placeholder='Ketik kode / nama bahan…' value='" + esc(label || pid) + "' data-sc-id='" + esc(pid) + "' autocomplete='off' /></div></div>" +
+        "<div class='field' style='margin:0'><label style='font-size:0.68rem'>Qty minta</label>" +
+          "<input class='pl-req num-input' placeholder='0' value='" + (line.qty_request != null ? formatInputNum(line.qty_request, true) : "") + "' /></div>" +
+        "<div class='field' style='margin:0'><label style='font-size:0.68rem'>Qty siap</label>" +
+          "<input class='pl-prep num-input' placeholder='0' value='" + (line.qty_prepared != null ? formatInputNum(line.qty_prepared, true) : "") + "' /></div>" +
+        "<div class='field' style='margin:0'><label style='font-size:0.68rem'>Satuan</label>" +
+          "<input class='pl-unit' placeholder='pcs' value='" + esc(line.unit || "pcs") + "' /></div>" +
+        "<button type='button' class='btn btn-danger btn-sm' style='margin-bottom:2px' onclick='this.closest(".pick-line").remove()'>×</button></div>";
     }
     function pickAddLine(line) {
       var box = $("pickLines");
       if (!box) return;
       box.insertAdjacentHTML("beforeend", pickLineHtml(line));
+      var row = box.lastElementChild;
+      if (row) bindPickMaterialCombo(row.querySelector(".pl-pid"));
+      try { bindAllThousandInputs(); } catch (e) {}
+    }
+    function bindPickMaterialCombo(input) {
+      if (!input) return;
+      input.dataset.scBound = "";
+      attachSearchCombo(input, scItemsProduct, {
+        valueMode: "id-name",
+        placeholder: "Ketik kode / nama bahan…",
+        onPick: function(id, label, inp) {
+          if (inp) {
+            inp.dataset.scId = id || "";
+            inp.value = label || id || "";
+          }
+        }
+      });
     }
     function collectPickLines() {
       var box = $("pickLines");
       if (!box) return [];
       return Array.prototype.map.call(box.querySelectorAll(".pick-line"), function(row) {
+        var inp = row.querySelector(".pl-pid");
+        var raw = (inp && inp.value || "").trim();
+        var pid = (inp && inp.dataset.scId) || resolveProductId(raw) || raw;
         return {
-          product_id: (row.querySelector(".pl-pid").value || "").trim(),
+          product_id: String(pid || "").trim(),
           qty_request: parseInputNum(row.querySelector(".pl-req").value),
           qty_prepared: parseInputNum(row.querySelector(".pl-prep").value),
           unit: (row.querySelector(".pl-unit").value || "pcs").trim() || "pcs"
@@ -15520,16 +15547,205 @@ function fillOperatorList(selectedEmail) {
       });
       toast(bom.length + " bahan dari BOM");
     }
-    function openPickModal(pickId) {
+    function scItemsPickSo() {
+      return (allOrders || []).filter(function(o) {
+        var st = String(o.status || "").toLowerCase();
+        return st !== "cancelled" && st !== "closed";
+      }).map(function(o) {
+        var n = (o.lines || o.order_lines || []).length;
+        var label = (o.no_so || o.order_id) + " · " + (o.customer_name || "-") + (n ? " (" + n + " item)" : "");
+        return {
+          id: o.order_id,
+          label: label,
+          sub: (o.status || "") + (o.order_date ? " · " + String(o.order_date).slice(0, 10) : ""),
+          search: [o.order_id, o.no_so, o.customer_name, o.status].join(" ")
+        };
+      });
+    }
+    function scItemsPickFg() {
+      var soInp = $("pickNoSo");
+      var oid = (soInp && (soInp.dataset.scId || resolveOrderIdFromInput(soInp.value))) || "";
+      var order = (allOrders || []).find(function(o) { return o.order_id === oid; });
+      if (!order) {
+        // fallback: semua produk jika SO belum dipilih
+        return scItemsProduct();
+      }
+      return (order.lines || order.order_lines || []).map(function(L) {
+        var pl = "";
+        try { pl = productLabel(L.product_id); } catch (e) { pl = L.product_id; }
+        return {
+          id: L.product_id,
+          label: pl,
+          sub: "qty " + (L.qty || 0) + " " + (L.unit || "pcs"),
+          search: [L.product_id, pl, L.unit].join(" ")
+        };
+      });
+    }
+    function bindPickCombos() {
+      var soInp = $("pickNoSo");
+      var fgInp = $("pickFg");
+      if (soInp) {
+        soInp.dataset.scBound = "";
+        attachSearchCombo(soInp, scItemsPickSo, {
+          valueMode: "id-name",
+          placeholder: "Ketik no SO / customer…",
+          onPick: function(id, label, input) {
+            if (input) {
+              input.dataset.scId = id || "";
+              input.value = label || id || "";
+            }
+            onPickSoChange();
+          }
+        });
+      }
+      if (fgInp) {
+        fgInp.dataset.scBound = "";
+        attachSearchCombo(fgInp, scItemsPickFg, {
+          valueMode: "id-name",
+          placeholder: "Pilih produk FG dari SO…",
+          onPick: function(id, label, input) {
+            if (input) {
+              input.dataset.scId = id || "";
+              input.value = label || id || "";
+            }
+          }
+        });
+      }
+    }
+    function onPickSoChange() {
+      var soInp = $("pickNoSo");
+      var fgInp = $("pickFg");
+      var hint = $("pickFgHint");
+      var oid = (soInp && (soInp.dataset.scId || resolveOrderIdFromInput(soInp.value))) || "";
+      var order = (allOrders || []).find(function(o) { return o.order_id === oid; });
+      if (fgInp) {
+        fgInp.value = "";
+        fgInp.dataset.scId = "";
+      }
+      if (!order) {
+        if (hint) hint.textContent = "Pilih SO dulu agar daftar FG muncul.";
+        return;
+      }
+      var lines = order.lines || order.order_lines || [];
+      if (hint) hint.textContent = lines.length + " produk di SO " + (order.no_so || order.order_id);
+      // auto-select jika hanya 1 FG
+      if (lines.length === 1 && fgInp) {
+        var L = lines[0];
+        var pl = "";
+        try { pl = productLabel(L.product_id); } catch (e) { pl = L.product_id; }
+        fgInp.dataset.scId = L.product_id;
+        fgInp.value = pl;
+      }
+    }
+    function setPickPhotoPreview(url) {
+      var prev = $("pickPhotoPrev");
+      var img = $("pickPhotoImg");
+      var clr = $("btnPickPhotoClear");
+      if (!url) {
+        if (prev) prev.style.display = "none";
+        if (img) img.removeAttribute("src");
+        if (clr) clr.style.display = "none";
+        return;
+      }
+      if (img) img.src = url;
+      if (prev) prev.style.display = "block";
+      if (clr) clr.style.display = "";
+    }
+    function clearPickPhoto() {
+      if ($("pickPhoto")) $("pickPhoto").value = "";
+      if ($("pickPhotoFile")) $("pickPhotoFile").value = "";
+      setPickPhotoPreview("");
+    }
+    async function onPickPhotoSelected(file) {
+      if (!file) return;
+      if (!/^image\//i.test(file.type || "")) return toast("Pilih file gambar", true);
+      if (file.size > 4 * 1024 * 1024) return toast("Foto max 4 MB", true);
+      // compress via canvas if large
+      var dataUrl = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() { resolve(reader.result); };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      // try Drive upload if configured, else simpan data URL
+      try {
+        var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
+        if (base && dataUrl.indexOf("base64,") >= 0) {
+          toast("Mengupload foto…");
+          var b64 = String(dataUrl).split("base64,")[1] || "";
+          var res = await fetch(base, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              ot_id: ($("pickEditId") && $("pickEditId").value) || "pick",
+              kind: "pick_form",
+              fileName: file.name || ("pick-" + Date.now() + ".jpg"),
+              mimeType: file.type || "image/jpeg",
+              base64: b64
+            })
+          });
+          var text = await res.text();
+          var data = {};
+          try { data = JSON.parse(text); } catch (e1) {}
+          if (data && data.ok && data.url) {
+            if ($("pickPhoto")) $("pickPhoto").value = data.url;
+            setPickPhotoPreview(data.url);
+            toast("Foto tersimpan");
+            return;
+          }
+        }
+      } catch (eUp) { console.warn(eUp); }
+      if ($("pickPhoto")) $("pickPhoto").value = dataUrl;
+      setPickPhotoPreview(dataUrl);
+      toast("Foto siap");
+    }
+    async function openPickModal(pickId) {
+      try { if (!(allOrders && allOrders.length)) await loadOrdersForPlan(); } catch (eO) {}
+      try { if (!(products && products.length)) await loadProducts(); } catch (eP) {}
       var p = pickId ? pickList.find(function(x) { return x.pick_id === pickId; }) : null;
       $("pickEditId").value = p ? p.pick_id : "";
       $("pickParentId").value = p ? (p.parent_pick_id || "") : "";
       $("pickNoOdoo").value = p ? (p.no_pick_odoo || "") : "";
-      $("pickNoSo").value = p ? (p.no_so || "") : "";
-      $("pickFg").value = p ? (p.product_id || "") : "";
-      $("pickPhoto").value = p ? (p.photo_url || "") : "";
       $("pickNotes").value = p ? (p.notes || "") : "";
       if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = p ? (p.handover_photo_url || "") : "";
+      // SO
+      var soInp = $("pickNoSo");
+      if (soInp) {
+        soInp.value = "";
+        soInp.dataset.scId = "";
+        if (p && p.no_so) {
+          var ord = (allOrders || []).find(function(o) {
+            return String(o.no_so || "") === String(p.no_so) || String(o.order_id) === String(p.no_so);
+          });
+          if (ord) {
+            soInp.dataset.scId = ord.order_id;
+            soInp.value = (ord.no_so || ord.order_id) + " · " + (ord.customer_name || "-");
+          } else {
+            soInp.value = p.no_so;
+          }
+        }
+      }
+      // FG
+      var fgInp = $("pickFg");
+      if (fgInp) {
+        fgInp.value = "";
+        fgInp.dataset.scId = "";
+        if (p && p.product_id) {
+          fgInp.dataset.scId = p.product_id;
+          try { fgInp.value = productLabel(p.product_id); } catch (e) { fgInp.value = p.product_id; }
+        }
+      }
+      if ($("pickFgHint")) {
+        var oid = soInp && soInp.dataset.scId;
+        var order = oid ? (allOrders || []).find(function(o) { return o.order_id === oid; }) : null;
+        var n = order ? (order.lines || order.order_lines || []).length : 0;
+        $("pickFgHint").textContent = order ? (n + " produk di SO") : (p ? "" : "Pilih SO dulu agar daftar FG muncul.");
+      }
+      // foto
+      var photoUrl = p ? (p.photo_url || "") : "";
+      if ($("pickPhoto")) $("pickPhoto").value = photoUrl;
+      if ($("pickPhotoFile")) $("pickPhotoFile").value = "";
+      setPickPhotoPreview(photoUrl);
       var box = $("pickLines");
       if (box) box.innerHTML = "";
       (p && p.pick_lines ? p.pick_lines : []).forEach(function(l) { pickAddLine(l); });
@@ -15538,6 +15754,16 @@ function fillOperatorList(selectedEmail) {
       $("pickModalSub").textContent = p ? pickStatusLabel(p.status) : "Draft · kirim ke gudang setelah lengkap";
       if ($("pickHandoverBox")) $("pickHandoverBox").style.display = (p && (p.status === "prepared" || p.status === "handover" || p.status === "picked")) ? "block" : "none";
       renderPickActions(p);
+      bindPickCombos();
+      // foto file listener
+      var fileInp = $("pickPhotoFile");
+      if (fileInp && fileInp.dataset.bound !== "1") {
+        fileInp.dataset.bound = "1";
+        fileInp.addEventListener("change", function() {
+          var f = fileInp.files && fileInp.files[0];
+          if (f) onPickPhotoSelected(f);
+        });
+      }
       var m = $("pickModal");
       m.classList.add("show");
       m.style.display = "flex";
@@ -15589,8 +15815,21 @@ function fillOperatorList(selectedEmail) {
       var payload = {
         pick_id: id,
         no_pick_odoo: noOdoo,
-        no_so: ($("pickNoSo").value || "").trim(),
-        product_id: resolveProductId(($("pickFg").value || "").trim()) || ($("pickFg").value || "").trim(),
+        no_so: (function() {
+          var so = $("pickNoSo");
+          if (!so) return "";
+          var oid = so.dataset.scId || "";
+          if (oid) {
+            var ord = (allOrders || []).find(function(o) { return o.order_id === oid; });
+            if (ord) return ord.no_so || ord.order_id || "";
+          }
+          return (so.value || "").trim();
+        })(),
+        product_id: (function() {
+          var fg = $("pickFg");
+          if (!fg) return "";
+          return fg.dataset.scId || resolveProductId(fg.value) || (fg.value || "").trim();
+        })(),
         parent_pick_id: ($("pickParentId").value || "").trim() || null,
         status: status,
         notes: ($("pickNotes").value || "").trim(),
@@ -17266,9 +17505,30 @@ function closeOtModal() {
         <input type="hidden" id="pickParentId" />
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
           <div class="field"><label>No Pick Odoo</label><input id="pickNoOdoo" placeholder="PICK/2026/001" /></div>
-          <div class="field"><label>No SO</label><input id="pickNoSo" placeholder="SO/..." /></div>
-          <div class="field"><label>Produk FG</label><input id="pickFg" placeholder="Ketik kode / nama FG" autocomplete="off" /></div>
-          <div class="field"><label>Foto form</label><input id="pickPhoto" placeholder="URL foto / Drive" /></div>
+          <div class="field"><label>No SO</label>
+            <div class="search-combo">
+              <input id="pickNoSo" type="text" placeholder="Ketik no SO / customer…" autocomplete="off" />
+            </div>
+          </div>
+          <div class="field"><label>Produk FG</label>
+            <div class="search-combo">
+              <input id="pickFg" type="text" placeholder="Pilih SO dulu, lalu produk FG…" autocomplete="off" />
+            </div>
+            <p id="pickFgHint" style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0"></p>
+          </div>
+          <div class="field"><label>Foto form</label>
+            <input type="hidden" id="pickPhoto" value="" />
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">
+              <label class="btn btn-ghost btn-sm" style="margin:0;cursor:pointer">
+                📷 Ambil / Upload
+                <input type="file" id="pickPhotoFile" accept="image/*" capture="environment" hidden />
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnPickPhotoClear" style="display:none" onclick="clearPickPhoto()">Hapus foto</button>
+            </div>
+            <div id="pickPhotoPrev" style="margin-top:0.4rem;display:none">
+              <img id="pickPhotoImg" alt="Preview" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid var(--border);object-fit:cover" />
+            </div>
+          </div>
         </div>
         <div class="field"><label>Catatan</label><input id="pickNotes" placeholder="Opsional" /></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin:0.6rem 0 0.35rem">
