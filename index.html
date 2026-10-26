@@ -15515,9 +15515,9 @@ function fillOperatorList(selectedEmail) {
     async function newPickId() {
       var d = new Date();
       var z = function(n) { return String(n).padStart(2, "0"); };
-      // Format: PKYYMMDD-0001 (berurutan per hari, mudah di-sort)
+      // Format: PKYYMMDD-S0001 — prefix "S" agar tidak bentrok dengan ID random lama (PKYYMMDD-5327)
       var day = d.getFullYear().toString().slice(-2) + z(d.getMonth() + 1) + z(d.getDate());
-      var prefix = "PK" + day + "-";
+      var prefix = "PK" + day + "-S";
       var maxSeq = 0;
       function consider(id) {
         id = String(id || "");
@@ -15528,7 +15528,7 @@ function fillOperatorList(selectedEmail) {
       (pickList || []).forEach(function(p) { consider(p.pick_id); });
       if (sb) {
         try {
-          var { data } = await sb.from("picks").select("pick_id").like("pick_id", prefix + "%").order("pick_id", { ascending: false }).limit(30);
+          var { data } = await sb.from("picks").select("pick_id").like("pick_id", prefix + "%").order("pick_id", { ascending: false }).limit(50);
           (data || []).forEach(function(r) { consider(r.pick_id); });
         } catch (e) { console.warn(e); }
       }
@@ -16141,6 +16141,18 @@ function fillOperatorList(selectedEmail) {
         return { product_id: l.product_id, qty_request: Number(l.qty_request) - Number(l.qty_prepared), qty_prepared: 0, unit: l.unit };
       });
       if (!short.length) return toast("Tidak ada kekurangan", true);
+      // Ringkasan qty sisa — pastikan input sudah benar
+      var summary = short.map(function(l, i) {
+        var name = l.product_id;
+        try { name = productLabel(l.product_id) || l.product_id; } catch (e) {}
+        return (i + 1) + ". " + name + " → sisa " + l.qty_request + " " + (l.unit || "pcs");
+      }).join("\n");
+      var okQty = await appConfirm(
+        "Cek ulang qty back order (sisa):\n\n" + summary + "\n\nLanjut buat back order?",
+        "Konfirmasi qty back order",
+        { yesText: "Ya, lanjut", noText: "Perbaiki dulu" }
+      );
+      if (!okQty) return toast("Silakan perbaiki qty siap di form");
       var noNew = await appPrompt({ title: "No Pick back order", message: "Isi nomor Pick Odoo yang baru (create back order):", defaultValue: "", okText: "Buat", cancelText: "Batal" });
       if (noNew == null || !String(noNew).trim()) return;
       var id = await newPickId();
