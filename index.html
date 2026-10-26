@@ -5069,7 +5069,8 @@
           return;
         }
         if (tit) tit.textContent = title || "Konfirmasi";
-        msg.textContent = String(message || "");
+        msg.textContent = String(message || "").replace(/\\n/g, "\n");
+        msg.style.whiteSpace = "pre-line";
         bg.hidden = false;
         _confirmResolver = resolve;
         const yes = $("appConfirmYes");
@@ -15729,17 +15730,34 @@ function fillOperatorList(selectedEmail) {
         fgInp.value = pl;
       }
     }
+    function toPickPreviewUrl(url) {
+      if (!url) return "";
+      var u = String(url);
+      if (u.indexOf("data:") === 0) return u;
+      // Google Drive share/view → thumbnail yang bisa di-preview
+      var m = u.match(/\/d\/([a-zA-Z0-9_-]+)/) || u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w800";
+      return u;
+    }
     function setPickPhotoPreview(url) {
       var prev = $("pickPhotoPrev");
       var img = $("pickPhotoImg");
       var clr = $("btnPickPhotoClear");
       if (!url) {
         if (prev) prev.style.display = "none";
-        if (img) img.removeAttribute("src");
+        if (img) { img.removeAttribute("src"); img.onerror = null; }
         if (clr) clr.style.display = "none";
         return;
       }
-      if (img) img.src = url;
+      if (img) {
+        img.onerror = function() {
+          // fallback: coba open link asli di tab baru lewat click
+          img.alt = "Preview gagal — klik untuk buka";
+          img.style.cursor = "pointer";
+          img.onclick = function() { try { window.open(url, "_blank"); } catch (e) {} };
+        };
+        img.src = toPickPreviewUrl(url);
+      }
       if (prev) prev.style.display = "block";
       if (clr) clr.style.display = "";
     }
@@ -15754,11 +15772,18 @@ function fillOperatorList(selectedEmail) {
       var clr = $("btnPickHandoverPhotoClear");
       if (!url) {
         if (prev) prev.style.display = "none";
-        if (img) img.removeAttribute("src");
+        if (img) { img.removeAttribute("src"); img.onerror = null; }
         if (clr) clr.style.display = "none";
         return;
       }
-      if (img) img.src = url;
+      if (img) {
+        img.onerror = function() {
+          img.alt = "Preview gagal — klik untuk buka";
+          img.style.cursor = "pointer";
+          img.onclick = function() { try { window.open(url, "_blank"); } catch (e) {} };
+        };
+        img.src = toPickPreviewUrl(url);
+      }
       if (prev) prev.style.display = "block";
       if (clr) clr.style.display = "";
     }
@@ -15777,6 +15802,8 @@ function fillOperatorList(selectedEmail) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
+      setPickHandoverPhotoPreview(dataUrl);
+      if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = dataUrl;
       try {
         var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
         if (base && dataUrl.indexOf("base64,") >= 0) {
@@ -15798,28 +15825,28 @@ function fillOperatorList(selectedEmail) {
           try { data = JSON.parse(textResp); } catch (e1) {}
           if (data && data.ok && data.url) {
             if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = data.url;
-            setPickHandoverPhotoPreview(data.url);
-            toast("Foto serah terima tersimpan");
+            setPickHandoverPhotoPreview(dataUrl);
+            toast("Foto serah terima tersimpan di Drive");
             return;
           }
+          toast("Upload Drive gagal — foto lokal tetap dipakai", true);
         }
       } catch (eUp) { console.warn(eUp); }
-      if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = dataUrl;
-      setPickHandoverPhotoPreview(dataUrl);
       toast("Foto serah terima siap");
     }
     async function onPickPhotoSelected(file) {
       if (!file) return;
       if (!/^image\//i.test(file.type || "")) return toast("Pilih file gambar", true);
       if (file.size > 4 * 1024 * 1024) return toast("Foto max 4 MB", true);
-      // compress via canvas if large
       var dataUrl = await new Promise(function(resolve, reject) {
         var reader = new FileReader();
         reader.onload = function() { resolve(reader.result); };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      // try Drive upload if configured, else simpan data URL
+      // Preview lokal dulu (selalu bisa tampil)
+      setPickPhotoPreview(dataUrl);
+      if ($("pickPhoto")) $("pickPhoto").value = dataUrl;
       try {
         var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
         if (base && dataUrl.indexOf("base64,") >= 0) {
@@ -15836,19 +15863,19 @@ function fillOperatorList(selectedEmail) {
               base64: b64
             })
           });
-          var text = await res.text();
+          var textResp = await res.text();
           var data = {};
-          try { data = JSON.parse(text); } catch (e1) {}
+          try { data = JSON.parse(textResp); } catch (e1) {}
           if (data && data.ok && data.url) {
             if ($("pickPhoto")) $("pickPhoto").value = data.url;
-            setPickPhotoPreview(data.url);
-            toast("Foto tersimpan");
+            // tetap tampilkan preview lokal; URL Drive disimpan untuk DB
+            setPickPhotoPreview(dataUrl);
+            toast("Foto tersimpan di Drive");
             return;
           }
+          toast("Upload Drive gagal — foto lokal tetap dipakai", true);
         }
       } catch (eUp) { console.warn(eUp); }
-      if ($("pickPhoto")) $("pickPhoto").value = dataUrl;
-      setPickPhotoPreview(dataUrl);
       toast("Foto siap");
     }
     async function openPickModal(pickId) {
@@ -16007,6 +16034,7 @@ function fillOperatorList(selectedEmail) {
       var noOdoo = ($("pickNoOdoo").value || "").trim();
       if (nextStatus === "requested" && !noOdoo) return toast("No Pick Odoo wajib", true);
       var status = nextStatus;
+      var pendingBackorder = false;
       if (nextStatus === "prepare") {
         var allFull = lines.every(function(l) { return Number(l.qty_prepared) >= Number(l.qty_request) && Number(l.qty_request) > 0; });
         var anyPrep = lines.some(function(l) { return Number(l.qty_prepared) > 0; });
@@ -16014,13 +16042,13 @@ function fillOperatorList(selectedEmail) {
           toast("Isi qty siap minimal di satu baris bahan", true);
           return;
         }
-        // Setelah validasi → selalu "prepared" agar bisa serah terima (penuh atau sebagian)
-        // "partial" hanya label kekurangan di qty baris, bukan mengunci tombol
         status = "prepared";
         if (!allFull) {
-          setTimeout(function() {
-            toast("Qty siap kurang dari permintaan — bisa Serahkan sebagian atau Buat back order untuk sisa");
-          }, 350);
+          var wantBo = await appConfirm(
+            "Qty siap kurang dari yang diminta.\n\nYa = buat back order untuk sisa\nTidak = selesaikan tanpa back order (serahkan sebagian saja)",
+            "Validasi parsial"
+          );
+          pendingBackorder = !!wantBo;
         }
       }
       var payload = {
@@ -16071,7 +16099,12 @@ function fillOperatorList(selectedEmail) {
       if (stEl && pickMode === "prod" && status === "handover") stEl.value = "handover";
       await loadPicks();
       try { loadInboxNotifs(); } catch (eN) {}
-      // Setelah validasi / serah terima: buka lagi detail agar tombol berikutnya langsung terlihat
+      if (pendingBackorder) {
+        // Pastikan form parent masih terbuka dengan id yang benar
+        $("pickEditId").value = id;
+        await createPickBackorder();
+        return;
+      }
       if (nextStatus === "prepare" || nextStatus === "handover" || status === "prepared" || status === "handover") {
         openPickModal(id);
       } else {
