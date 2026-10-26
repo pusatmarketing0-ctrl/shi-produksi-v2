@@ -151,11 +151,12 @@
     #app { display: none; min-height: 100%; flex-direction: column; }
     #app.show { display: flex; }
     .topbar {
-      position: sticky; top: 0; z-index: 40;
+      position: sticky; top: 0; z-index: 250;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
       padding: 0.7rem 1.35rem; min-height: 56px;
       background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
+      overflow: visible;
     }
     .topbar-left { display: flex; align-items: center; gap: 0.7rem; }
     .topbar .mark {
@@ -1694,7 +1695,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
     .app-confirm-bg {
-      position: fixed; inset: 0; z-index: 10000;
+      position: fixed; inset: 0; z-index: 200000;
       background: rgba(15, 23, 20, 0.45);
       backdrop-filter: blur(4px);
       display: flex; align-items: center; justify-content: center;
@@ -2436,12 +2437,13 @@
       font-size: 0.65rem; font-weight: 700; line-height: 1;
       box-shadow: 0 1px 4px rgba(239,68,68,0.45);
     }
+    .notif-wrap { position: relative; z-index: 260; }
     .notif-panel {
       position: absolute; right: 0; top: calc(100% + 8px);
-      width: min(300px, 92vw); max-height: 72vh; overflow: auto;
+      width: min(320px, 92vw); max-height: 72vh; overflow: auto;
       background: #0f172a; color: #e2e8f0;
       border: 1px solid #1e293b; border-radius: 14px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.35); z-index: 90;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.35); z-index: 260;
       padding: 0.4rem 0.35rem 0.55rem;
     }
     .notif-panel-head {
@@ -3022,8 +3024,8 @@
       <h3 id="appConfirmTitle">Konfirmasi</h3>
       <p id="appConfirmMsg"></p>
       <div class="app-confirm-actions">
-        <button type="button" class="btn btn-ghost" id="appConfirmNo">Batal</button>
-        <button type="button" class="btn btn-primary" id="appConfirmYes">OK</button>
+        <button type="button" class="btn btn-ghost" id="appConfirmNo">Tidak</button>
+        <button type="button" class="btn btn-primary" id="appConfirmYes">Ya</button>
       </div>
     </div>
   </div>
@@ -5059,25 +5061,30 @@
       });
     }
 
-    function appConfirm(message, title) {
+    function appConfirm(message, title, opts) {
+      opts = opts || {};
       return new Promise(function(resolve) {
         const bg = $("appConfirmBg");
         const msg = $("appConfirmMsg");
         const tit = $("appConfirmTitle");
+        const yes = $("appConfirmYes");
+        const no = $("appConfirmNo");
         if (!bg || !msg) {
           resolve(window.confirm(message));
           return;
         }
         if (tit) tit.textContent = title || "Konfirmasi";
-        msg.textContent = String(message || "").replace(/\\n/g, "\n");
+        msg.textContent = String(message || "");
         msg.style.whiteSpace = "pre-line";
+        if (yes) yes.textContent = opts.yesText || "Ya";
+        if (no) no.textContent = opts.noText || "Tidak";
         bg.hidden = false;
         _confirmResolver = resolve;
-        const yes = $("appConfirmYes");
-        const no = $("appConfirmNo");
         function done(val) {
           bg.hidden = true;
           _confirmResolver = null;
+          if (yes) yes.textContent = "Ya";
+          if (no) no.textContent = "Tidak";
           resolve(val);
         }
         if (yes) yes.onclick = function() { done(true); };
@@ -5085,7 +5092,6 @@
         bg.onclick = function(e) { if (e.target === bg) done(false); };
       });
     }
-
     function showMsg(text, isErr) {
       const el = $("authMsg");
       el.textContent = text;
@@ -16045,8 +16051,9 @@ function fillOperatorList(selectedEmail) {
         status = "prepared";
         if (!allFull) {
           var wantBo = await appConfirm(
-            "Qty siap kurang dari yang diminta.\n\nYa = buat back order untuk sisa\nTidak = selesaikan tanpa back order (serahkan sebagian saja)",
-            "Validasi parsial"
+            "Qty siap kurang dari yang diminta.\n\nPilih Ya untuk membuat back order sisa, atau Tidak untuk lanjut tanpa back order.",
+            "Validasi parsial",
+            { yesText: "Ya, buat back order", noText: "Tidak, tanpa back order" }
           );
           pendingBackorder = !!wantBo;
         }
