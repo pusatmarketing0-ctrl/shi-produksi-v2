@@ -5631,7 +5631,7 @@
       plans = data || [];
       renderPlans();
       // update home kpi if same day
-      if (date === todayStr()) $("kpiPlans").textContent = formatNum(plans.length);
+      if (date === todayStr() && $("kpiPlans")) $("kpiPlans").textContent = formatNum(plans.length);
     }
     function renderPlans() {
       const shift = ($("planFilterShift") && $("planFilterShift").value) || "";
@@ -6932,7 +6932,7 @@ function fillOperatorList(selectedEmail) {
     async function loadProducts() {
       products = await fetchAllRows("products", "product_id");
       renderProducts();
-      $("kpiProducts").textContent = formatNum(products.length);
+      if ($("kpiProducts")) $("kpiProducts").textContent = formatNum(products.length);
       try { fillPlanDatalists(); } catch (e) {}
       try { fillRouteProductSelect(); } catch (e) {}
       try { renderRouteProductTable(); } catch (e3) {}
@@ -13518,9 +13518,9 @@ function fillOperatorList(selectedEmail) {
           sb.from("reports").select("report_id", { count: "exact", head: true }),
           sb.from("orders").select("order_id", { count: "exact", head: true }).in("status", ["confirmed", "in_production", "partial"])
         ]);
-        $("kpiPlans").textContent = formatNum(p.count != null ? p.count : "0");
-        $("kpiReports").textContent = formatNum(r.count != null ? r.count : "0");
-        $("kpiOrders").textContent = formatNum(o.count != null ? o.count : "0");
+        if ($("kpiPlans")) $("kpiPlans").textContent = formatNum(p.count != null ? p.count : "0");
+        if ($("kpiReports")) $("kpiReports").textContent = formatNum(r.count != null ? r.count : "0");
+        if ($("kpiOrders")) $("kpiOrders").textContent = formatNum(o.count != null ? o.count : "0");
       } catch (e) { console.warn(e); }
     }
 
