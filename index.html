@@ -15090,6 +15090,43 @@ function fillOperatorList(selectedEmail) {
             });
           }
         }
+        // —— Pick komponen ——
+        try {
+          var pickItems = [];
+          if (role === "gudang" || role === "admin") {
+            var { data: pkWh } = await sb.from("picks").select("pick_id,status").in("status", ["requested", "partial", "prepared"]).limit(100);
+            var nReq = 0, nPart = 0, nPrep = 0;
+            (pkWh || []).forEach(function(r) {
+              if (r.status === "partial") nPart++;
+              else if (r.status === "prepared") nPrep++;
+              else nReq++;
+            });
+            if (nReq) pickItems.push({ label: "Pick diminta", count: nReq, page: "pick-wh", icon: "📥" });
+            if (nPart) pickItems.push({ label: "Pick parsial", count: nPart, page: "pick-wh", icon: "◐" });
+            if (nPrep) pickItems.push({ label: "Pick siap serah", count: nPrep, page: "pick-wh", icon: "📦" });
+          }
+          if (role === "ppic" || role === "korlap" || role === "admin") {
+            var { data: pkPr } = await sb.from("picks").select("pick_id,status").in("status", ["handover", "requested", "partial"]).limit(100);
+            var nHand = 0, nMine = 0;
+            (pkPr || []).forEach(function(r) {
+              if (r.status === "handover") nHand++;
+              else nMine++;
+            });
+            if (nHand) pickItems.push({ label: "Menunggu terima bahan", count: nHand, page: "pick-prod", icon: "✅" });
+            if (nMine && (role === "ppic" || role === "korlap" || role === "admin")) {
+              pickItems.push({ label: "Pick proses (produksi)", count: nMine, page: "pick-prod", icon: "📋" });
+            }
+          }
+          if (pickItems.length) {
+            groups.push({
+              label: "Pick komponen",
+              icon: "🧩",
+              count: pickItems.reduce(function(s, x) { return s + (x.count || 0); }, 0),
+              items: pickItems,
+              open: true
+            });
+          }
+        } catch (ePk) { console.warn("pick notif", ePk); }
         // —— Trading / Marketing ——
         if (role === "marketing" || role === "trading" || role === "admin") {
           var { data: ots } = await sb.from("order_trading").select("ot_id,status").limit(80);
@@ -15449,8 +15486,9 @@ function fillOperatorList(selectedEmail) {
         if (title) title.textContent = "Pick gudang";
         if (sub) sub.textContent = "Antrean permintaan dari produksi · siapkan qty · serah terima";
         if (btn) btn.style.display = "none";
+        // Jangan paksa filter "requested" — partial/prepared harus tetap terlihat
         if (st && prev !== "wh") {
-          st.value = "requested";
+          st.value = "";
           pageState.pick = { page: 1 };
         }
       } else {
@@ -15488,6 +15526,7 @@ function fillOperatorList(selectedEmail) {
       }
       pickList = data || [];
       renderPicks();
+      try { loadInboxNotifs(); } catch (eN2) {}
     }
     function renderPicks() {
       var body = $("pickBody");
@@ -15497,7 +15536,13 @@ function fillOperatorList(selectedEmail) {
       var list = pickList.filter(function(p) {
         var pst = String(p.status || "draft");
         if (pickMode === "wh" && pst === "draft") return false;
-        if (st && pst !== st) return false;
+        if (pickMode === "wh" && (pst === "picked" || pst === "cancelled") && !st) return false;
+        if (st) {
+          // di gudang: filter "requested" ikut tampilkan partial agar tidak "hilang" saat stok kurang
+          if (pickMode === "wh" && st === "requested" && (pst === "requested" || pst === "partial")) {
+            /* ok */
+          } else if (pst !== st) return false;
+        }
         if (!q) return true;
         return (p.pick_id + " " + (p.no_pick_odoo || "") + " " + (p.no_so || "") + " " + (p.product_id || "")).toLowerCase().indexOf(q) >= 0;
       });
@@ -15819,15 +15864,9 @@ function fillOperatorList(selectedEmail) {
       if (!box) return;
       var st = p ? p.status : "draft";
       var role = currentRole();
-      var isWh = false;
-      var isProd = false;
-      if (role === "admin") {
-        isWh = pickMode === "wh";
-        isProd = pickMode === "prod";
-      } else {
-        isWh = role === "gudang" && pickMode === "wh";
-        isProd = (role === "ppic" || role === "korlap") && pickMode === "prod";
-      }
+      // Role murni: aksi mengikuti role. Admin: mengikuti menu (pickMode).
+      var isWh = role === "gudang" || (role === "admin" && pickMode === "wh");
+      var isProd = role === "ppic" || role === "korlap" || (role === "admin" && pickMode === "prod");
       var html = "<button type='button' class='btn btn-ghost' onclick='closePickModal()'>Tutup</button>";
       if ((!p || st === "draft") && isProd) {
         html += " <button type='button' class='btn btn-ghost' onclick='pickFillFromBom()'>Isi dari BOM</button>";
@@ -15838,11 +15877,20 @@ function fillOperatorList(selectedEmail) {
           html += " <button type='button' class='btn btn-primary' onclick='savePick(\"prepare\")'>Validasi qty siap</button>";
           if (st === "partial") html += " <button type='button' class='btn btn-ghost' onclick='createPickBackorder()'>Buat back order</button>";
         }
-        if (isProd && st === "requested") html += " <button type='button' class='btn btn-ghost' onclick='savePick(\"cancelled\")'>Batalkan</button>";
+        if (isProd && st === "requested") {
+          html += " <button type='button' class='btn btn-ghost' onclick='savePick(\"cancelled\")'>Batalkan</button>";
+        }
+        if (isProd && st === "partial") {
+          html += " <span style='font-size:0.78rem;color:var(--text-muted);align-self:center'>Menunggu gudang lengkapi / serahkan</span>";
+        }
       } else if (st === "prepared") {
-        if (isWh) html += " <button type='button' class='btn btn-primary' onclick='savePick(\"handover\")'>Serahkan</button>";
+        if (isWh) html += " <button type='button' class='btn btn-primary' onclick='savePick(\"handover\")'>Serahkan ke produksi</button>";
+        if (isProd) html += " <span style='font-size:0.78rem;color:var(--text-muted);align-self:center'>Bahan siap · menunggu serah terima gudang</span>";
       } else if (st === "handover") {
-        if (isProd) html += " <button type='button' class='btn btn-primary' onclick='savePick(\"picked\")'>Terima (done)</button>";
+        if (isProd) html += " <button type='button' class='btn btn-primary' onclick='savePick(\"picked\")'>Terima bahan (selesai)</button>";
+        if (isWh) html += " <span style='font-size:0.78rem;color:var(--text-muted);align-self:center'>Menunggu konfirmasi produksi</span>";
+      } else if (st === "picked") {
+        html += " <span style='font-size:0.78rem;color:#059669;font-weight:600;align-self:center'>✓ Selesai</span>";
       }
       box.innerHTML = html;
     }
@@ -15900,8 +15948,19 @@ function fillOperatorList(selectedEmail) {
       var ins = await sb.from("pick_lines").insert(rows);
       if (ins.error) return toast(ins.error.message, true);
       toast("Pick " + pickStatusLabel(status));
+      // Pastikan item masih terlihat di filter (partial tidak hilang dari antrean gudang)
+      var stEl = $("pickStatusFilter");
+      if (stEl && pickMode === "wh" && (status === "partial" || status === "prepared" || status === "handover")) {
+        if (stEl.value && stEl.value !== status && stEl.value !== "") {
+          stEl.value = "";
+        }
+      }
+      if (stEl && pickMode === "prod" && status === "handover") {
+        stEl.value = "handover";
+      }
       closePickModal();
       await loadPicks();
+      try { loadInboxNotifs(); } catch (eN) {}
     }
     async function createPickBackorder() {
       if (!sb) return;
@@ -15951,7 +16010,10 @@ function fillOperatorList(selectedEmail) {
         el.classList.toggle("active", dp === page);
       });
       if (page === "pick-prod" || page === "pick-wh" || page === "pick") {
-        applyPickMode(page === "pick-wh" ? "wh" : "prod");
+        if (page === "pick-wh") applyPickMode("wh");
+        else if (page === "pick-prod") applyPickMode("prod");
+        // page==="pick" → pertahankan pickMode yang sedang aktif
+        else applyPickMode(pickMode === "wh" ? "wh" : "prod");
         try { loadPicks(); } catch (ePk) {}
       }
       try { closeMoreSheet(); } catch (eMs) {}
