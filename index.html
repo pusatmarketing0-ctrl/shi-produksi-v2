@@ -2935,6 +2935,48 @@
     .ot-status.so_dibagikan { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
     .ot-status.dp_diterima { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
     .ot-status.terbit_produksi { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .ot-kpi-wrap { margin-bottom: 0.85rem; }
+    .ot-kpi-range {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem;
+      margin-bottom: 0.65rem; font-size: 0.82rem; color: var(--text-muted);
+    }
+    .ot-kpi-range input[type="date"] {
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 0.4rem 0.55rem; font-family: inherit; font-size: 0.82rem;
+      background: #fff;
+    }
+    .ot-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+    @media (max-width: 1100px) {
+      .ot-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .ot-kpi-grid { grid-template-columns: 1fr; }
+    }
+    .ot-kpi-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 1px 2px rgba(15,40,30,0.04);
+    }
+    .ot-kpi-card .ot-kpi-label {
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em;
+      text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.35rem;
+    }
+    .ot-kpi-card .ot-kpi-val {
+      font-size: 1.35rem; font-weight: 700; color: #0f3d2e; line-height: 1.2;
+    }
+    .ot-kpi-card .ot-kpi-sub {
+      font-size: 0.72rem; color: var(--text-dim); margin-top: 0.3rem;
+    }
+    .ot-kpi-card.ot-kpi-omset { border-top: 3px solid #0d9f6e; }
+    .ot-kpi-card.ot-kpi-qty { border-top: 3px solid #2563eb; }
+    .ot-kpi-card.ot-kpi-open { border-top: 3px solid #d97706; }
+    .ot-kpi-card.ot-kpi-done { border-top: 3px solid #7c3aed; }
     .ot-status.cancelled { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     #otModal .ot-modal-banner {
       display: flex; justify-content: space-between; align-items: flex-start;
@@ -3668,6 +3710,37 @@
               <p>Marketing → CV Trading → DP → Odoo → produksi. Semua referensi saling terhubung.</p>
             </div>
             <button class="btn btn-primary" type="button" id="btnOtNew" onclick="openOtModal()">+ Order Trading</button>
+          </div>
+          <div class="ot-kpi-wrap">
+            <div class="ot-kpi-range">
+              <span>Periode</span>
+              <input type="date" id="otKpiFrom" onchange="renderOtKpi()" />
+              <span>s/d</span>
+              <input type="date" id="otKpiTo" onchange="renderOtKpi()" />
+              <button type="button" class="btn btn-ghost btn-sm" onclick="otKpiSetMonth()">Bulan ini</button>
+            </div>
+            <div class="ot-kpi-grid">
+              <div class="ot-kpi-card ot-kpi-omset">
+                <div class="ot-kpi-label">Omset</div>
+                <div class="ot-kpi-val" id="otKpiOmset">—</div>
+                <div class="ot-kpi-sub" id="otKpiOmsetSub">qty × harga · periode terpilih</div>
+              </div>
+              <div class="ot-kpi-card ot-kpi-qty">
+                <div class="ot-kpi-label">Qty terbit produksi</div>
+                <div class="ot-kpi-val" id="otKpiQtyProd">—</div>
+                <div class="ot-kpi-sub">Total qty status terbit produksi</div>
+              </div>
+              <div class="ot-kpi-card ot-kpi-open">
+                <div class="ot-kpi-label">OT masih di trading</div>
+                <div class="ot-kpi-val" id="otKpiOpen">—</div>
+                <div class="ot-kpi-sub">Belum terbit ke produksi</div>
+              </div>
+              <div class="ot-kpi-card ot-kpi-done">
+                <div class="ot-kpi-label">OT terbit produksi</div>
+                <div class="ot-kpi-val" id="otKpiDone">—</div>
+                <div class="ot-kpi-sub">Status terbit produksi / selesai</div>
+              </div>
+            </div>
           </div>
           <div class="toolbar" style="margin-bottom:0.85rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
             <input type="search" id="otSearch" placeholder="Cari OT / customer / no SO..." oninput="renderOrderTrading()" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit" />
@@ -16937,6 +17010,83 @@ var id = await newPickId();
       } catch (e) { console.warn(e); }
     }
 
+    function otKpiDefaultRange() {
+      var d = new Date();
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      var y = d.getFullYear();
+      var m = d.getMonth() + 1;
+      var from = y + "-" + z(m) + "-01";
+      var last = new Date(y, m, 0).getDate();
+      var to = y + "-" + z(m) + "-" + z(last);
+      return { from: from, to: to };
+    }
+    function otKpiSetMonth() {
+      var r = otKpiDefaultRange();
+      if ($("otKpiFrom")) $("otKpiFrom").value = r.from;
+      if ($("otKpiTo")) $("otKpiTo").value = r.to;
+      renderOtKpi();
+    }
+    function otRowInKpiRange(r, from, to) {
+      // pakai created_at; fallback updated_at
+      var raw = r.created_at || r.updated_at || "";
+      var day = String(raw).slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+      if (from && day < from) return false;
+      if (to && day > to) return false;
+      return true;
+    }
+    function renderOtKpi() {
+      if (!$("otKpiOmset")) return;
+      var def = otKpiDefaultRange();
+      if ($("otKpiFrom") && !$("otKpiFrom").value) $("otKpiFrom").value = def.from;
+      if ($("otKpiTo") && !$("otKpiTo").value) $("otKpiTo").value = def.to;
+      var from = ($("otKpiFrom") && $("otKpiFrom").value) || def.from;
+      var to = ($("otKpiTo") && $("otKpiTo").value) || def.to;
+      var list = (otCache || []).filter(function(r) {
+        var st = String(r.status || "").toLowerCase();
+        if (st === "cancelled") return false;
+        return otRowInKpiRange(r, from, to);
+      });
+      var omset = 0;
+      var qtyProd = 0;
+      var nOpen = 0;
+      var nDone = 0;
+      list.forEach(function(r) {
+        var st = String(r.status || "").toLowerCase();
+        var lines = otLinesCache[r.ot_id] || [];
+        var lineOmset = 0;
+        var lineQty = 0;
+        lines.forEach(function(ln) {
+          var q = Number(ln.qty) || 0;
+          var h = Number(ln.harga) || 0;
+          lineOmset += q * h;
+          lineQty += q;
+        });
+        omset += lineOmset;
+        var isDone = (st === "terbit_produksi" || st === "done");
+        if (isDone) {
+          nDone++;
+          qtyProd += lineQty;
+        } else {
+          nOpen++;
+        }
+      });
+      function fmtRp(n) {
+        try {
+          return "Rp " + formatNum(Math.round(n));
+        } catch (e) {
+          return "Rp " + String(Math.round(n));
+        }
+      }
+      if ($("otKpiOmset")) $("otKpiOmset").textContent = fmtRp(omset);
+      if ($("otKpiQtyProd")) $("otKpiQtyProd").textContent = formatNum(qtyProd);
+      if ($("otKpiOpen")) $("otKpiOpen").textContent = formatNum(nOpen);
+      if ($("otKpiDone")) $("otKpiDone").textContent = formatNum(nDone);
+      if ($("otKpiOmsetSub")) {
+        $("otKpiOmsetSub").textContent = list.length + " OT · " + from + " s/d " + to;
+      }
+    }
+
     async function loadOrderTrading() {
       if (!sb) return;
       const box = $("otList");
@@ -16961,6 +17111,7 @@ var id = await newPickId();
         }
       }
       renderOrderTrading();
+      try { renderOtKpi(); } catch (eK) {}
       // role UI for new button
       const role = currentRole();
       if ($("btnOtNew")) $("btnOtNew").style.display = (role === "marketing" || role === "admin") ? "" : "none";
