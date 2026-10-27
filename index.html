@@ -5044,6 +5044,43 @@
     </div>
   </div>
 
+
+  <div id="gudangQcFormModal" class="modal-bg" style="display:none">
+    <div class="modal modal-sheet" style="max-width:440px">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h2>Form cek QC</h2>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0">Dibuat gudang · QC hanya ACC</p>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="gqcLineId" />
+        <div id="gqcInfo" style="font-size:0.82rem;padding:0.65rem 0.75rem;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;margin-bottom:0.75rem"></div>
+        <div class="field"><label>Qty diajukan ke QC</label>
+          <input id="gqcQty" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+          <p style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0">Default = qty datang</p>
+        </div>
+        <div class="field"><label>Catatan (opsional)</label>
+          <input id="gqcNotes" placeholder="Kondisi barang, kemasan, dll." />
+        </div>
+        <div class="field"><label>Foto form kertas (opsional)</label>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('gqcPhotoFile').click()">Upload / kamera</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="gqcPhotoClear" style="display:none" onclick="gqcClearPhoto()">Hapus foto</button>
+          </div>
+          <input type="file" id="gqcPhotoFile" accept="image/*" capture="environment" hidden />
+          <input type="hidden" id="gqcPhotoUrl" />
+          <div id="gqcPhotoPrev" style="margin-top:0.5rem;display:none">
+            <img id="gqcPhotoImg" alt="Preview" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid var(--border)" />
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeGudangQcForm()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="saveGudangQcForm()">Kirim ke QC</button>
+      </div>
+    </div>
+  </div>
+
   <div id="reportModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:480px">
       <h2 id="reportModalTitle">Isi laporan</h2>
@@ -12514,7 +12551,12 @@ function fillOperatorList(selectedEmail) {
             replace_eta: l.replace_eta ? String(l.replace_eta).slice(0,10) : "",
             arrived_at: l.arrived_at || null,
             qc_at: l.qc_at || null,
-            received_at: l.received_at || null
+            received_at: l.received_at || null,
+            qc_form_qty: Number(l.qc_form_qty) || 0,
+            qc_form_notes: l.qc_form_notes || "",
+            qc_form_photo: l.qc_form_photo || "",
+            qc_form_at: l.qc_form_at || null,
+            qc_form_by: l.qc_form_by || ""
           });
         });
       });
@@ -12555,11 +12597,16 @@ function fillOperatorList(selectedEmail) {
         var received = Number(r.qty_received) || 0;
         var qty = Number(r.qty) || 0;
         var stLabel = "", stColor = "#64748b";
+        var formAt = r.qc_form_at;
+        var qcDoneQty = passed + (Number(r.qty_qc_failed) || 0);
         if (arrived <= 0) { stLabel = "Menunggu datang"; stColor = "#a16207"; }
-        else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
-        else if ((r.qc_status || "pending") === "pending" || (passed + (Number(r.qty_qc_failed)||0)) < arrived) {
-          stLabel = "Menunggu QC"; stColor = "#2563eb";
+        else if (!formAt) { stLabel = "Menunggu form QC"; stColor = "#b45309"; }
+        else if ((r.qc_status || "pending") === "pending" || ((r.qc_status || "pending") === "partial" && received < passed)) {
+          if ((r.qc_status || "pending") === "partial" && passed > received) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
+          else if ((r.qc_status || "pending") === "partial") { stLabel = "QC sebagian"; stColor = "#c2410c"; }
+          else { stLabel = "Menunggu ACC QC"; stColor = "#2563eb"; }
         } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
+        else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
         else { stLabel = "Selesai"; stColor = "#059669"; }
         return "<tr>" +
           "<td>" + esc(r.po_id) + "</td>" +
@@ -12576,8 +12623,13 @@ function fillOperatorList(selectedEmail) {
               : "") +
           "</td>" +
           "<td>" + formatNum(passed) +
-            (passed > 0 && r.qc_at
-              ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
+            (r.qc_form_at
+              ? "<div style='font-size:0.65rem;color:#b45309;margin-top:0.12rem'>Form " +
+                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_form_at) : String(r.qc_form_at).slice(0,16)) +
+                "</div>"
+              : "") +
+            (r.qc_at
+              ? "<div style='font-size:0.65rem;color:#2563eb;margin-top:0.1rem'>ACC " +
                 esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_at) : String(r.qc_at).slice(0,16)) +
                 "</div>"
               : "") +
@@ -12598,28 +12650,149 @@ function fillOperatorList(selectedEmail) {
       var arrived = Number(r.qty_arrived) || 0;
       var passed = Number(r.qty_qc_passed) || 0;
       var received = Number(r.qty_received) || 0;
-      var failed = Number(r.qty_qc_failed) || 0;
-      var qcDone = passed + failed;
+      var formAt = r.qc_form_at;
       var btns = [];
-      // 1) Barang sampai (sebelum / selain QC)
       if (arrived < qty) {
-        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangArrive(" +
-          Number(r.line_id) + ")\">Barang sampai</button>");
+        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangArrive(" + Number(r.line_id) + ")\">Barang sampai</button>");
       }
-      // 2) Menunggu QC
-      if (arrived > qcDone) {
-        btns.push("<span style=\"font-size:0.7rem;color:#2563eb;display:block;margin-top:0.2rem\">→ QC cek " + formatNum(arrived - qcDone) + "</span>");
+      if (arrived > 0 && !formAt) {
+        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"openGudangQcForm(" + Number(r.line_id) + ")\">Buat form QC</button>");
+      } else if (arrived > 0 && formAt && (r.qc_status || "pending") === "pending") {
+        btns.push("<span style=\"font-size:0.7rem;color:#2563eb;display:block;margin-top:0.2rem\">Menunggu ACC QC</span>");
+      } else if (formAt && (r.qc_status || "") === "partial") {
+        btns.push("<button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-top:0.25rem\" onclick=\"openGudangQcForm(" + Number(r.line_id) + ")\">Update form QC</button>");
       }
-      // 3) Validasi stok setelah QC lulus
       var sisaStok = Math.max(0, passed - received);
       if (sisaStok > 0) {
-        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"gudangReceive(" +
-          Number(r.line_id) + ")\">Validasi stok</button>");
+        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"gudangReceive(" + Number(r.line_id) + ")\">Validasi stok</button>");
       }
-      if (!btns.length) {
-        return "<span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span>";
-      }
+      if (!btns.length) return "<span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span>";
       return btns.join(" ");
+    }
+    function closeGudangQcForm() {
+      var m = $("gudangQcFormModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      document.body.classList.remove("modal-open");
+    }
+    function gqcClearPhoto() {
+      if ($("gqcPhotoUrl")) $("gqcPhotoUrl").value = "";
+      if ($("gqcPhotoFile")) $("gqcPhotoFile").value = "";
+      if ($("gqcPhotoPrev")) $("gqcPhotoPrev").style.display = "none";
+      if ($("gqcPhotoClear")) $("gqcPhotoClear").style.display = "none";
+    }
+    async function openGudangQcForm(lineId) {
+      var row = (gudangRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); });
+      if (!row) return toast("Baris tidak ditemukan", true);
+      var arrived = Number(row.qty_arrived) || 0;
+      if (arrived <= 0) return toast("Catat barang datang dulu", true);
+      if ($("gqcLineId")) $("gqcLineId").value = String(lineId);
+      var defQty = Number(row.qc_form_qty) > 0 ? Number(row.qc_form_qty) : arrived;
+      if ($("gqcQty")) $("gqcQty").value = formatInputNum(defQty, true);
+      if ($("gqcNotes")) $("gqcNotes").value = row.qc_form_notes || "";
+      if ($("gqcPhotoUrl")) $("gqcPhotoUrl").value = row.qc_form_photo || "";
+      if (row.qc_form_photo) {
+        if ($("gqcPhotoImg")) $("gqcPhotoImg").src = row.qc_form_photo;
+        if ($("gqcPhotoPrev")) $("gqcPhotoPrev").style.display = "block";
+        if ($("gqcPhotoClear")) $("gqcPhotoClear").style.display = "";
+      } else gqcClearPhoto();
+      var pname = "";
+      try {
+        var p = (products || []).find(function(x) { return String(x.product_id) === String(row.product_id); });
+        pname = p ? p.name : "";
+      } catch (e) {}
+      var lead = row.arrived_at ? ("<div style='margin-top:0.35rem;font-size:0.75rem;color:#64748b'>Datang: <b>" + esc(formatDateTimeWib(row.arrived_at)) + "</b></div>") : "";
+      if ($("gqcInfo")) {
+        $("gqcInfo").innerHTML = "<strong>" + esc(row.po_id) + "</strong> · " + esc(row.product_id) +
+          (pname ? " — " + esc(pname) : "") +
+          "<div>Qty datang: <b>" + formatNum(arrived) + "</b> " + esc(row.unit || "") + "</div>" + lead;
+      }
+      var fileInp = $("gqcPhotoFile");
+      if (fileInp && fileInp.dataset.bound !== "1") {
+        fileInp.dataset.bound = "1";
+        fileInp.addEventListener("change", async function() {
+          var f = fileInp.files && fileInp.files[0];
+          if (!f) return;
+          if (!/^image\//i.test(f.type || "")) return toast("Pilih file gambar", true);
+          if (f.size > 4 * 1024 * 1024) return toast("Foto max 4 MB", true);
+          var dataUrl = await new Promise(function(resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function() { resolve(reader.result); };
+            reader.onerror = reject;
+            reader.readAsDataURL(f);
+          });
+          if ($("gqcPhotoImg")) $("gqcPhotoImg").src = dataUrl;
+          if ($("gqcPhotoPrev")) $("gqcPhotoPrev").style.display = "block";
+          if ($("gqcPhotoClear")) $("gqcPhotoClear").style.display = "";
+          if ($("gqcPhotoUrl")) $("gqcPhotoUrl").value = dataUrl;
+          try {
+            var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
+            if (base && String(dataUrl).indexOf("base64,") >= 0) {
+              toast("Mengupload foto form…");
+              var b64 = String(dataUrl).split("base64,")[1] || "";
+              var res = await fetch(base, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({
+                  ot_id: "qc-form-" + (($("gqcLineId") && $("gqcLineId").value) || ""),
+                  kind: "qc_form",
+                  fileName: f.name || ("qc-form-" + Date.now() + ".jpg"),
+                  mimeType: f.type || "image/jpeg",
+                  base64: b64
+                })
+              });
+              var textResp = await res.text();
+              var data = {};
+              try { data = JSON.parse(textResp); } catch (e1) {}
+              if (data && data.ok && data.url) {
+                if ($("gqcPhotoUrl")) $("gqcPhotoUrl").value = data.url;
+                toast("Foto form tersimpan di Drive");
+              }
+            }
+          } catch (eU) { console.warn(eU); }
+        });
+      }
+      var m = $("gudangQcFormModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+    }
+    async function saveGudangQcForm() {
+      if (!sb) return;
+      var lineId = Number($("gqcLineId") && $("gqcLineId").value);
+      if (!lineId) return toast("Baris tidak valid", true);
+      var row = (gudangRows || []).find(function(x) { return Number(x.line_id) === lineId; }) || {};
+      var arrived = Number(row.qty_arrived) || 0;
+      var qty = parseInputNum(($("gqcQty") && $("gqcQty").value) || 0);
+      if (!(qty > 0)) return toast("Qty diajukan ke QC wajib", true);
+      if (qty > arrived + 1e-9) return toast("Qty form tidak boleh melebihi qty datang (" + formatNum(arrived) + ")", true);
+      var notes = (($("gqcNotes") && $("gqcNotes").value) || "").trim();
+      var photo = (($("gqcPhotoUrl") && $("gqcPhotoUrl").value) || "").trim();
+      var nowIso = new Date().toISOString();
+      var payload = {
+        qc_form_qty: qty,
+        qc_form_notes: notes,
+        qc_form_photo: photo || null,
+        qc_form_at: nowIso,
+        qc_form_by: (currentUser && currentUser.email) || "",
+        qc_status: (row.qc_status === "partial") ? "partial" : "pending"
+      };
+      var { error } = await sb.from("purchase_lines").update(payload).eq("id", lineId);
+      if (error) {
+        if (/qc_form_/i.test(String(error.message || ""))) {
+          toast("Kolom form QC belum ada. Jalankan SQL di Supabase.", true);
+        } else toast(error.message, true);
+        return;
+      }
+      var leadMsg = "";
+      if (row.arrived_at) {
+        try {
+          var mins = Math.round((new Date(nowIso) - new Date(row.arrived_at)) / 60000);
+          if (mins >= 0) leadMsg = " · " + mins + " menit sejak datang";
+        } catch (eL) {}
+      }
+      toast("Form QC dikirim" + leadMsg + " — menunggu ACC QC");
+      closeGudangQcForm();
+      loadGudangInbox();
+      try { loadQcInbox(); } catch (e2) {}
     }
 
     /** Gudang: catat qty yang fisik datang (sebelum QC) */
@@ -12775,11 +12948,12 @@ function fillOperatorList(selectedEmail) {
           // legacy: jika qty_arrived belum ada kolom / 0 tapi sudah ada qc → tetap tampil
           var qcp = Number(l.qty_qc_passed) || 0;
           var qcf = Number(l.qty_qc_failed) || 0;
-          if (arrived <= 0 && qcp <= 0 && qcf <= 0 && (l.qc_status || "pending") === "pending") {
-            // belum datang — skip dari antrian QC
-            return;
+          var hasForm = !!(l.qc_form_at);
+          if (!hasForm && qcp <= 0 && qcf <= 0 && (l.qc_status || "pending") === "pending") {
+            return; // belum ada form dari gudang
           }
-          if (arrived <= 0 && (qcp > 0 || qcf > 0)) arrived = qcp + qcf; // legacy
+          if (arrived <= 0 && (qcp > 0 || qcf > 0)) arrived = qcp + qcf;
+          if (arrived <= 0 && hasForm) arrived = Number(l.qc_form_qty) || 0;
           qcRows.push({
             line_id: l.id,
             po_id: po.po_id,
@@ -12795,7 +12969,14 @@ function fillOperatorList(selectedEmail) {
             qc_status: l.qc_status || "pending",
             qc_notes: l.qc_notes || "",
             eta_date: l.eta_date ? String(l.eta_date).slice(0, 10) : "",
-            replace_eta: l.replace_eta ? String(l.replace_eta).slice(0, 10) : ""
+            replace_eta: l.replace_eta ? String(l.replace_eta).slice(0, 10) : "",
+            arrived_at: l.arrived_at || null,
+            qc_form_qty: Number(l.qc_form_qty) || 0,
+            qc_form_notes: l.qc_form_notes || "",
+            qc_form_photo: l.qc_form_photo || "",
+            qc_form_at: l.qc_form_at || null,
+            qc_form_by: l.qc_form_by || "",
+            qc_at: l.qc_at || null
           });
         });
       });
@@ -12829,20 +13010,44 @@ function fillOperatorList(selectedEmail) {
           var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
           pname = p ? p.name : "";
         } catch (e) {}
-        var detail = "Lulus " + formatNum(r.qty_qc_passed || 0) + " · Tolak " + formatNum(r.qty_qc_failed || 0);
+        var formQty = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
+        var detail = "Form QC: " + formatNum(formQty) + " " + esc(r.unit || "");
+        if (r.qc_form_notes) detail += " · " + r.qc_form_notes;
+        detail += " · Lulus " + formatNum(r.qty_qc_passed || 0) + " · Tolak " + formatNum(r.qty_qc_failed || 0);
         if (r.replace_eta) detail += " · ETA ganti " + r.replace_eta;
+        var timeBits = [];
+        if (r.arrived_at) timeBits.push("Datang " + (typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.arrived_at) : String(r.arrived_at).slice(0,16)));
+        if (r.qc_form_at) timeBits.push("Form " + (typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_form_at) : String(r.qc_form_at).slice(0,16)));
+        if (r.qc_at) timeBits.push("ACC " + (typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_at) : String(r.qc_at).slice(0,16)));
+        var leadHtml = "";
+        try {
+          if (r.arrived_at && r.qc_form_at) {
+            var m1 = Math.round((new Date(r.qc_form_at) - new Date(r.arrived_at)) / 60000);
+            if (m1 >= 0) leadHtml += "<div style='font-size:0.65rem;color:#b45309'>Gudang buat form: " + m1 + " mnt setelah datang</div>";
+          }
+          if (r.qc_form_at && r.qc_at) {
+            var m2 = Math.round((new Date(r.qc_at) - new Date(r.qc_form_at)) / 60000);
+            if (m2 >= 0) leadHtml += "<div style='font-size:0.65rem;color:#2563eb'>QC ACC: " + m2 + " mnt setelah form</div>";
+          }
+        } catch (eL) {}
         var canEdit = st === "pending" || st === "partial";
         var actions = canEdit
-          ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + Number(r.line_id) + ',\'passed\')">QC</button>'
+          ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + Number(r.line_id) + ',\'passed\')">ACC QC</button>'
           : '<span style="font-size:0.75rem;color:var(--text-muted)">Selesai</span>';
+        if (r.qc_form_photo) {
+          actions += ' <button type="button" class="btn btn-ghost btn-sm" data-photo="' + encodeURIComponent(r.qc_form_photo) + '" onclick="window.open(decodeURIComponent(this.getAttribute(\'data-photo\')),\'_blank\')">Foto</button>';
+        }
         var gudangInfo = formatNum(r.qty_received || 0) + " / " + formatNum(r.qty_qc_passed || 0);
         return "<tr>" +
           "<td>" + esc(r.po_id) + "</td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
           "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
           "<td>" + esc(r.vendor_name || "—") + "</td>" +
-          "<td>" + formatNum(r.qty || 0) + " " + esc(r.unit) +
-            "<div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(detail) + "</div></td>" +
+          "<td>" + formatNum(formQty) + " " + esc(r.unit) +
+            "<div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(detail) + "</div>" +
+            (timeBits.length ? "<div style='font-size:0.65rem;color:var(--text-dim);margin-top:0.15rem'>" + esc(timeBits.join(" · ")) + "</div>" : "") +
+            leadHtml +
+          "</td>" +
           "<td style='font-weight:700;color:" + color + "'>" + label + "</td>" +
           "<td style='font-size:0.8rem' title='Diterima gudang / lulus QC'>" + gudangInfo + "</td>" +
           "<td>" + actions + "</td></tr>";
@@ -12853,6 +13058,7 @@ function fillOperatorList(selectedEmail) {
       var row = (qcRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); }) || {};
       // QC berdasarkan qty yang sudah datang di gudang
       var qtyArrived = Number(row.qty_arrived) || 0;
+      if (Number(row.qc_form_qty) > 0) qtyArrived = Number(row.qc_form_qty);
       var alreadyPass = Number(row.qty_qc_passed) || 0;
       var alreadyFail = Number(row.qty_qc_failed) || 0;
       if (qtyArrived <= 0) return toast("Belum ada barang datang. Gudang klik Barang sampai dulu.", true);
