@@ -3561,6 +3561,7 @@
                   <th class="sort-th" onclick="planSort('shift')">Shift</th>
                   <th class="sort-th" onclick="planSort('product')">Produk</th>
                   <th class="sort-th" onclick="planSort('machine')">Proses</th>
+                  <th class="sort-th" onclick="planSort('so')">No SO</th>
                   <th class="sort-th" onclick="planSort('target')">Target</th>
                   <th class="sort-th" onclick="planSort('op')">Operator</th>
                   <th class="sort-th" onclick="planSort('status')">Status</th>
@@ -3600,6 +3601,7 @@
                     <th class="sort-th" onclick="reportTaskSort('shift')">Shift</th>
                     <th class="sort-th" onclick="reportTaskSort('product')">Produk</th>
                     <th class="sort-th" onclick="reportTaskSort('machine')">Proses</th>
+                    <th class="sort-th" onclick="reportTaskSort('so')">No SO</th>
                     <th class="sort-th" onclick="reportTaskSort('target')">Target</th>
                     <th class="sort-th" onclick="reportTaskSort('op')">Operator</th>
                     <th class="sort-th" onclick="reportTaskSort('status')">Status</th>
@@ -3621,6 +3623,7 @@
                     <th class="sort-th" onclick="reportListSort('time')">Waktu</th>
                     <th class="sort-th" onclick="reportListSort('product')">Produk</th>
                     <th class="sort-th" onclick="reportListSort('machine')">Proses</th>
+                    <th class="sort-th" onclick="reportListSort('so')">No SO</th>
                     <th class="sort-th" onclick="reportListSort('op')">Operator</th>
                     <th class="sort-th" onclick="reportListSort('actual')">Actual</th>
                     <th class="sort-th" onclick="reportListSort('ng')">NG</th>
@@ -5832,7 +5835,7 @@
           const blob = [
             p.product_id, productLabel(p.product_id),
             p.machine_id, machineLabel(p.machine_id),
-            p.assigned_operator, p.plan_id, p.unit
+            p.assigned_operator, p.plan_id, p.unit, p.no_so, p.order_id
           ].join(" ").toLowerCase();
           return blob.includes(q);
         });
@@ -5843,6 +5846,7 @@
           if (planSortKey === "shift") return Number(p.shift) || 0;
           if (planSortKey === "product") return (productLabel(p.product_id) || p.product_id || "");
           if (planSortKey === "machine") return machineLabel(p.machine_id) || "";
+          if (planSortKey === "so") return p.no_so || p.order_id || "";
           if (planSortKey === "target") return Number(p.target_qty) || 0;
           if (planSortKey === "op") return p.assigned_operator || "";
           if (planSortKey === "status") return p.status || "";
@@ -5855,7 +5859,7 @@
       const body = $("planBody");
       if (!body) return;
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="8" class="empty">Belum ada plan di filter ini</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" class="empty">Belum ada plan di filter ini</td></tr>';
         if ($("planCards")) $("planCards").innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada plan di filter ini</div></div>';
         pageOf("plans", [], "planPager");
         return;
@@ -5867,6 +5871,7 @@
           <td>${esc(p.shift)}</td>
           <td>${esc(productLabel(p.product_id))}</td>
           <td>${esc(machineLabel(p.machine_id))}</td>
+          <td class="mono" style="font-size:0.8rem">${esc(p.no_so || p.order_id || "—")}</td>
           <td><strong>${formatNum(p.target_qty)}</strong> <span style="color:var(--text-dim)">${esc(p.unit || "")}</span></td>
           <td style="font-size:0.8rem">${esc(p.assigned_operator || "—")}</td>
           <td>${statusPill(p.status)}</td>
@@ -5888,6 +5893,7 @@
           return '<div class="m-card">' +
             '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
             '<div class="m-sub">' + esc(p.plan_date) + ' · Shift ' + esc(p.shift) + ' · ' + esc(machineLabel(p.machine_id)) + '</div>' +
+            ((p.no_so || p.order_id) ? '<div class="m-sub">SO ' + esc(p.no_so || p.order_id) + '</div>' : '') +
             '<div class="m-row"><span>Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</strong></span> ' +
             statusPill(p.status) + '</div>' +
             (p.assigned_operator ? '<div class="m-sub">' + esc(p.assigned_operator) + '</div>' : '') +
@@ -8273,7 +8279,7 @@ function fillOperatorList(selectedEmail) {
         if (shift && String(p.shift) !== shift) return false;
         if (done.has(p.plan_id) && p.status === "done") return false;
         if (q) {
-          const blob = [p.product_id, productLabel(p.product_id), p.machine_id, machineLabel(p.machine_id), p.assigned_operator].join(" ").toLowerCase();
+          const blob = [p.product_id, productLabel(p.product_id), p.machine_id, machineLabel(p.machine_id), p.assigned_operator, p.no_so, p.order_id].join(" ").toLowerCase();
           if (!blob.includes(q)) return false;
         }
         return true;
@@ -8284,6 +8290,7 @@ function fillOperatorList(selectedEmail) {
           if (reportTaskSortKey === "shift") return Number(p.shift) || 0;
           if (reportTaskSortKey === "product") return productLabel(p.product_id) || p.product_id || "";
           if (reportTaskSortKey === "machine") return machineLabel(p.machine_id) || "";
+          if (reportTaskSortKey === "so") return p.no_so || p.order_id || "";
           if (reportTaskSortKey === "target") return Number(p.target_qty) || 0;
           if (reportTaskSortKey === "op") return p.assigned_operator || "";
           if (reportTaskSortKey === "status") return done.has(p.plan_id) ? 1 : 0;
@@ -8302,7 +8309,7 @@ function fillOperatorList(selectedEmail) {
         return String(va).localeCompare(String(vb), "id") * reportTaskSortDir;
       });
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada plan untuk dilapor di tanggal ini</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada plan untuk dilapor di tanggal ini</td></tr>';
         const cards0 = $("reportTaskCards");
         if (cards0) cards0.innerHTML = '<div class="op-empty">Tidak ada plan untuk dilapor di tanggal ini</div>';
         return;
@@ -8316,6 +8323,7 @@ function fillOperatorList(selectedEmail) {
           '<td>' + esc(p.shift) + '</td>' +
           '<td>' + esc(productLabel(p.product_id)) + '</td>' +
           '<td>' + esc(machineLabel(p.machine_id)) + '</td>' +
+          '<td class="mono" style="font-size:0.8rem">' + esc(p.no_so || p.order_id || "—") + '</td>' +
           '<td><strong>' + formatNum(p.target_qty) + '</strong> <span style="color:var(--text-dim)">' + esc(p.unit || "") + '</span></td>' +
           '<td style="font-size:0.8rem">' + esc(operatorDisplayName(p.assigned_operator || "")) + '</td>' +
           '<td>' + statusPill(p.status) + (has ? ' <span class="pill">Sudah lapor</span>' : "") + '</td>' +
@@ -8332,7 +8340,7 @@ function fillOperatorList(selectedEmail) {
           return '<div class="op-plan-card' + (has ? ' opc-done' : '') + '" data-pid="' + encodeURIComponent(p.plan_id) + '">' +
             '<div class="opc-top">' +
               '<div><div class="opc-prod">' + esc(productLabel(p.product_id)) + '</div>' +
-              '<div class="opc-meta">' + esc(machineLabel(p.machine_id)) + (p.unit ? ' · ' + esc(p.unit) : '') + '</div></div>' +
+              '<div class="opc-meta">' + esc(machineLabel(p.machine_id)) + (p.unit ? ' · ' + esc(p.unit) : '') + ((p.no_so || p.order_id) ? ' · SO ' + esc(p.no_so || p.order_id) : '') + '</div></div>' +
               '<span class="opc-shift">Shift ' + esc(String(p.shift)) + '</span>' +
             '</div>' +
             '<div class="opc-row">' +
@@ -8372,7 +8380,7 @@ function fillOperatorList(selectedEmail) {
       if (q) {
         list = list.filter(r => {
           const pl = reportPlanMap[r.plan_id] || {};
-          const blob = [pl.product_id, productLabel(pl.product_id), pl.machine_id, machineLabel(pl.machine_id), pl.assigned_operator, r.reported_by, r.report_id].join(" ").toLowerCase();
+          const blob = [pl.product_id, productLabel(pl.product_id), pl.machine_id, machineLabel(pl.machine_id), pl.assigned_operator, r.reported_by, r.report_id, pl.no_so, pl.order_id].join(" ").toLowerCase();
           return blob.includes(q);
         });
       }
@@ -8382,6 +8390,7 @@ function fillOperatorList(selectedEmail) {
           if (reportListSortKey === "time") return r.created_at ? new Date(r.created_at).getTime() : 0;
           if (reportListSortKey === "product") return productLabel(pl.product_id || "") || pl.product_id || "";
           if (reportListSortKey === "machine") return machineLabel(pl.machine_id || "") || "";
+          if (reportListSortKey === "so") return pl.no_so || pl.order_id || "";
           if (reportListSortKey === "op") return pl.assigned_operator || r.reported_by || "";
           if (reportListSortKey === "actual") return Number(r.actual_qty) || 0;
           if (reportListSortKey === "ng") return Number(r.ng_qty) || 0;
@@ -8394,7 +8403,7 @@ function fillOperatorList(selectedEmail) {
         return String(va).localeCompare(String(vb), "id") * reportListSortDir;
       });
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="9" class="empty">Belum ada laporan</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" class="empty">Belum ada laporan</td></tr>';
         return;
       }
       body.innerHTML = list.map(r => {
@@ -8406,6 +8415,7 @@ function fillOperatorList(selectedEmail) {
           '<td class="mono">' + esc(t) + '</td>' +
           '<td>' + esc(productLabel(pl.product_id || "")) + '</td>' +
           '<td>' + esc(machineLabel(pl.machine_id || "")) + '</td>' +
+          '<td class="mono" style="font-size:0.8rem">' + esc(pl.no_so || pl.order_id || "—") + '</td>' +
           '<td style="font-size:0.8rem">' + esc(opName) + '</td>' +
           '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
           '<td>' + formatNum(r.ng_qty || 0) + '</td>' +
@@ -8431,7 +8441,7 @@ function fillOperatorList(selectedEmail) {
             const opN = operatorDisplayName(pl.assigned_operator || r.reported_by || "");
             return '<div class="m-card">' +
               '<div class="m-title">' + esc(productLabel(pl.product_id || "")) + '</div>' +
-              '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ' · ' + esc(opN) + ' · ' + esc(tm) + '</div>' +
+              '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ((pl.no_so || pl.order_id) ? ' · SO ' + esc(pl.no_so || pl.order_id) : '') + ' · ' + esc(opN) + ' · ' + esc(tm) + '</div>' +
               '<div class="m-row"><span>Actual <strong>' + formatNum(r.actual_qty) + '</strong></span>' +
               '<span>NG ' + formatNum(r.ng_qty || 0) + '</span><span>DT ' + formatNum(r.downtime_min || 0) + ' m</span>' +
               '<span>Target ' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</span></div>' +
