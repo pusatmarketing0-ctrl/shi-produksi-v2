@@ -5448,13 +5448,48 @@
       }
     }
 
-    function newPlanId() {
-      const d = new Date();
-      const z = n => String(n).padStart(2, "0");
-      const day = d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate());
-      const rnd = Math.floor(Math.random() * 9000) + 1000;
-      return "PLN-" + day + "-" + rnd;
+    /** Sequential ID: PREFIX + YYMMDD + 0001 (urut per hari) */
+    var _seqMem = {};
+    function seqDayKey() {
+      var d = new Date();
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      return d.getFullYear().toString().slice(-2) + z(d.getMonth() + 1) + z(d.getDate());
     }
+    function seqConsider(base, id, maxRef) {
+      id = String(id || "");
+      if (id.indexOf(base) !== 0) return maxRef;
+      var rest = id.slice(base.length);
+      if (!/^\d{4}$/.test(rest)) return maxRef;
+      var n = parseInt(rest, 10);
+      if (!isNaN(n) && n > maxRef) return n;
+      return maxRef;
+    }
+    async function seedSeqPrefix(prefix, table, column) {
+      var base = String(prefix) + seqDayKey();
+      var max = _seqMem[base] || 0;
+      if (sb && table && column) {
+        try {
+          var { data } = await sb.from(table).select(column).like(column, base + "%").order(column, { ascending: false }).limit(40);
+          (data || []).forEach(function(r) { max = seqConsider(base, r[column], max); });
+        } catch (e) { console.warn("seedSeq", prefix, e); }
+      }
+      if (!_seqMem[base] || max > _seqMem[base]) _seqMem[base] = max;
+      return base;
+    }
+    function takeSeqId(prefix) {
+      var base = String(prefix) + seqDayKey();
+      var n = (_seqMem[base] || 0) + 1;
+      _seqMem[base] = n;
+      return base + String(n).padStart(4, "0");
+    }
+    async function nextSeqId(prefix, table, column) {
+      await seedSeqPrefix(prefix, table, column);
+      return takeSeqId(prefix);
+    }
+    async function newPlanId() {
+      return await nextSeqId("PLN", "plans", "plan_id");
+    }
+
     
     // ===== Universal searchable combo (produk / proses / customer / operator / vendor) =====
     function scItemsProduct() {
@@ -5954,10 +5989,8 @@
     
     let allOrdersFull = [];
 
-    function newOrderId() {
-      const d = new Date();
-      const z = n => String(n).padStart(2, "0");
-      return "SO" + d.getFullYear().toString().slice(-2) + z(d.getMonth()+1) + z(d.getDate()) + "-" + (Math.floor(Math.random()*9000)+1000);
+    async function newOrderId() {
+      return await nextSeqId("SO", "orders", "order_id");
     }
 
     async function loadOrdersPage() {
@@ -6247,7 +6280,7 @@
       if (order_id) {
         ({ error } = await sb.from("orders").update(payload).eq("order_id", order_id));
       } else {
-        order_id = newOrderId();
+        order_id = await newOrderId();
         payload.order_id = order_id;
         payload.created_by = (currentUser && currentUser.email) || "";
         payload.created_at = new Date().toISOString();
@@ -6515,8 +6548,9 @@
         }
       }
 
+      await seedSeqPrefix("PLN", "plans", "plan_id");
       const payload = {
-        plan_id: newPlanId(),
+        plan_id: takeSeqId("PLN"),
         plan_date, shift, product_id, machine_id, target_qty, unit,
         assigned_operator, status,
         order_id,
@@ -6809,7 +6843,8 @@
           toast("Plan duplikat: tanggal + shift + produk + proses + operator yang sama sudah ada", true);
           return;
         }
-        payload.plan_id = newPlanId();
+        await seedSeqPrefix("PLN", "plans", "plan_id");
+        payload.plan_id = takeSeqId("PLN");
         payload.created_by = (currentUser && currentUser.email) || "";
         payload.created_at = new Date().toISOString();
         ({ error } = await sb.from("plans").insert(payload));
@@ -7508,10 +7543,8 @@ function fillOperatorList(selectedEmail) {
     let reportRows = [];
     let reportPlanMap = {};
 
-    function newReportId() {
-      const d = new Date();
-      const z = n => String(n).padStart(2, "0");
-      return "RPT-" + d.getFullYear() + z(d.getMonth()+1) + z(d.getDate()) + "-" + (Math.floor(Math.random()*9000)+1000);
+    async function newReportId() {
+      return await nextSeqId("RPT", "reports", "report_id");
     }
     
     function currentRole() {
@@ -8838,7 +8871,7 @@ function fillOperatorList(selectedEmail) {
       if (report_id) {
         ({ error } = await sb.from("reports").update(payload).eq("report_id", report_id));
       } else {
-        report_id = newReportId();
+        report_id = await newReportId();
         payload.report_id = report_id;
         payload.created_at = new Date().toISOString();
         ({ error } = await sb.from("reports").insert(payload));
@@ -8994,7 +9027,6 @@ function fillOperatorList(selectedEmail) {
         var mop = resolveOperatorEmail((br.querySelector(".pp-bom-op") && br.querySelector(".pp-bom-op").value) || "");
         if (!mat || mq <= 0) return;
         var row = Object.assign({}, base, {
-          plan_id: newPlanId(),
           product_id: mat,
           target_qty: mq,
           unit: mu,
@@ -9330,8 +9362,7 @@ function fillOperatorList(selectedEmail) {
             if (!mat || mq <= 0) return;
             anyMat = true;
             rows.push({
-              plan_id: newPlanId(),
-              plan_date: plan_date,
+                            plan_date: plan_date,
               shift: shift,
               product_id: mat,
               machine_id: machine_id,
@@ -9352,8 +9383,7 @@ function fillOperatorList(selectedEmail) {
           if (!anyMat && parentQty > 0) {
             // fallback: tidak ada bahan → 1 plan FG+giling (jarang)
             rows.push({
-              plan_id: newPlanId(),
-              plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
+                            plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
               target_qty: parentQty, unit: parentUnit,
               assigned_operator: parentOp,
               status: parentOp ? "open" : "draft",
@@ -9369,8 +9399,7 @@ function fillOperatorList(selectedEmail) {
         // step non-giling: plan biasa product = FG
         if (parentQty <= 0) return;
         rows.push({
-          plan_id: newPlanId(),
-          plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
+                    plan_date: plan_date, shift: shift, product_id: product_id, machine_id: machine_id,
           target_qty: parentQty, unit: parentUnit,
           assigned_operator: parentOp,
           status: parentOp ? "open" : "draft",
@@ -11698,9 +11727,8 @@ function fillOperatorList(selectedEmail) {
     
     // ===== Batch 4: Purchasing + drag-drop plan =====
     let poList = [];
-    function newPoId() {
-      const d = todayStr().replace(/-/g, "");
-      return "PO-" + d + "-" + String(Math.floor(Math.random() * 9000) + 1000);
+    async function newPoId() {
+      return await nextSeqId("PO", "purchase_orders", "po_id");
     }
     
     var gudangRows = [];
@@ -11791,8 +11819,8 @@ function fillOperatorList(selectedEmail) {
     }
 
     var deliveryList = [];
-    function newDeliveryId() {
-      return "DO-" + Date.now().toString(36).toUpperCase();
+    async function newDeliveryId() {
+      return await nextSeqId("DO", "deliveries", "do_id");
     }
     function closeDeliveryModal() {
       var m = $("deliveryModal");
@@ -12023,7 +12051,7 @@ function fillOperatorList(selectedEmail) {
       var order_id = (soInp && soInp.dataset.scId) || "";
       var hit = (window.__doSoCache || []).find(function(o) { return o.order_id === order_id; });
       var no_so = (hit && hit.no_so) || "";
-      var do_id = ($("doEditId").value || "").trim() || newDeliveryId();
+      var do_id = ($("doEditId").value || "").trim() || (await newDeliveryId());
       var isNew = !($("doEditId").value || "").trim();
       var st = $("doStatus").value || "draft";
       var no_do_odoo = (($("doOdooNo") && $("doOdooNo").value) || "").trim();
@@ -13484,8 +13512,8 @@ function fillOperatorList(selectedEmail) {
       await appConfirm({ title: "Komponen KURANG — plan ditahan", message: body + "\n\nSelesaikan Purchase & QC gudang dulu.", okText: "Buka Purchasing", cancelText: "Tutup", danger: false, icon: "⚠" }).then(function(go) { if (go) try { goPage("purchasing"); } catch (e) {} });
       return false;
     }
-    function newPrId() {
-      return "PR-" + Date.now().toString(36).toUpperCase();
+    async function newPrId() {
+      return await nextSeqId("PR", "purchase_requests", "pr_id");
     }
     /** PPIC: buat permintaan beli ke Purchase dari hasil cek komponen */
     async function createPurchaseRequestFromCheck(chk) {
@@ -13503,7 +13531,7 @@ function fillOperatorList(selectedEmail) {
         cancelText: "Batal"
       });
       if (note == null) return;
-      var prId = newPrId();
+      var prId = await newPrId();
       var { error } = await sb.from("purchase_requests").insert({
         pr_id: prId,
         order_id: chk.order_id,
@@ -13618,7 +13646,7 @@ function fillOperatorList(selectedEmail) {
         if (product_id && qty > 0) lines.push({ product_id: product_id, qty_needed: qty, unit: unit });
       });
       if (!lines.length) return toast("Minimal 1 bahan dengan qty", true);
-      var prId = newPrId();
+      var prId = await newPrId();
       var { error } = await sb.from("purchase_requests").insert({
         pr_id: prId,
         order_id: order_id,
@@ -13746,7 +13774,7 @@ function fillOperatorList(selectedEmail) {
       const no_so = (soHit && soHit.no_so) || "";
       let po_id = ($("poEditId").value || "").trim();
       const isNew = !po_id;
-      if (isNew) po_id = newPoId();
+      if (isNew) po_id = await newPoId();
       const header = {
         po_id,
         order_id,
@@ -14537,8 +14565,7 @@ function fillOperatorList(selectedEmail) {
         if (!["draft","open","in_progress","done","cancelled"].includes(status)) status = "open";
         if (!assigned_operator && status === "open") status = "draft";
         out.push({
-          plan_id: newPlanId(),
-          plan_date, shift, product_id, machine_id, target_qty,
+                    plan_date, shift, product_id, machine_id, target_qty,
           unit: String(unit).trim() || "pcs",
           assigned_operator,
           status,
@@ -14589,7 +14616,9 @@ function fillOperatorList(selectedEmail) {
 
       const cleaned = [];
       const skipped = [];
-      rows.forEach(function(r, idx) {
+      await seedSeqPrefix("PLN", "plans", "plan_id");
+      for (var idx = 0; idx < rows.length; idx++) {
+        var r = rows[idx];
         const plan_date = normalizePlanDate(r.plan_date);
         const product_id = resolveProductId(r.product_id || r.product_raw || "");
         const machine_id = resolveMachineId(r.machine_id || r.machine_raw || "");
@@ -14602,7 +14631,6 @@ function fillOperatorList(selectedEmail) {
         if (!(target_qty > 0)) reasons.push("target kosong");
         var rowNoSo = String(r.no_so || "").trim();
         var rowOrderId = String(r.order_id || "").trim();
-        // produk yang dicek ke SO: FG (for_product_id) jika ada, else product_id
         var chkPid = String(r.for_product_id || product_id || "").trim();
         if (rowNoSo || rowOrderId) {
           var vc = validatePlanProductAgainstSo(chkPid, rowNoSo, rowOrderId);
@@ -14615,14 +14643,14 @@ function fillOperatorList(selectedEmail) {
         }
         if (reasons.length) {
           skipped.push("Baris " + (idx + 1) + ": " + reasons.join("; "));
-          return;
+          continue;
         }
         const op = resolveOperatorEmail(r.assigned_operator || r.operator || "") || "";
         let status = String(r.status || (op ? "open" : "draft")).toLowerCase();
         if (!["draft","open","in_progress","done","cancelled"].includes(status)) status = op ? "open" : "draft";
         if (!op && status === "open") status = "draft";
         cleaned.push({
-          plan_id: r.plan_id || newPlanId(),
+          plan_id: r.plan_id || takeSeqId("PLN"),
           plan_date: plan_date,
           shift: shift,
           product_id: product_id,
@@ -14633,12 +14661,12 @@ function fillOperatorList(selectedEmail) {
           status: status,
           no_so: rowNoSo,
           order_id: rowOrderId || null,
+          for_product_id: r.for_product_id || null,
           created_by: r.created_by || ((currentUser && currentUser.email) || ""),
           created_at: r.created_at || new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
-      });
-
+      }
       if (!cleaned.length) {
         console.warn(skipped);
         toast("0 plan valid. Contoh error: " + (skipped[0] || "cek produk & tanggal"), true);
@@ -14672,8 +14700,8 @@ function fillOperatorList(selectedEmail) {
       let ok = 0, fail = 0;
       const firstDate = cleaned[0].plan_date;
       for (let i = 0; i < cleaned.length; i += chunk) {
-        const part = cleaned.slice(i, i + chunk).map(function(r, j) {
-          r.plan_id = newPlanId() + "-" + (i + j);
+        const part = cleaned.slice(i, i + chunk).map(function(r) {
+          if (!r.plan_id) r.plan_id = takeSeqId("PLN");
           // order_id empty string can break FK — use null
           if (!r.order_id) delete r.order_id;
           return r;
@@ -15995,26 +16023,7 @@ function fillOperatorList(selectedEmail) {
     }
     var pickList = [];
     async function newPickId() {
-      var d = new Date();
-      var z = function(n) { return String(n).padStart(2, "0"); };
-      // Format: PKYYMMDD-S0001 — prefix "S" agar tidak bentrok dengan ID random lama (PKYYMMDD-5327)
-      var day = d.getFullYear().toString().slice(-2) + z(d.getMonth() + 1) + z(d.getDate());
-      var prefix = "PK" + day + "-S";
-      var maxSeq = 0;
-      function consider(id) {
-        id = String(id || "");
-        if (id.indexOf(prefix) !== 0) return;
-        var n = parseInt(id.slice(prefix.length), 10);
-        if (!isNaN(n) && n > maxSeq) maxSeq = n;
-      }
-      (pickList || []).forEach(function(p) { consider(p.pick_id); });
-      if (sb) {
-        try {
-          var { data } = await sb.from("picks").select("pick_id").like("pick_id", prefix + "%").order("pick_id", { ascending: false }).limit(50);
-          (data || []).forEach(function(r) { consider(r.pick_id); });
-        } catch (e) { console.warn(e); }
-      }
-      return prefix + String(maxSeq + 1).padStart(4, "0");
+      return await nextSeqId("PK", "picks", "pick_id");
     }
     function pickStatusLabel(st) {
       var map = { draft: "Draft", requested: "Diminta", partial: "Parsial", prepared: "Siap", handover: "Serah terima", picked: "Selesai", cancelled: "Batal" };
@@ -16875,11 +16884,8 @@ var id = await newPickId();
     let otCache = [];
     let otLinesCache = {};
 
-    function newOtId() {
-      const d = new Date();
-      const z = function(n) { return String(n).padStart(2, "0"); };
-      const day = d.getFullYear() + z(d.getMonth()+1) + z(d.getDate());
-      return "OT-" + day + "-" + String(Math.floor(Math.random()*9000)+1000);
+    async function newOtId() {
+      return await nextSeqId("OT", "order_trading", "ot_id");
     }
 
     function otStatusLabel(st) {
@@ -17812,7 +17818,7 @@ function closeOtModal() {
       if (!lines.length) return toast("Minimal 1 produk + qty (isi produk & qty tiap baris)", true);
       let otId = ($("otEditId") && $("otEditId").value) || "";
       const isNew = !otId;
-      if (!otId) otId = newOtId();
+      if (!otId) otId = await newOtId();
       const payload = {
         ot_id: otId,
         customer_name: customer,
