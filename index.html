@@ -8355,7 +8355,8 @@ function fillOperatorList(selectedEmail) {
       const t = Number(target) || 0;
       const dt = Number(downtimeMin) || 0;
       const base = SHIFT_MINUTES > 0 ? SHIFT_MINUTES : 375;
-      // target disesuaikan proporsional: (base - downtime) / base
+      // Hanya downtime yang mengurangi target. Kapasitas proses TIDAK ikut di sini.
+      // dt <= 0 → target adj = target plan utuh
       if (dt <= 0) return t;
       const adj = t * Math.max(0, (base - dt) / base);
       return Math.round(adj * 100) / 100;
@@ -8798,11 +8799,14 @@ function fillOperatorList(selectedEmail) {
         : dtDetail;
       const notes = ($("rpNotes").value || "").trim();
       const planTarget = plan ? Number(plan.target_qty) || 0 : 0;
-      const target_qty = plan ? (getPlanEvalTarget(plan) || planTarget) : 0;
-      if (!(planTarget > 0) && !(target_qty > 0)) {
+      // target_qty di laporan = target plan (asli)
+      // target_adj = target plan disesuaikan downtime SAJA (bukan kapasitas proses)
+      // kapasitas/eval_target hanya untuk ranking, bukan Target adj
+      const target_qty = planTarget;
+      if (!(planTarget > 0)) {
         toast("Target plan kosong — cek plan di menu Plan", true);
       }
-      const target_adj = calcTargetAdj(target_qty, downtime_min);
+      const target_adj = calcTargetAdj(planTarget, downtime_min);
       const report_date = plan && plan.plan_date ? plan.plan_date : ((($("reportFilterDate") && $("reportFilterDate").value) || todayStr()));
       const reported_by = (currentUser && currentUser.email) || "";
       let report_id = ($("rpReportId").value || "").trim();
@@ -9534,20 +9538,21 @@ function fillOperatorList(selectedEmail) {
       return { name: "Tunas", icon: "🌱" };
     }
     function reportEffectiveTarget(r, planById) {
-      var a = Number(r && r.target_adj);
-      var t = Number(r && r.target_qty);
-      if (a > 0) return a;
-      if (t > 0) return t;
       var plan = null;
       if (planById && r && r.plan_id) plan = planById[r.plan_id];
       if (!plan && r && r.plan_id && typeof reportPlanMap !== "undefined") plan = reportPlanMap[r.plan_id];
-      if (plan) {
-        var pt = Number(plan.target_qty) || 0;
-        if (pt > 0) {
-          var dt = Number(r && r.downtime_min) || 0;
-          return typeof calcTargetAdj === "function" ? calcTargetAdj(pt, dt) : pt;
-        }
+      var pt = plan ? (Number(plan.target_qty) || 0) : 0;
+      var dt = Number(r && r.downtime_min) || 0;
+      var storedAdj = Number(r && r.target_adj) || 0;
+      var storedT = Number(r && r.target_qty) || 0;
+      // Basis = target plan asli (bukan kapasitas)
+      var base = pt > 0 ? pt : storedT;
+      if (base > 0) {
+        // Hitung ulang dari plan + downtime agar data lama yang ter-cap kapasitas ikut benar
+        return typeof calcTargetAdj === "function" ? calcTargetAdj(base, dt) : base;
       }
+      if (storedAdj > 0) return storedAdj;
+      if (storedT > 0) return storedT;
       return 0;
     }
     async function loadRanking() {
