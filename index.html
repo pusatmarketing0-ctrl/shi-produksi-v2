@@ -6443,6 +6443,7 @@
       defaults = defaults || {};
       fillPlanDatalists();
       try { await loadOperators(); } catch (e) { console.warn(e); }
+      try { if (!(allOrders && allOrders.length) && typeof loadOrdersForPlan === "function") await loadOrdersForPlan(); } catch (eO) {}
       editingPlanId = row ? row.plan_id : null;
       $("planModalTitle").textContent = row ? "Edit plan" : "Buat plan";
 
@@ -6476,6 +6477,45 @@
       $("plUnit").value = row ? (row.unit || "pcs") : (defaults.unit || "pcs");
       var st = row ? (row.status || "open") : (defaults.status || "open");
       $("plStatus").value = st;
+      // No SO — bisa diedit
+      if ($("plNoSo")) {
+        var soVal = row ? (row.no_so || "") : (defaults.no_so || "");
+        var oid = row ? (row.order_id || "") : (defaults.order_id || "");
+        $("plNoSo").value = "";
+        $("plNoSo").dataset.scId = oid || "";
+        if (soVal || oid) {
+          try {
+            if (!(allOrders && allOrders.length)) { /* optional */ }
+            var ord = (allOrders || []).find(function(o) {
+              return (oid && o.order_id === oid) || (soVal && (o.no_so === soVal || o.order_id === soVal));
+            });
+            if (ord) {
+              $("plNoSo").dataset.scId = ord.order_id || "";
+              $("plNoSo").value = (ord.no_so || ord.order_id) + " · " + (ord.customer_name || "-");
+            } else {
+              $("plNoSo").value = soVal || oid || "";
+            }
+          } catch (eSo) {
+            $("plNoSo").value = soVal || oid || "";
+          }
+        }
+        // search combobox SO (reuse scItemsPickSo bila ada)
+        try {
+          if (typeof attachSearchCombo === "function" && typeof scItemsPickSo === "function") {
+            $("plNoSo").dataset.scBound = "";
+            attachSearchCombo($("plNoSo"), scItemsPickSo, {
+              valueMode: "id-name",
+              placeholder: "Ketik no SO / customer…",
+              onPick: function(id, label, input) {
+                if (input) {
+                  input.dataset.scId = id || "";
+                  input.value = label || id || "";
+                }
+              }
+            });
+          }
+        } catch (eCombo) {}
+      }
       if ($("plEvalTarget")) {
         $("plEvalTarget").value = row && row.eval_target != null && Number(row.eval_target) > 0
           ? formatInputNum(row.eval_target, true) : "";
@@ -6540,6 +6580,41 @@
       var defs = window.__planModalDefaults || {};
       var order_id = defs.order_id || "";
       var no_so = defs.no_so || "";
+      // Prioritas input form No SO (bisa diubah saat edit)
+      if ($("plNoSo")) {
+        var soInp = $("plNoSo");
+        var typed = (soInp.value || "").trim();
+        var scId = soInp.dataset.scId || "";
+        if (scId) {
+          order_id = scId;
+          var ord = (allOrders || []).find(function(o) { return o.order_id === scId; });
+          no_so = ord ? (ord.no_so || ord.order_id || "") : typed;
+        } else if (typed) {
+          // coba resolve dari teks
+          var ord2 = null;
+          if (typeof resolveOrderIdFromInput === "function") {
+            var rid = resolveOrderIdFromInput(typed);
+            if (rid) ord2 = (allOrders || []).find(function(o) { return o.order_id === rid; });
+          }
+          if (!ord2) {
+            ord2 = (allOrders || []).find(function(o) {
+              return o.no_so === typed || o.order_id === typed ||
+                (o.no_so && typed.indexOf(o.no_so) === 0);
+            });
+          }
+          if (ord2) {
+            order_id = ord2.order_id || "";
+            no_so = ord2.no_so || ord2.order_id || typed;
+          } else {
+            // simpan teks bebas sebagai no_so
+            order_id = "";
+            no_so = typed.split("·")[0].trim();
+          }
+        } else {
+          order_id = "";
+          no_so = "";
+        }
+      }
 
       // Giling baru (bukan edit): multi plan per bahan
       if (!editingPlanId && isGilingMachine(machine_id)) {
@@ -6592,8 +6667,9 @@
         // edit bahan: jaga for_product jika ada di defaults/row
         payload.for_product_id = defs.for_product_id || product_id;
       }
-      if (order_id) payload.order_id = order_id;
-      if (no_so) payload.no_so = no_so;
+      // selalu set agar edit/hapus SO tersimpan
+      payload.order_id = order_id || null;
+      payload.no_so = no_so || null;
 
       let error;
       if (editingPlanId) {
