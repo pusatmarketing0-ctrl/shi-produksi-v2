@@ -12511,7 +12511,8 @@ function fillOperatorList(selectedEmail) {
             kategori: l.kategori || "",
             qc_status: l.qc_status || "pending",
             awaiting_eta: !!l.awaiting_eta,
-            replace_eta: l.replace_eta ? String(l.replace_eta).slice(0,10) : ""
+            replace_eta: l.replace_eta ? String(l.replace_eta).slice(0,10) : "",
+            arrived_at: l.arrived_at || l.updated_at || null
           });
         });
       });
@@ -12565,7 +12566,13 @@ function fillOperatorList(selectedEmail) {
           "<td>" + esc(r.vendor_name || "—") + "</td>" +
           "<td>" + esc(r.replace_eta || r.eta_date || "—") + (r.awaiting_eta ? "<div style='font-size:0.65rem;color:#c2410c'>Perlu ETA sisa</div>" : "") + "</td>" +
           "<td>" + formatNum(qty) + " " + esc(r.unit) + "</td>" +
-          "<td>" + formatNum(arrived) + "</td>" +
+          "<td>" + formatNum(arrived) +
+            (arrived > 0 && r.arrived_at
+              ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
+                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.arrived_at) : String(r.arrived_at).slice(0,16)) +
+                "</div>"
+              : "") +
+          "</td>" +
           "<td>" + formatNum(passed) + "</td>" +
           "<td>" + formatNum(received) + "</td>" +
           "<td style='font-weight:700;font-size:0.75rem;color:" + stColor + "'>" + stLabel + "</td>" +
@@ -12623,9 +12630,11 @@ function fillOperatorList(selectedEmail) {
       if (n > sisa) return toast("Maks. sisa: " + formatNum(sisa), true);
       var totalArrived = already + n;
       var awaiting = totalArrived < qty;
+      var nowIso = new Date().toISOString();
       var payload = {
         qty_arrived: totalArrived,
-        awaiting_eta: awaiting
+        awaiting_eta: awaiting,
+        arrived_at: nowIso
       };
       // soft status for QC queue
       if (!(rowG.qc_status) || rowG.qc_status === "pending") {
@@ -12633,9 +12642,20 @@ function fillOperatorList(selectedEmail) {
       }
       var { error } = await sb.from("purchase_lines").update(payload).eq("id", lineId);
       if (error) {
-        // fallback tanpa qty_arrived / awaiting_eta
-        toast(error.message + " — jalankan SQL: alter table purchase_lines add column if not exists qty_arrived numeric default 0; add column if not exists awaiting_eta boolean default false;", true);
-        return;
+        // fallback: kolom arrived_at belum ada
+        var msgE = String(error.message || "");
+        if (/arrived_at/i.test(msgE)) {
+          delete payload.arrived_at;
+          var r2 = await sb.from("purchase_lines").update(payload).eq("id", lineId);
+          if (r2.error) {
+            toast(r2.error.message + " — jalankan SQL: alter table purchase_lines add column if not exists qty_arrived numeric default 0; add column if not exists awaiting_eta boolean default false; add column if not exists arrived_at timestamptz;", true);
+            return;
+          }
+          toast("Catatan: kolom arrived_at belum ada — jalankan SQL di Supabase agar waktu datang tersimpan.", true);
+        } else {
+          toast(error.message + " — jalankan SQL: alter table purchase_lines add column if not exists qty_arrived numeric default 0; add column if not exists awaiting_eta boolean default false; add column if not exists arrived_at timestamptz;", true);
+          return;
+        }
       }
       var msg = "Datang +" + formatNum(n) + " → total datang " + formatNum(totalArrived);
       if (awaiting) {
