@@ -5515,13 +5515,19 @@
     function scItemsCustomer() {
       const fromMaster = (customers || []).map(function(c) {
         const name = c.name || c.customer_name || "";
-        return { id: name, label: name, sub: c.phone || c.notes || "customer", search: name };
-      });
-      // also from orders
+        if (!name) return null;
+        return {
+          id: name,
+          label: name,
+          sub: c.phone || c.notes || c.sub || "customer",
+          search: name
+        };
+      }).filter(Boolean);
       const seen = {};
       fromMaster.forEach(function(x) { seen[String(x.id).toLowerCase()] = true; });
       (window.__orderCustomers || []).forEach(function(name) {
         if (!name || seen[String(name).toLowerCase()]) return;
+        seen[String(name).toLowerCase()] = true;
         fromMaster.push({ id: name, label: name, sub: "dari SO", search: name });
       });
       return fromMaster;
@@ -7229,23 +7235,41 @@
 
     async function loadCustomers() {
       if (!sb) return;
-      const { data, error } = await sb.from("customers").select("*").eq("active", true).order("name");
-      if (error) {
-        console.warn("customers:", error.message);
-        customers = [];
-        // fallback: distinct customer_name from orders
-        try {
-          const { data: ords } = await sb.from("orders").select("customer_name").limit(500);
-          const set = {};
-          (ords || []).forEach(o => {
-            const n = String(o.customer_name || "").trim();
-            if (n) set[n.toLowerCase()] = n;
-          });
-          customers = Object.keys(set).map(k => ({ customer_id: k, name: set[k] }));
-        } catch (e) {}
-      } else {
-        customers = data || [];
+      var byName = {};
+      function addName(n, extra) {
+        n = String(n || "").trim();
+        if (!n) return;
+        var k = n.toLowerCase();
+        if (!byName[k]) byName[k] = Object.assign({ customer_id: k, name: n, active: true }, extra || {});
       }
+      // 1) tabel customers (semua, atau active saja)
+      try {
+        var res = await sb.from("customers").select("*").order("name").limit(2000);
+        if (res.error) {
+          console.warn("customers:", res.error.message);
+          var res2 = await sb.from("customers").select("*").eq("active", true).order("name").limit(2000);
+          (res2.data || []).forEach(function(c) {
+            addName(c.name || c.customer_name, c);
+          });
+        } else {
+          (res.data || []).forEach(function(c) {
+            if (c.active === false) return;
+            addName(c.name || c.customer_name, c);
+          });
+        }
+      } catch (e0) { console.warn(e0); }
+      // 2) dari Sales Order
+      try {
+        var { data: ords } = await sb.from("orders").select("customer_name").limit(1000);
+        (ords || []).forEach(function(o) { addName(o.customer_name, { sub: "dari SO" }); });
+      } catch (e1) {}
+      // 3) dari Order Trading
+      try {
+        var { data: ots } = await sb.from("order_trading").select("customer_name").limit(1000);
+        (ots || []).forEach(function(o) { addName(o.customer_name, { sub: "dari OT" }); });
+      } catch (e2) {}
+      customers = Object.keys(byName).map(function(k) { return byName[k]; })
+        .sort(function(a, b) { return String(a.name).localeCompare(String(b.name), "id"); });
       fillCustomerList();
     }
     function fillCustomerList() {
@@ -17061,16 +17085,23 @@ var id = await newPickId();
 
 async function otCreateCustomer(name) {
       name = String(name || "").trim();
-      if (!name || !sb) return null;
-      var row = { name: name, active: true };
-      var { error } = await sb.from("customers").insert(row);
-      if (error) {
-        // free text still ok
-        toast("Customer dipakai sebagai teks (belum di master): " + name);
-        return { id: name, label: name };
+      if (!name) return null;
+      // sudah ada di daftar?
+      var exists = (customers || []).some(function(c) {
+        return String(c.name || c.customer_name || "").toLowerCase() === name.toLowerCase();
+      });
+      if (exists) return { id: name, label: name };
+      try {
+        if (typeof ensureCustomerSaved === "function") await ensureCustomerSaved(name);
+        else if (sb) {
+          var id = "CUS-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+          await sb.from("customers").upsert({ customer_id: id || ("CUS-" + Date.now()), name: name, active: true });
+        }
+        try { await loadCustomers(); } catch (e) {}
+        toast("Customer disimpan: " + name);
+      } catch (e2) {
+        toast("Customer dipakai sebagai teks: " + name);
       }
-      try { await loadCustomers(); } catch (e) {}
-      toast("Customer baru: " + name);
       return { id: name, label: name };
     }
     
@@ -17244,10 +17275,12 @@ async function otCreateCustomer(name) {
       var input = $("otCustomer");
       if (!input) return;
       delete input.dataset.otCombo;
+      // pastikan list customer terbaru
       otBindCombo(input, function() {
         return (typeof scItemsCustomer === "function") ? scItemsCustomer() : [];
       }, {
         valueMode: "label",
+        allowFree: true,
         onCreate: function(raw) { return otCreateCustomer(raw); }
       });
     }
@@ -17814,6 +17847,7 @@ function closeOtModal() {
       if (!(role === "marketing" || role === "admin")) return toast("Hanya Marketing yang membuat Order Trading", true);
       const customer = (($("otCustomer") && $("otCustomer").value) || "").trim();
       if (!customer) return toast("Customer wajib", true);
+      try { await ensureCustomerSaved(customer); } catch (eC) {}
       const lines = collectOtLines();
       if (!lines.length) return toast("Minimal 1 produk + qty (isi produk & qty tiap baris)", true);
       let otId = ($("otEditId") && $("otEditId").value) || "";
