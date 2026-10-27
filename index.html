@@ -12512,7 +12512,9 @@ function fillOperatorList(selectedEmail) {
             qc_status: l.qc_status || "pending",
             awaiting_eta: !!l.awaiting_eta,
             replace_eta: l.replace_eta ? String(l.replace_eta).slice(0,10) : "",
-            arrived_at: l.arrived_at || l.updated_at || null
+            arrived_at: l.arrived_at || null,
+            qc_at: l.qc_at || null,
+            received_at: l.received_at || null
           });
         });
       });
@@ -12573,8 +12575,20 @@ function fillOperatorList(selectedEmail) {
                 "</div>"
               : "") +
           "</td>" +
-          "<td>" + formatNum(passed) + "</td>" +
-          "<td>" + formatNum(received) + "</td>" +
+          "<td>" + formatNum(passed) +
+            (passed > 0 && r.qc_at
+              ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
+                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_at) : String(r.qc_at).slice(0,16)) +
+                "</div>"
+              : "") +
+          "</td>" +
+          "<td>" + formatNum(received) +
+            (received > 0 && r.received_at
+              ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
+                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.received_at) : String(r.received_at).slice(0,16)) +
+                "</div>"
+              : "") +
+          "</td>" +
           "<td style='font-weight:700;font-size:0.75rem;color:" + stColor + "'>" + stLabel + "</td>" +
           "<td>" + gudangActionHtml(r) + "</td></tr>";
       }).join("");
@@ -12705,8 +12719,19 @@ function fillOperatorList(selectedEmail) {
       if (!(n > 0)) return toast("Qty tidak valid", true);
       if (n > sisaQc) return toast("Maks. sisa lulus QC: " + formatNum(sisaQc), true);
       var total = alreadyReceived + n;
-      var { error } = await sb.from("purchase_lines").update({ qty_received: total }).eq("id", lineId);
-      if (error) return toast(error.message, true);
+      var nowIso = new Date().toISOString();
+      var recvPayload = { qty_received: total, received_at: nowIso };
+      var { error } = await sb.from("purchase_lines").update(recvPayload).eq("id", lineId);
+      if (error) {
+        var msgE = String(error.message || "");
+        if (/received_at/i.test(msgE)) {
+          var r2 = await sb.from("purchase_lines").update({ qty_received: total }).eq("id", lineId);
+          if (r2.error) return toast(r2.error.message, true);
+          toast("Catatan: kolom received_at belum ada — jalankan SQL di Supabase.", true);
+        } else {
+          return toast(error.message, true);
+        }
+      }
       try {
         await sb.from("warehouse_movements").insert({
           movement_type: "in_vendor",
@@ -12893,7 +12918,18 @@ function fillOperatorList(selectedEmail) {
         qc_by: (currentUser && currentUser.email) || ""
       };
       var { error } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
-      if (error) return toast(error.message, true);
+      if (error) {
+        var msgQc = String(error.message || "");
+        if (/qc_at|qc_by/i.test(msgQc)) {
+          delete patch.qc_at;
+          delete patch.qc_by;
+          var rQc = await sb.from("purchase_lines").update(patch).eq("id", lineId);
+          if (rQc.error) return toast(rQc.error.message, true);
+          toast("Catatan: kolom qc_at belum ada — jalankan SQL di Supabase.", true);
+        } else {
+          return toast(error.message, true);
+        }
+      }
 
       try {
         await sb.from("qc_logs").insert({
