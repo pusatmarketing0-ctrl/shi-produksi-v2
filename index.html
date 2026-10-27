@@ -6251,7 +6251,7 @@
     async function loadOrdersForPlan() {
       if (!sb) return;
       try {
-        const { data, error } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(100);
+        const { data, error } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(400);
         if (error) {
           // fallback without embed
           const r2 = await sb.from("orders").select("*").order("created_at", { ascending: false }).limit(100);
@@ -6267,6 +6267,90 @@
         allOrders = [];
       }
     }
+    function findOrderBySoRef(noSo, orderId) {
+      var list = allOrders || [];
+      var oid = String(orderId || "").trim();
+      var so = String(noSo || "").trim();
+      if (oid) {
+        var byId = list.find(function(o) { return String(o.order_id) === oid; });
+        if (byId) return byId;
+      }
+      if (so) {
+        var bySo = list.find(function(o) {
+          return String(o.no_so || "") === so || String(o.order_id) === so;
+        });
+        if (bySo) return bySo;
+        // partial: input "SO/2026/001 · customer"
+        var soHead = so.split("·")[0].trim();
+        if (soHead && soHead !== so) {
+          bySo = list.find(function(o) {
+            return String(o.no_so || "") === soHead || String(o.order_id) === soHead;
+          });
+          if (bySo) return bySo;
+        }
+      }
+      return null;
+    }
+    function orderProductIds(order) {
+      if (!order) return [];
+      var lines = order.lines || order.order_lines || [];
+      var ids = [];
+      lines.forEach(function(L) {
+        var pid = String(L.product_id || "").trim();
+        if (pid && ids.indexOf(pid) < 0) ids.push(pid);
+      });
+      return ids;
+    }
+    /** Validasi produk vs Sales Order. return { ok, message, order } */
+    function validatePlanProductAgainstSo(productId, noSo, orderId, opts) {
+      opts = opts || {};
+      var pid = String(productId || "").trim();
+      var so = String(noSo || "").trim();
+      var oid = String(orderId || "").trim();
+      if (!so && !oid) {
+        // SO opsional — boleh tanpa SO
+        return { ok: true, message: "", order: null };
+      }
+      if (!pid) return { ok: false, message: "Produk kosong — tidak bisa dicek ke Sales Order", order: null };
+      var order = findOrderBySoRef(so, oid);
+      if (!order) {
+        return {
+          ok: false,
+          message: "No SO \"" + (so || oid) + "\" tidak ditemukan di Sales Order. Pilih SO yang valid atau kosongkan No SO.",
+          order: null
+        };
+      }
+      var ids = orderProductIds(order);
+      if (!ids.length) {
+        return {
+          ok: false,
+          message: "SO " + (order.no_so || order.order_id) + " belum punya daftar produk (order_lines). Lengkapi di menu Sales Order.",
+          order: order
+        };
+      }
+      // cocokkan product_id atau for_product_id (FG)
+      if (ids.indexOf(pid) >= 0) {
+        return { ok: true, message: "", order: order };
+      }
+      var label = pid;
+      try { label = productLabel(pid) || pid; } catch (e) {}
+      var contoh = ids.slice(0, 6).map(function(id) {
+        try { return productLabel(id) || id; } catch (e2) { return id; }
+      }).join(", ");
+      return {
+        ok: false,
+        message: "Produk \"" + label + "\" tidak ada di SO " + (order.no_so || order.order_id) +
+          ".\n\nProduk di SO tersebut: " + contoh + (ids.length > 6 ? " …" : "") +
+          "\n\nSesuaikan produk atau ganti No SO agar sesuai Sales Order.",
+        order: order
+      };
+    }
+    async function ensureOrdersLoadedForSoCheck() {
+      try {
+        if (!(allOrders && allOrders.length)) await loadOrdersForPlan();
+      } catch (e) {}
+    }
+
     function bindPlanSoCombos() {
       var soInp = $("plSoSelect");
       var prodInp = $("plSoProduct");
@@ -6379,6 +6463,10 @@
       if (!order_id || !product_id || !plan_date || !machine_id) return toast("SO, produk, tanggal, proses wajib", true);
       const order = (allOrders || []).find(o => o.order_id === order_id);
       const no_so = order ? (order.no_so || "") : "";
+      var soCheck2 = validatePlanProductAgainstSo(product_id, no_so, order_id);
+      if (!soCheck2.ok) {
+        return toast(soCheck2.message, true);
+      }
 
       if (isGilingMachine(machine_id)) {
         var packed = collectGilingBomRows("plSoGilingBom", {
@@ -6618,6 +6706,21 @@
           order_id = "";
           no_so = "";
         }
+      }
+
+      // Validasi produk vs Sales Order
+      try { await ensureOrdersLoadedForSoCheck(); } catch (eSo0) {}
+      var chkFg = product_id;
+      // untuk edit giling bahan: cek for_product (FG) jika ada
+      if (defs.for_product_id) chkFg = defs.for_product_id;
+      var soCheck = validatePlanProductAgainstSo(chkFg, no_so, order_id);
+      if (!soCheck.ok) {
+        var fix = await appConfirm(soCheck.message + "\n\nTetap simpan tanpa menyesuaikan?", "Produk tidak sesuai SO");
+        if (!fix) return toast("Sesuaikan produk / No SO dulu");
+      } else if (soCheck.order) {
+        // sinkronkan no_so & order_id resmi
+        no_so = soCheck.order.no_so || soCheck.order.order_id || no_so;
+        order_id = soCheck.order.order_id || order_id;
       }
 
       // Giling baru (bukan edit): multi plan per bahan
@@ -14371,10 +14474,11 @@ function fillOperatorList(selectedEmail) {
 
     async function bulkInsertPlans(rows) {
       if (!rows.length) return toast("Tidak ada baris plan valid", true);
-      // pastikan master produk/mesin sudah di memori
+      // pastikan master produk/mesin/SO sudah di memori
       try {
         if (!(products && products.length)) await loadProducts();
         if (!(machines && machines.length)) await loadMachines();
+        await ensureOrdersLoadedForSoCheck();
       } catch (eL) {}
 
       const cleaned = [];
@@ -14390,6 +14494,19 @@ function fillOperatorList(selectedEmail) {
         if (!product_id) reasons.push("produk tidak ada di master: " + (r.product_id || r.product_raw || "?"));
         if (!machine_id) reasons.push("proses tidak ada di master: " + (r.machine_id || r.machine_raw || "?"));
         if (!(target_qty > 0)) reasons.push("target kosong");
+        var rowNoSo = String(r.no_so || "").trim();
+        var rowOrderId = String(r.order_id || "").trim();
+        // produk yang dicek ke SO: FG (for_product_id) jika ada, else product_id
+        var chkPid = String(r.for_product_id || product_id || "").trim();
+        if (rowNoSo || rowOrderId) {
+          var vc = validatePlanProductAgainstSo(chkPid, rowNoSo, rowOrderId);
+          if (!vc.ok) {
+            reasons.push(vc.message.replace(/\n/g, " "));
+          } else if (vc.order) {
+            rowNoSo = vc.order.no_so || vc.order.order_id || rowNoSo;
+            rowOrderId = vc.order.order_id || rowOrderId;
+          }
+        }
         if (reasons.length) {
           skipped.push("Baris " + (idx + 1) + ": " + reasons.join("; "));
           return;
@@ -14408,8 +14525,8 @@ function fillOperatorList(selectedEmail) {
           unit: String(r.unit || "pcs").trim() || "pcs",
           assigned_operator: op,
           status: status,
-          no_so: String(r.no_so || "").trim(),
-          order_id: String(r.order_id || "").trim() || null,
+          no_so: rowNoSo,
+          order_id: rowOrderId || null,
           created_by: r.created_by || ((currentUser && currentUser.email) || ""),
           created_at: r.created_at || new Date().toISOString(),
           updated_at: new Date().toISOString()
