@@ -1157,6 +1157,28 @@
     .ops-sum-row th.has-sum {
       color: #0f7a4f !important; font-weight: 700 !important;
     }
+    .ops-sum-row th.ops-day-click,
+    .ops-day-row th.ops-day-click {
+      cursor: pointer;
+      transition: background 0.12s, box-shadow 0.12s;
+    }
+    .ops-sum-row th.ops-day-click:hover,
+    .ops-day-row th.ops-day-click:hover {
+      background: rgba(13, 159, 110, 0.14) !important;
+    }
+    .ops-sum-row th.ops-day-focus,
+    .ops-day-row th.ops-day-focus,
+    .ops-table td.day-cell.ops-day-focus {
+      background: rgba(13, 159, 110, 0.22) !important;
+      box-shadow: inset 0 0 0 2px #0d9f6e;
+    }
+    .ops-day-filter-bar {
+      display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+      padding: 0.4rem 0.65rem; margin: 0 0 0.5rem;
+      background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px;
+      font-size: 0.82rem; color: #065f46;
+    }
+    .ops-day-filter-bar strong { font-weight: 700; }
     @media (max-width: 899px) {
       .ops-table .sc-cust { display: none; }
       .ops-table .sc-so { left: 162px; }
@@ -10140,6 +10162,7 @@ function fillOperatorList(selectedEmail) {
     let opsRows = [];
     let opsDays = [];
     let opsDayMeta = {}; // date -> { plan, act, op, pct }
+    var opsFocusDay = ""; // YYYY-MM-DD — filter & highlight kolom tanggal
     let opsTodayList = [];
 
     function opsMonthStartEnd() {
@@ -10932,6 +10955,33 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+    function opsClearDayFocus() {
+      opsFocusDay = "";
+      renderOperasional();
+    }
+    function opsFocusOnDay(day) {
+      if (!day) return;
+      if (opsFocusDay === day) {
+        // klik lagi = clear
+        opsFocusDay = "";
+      } else {
+        opsFocusDay = day;
+      }
+      renderOperasional();
+      // scroll horizontal ke kolom tanggal
+      setTimeout(function() {
+        try {
+          var wrap = document.querySelector(".ops-wrap") || document.querySelector("#page-operasional .table-wrap") || ($("opsTable") && $("opsTable").parentElement);
+          var th = document.querySelector('th.ops-day-click[data-ops-day="' + day + '"]');
+          if (wrap && th) {
+            var wr = wrap.getBoundingClientRect();
+            var tr = th.getBoundingClientRect();
+            var mid = tr.left - wr.left - (wr.width / 2) + (tr.width / 2);
+            wrap.scrollLeft = Math.max(0, wrap.scrollLeft + mid);
+          }
+        } catch (e) {}
+      }, 60);
+    }
     function renderOperasional() {
       const table = $("opsTable");
       const empty = $("opsEmpty");
@@ -10949,6 +10999,17 @@ function fillOperatorList(selectedEmail) {
           String(g.no_so).toLowerCase().includes(q) ||
           String(g.product_id).toLowerCase().includes(q)
         );
+      }
+      // Filter baris yang punya plan/actual/op di tanggal fokus
+      if (opsFocusDay) {
+        var fd = opsFocusDay;
+        list = list.filter(function(g) {
+          var hasPlan = Number((g.planDay && g.planDay[fd]) || 0) > 0 || !!(g.primerDay && g.primerDay[fd]);
+          var hasAct = Number((g.actDay && g.actDay[fd]) || 0) > 0;
+          var hasOp = Number((g.opDay && g.opDay[fd]) || 0) > 0;
+          var hasIds = g.planIdsByDay && g.planIdsByDay[fd] && g.planIdsByDay[fd].length;
+          return hasPlan || hasAct || hasOp || hasIds;
+        });
       }
       if (!list.length) {
         table.style.display = "none";
@@ -10972,8 +11033,10 @@ function fillOperatorList(selectedEmail) {
           const wk = opsIsWeekend(d) ? " weekend" : "";
           const td = d === today ? " today" : "";
           const has = (v !== "" && v != null) ? " has-sum" : "";
+          const focus = (opsFocusDay && opsFocusDay === d) ? " ops-day-focus" : "";
           const ex = typeof extraCls === "function" ? (extraCls(d) || "") : (extraCls || "");
-          return '<th class="' + ex + wk + td + has + '">' + (v === "" || v == null ? "" : v) + '</th>';
+          return '<th class="ops-day-click' + ex + wk + td + has + focus + '" data-ops-day="' + d + '" title="Klik untuk filter plan tanggal ini">' +
+            (v === "" || v == null ? "" : v) + '</th>';
         }).join("");
       }
 
@@ -11008,11 +11071,12 @@ function fillOperatorList(selectedEmail) {
       opsDays.forEach(d => {
         const day = Number(d.slice(8, 10));
         const wd = opsWeekday(d);
-        let cls = "";
+        let cls = "ops-day-click";
         if (opsIsWeekend(d)) cls += " weekend";
         if (d === today) cls += " today";
+        if (opsFocusDay && opsFocusDay === d) cls += " ops-day-focus";
         const sub = d === today ? (wd + " · HARI INI") : wd;
-        head += '<th class="' + cls + '"><span class="dn">' + String(day).padStart(2, "0") +
+        head += '<th class="' + cls + '" data-ops-day="' + d + '" title="Klik untuk filter plan tanggal ini"><span class="dn">' + String(day).padStart(2, "0") +
           '</span><span class="wd">' + sub + '</span></th>';
       });
       head += '</tr></thead><tbody>';
@@ -11046,8 +11110,9 @@ function fillOperatorList(selectedEmail) {
           opsDays.forEach(d => {
             const wk = opsIsWeekend(d) ? " weekend" : "";
             const td = d === today ? " today-col" : "";
+            const dayFocus = (opsFocusDay && opsFocusDay === d) ? " ops-day-focus" : "";
             let content = "";
-            let extra = "";
+            let extra = dayFocus;
             const isSoDay = !!(g.so_mark_day && d === g.so_mark_day);
             if (row.ket === "Plan" && isSoDay) extra += " so-terbit";
             if (row.ket === "Plan" && row.primer[d] && !(Number(row.map[d]) > 0)) {
@@ -11111,6 +11176,42 @@ function fillOperatorList(selectedEmail) {
       table.innerHTML = head + body + '</tbody>';
       try { bindOpsDragDrop(table); } catch (eD) {}
       // click plan cell -> edit first plan that day
+      // Klik angka Plan/Actual/%/OP atau nomor tanggal di header → filter + scroll
+      table.querySelectorAll("th.ops-day-click[data-ops-day]").forEach(function(th) {
+        th.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var day = th.getAttribute("data-ops-day");
+          if (day) opsFocusOnDay(day);
+        });
+      });
+      // Bar filter aktif
+      var barHost = $("opsDayFilterBar");
+      if (!barHost) {
+        var wrap = table.parentElement;
+        if (wrap) {
+          barHost = document.createElement("div");
+          barHost.id = "opsDayFilterBar";
+          wrap.parentElement.insertBefore(barHost, wrap);
+        }
+      }
+      if (barHost) {
+        if (opsFocusDay) {
+          var meta = opsDayMeta[opsFocusDay] || {};
+          var dLab = opsFocusDay.slice(8, 10) + "/" + opsFocusDay.slice(5, 7) + "/" + opsFocusDay.slice(0, 4);
+          barHost.className = "ops-day-filter-bar";
+          barHost.style.display = "flex";
+          barHost.innerHTML = "Filter tanggal <strong>" + dLab + "</strong>" +
+            " · Plan " + formatNum(meta.plan || 0) +
+            " · Actual " + formatNum(meta.act || 0) +
+            " · " + (meta.pct || 0) + "%" +
+            " · OP " + formatNum(meta.op || 0) +
+            ' <button type="button" class="btn btn-ghost btn-sm" onclick="opsClearDayFocus()">Tampilkan semua</button>';
+        } else {
+          barHost.style.display = "none";
+          barHost.innerHTML = "";
+        }
+      }
       table.querySelectorAll("td.day-cell[data-day]").forEach(td => {
         td.onclick = function() {
           const role = (typeof currentRole === "function" ? currentRole() : "") || "";
