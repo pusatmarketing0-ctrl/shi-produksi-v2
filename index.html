@@ -1790,6 +1790,10 @@
     }
 
 
+    .po-need-eta { background: #fff7ed !important; }
+    .po-need-eta td { border-left: 3px solid #f97316; }
+    #homeEtaCard { cursor: pointer; }
+    #homeEtaCard:hover { box-shadow: 0 8px 24px rgba(249,115,22,0.15); }
     .gudang-eta-row { cursor: pointer; background: #f0fdf4; }
     .gudang-eta-row:hover { background: #dcfce7; }
     .gudang-eta-row td { font-weight: 700; vertical-align: middle; }
@@ -3366,7 +3370,7 @@
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/></svg></span><span class="nav-txt"> Produk</span></button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span class="nav-txt"> Proses</span></button>
         <button class="nav-item" data-page="pr-ppic" data-roles="admin,ppic" data-tip="Permintaan beli"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></span><span class="nav-txt">Permintaan</span></button>
-        <button class="nav-item" data-page="purchasing" data-roles="admin,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span></button>
+        <button class="nav-item" data-page="purchasing" data-roles="admin,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span><span id="purchasingNavBadge" class="nav-badge" style="display:none">0</span></button>
         <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
         <button class="nav-item" data-page="pick-prod" data-roles="admin,ppic,korlap" data-tip="Minta bahan" onclick="goPage('pick-prod')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M4 7h16M4 17h10"/></svg></span><span class="nav-txt">Minta bahan</span></button>
         <button class="nav-item" data-page="pick-wh" data-roles="admin,gudang" data-tip="Pick gudang" onclick="goPage('pick-wh')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg></span><span class="nav-txt">Pick gudang</span></button>
@@ -3385,6 +3389,11 @@
             <div class="page-head">
               <div><h1 id="greet">Selamat datang</h1><p id="homeSub">Pantau plan dan laporan harian.</p></div>
               <button type="button" class="btn btn-ghost btn-sm" onclick="loadHomeDaily()">Refresh</button>
+            </div>
+            <div id="homeEtaCard" class="kpi" style="display:none;max-width:420px;margin-bottom:0.75rem;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1px solid #fdba74" onclick="openPurchasingEta()">
+              <div class="label" style="color:#9a3412">⚠ Perlu ETA sisa (Purchasing)</div>
+              <div class="value" id="homeEtaCount" style="font-size:1.8rem;color:#c2410c">0</div>
+              <div class="hint" id="homeEtaHint" style="color:#9a3412">Baris PO menunggu ETA vendor setelah datang sebagian</div>
             </div>
             <div class="grid-kpi" id="homeDailyKpi">
               <div class="kpi" style="grid-column:1/-1;max-width:420px">
@@ -4151,7 +4160,7 @@
           </div>
           <div class="mod-tabs" role="tablist">
             <button type="button" class="mod-tab active" data-mod="purchasing" data-tab="inbox" onclick="setModTab('purchasing','inbox')">Inbox PR</button>
-            <button type="button" class="mod-tab" data-mod="purchasing" data-tab="po" onclick="setModTab('purchasing','po')">Daftar PO</button>
+            <button type="button" class="mod-tab" data-mod="purchasing" data-tab="po" onclick="setModTab('purchasing','po')">Daftar PO <span id="poEtaBadge" class="nav-badge" style="display:none;margin-left:0.25rem">0</span></button>
           </div>
           <div id="purchasing-pane-inbox" class="mod-pane">
             <div class="card" style="padding:0;overflow:hidden">
@@ -4168,6 +4177,7 @@
               <input type="search" id="poSearch" placeholder="Cari PO / SO / supplier / produk..." oninput="poPage=1;renderPurchaseOrders()" />
               <select id="poStatusFilter" onchange="poPage=1;renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
                 <option value="">Semua status</option>
+                <option value="need_eta">⚠ Perlu ETA sisa</option>
                 <option value="draft">draft</option>
                 <option value="ordered">ordered</option>
                 <option value="partial">partial</option>
@@ -13979,6 +13989,12 @@ function fillOperatorList(selectedEmail) {
       loadGudangInbox();
       try { loadGudangDash(); } catch (e) {}
       try { if (typeof loadPurchase === "function") loadPurchase(); } catch (e2) {}
+      try { loadInboxNotifs(); } catch (e3) {}
+      if (awaiting) {
+        try {
+          toast("Purchasing perlu isi ETA sisa untuk " + (rowG.product_id || "bahan") + " · PO " + (rowG.po_id || ""), false);
+        } catch (e4) {}
+      }
     }
 
     /** Gudang: validasi stok = masuk gudang dari qty lulus QC */
@@ -14576,7 +14592,13 @@ function fillOperatorList(selectedEmail) {
       const q = (($("poSearch") && $("poSearch").value) || "").toLowerCase().trim();
       const st = ($("poStatusFilter") && $("poStatusFilter").value) || "";
       let list = poList.slice();
-      if (st) list = list.filter(p => p.status === st);
+      function poNeedsEta(p) {
+        return (p.purchase_lines || []).some(function(l) {
+          return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty));
+        });
+      }
+      if (st === "need_eta") list = list.filter(poNeedsEta);
+      else if (st) list = list.filter(p => p.status === st);
       if (q) list = list.filter(p => {
         const lines = p.purchase_lines || [];
         const prodHit = lines.some(function(l) {
@@ -14621,7 +14643,7 @@ function fillOperatorList(selectedEmail) {
         const n = lines.length;
         const needEta = lines.some(function(l) { return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty)); });
         const odoo = p.no_po_odoo || "";
-        return '<tr>' +
+        return '<tr class="' + (needEta ? "po-need-eta" : "") + '">' +
           '<td class="mono"><strong>' + esc(p.po_id) + '</strong>' +
           (odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(odoo) + '</div>' : '') +
           (needEta ? '<div style="font-size:0.7rem;color:#c2410c;font-weight:700">Perlu ETA sisa</div>' : '') + '</td>' +
@@ -14638,6 +14660,50 @@ function fillOperatorList(selectedEmail) {
       var from = (poPage - 1) * pageSize + 1;
       var to = Math.min(poPage * pageSize, list.length);
       if ($("poPager")) $("poPager").innerHTML = buildPagerHtml(poPage, pages, from, to, list.length, "poSetPage(");
+      try { updatePurchasingEtaBadge(); } catch (eB) {}
+    }
+    function countPoNeedEta() {
+      var n = 0;
+      (poList || []).forEach(function(p) {
+        (p.purchase_lines || []).forEach(function(l) {
+          if (l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty))) n++;
+        });
+      });
+      return n;
+    }
+    function updatePurchasingEtaBadge() {
+      var n = countPoNeedEta();
+      [["poEtaBadge", n], ["purchasingNavBadge", n]].forEach(function(pair) {
+        var el = $(pair[0]);
+        if (!el) return;
+        if (pair[1] > 0) {
+          el.style.display = "";
+          el.textContent = pair[1] > 99 ? "99+" : String(pair[1]);
+        } else {
+          el.style.display = "none";
+        }
+      });
+      // home card
+      var card = $("homeEtaCard");
+      if (card) {
+        var role = (typeof currentRole === "function") ? currentRole() : "";
+        if ((role === "purchasing" || role === "admin") && n > 0) {
+          card.style.display = "";
+          if ($("homeEtaCount")) $("homeEtaCount").textContent = String(n);
+          if ($("homeEtaHint")) $("homeEtaHint").textContent = n + " baris bahan menunggu ETA vendor · klik untuk buka";
+        } else if (card) {
+          card.style.display = "none";
+        }
+      }
+    }
+    function openPurchasingEta() {
+      try { showPage("purchasing"); } catch (e) {}
+      try { setModTab("purchasing", "po"); } catch (e2) {}
+      if ($("poStatusFilter")) {
+        $("poStatusFilter").value = "need_eta";
+        poPage = 1;
+        renderPurchaseOrders();
+      }
     }
     function productSearchLabel(p) {
       if (!p) return "";
@@ -17211,6 +17277,31 @@ function fillOperatorList(selectedEmail) {
       var open = sub.classList.toggle("open");
       if (caret) caret.textContent = open ? "▴" : "▾";
     }
+    
+    function goNotifItem(page, tab, filter) {
+      try {
+        var p = $("notifPanel");
+        if (p) p.setAttribute("hidden", "");
+      } catch (e0) {}
+      page = page || "home";
+      try { showPage(page); } catch (e1) {
+        try { if (typeof goPage === "function") goPage(page); } catch (e2) {}
+      }
+      if (tab) {
+        try {
+          var mod = page === "purchasing" ? "purchasing" : page;
+          setModTab(mod, tab);
+        } catch (e3) {}
+      }
+      if (page === "purchasing" && filter === "need_eta") {
+        try {
+          if ($("poStatusFilter")) $("poStatusFilter").value = "need_eta";
+          poPage = 1;
+          if (typeof renderPurchaseOrders === "function") renderPurchaseOrders();
+        } catch (e4) {}
+      }
+    }
+
     function buildNotifTreeHtml(groups, dark) {
       if (!groups || !groups.length) {
         return '<div class="empty" style="padding:0.75rem;font-size:0.8rem;color:' + (dark ? "#94a3b8" : "inherit") + '">Tidak ada antrian</div>';
@@ -17225,7 +17316,10 @@ function fillOperatorList(selectedEmail) {
           kids = '<div class="notif-sub' + (g.open !== false ? " open" : "") + '" id="notif-sub-' + id + '">' +
             g.items.map(function(it) {
               var c = it.count != null ? it.count : 1;
-              return '<button type="button" class="notif-sub-item" onclick="goPage(\'' + it.page + '\');var p=$(\'notifPanel\');if(p)p.setAttribute(\'hidden\',\'\')">' +
+              var pg = it.page || "home";
+              var tab = it.tab || "";
+              var filt = it.filter || "";
+              return '<button type="button" class="notif-sub-item" onclick="goNotifItem(\'' + pg + '\',\'' + tab + '\',\'' + filt + '\')">' +
                 '<span style="opacity:0.7">' + (it.icon || "•") + "</span>" +
                 '<span class="ns-label">' + esc(it.label) + "</span>" +
                 (c > 0 ? '<span class="nav-badge">' + (c > 99 ? "99+" : c) + "</span>" : "") +
@@ -17302,6 +17396,32 @@ function fillOperatorList(selectedEmail) {
             var { data: poo } = await sb.from("purchase_orders").select("po_id").eq("status", "ordered").limit(50);
             var nOrd = (poo || []).length;
             if (nOrd) prItems.push({ label: "PO ordered", count: nOrd, page: "purchasing", icon: "🚚" });
+            // ETA sisa setelah datang sebagian
+            try {
+              var { data: etaLines } = await sb.from("purchase_lines")
+                .select("id,awaiting_eta,qty,qty_arrived,product_id")
+                .eq("awaiting_eta", true)
+                .limit(100);
+              var nEta = (etaLines || []).length;
+              if (!nEta) {
+                // fallback: datang parsial tanpa flag
+                var { data: partLines } = await sb.from("purchase_lines")
+                  .select("id,qty,qty_arrived,awaiting_eta")
+                  .gt("qty_arrived", 0)
+                  .limit(150);
+                nEta = (partLines || []).filter(function(l) {
+                  return Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty);
+                }).length;
+              }
+              if (nEta) prItems.push({
+                label: "Perlu ETA sisa",
+                count: nEta,
+                page: "purchasing",
+                tab: "po",
+                filter: "need_eta",
+                icon: "⏰"
+              });
+            } catch (eEta) { console.warn(eEta); }
           }
           if (prItems.length) {
             groups.push({
