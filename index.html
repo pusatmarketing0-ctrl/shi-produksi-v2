@@ -14421,6 +14421,9 @@ function fillOperatorList(selectedEmail) {
       if (map[key]) map[key]();
     }
     function buildPagerHtml(page, pages, from, to, total, setFn) {
+      setFn = String(setFn || "");
+      // terima "poSetPage" atau "poSetPage(" atau "setListPage('x',"
+      if (setFn && setFn.slice(-1) !== "(" && setFn.indexOf("(") < 0) setFn = setFn + "(";
       function btn(label, p, extra) {
         var dis = (p < 1 || p > pages) ? " disabled" : "";
         var cls = "pg-btn" + (extra || "");
@@ -14515,7 +14518,7 @@ function fillOperatorList(selectedEmail) {
       });
       var from = (poPage - 1) * pageSize + 1;
       var to = Math.min(poPage * pageSize, list.length);
-      if ($("poPager")) $("poPager").innerHTML = buildPagerHtml(poPage, pages, from, to, list.length, "poSetPage");
+      if ($("poPager")) $("poPager").innerHTML = buildPagerHtml(poPage, pages, from, to, list.length, "poSetPage(");
     }
     function productSearchLabel(p) {
       if (!p) return "";
@@ -17639,7 +17642,7 @@ function fillOperatorList(selectedEmail) {
       }).join("");
       var from = (hdPage - 1) * pageSize + 1;
       var to = Math.min(hdPage * pageSize, list.length);
-      if ($("hdPager")) $("hdPager").innerHTML = buildPagerHtml(hdPage, pages, from, to, list.length, "hdSetPage");
+      if ($("hdPager")) $("hdPager").innerHTML = buildPagerHtml(hdPage, pages, from, to, list.length, "hdSetPage(");
     }
     function homeOpenPlan(planId) {
       if ($("planFilterDate")) $("planFilterDate").value = ($("hdDate") && $("hdDate").value) || todayStr();
