@@ -4371,7 +4371,7 @@
           </div>
           <div id="gudang-pane-terima" class="gudang-pane" hidden>
             <div class="toolbar">
-              <input type="search" id="gudangSearch" placeholder="Cari PO / vendor / bahan..." oninput="renderGudangInbox()" />
+              <input type="search" id="gudangSearch" placeholder="Cari PO / PO Odoo / vendor / bahan..." oninput="renderGudangInbox()" />
               <select id="gudangFilter" onchange="renderGudangInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
                 <option value="open">Belum lengkap</option>
                 <option value="eta">Ada ETA</option>
@@ -4381,7 +4381,7 @@
             <div class="card" style="overflow:auto">
               <table class="data-table">
                 <thead><tr>
-                  <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
+                  <th>PO / Odoo</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
                   <th>Qty PO</th><th>Datang</th><th>QC lulus</th><th>Stok</th><th>Status</th><th></th>
                 </tr></thead>
                 <tbody id="gudangBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
@@ -13556,7 +13556,7 @@ function fillOperatorList(selectedEmail) {
       if (body) body.innerHTML = '<tr><td colspan="11" class="empty">Memuat…</td></tr>';
       try { loadGudangStock(); } catch (eS) {}
       var { data: pos, error } = await sb.from("purchase_orders")
-        .select("po_id,no_so,order_id,po_date,status,purchase_lines(*)")
+        .select("po_id,no_so,no_po_odoo,order_id,po_date,status,supplier_name,notes,purchase_lines(*)")
         .neq("status", "cancelled")
         .order("po_date", { ascending: false })
         .limit(150);
@@ -13570,6 +13570,12 @@ function fillOperatorList(selectedEmail) {
           gudangRows.push({
             po_id: po.po_id,
             no_so: po.no_so || "",
+            no_po_odoo: po.no_po_odoo || (function() {
+              // fallback dari notes "PO Odoo: xxx"
+              var n = String(po.notes || "");
+              var m = n.match(/PO\s*Odoo\s*:\s*([^\s·|]+)/i);
+              return m ? m[1] : "";
+            })(),
             line_id: l.id,
             product_id: l.product_id,
             vendor_name: l.vendor_name || po.supplier_name || "",
@@ -13626,7 +13632,11 @@ function fillOperatorList(selectedEmail) {
       } catch (e) {}
       var st = gudangRowStatus(r);
       return '<tr class="gudang-item-row">' +
-        "<td>" + esc(r.po_id) + "</td>" +
+        "<td><strong>" + esc(r.po_id) + "</strong>" +
+          (r.no_po_odoo
+            ? "<div style='font-size:0.7rem;color:#047857;font-weight:600;margin-top:0.1rem'>Odoo: " + esc(r.no_po_odoo) + "</div>"
+            : "") +
+        "</td>" +
         "<td>" + esc(r.no_so || "—") + "</td>" +
         "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
         "<td>" + esc(r.vendor_name || "—") + "</td>" +
@@ -13679,7 +13689,7 @@ function fillOperatorList(selectedEmail) {
         }
         if (f === "eta" && !r.eta_date && !r.awaiting_eta) return false;
         if (!q) return true;
-        var blob = (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name + " " + (r.eta_date || "") + " " + (r.replace_eta || "")).toLowerCase();
+        var blob = (r.po_id + " " + (r.no_po_odoo || "") + " " + r.no_so + " " + r.product_id + " " + r.vendor_name + " " + (r.eta_date || "") + " " + (r.replace_eta || "")).toLowerCase();
         return blob.indexOf(q) >= 0;
       });
       if (!list.length) {
