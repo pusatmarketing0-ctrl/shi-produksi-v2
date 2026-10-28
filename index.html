@@ -12326,22 +12326,46 @@ function fillOperatorList(selectedEmail) {
         }
       }
 
-      // 2) replace lines for this fg+formula
+      // 2) Hapus baris lama lalu insert ulang (hindari duplicate key)
+      //    - hapus by formula_id jika ada
+      //    - hapus juga baris legacy (formula_id null) untuk material yang sama di FG ini
       try {
         if (formulaId) {
           await sb.from("product_bom").delete().eq("fg_product_id", fg).eq("formula_id", formulaId);
-        } else {
-          // legacy: delete lines without formula_id for this fg
+        }
+        // selalu bersihkan legacy null formula untuk FG ini saat simpan formula default/baru
+        // agar tidak bentrok unique (fg, material)
+        var mats = lines.map(function(l) { return l.material_product_id; });
+        if (mats.length) {
+          // hapus semua baris FG + material ini (akan diganti)
+          for (var di = 0; di < mats.length; di++) {
+            try {
+              await sb.from("product_bom").delete()
+                .eq("fg_product_id", fg)
+                .eq("material_product_id", mats[di]);
+            } catch (eD1) {}
+          }
+        } else if (!formulaId) {
           await sb.from("product_bom").delete().eq("fg_product_id", fg);
         }
       } catch (eDel) { console.warn(eDel); }
 
-      var payload = lines.map(function(l) {
+      // dedupe material dalam form (yang terakhir menang)
+      var seen = {};
+      var uniqLines = [];
+      lines.forEach(function(l) {
+        var k = String(l.material_product_id) + "::" + String(l.kategori || "baku");
+        seen[k] = l;
+      });
+      Object.keys(seen).forEach(function(k) { uniqLines.push(seen[k]); });
+
+      var payload = uniqLines.map(function(l) {
         var rasio = Number(l.rasio) || 0;
         var qtyPer = rasio;
         if (l.kategori === "baku" && isi > 0) {
-          // qty per 1 FG = isi_kemasan × rasio%
           qtyPer = isi * (rasio / 100);
+        } else if (l.kategori === "kemas") {
+          qtyPer = rasio; // per 1 pcs FG
         }
         var row = {
           fg_product_id: fg,
@@ -12355,29 +12379,62 @@ function fillOperatorList(selectedEmail) {
         if (formulaId) row.formula_id = formulaId;
         return row;
       });
-      var { error: eL } = await sb.from("product_bom").insert(payload);
-      if (eL) {
-        // fallback tanpa kolom baru
-        if (/kategori|rasio|formula_id/i.test(String(eL.message || ""))) {
-          var simple = payload.map(function(r) {
-            return {
-              fg_product_id: r.fg_product_id,
-              material_product_id: r.material_product_id,
-              qty_per_fg: r.qty_per_fg,
-              unit: r.unit,
-              notes: (r.kategori || "") + (r.rasio != null ? " rasio=" + r.rasio : "")
+
+      // insert satu per satu agar bisa update jika masih ada sisa
+      var failMsg = "";
+      for (var pi = 0; pi < payload.length; pi++) {
+        var row = payload[pi];
+        var ins = await sb.from("product_bom").insert(row);
+        if (ins.error && /duplicate|unique/i.test(String(ins.error.message || ""))) {
+          // update baris existing
+          var q = sb.from("product_bom").update({
+            qty_per_fg: row.qty_per_fg,
+            unit: row.unit,
+            kategori: row.kategori,
+            rasio: row.rasio,
+            notes: row.notes,
+            formula_id: row.formula_id || null
+          }).eq("fg_product_id", fg).eq("material_product_id", row.material_product_id);
+          var up = await q;
+          if (up.error) {
+            // try without new cols
+            var up2 = await sb.from("product_bom").update({
+              qty_per_fg: row.qty_per_fg,
+              unit: row.unit,
+              notes: (row.kategori || "") + " rasio=" + row.rasio
+            }).eq("fg_product_id", fg).eq("material_product_id", row.material_product_id);
+            if (up2.error) failMsg = up2.error.message;
+          }
+        } else if (ins.error) {
+          if (/kategori|rasio|formula_id/i.test(String(ins.error.message || ""))) {
+            var simple = {
+              fg_product_id: row.fg_product_id,
+              material_product_id: row.material_product_id,
+              qty_per_fg: row.qty_per_fg,
+              unit: row.unit,
+              notes: (row.kategori || "") + " rasio=" + row.rasio
             };
-          });
-          var r2 = await sb.from("product_bom").insert(simple);
-          if (r2.error) return toast(r2.error.message + " — jalankan SQL BOM di Supabase", true);
-          toast("BOM disimpan (mode sederhana). Jalankan SQL agar rasio/formula penuh.", true);
-        } else {
-          return toast(eL.message, true);
+            var ins2 = await sb.from("product_bom").insert(simple);
+            if (ins2.error && /duplicate|unique/i.test(String(ins2.error.message || ""))) {
+              var up3 = await sb.from("product_bom").update({
+                qty_per_fg: simple.qty_per_fg,
+                unit: simple.unit,
+                notes: simple.notes
+              }).eq("fg_product_id", fg).eq("material_product_id", row.material_product_id);
+              if (up3.error) failMsg = up3.error.message;
+            } else if (ins2.error) {
+              failMsg = ins2.error.message;
+            }
+          } else {
+            failMsg = ins.error.message;
+          }
         }
-      } else {
-        toast("Formula BOM disimpan");
       }
+      if (failMsg) return toast(failMsg, true);
+      toast("Formula BOM disimpan");
       await loadBom();
+      // tetap buka form (edit) — isi formula id
+      if (formulaId && $("bomFormulaId")) $("bomFormulaId").value = formulaId;
       closeBomModal();
     }
 
