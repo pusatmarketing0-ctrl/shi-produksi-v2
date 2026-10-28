@@ -1695,6 +1695,19 @@
     .pi-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 
     /* Premium toast & confirm */
+    .bom-fg-row { cursor: pointer; background: #f8fafc; }
+    .bom-fg-row:hover { background: #f0fdf4; }
+    .bom-fg-row td { font-weight: 600; vertical-align: middle; }
+    .bom-fg-row .bom-chevron {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.5rem; height: 1.5rem; border-radius: 6px;
+      background: #e2e8f0; color: #334155; font-size: 0.7rem;
+      transition: transform 0.15s;
+    }
+    .bom-fg-row.open .bom-chevron { transform: rotate(90deg); background: #bbf7d0; color: #065f46; }
+    .bom-comp-row td { background: #fff; font-weight: 400; }
+    .bom-comp-row td:first-child { border-left: 3px solid #a7f3d0; }
+    .bom-fg-meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 0.15rem; }
     .toast-wrap {
       position: fixed;
       top: 1.1rem;
@@ -4103,8 +4116,8 @@
           <div class="card" style="padding:0;overflow:hidden">
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Produk FG</th><th>Bahan baku</th><th>Qty / FG</th><th>Satuan</th><th>Catatan</th><th></th></tr></thead>
-                <tbody id="bomBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                <thead><tr><th style="width:2.5rem"></th><th>Produk FG</th><th>Komponen</th><th>Qty / FG</th><th>Satuan</th><th>Catatan</th><th></th></tr></thead>
+                <tbody id="bomBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
             <div id="bomPager" class="pg-bar"></div>
@@ -11784,32 +11797,113 @@ function fillOperatorList(selectedEmail) {
       window.__bomRows = bomRows;
       if (!silent) renderBomTable();
     }
+    var bomExpanded = {}; // fg_product_id -> true
     function renderBomTable() {
       const body = $("bomBody");
       if (!body) return;
       const q = (($("bomSearch") && $("bomSearch").value) || "").toLowerCase().trim();
       let list = bomRows.slice();
-      if (q) list = list.filter(b =>
-        String(b.fg_product_id).toLowerCase().includes(q) ||
-        String(b.material_product_id).toLowerCase().includes(q)
-      );
-      if (!list.length) {
-        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada BOM</td></tr>';
-        pageOf("bom", [], "bomPager");
+      if (q) {
+        list = list.filter(function(b) {
+          var fg = String(b.fg_product_id || "").toLowerCase();
+          var mat = String(b.material_product_id || "").toLowerCase();
+          var fgLab = "";
+          var matLab = "";
+          try { fgLab = productLabel(b.fg_product_id).toLowerCase(); } catch (e1) {}
+          try { matLab = productLabel(b.material_product_id).toLowerCase(); } catch (e2) {}
+          return fg.indexOf(q) >= 0 || mat.indexOf(q) >= 0 || fgLab.indexOf(q) >= 0 || matLab.indexOf(q) >= 0;
+        });
+      }
+      // group by FG
+      var groups = {};
+      var order = [];
+      list.forEach(function(b) {
+        var fg = String(b.fg_product_id || "").trim() || "—";
+        if (!groups[fg]) { groups[fg] = []; order.push(fg); }
+        groups[fg].push(b);
+      });
+      order.sort(function(a, b) { return a.localeCompare(b, "id"); });
+      if (!order.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada BOM' + (q ? " untuk pencarian ini" : "") + '</td></tr>';
+        try { pageOf("bom", [], "bomPager"); } catch (eP) {}
         return;
       }
-      var pageList = pageOf("bom", list, "bomPager");
-      body.innerHTML = pageList.map(b =>
-        '<tr>' +
-        '<td><strong>' + esc(b.fg_product_id) + '</strong></td>' +
-        '<td>' + esc(b.material_product_id) + '</td>' +
-        '<td>' + formatNum(b.qty_per_fg) + '</td>' +
-        '<td>' + esc(b.unit || "") + '</td>' +
-        '<td>' + esc(b.notes || "") + '</td>' +
-        '<td><button type="button" class="btn btn-sm btn-ghost" data-bid="' + esc(b.id) + '">Hapus</button></td></tr>'
-      ).join("");
-      body.querySelectorAll("[data-bid]").forEach(btn => {
-        btn.onclick = async function() {
+      // pagination by FG groups
+      var pageList = order;
+      try {
+        pageList = pageOf("bom", order, "bomPager") || order;
+      } catch (ePg) { pageList = order; }
+
+      // if searching, auto-expand matching FG
+      if (q) {
+        pageList.forEach(function(fg) { bomExpanded[fg] = true; });
+      }
+
+      var html = "";
+      pageList.forEach(function(fg) {
+        var comps = groups[fg] || [];
+        var open = !!bomExpanded[fg];
+        var fgName = "";
+        try {
+          var p = (products || []).find(function(x) { return String(x.product_id) === String(fg); });
+          fgName = p ? (p.name || "") : "";
+        } catch (eN) {}
+        if (!fgName) {
+          try {
+            var full = productLabel(fg);
+            if (full && full !== fg) fgName = full.replace(fg, "").replace(/^[·\-—\s]+/, "").trim();
+          } catch (e2) {}
+        }
+        html += '<tr class="bom-fg-row' + (open ? " open" : "") + '" data-bom-fg="' + esc(fg) + '">' +
+          '<td><span class="bom-chevron">▶</span></td>' +
+          '<td><strong>[' + esc(fg) + ']</strong>' +
+            (fgName ? " " + esc(fgName) : "") +
+            '<div class="bom-fg-meta">' + comps.length + " komponen</div></td>" +
+          '<td colspan="3" style="color:var(--text-muted);font-size:0.8rem;font-weight:500">' +
+            (open ? "Klik untuk tutup komponen" : "Klik untuk lihat komponen") +
+          '</td>' +
+          '<td><button type="button" class="btn btn-sm btn-ghost bom-add-fg" data-fg="' + esc(fg) + '">+ Bahan</button></td>' +
+        '</tr>';
+        if (open) {
+          comps.forEach(function(b) {
+            var matName = "";
+            try {
+              var pm = (products || []).find(function(x) { return String(x.product_id) === String(b.material_product_id); });
+              matName = pm ? (pm.name || "") : "";
+            } catch (eM) {}
+            html += '<tr class="bom-comp-row" data-parent-fg="' + esc(fg) + '">' +
+              '<td></td>' +
+              '<td style="color:var(--text-muted);font-size:0.78rem;padding-left:1.25rem">↳ komponen</td>' +
+              '<td><strong>[' + esc(b.material_product_id) + ']</strong>' +
+                (matName ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(matName) + "</div>" : "") +
+              '</td>' +
+              '<td>' + formatNum(b.qty_per_fg) + '</td>' +
+              '<td>' + esc(b.unit || "") + '</td>' +
+              '<td>' + esc(b.notes || "—") + '</td>' +
+              '<td><button type="button" class="btn btn-sm btn-ghost" data-bid="' + esc(b.id) + '">Hapus</button></td>' +
+            '</tr>';
+          });
+        }
+      });
+      body.innerHTML = html;
+
+      body.querySelectorAll(".bom-fg-row").forEach(function(tr) {
+        tr.addEventListener("click", function(e) {
+          if (e.target.closest("button")) return;
+          var fg = tr.getAttribute("data-bom-fg");
+          bomExpanded[fg] = !bomExpanded[fg];
+          renderBomTable();
+        });
+      });
+      body.querySelectorAll(".bom-add-fg").forEach(function(btn) {
+        btn.onclick = function(e) {
+          e.stopPropagation();
+          openBomEditor(btn.getAttribute("data-fg") || "");
+        };
+      });
+      body.querySelectorAll("[data-bid]").forEach(function(btn) {
+        btn.onclick = async function(e) {
+          e.stopPropagation();
           if (!(await appConfirm("Hapus baris BOM?"))) return;
           const { error } = await sb.from("product_bom").delete().eq("id", btn.getAttribute("data-bid"));
           if (error) return toast(error.message, true);
