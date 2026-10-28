@@ -3099,6 +3099,16 @@
     .ot-kpi-card.ot-kpi-qty { border-top: 3px solid #2563eb; }
     .ot-kpi-card.ot-kpi-open { border-top: 3px solid #d97706; }
     .ot-kpi-card.ot-kpi-done { border-top: 3px solid #7c3aed; }
+    .po-kpi-card { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+    .po-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,40,30,0.1); }
+    .po-kpi-card.active {
+      box-shadow: 0 0 0 2px #f97316, 0 10px 24px rgba(249,115,22,0.12);
+      background: #fff7ed;
+    }
+    .po-kpi-card.po-kpi-eta { border-top: 3px solid #ea580c; }
+    .po-kpi-card.po-kpi-draft { border-top: 3px solid #64748b; }
+    .po-kpi-card.po-kpi-ordered { border-top: 3px solid #2563eb; }
+    .po-kpi-card.po-kpi-all { border-top: 3px solid #0d9f6e; }
     .ot-status.cancelled { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     #otModal .ot-modal-banner {
       display: flex; justify-content: space-between; align-items: flex-start;
@@ -4173,6 +4183,30 @@
             </div>
           </div>
           <div id="purchasing-pane-po" class="mod-pane" hidden>
+            <div class="ot-kpi-wrap" id="poKpiWrap" style="margin-bottom:0.75rem">
+              <div class="ot-kpi-grid">
+                <div class="ot-kpi-card po-kpi-card po-kpi-eta" id="poKpiEta" onclick="poKpiFilter('need_eta')" title="Klik untuk filter Perlu ETA">
+                  <div class="ot-kpi-label">Perlu ETA sisa</div>
+                  <div class="ot-kpi-val" id="poKpiEtaVal" style="color:#c2410c">—</div>
+                  <div class="ot-kpi-sub">Datang sebagian · isi ETA vendor</div>
+                </div>
+                <div class="ot-kpi-card po-kpi-card po-kpi-draft" id="poKpiDraft" onclick="poKpiFilter('draft')" title="Filter draft">
+                  <div class="ot-kpi-label">PO draft</div>
+                  <div class="ot-kpi-val" id="poKpiDraftVal">—</div>
+                  <div class="ot-kpi-sub">Belum dipesan</div>
+                </div>
+                <div class="ot-kpi-card po-kpi-card po-kpi-ordered" id="poKpiOrdered" onclick="poKpiFilter('ordered')" title="Filter ordered">
+                  <div class="ot-kpi-label">PO ordered</div>
+                  <div class="ot-kpi-val" id="poKpiOrderedVal">—</div>
+                  <div class="ot-kpi-sub">Sedang berjalan</div>
+                </div>
+                <div class="ot-kpi-card po-kpi-card po-kpi-all" id="poKpiAll" onclick="poKpiFilter('')" title="Tampilkan semua">
+                  <div class="ot-kpi-label">Semua PO</div>
+                  <div class="ot-kpi-val" id="poKpiAllVal">—</div>
+                  <div class="ot-kpi-sub">Klik untuk reset filter</div>
+                </div>
+              </div>
+            </div>
             <div class="toolbar">
               <input type="search" id="poSearch" placeholder="Cari PO / SO / supplier / produk..." oninput="poPage=1;renderPurchaseOrders()" />
               <select id="poStatusFilter" onchange="poPage=1;renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
@@ -14695,15 +14729,43 @@ function fillOperatorList(selectedEmail) {
           card.style.display = "none";
         }
       }
+      try { renderPoKpi(); } catch (eK) {}
+    }
+    function renderPoKpi() {
+      if (!$("poKpiEtaVal")) return;
+      var nEta = 0, nDraft = 0, nOrd = 0, nAll = (poList || []).length;
+      (poList || []).forEach(function(p) {
+        var st = String(p.status || "");
+        if (st === "draft") nDraft++;
+        if (st === "ordered") nOrd++;
+        (p.purchase_lines || []).forEach(function(l) {
+          if (l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty))) nEta++;
+        });
+      });
+      if ($("poKpiEtaVal")) $("poKpiEtaVal").textContent = String(nEta);
+      if ($("poKpiDraftVal")) $("poKpiDraftVal").textContent = String(nDraft);
+      if ($("poKpiOrderedVal")) $("poKpiOrderedVal").textContent = String(nOrd);
+      if ($("poKpiAllVal")) $("poKpiAllVal").textContent = String(nAll);
+      // active state
+      var cur = ($("poStatusFilter") && $("poStatusFilter").value) || "";
+      [["poKpiEta", "need_eta"], ["poKpiDraft", "draft"], ["poKpiOrdered", "ordered"], ["poKpiAll", ""]].forEach(function(pair) {
+        var el = $(pair[0]);
+        if (!el) return;
+        if (pair[1] === cur) el.classList.add("active");
+        else el.classList.remove("active");
+      });
+    }
+    function poKpiFilter(val) {
+      try { setModTab("purchasing", "po"); } catch (e) {}
+      if ($("poStatusFilter")) $("poStatusFilter").value = val || "";
+      poPage = 1;
+      renderPurchaseOrders();
+      try { renderPoKpi(); } catch (e2) {}
     }
     function openPurchasingEta() {
       try { showPage("purchasing"); } catch (e) {}
       try { setModTab("purchasing", "po"); } catch (e2) {}
-      if ($("poStatusFilter")) {
-        $("poStatusFilter").value = "need_eta";
-        poPage = 1;
-        renderPurchaseOrders();
-      }
+      poKpiFilter("need_eta");
     }
     function productSearchLabel(p) {
       if (!p) return "";
