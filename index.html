@@ -1789,6 +1789,20 @@
       .rank-m-card .rk-meta b { display: block; color: var(--text); font-size: 0.85rem; }
     }
 
+
+    .gudang-eta-row { cursor: pointer; background: #f0fdf4; }
+    .gudang-eta-row:hover { background: #dcfce7; }
+    .gudang-eta-row td { font-weight: 700; vertical-align: middle; }
+    .gudang-eta-row .eta-chevron {
+      display: inline-flex; width: 1.4rem; height: 1.4rem; border-radius: 6px;
+      align-items: center; justify-content: center; background: #bbf7d0; color: #065f46;
+      font-size: 0.7rem; margin-right: 0.35rem; transition: transform 0.15s;
+    }
+    .gudang-eta-row.open .eta-chevron { transform: rotate(90deg); }
+    .gudang-eta-meta { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); margin-top: 0.15rem; }
+    .gudang-item-row td { background: #fff; }
+    .gudang-item-row td:first-child { border-left: 3px solid #86efac; }
+
     .bom-fg-meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 0.15rem; }
     .toast-wrap {
       position: fixed;
@@ -13583,6 +13597,72 @@ function fillOperatorList(selectedEmail) {
       });
       renderGudangInbox();
     }
+    var gudangEtaExpanded = {}; // eta key -> bool
+
+    function gudangRowStatus(r) {
+      var arrived = Number(r.qty_arrived) || 0;
+      var passed = Number(r.qty_qc_passed) || 0;
+      var received = Number(r.qty_received) || 0;
+      var qty = Number(r.qty) || 0;
+      var formAt = r.qc_form_at;
+      var stLabel = "", stColor = "#64748b";
+      if (arrived <= 0) { stLabel = "Menunggu datang"; stColor = "#a16207"; }
+      else if (!formAt) { stLabel = "Menunggu form QC"; stColor = "#b45309"; }
+      else if ((r.qc_status || "pending") === "pending" || ((r.qc_status || "pending") === "partial" && received < passed)) {
+        if ((r.qc_status || "pending") === "partial" && passed > received) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
+        else if ((r.qc_status || "pending") === "partial") { stLabel = "QC sebagian"; stColor = "#c2410c"; }
+        else { stLabel = "Menunggu ACC QC"; stColor = "#2563eb"; }
+      } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
+      else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
+      else { stLabel = "Selesai"; stColor = "#059669"; }
+      return { stLabel: stLabel, stColor: stColor, arrived: arrived, passed: passed, received: received, qty: qty };
+    }
+
+    function gudangItemRowHtml(r) {
+      var pname = "";
+      try {
+        var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
+        pname = p ? p.name : "";
+      } catch (e) {}
+      var st = gudangRowStatus(r);
+      return '<tr class="gudang-item-row">' +
+        "<td>" + esc(r.po_id) + "</td>" +
+        "<td>" + esc(r.no_so || "—") + "</td>" +
+        "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
+        "<td>" + esc(r.vendor_name || "—") + "</td>" +
+        "<td style='font-size:0.75rem;color:var(--text-muted)'>" + esc(r.replace_eta || r.eta_date || "—") +
+          (r.awaiting_eta ? "<div style='font-size:0.65rem;color:#c2410c'>Perlu ETA sisa</div>" : "") + "</td>" +
+        "<td>" + formatNum(st.qty) + " " + esc(r.unit) + "</td>" +
+        "<td>" + formatNum(st.arrived) +
+          (st.arrived > 0 && r.arrived_at
+            ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
+              esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.arrived_at) : String(r.arrived_at).slice(0,16)) +
+              "</div>"
+            : "") +
+        "</td>" +
+        "<td>" + formatNum(st.passed) +
+          (r.qc_form_at
+            ? "<div style='font-size:0.65rem;color:#b45309;margin-top:0.12rem'>Form " +
+              esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_form_at) : String(r.qc_form_at).slice(0,16)) +
+              "</div>"
+            : "") +
+          (r.qc_at
+            ? "<div style='font-size:0.65rem;color:#2563eb;margin-top:0.1rem'>ACC " +
+              esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_at) : String(r.qc_at).slice(0,16)) +
+              "</div>"
+            : "") +
+        "</td>" +
+        "<td>" + formatNum(st.received) +
+          (st.received > 0 && r.received_at
+            ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
+              esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.received_at) : String(r.received_at).slice(0,16)) +
+              "</div>"
+            : "") +
+        "</td>" +
+        "<td style='font-weight:700;font-size:0.75rem;color:" + st.stColor + "'>" + st.stLabel + "</td>" +
+        "<td>" + gudangActionHtml(r) + "</td></tr>";
+    }
+
     function renderGudangInbox() {
       var body = $("gudangBody");
       if (!body) return;
@@ -13594,78 +13674,86 @@ function fillOperatorList(selectedEmail) {
         var qty = Number(r.qty) || 0;
         var passed = Number(r.qty_qc_passed) || 0;
         if (f === "open") {
-          // masih ada yang belum sampai penuh ATAU belum stok penuh dari lulus QC
           if (arrived >= qty && received >= passed && passed > 0) return false;
           if (arrived >= qty && passed <= 0 && (r.qc_status === "failed")) return false;
         }
         if (f === "eta" && !r.eta_date && !r.awaiting_eta) return false;
         if (!q) return true;
-        var blob = (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name).toLowerCase();
+        var blob = (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name + " " + (r.eta_date || "") + " " + (r.replace_eta || "")).toLowerCase();
         return blob.indexOf(q) >= 0;
       });
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="11" class="empty">Tidak ada data</td></tr>';
         return;
       }
-      body.innerHTML = list.map(function(r) {
-        var pname = "";
-        try {
-          var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
-          pname = p ? p.name : "";
-        } catch (e) {}
-        var arrived = Number(r.qty_arrived) || 0;
-        var passed = Number(r.qty_qc_passed) || 0;
-        var received = Number(r.qty_received) || 0;
-        var qty = Number(r.qty) || 0;
-        var stLabel = "", stColor = "#64748b";
-        var formAt = r.qc_form_at;
-        var qcDoneQty = passed + (Number(r.qty_qc_failed) || 0);
-        if (arrived <= 0) { stLabel = "Menunggu datang"; stColor = "#a16207"; }
-        else if (!formAt) { stLabel = "Menunggu form QC"; stColor = "#b45309"; }
-        else if ((r.qc_status || "pending") === "pending" || ((r.qc_status || "pending") === "partial" && received < passed)) {
-          if ((r.qc_status || "pending") === "partial" && passed > received) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
-          else if ((r.qc_status || "pending") === "partial") { stLabel = "QC sebagian"; stColor = "#c2410c"; }
-          else { stLabel = "Menunggu ACC QC"; stColor = "#2563eb"; }
-        } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
-        else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
-        else { stLabel = "Selesai"; stColor = "#059669"; }
-        return "<tr>" +
-          "<td>" + esc(r.po_id) + "</td>" +
-          "<td>" + esc(r.no_so || "—") + "</td>" +
-          "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
-          "<td>" + esc(r.vendor_name || "—") + "</td>" +
-          "<td>" + esc(r.replace_eta || r.eta_date || "—") + (r.awaiting_eta ? "<div style='font-size:0.65rem;color:#c2410c'>Perlu ETA sisa</div>" : "") + "</td>" +
-          "<td>" + formatNum(qty) + " " + esc(r.unit) + "</td>" +
-          "<td>" + formatNum(arrived) +
-            (arrived > 0 && r.arrived_at
-              ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
-                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.arrived_at) : String(r.arrived_at).slice(0,16)) +
-                "</div>"
-              : "") +
-          "</td>" +
-          "<td>" + formatNum(passed) +
-            (r.qc_form_at
-              ? "<div style='font-size:0.65rem;color:#b45309;margin-top:0.12rem'>Form " +
-                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_form_at) : String(r.qc_form_at).slice(0,16)) +
-                "</div>"
-              : "") +
-            (r.qc_at
-              ? "<div style='font-size:0.65rem;color:#2563eb;margin-top:0.1rem'>ACC " +
-                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_at) : String(r.qc_at).slice(0,16)) +
-                "</div>"
-              : "") +
-          "</td>" +
-          "<td>" + formatNum(received) +
-            (received > 0 && r.received_at
-              ? "<div style='font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.25'>" +
-                esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.received_at) : String(r.received_at).slice(0,16)) +
-                "</div>"
-              : "") +
-          "</td>" +
-          "<td style='font-weight:700;font-size:0.75rem;color:" + stColor + "'>" + stLabel + "</td>" +
-          "<td>" + gudangActionHtml(r) + "</td></tr>";
-      }).join("");
+      // group by ETA (replace_eta > eta_date)
+      var groups = {};
+      var order = [];
+      list.forEach(function(r) {
+        var eta = (r.replace_eta || r.eta_date || "").toString().slice(0, 10);
+        if (!eta) eta = "Tanpa ETA";
+        if (!groups[eta]) { groups[eta] = []; order.push(eta); }
+        groups[eta].push(r);
+      });
+      // sort ETA date ascending; "Tanpa ETA" last
+      order.sort(function(a, b) {
+        if (a === "Tanpa ETA") return 1;
+        if (b === "Tanpa ETA") return -1;
+        return String(a).localeCompare(String(b));
+      });
+      // auto-expand today's ETA and when searching
+      var today = (typeof todayStr === "function") ? todayStr() : "";
+      order.forEach(function(eta) {
+        if (q) gudangEtaExpanded[eta] = true;
+        else if (eta === today && gudangEtaExpanded[eta] === undefined) gudangEtaExpanded[eta] = true;
+      });
+
+      var html = "";
+      order.forEach(function(eta) {
+        var items = groups[eta] || [];
+        var open = !!gudangEtaExpanded[eta];
+        var sumQty = 0, sumArr = 0, nWait = 0, vendors = {}, pos = {};
+        items.forEach(function(r) {
+          sumQty += Number(r.qty) || 0;
+          sumArr += Number(r.qty_arrived) || 0;
+          if ((Number(r.qty_arrived) || 0) <= 0) nWait++;
+          if (r.vendor_name) vendors[r.vendor_name] = true;
+          if (r.po_id) pos[r.po_id] = true;
+        });
+        var vendorN = Object.keys(vendors).length;
+        var poN = Object.keys(pos).length;
+        var etaLabel = eta;
+        if (eta !== "Tanpa ETA" && /^\d{4}-\d{2}-\d{2}$/.test(eta)) {
+          try {
+            var d = new Date(eta + "T00:00:00");
+            etaLabel = d.toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) + " · " + eta;
+          } catch (eL) {}
+          if (eta === today) etaLabel = "Hari ini · " + etaLabel;
+        }
+        html += '<tr class="gudang-eta-row' + (open ? " open" : "") + '" data-eta-key="' + esc(eta) + '">' +
+          '<td colspan="11">' +
+            '<span class="eta-chevron">▶</span>' +
+            '<span style="color:#065f46">ETA ' + esc(etaLabel) + "</span>" +
+            '<div class="gudang-eta-meta" style="display:inline;margin-left:0.65rem">' +
+              items.length + " item · " + poN + " PO · " + vendorN + " vendor · qty " + formatNum(sumQty) +
+              (nWait ? " · <span style='color:#b45309'>" + nWait + " belum datang</span>" : "") +
+              (open ? " · klik untuk tutup" : " · klik untuk detail") +
+            "</div>" +
+          "</td></tr>";
+        if (open) {
+          items.forEach(function(r) { html += gudangItemRowHtml(r); });
+        }
+      });
+      body.innerHTML = html;
+      body.querySelectorAll(".gudang-eta-row").forEach(function(tr) {
+        tr.addEventListener("click", function() {
+          var k = tr.getAttribute("data-eta-key");
+          gudangEtaExpanded[k] = !gudangEtaExpanded[k];
+          renderGudangInbox();
+        });
+      });
     }
+
     function gudangActionHtml(r) {
       var qty = Number(r.qty) || 0;
       var arrived = Number(r.qty_arrived) || 0;
