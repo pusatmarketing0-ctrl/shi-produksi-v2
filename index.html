@@ -12006,9 +12006,22 @@ function fillOperatorList(selectedEmail) {
 
     function closeBomModal() {
       var m = $("bomModal");
-      if (m) m.classList.remove("show");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
       document.body.classList.remove("modal-open");
     }
+    // klik area gelap di luar sheet = tutup
+    (function() {
+      var m = document.getElementById("bomModal");
+      if (m && m.dataset.bgCloseBound !== "1") {
+        m.dataset.bgCloseBound = "1";
+        m.addEventListener("click", function(e) {
+          if (e.target === m) closeBomModal();
+        });
+      }
+    })();
 
     function bomLineRowHtml(line, idx, kind) {
       line = line || {};
