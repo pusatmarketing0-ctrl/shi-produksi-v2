@@ -18724,10 +18724,9 @@ function closeOtModal() {
         var okC = await appConfirm("Batalkan Order Trading " + otId + "?\nCustomer: " + (r0.customer_name || "—") + "\nStatus menjadi Dibatalkan.", "Batalkan OT");
         if (!okC) return;
         patch.status = "cancelled";
-        patch.cancelled_at = now;
-        patch.cancelled_by = email;
+        // kolom cancelled_at / cancelled_by opsional — jangan paksa
         event = "cancelled";
-        note = "Dibatalkan sebelum produksi";
+        note = "Dibatalkan sebelum produksi oleh " + email;
       } else if (act === "otDelete") {
         var okD = await appConfirm("HAPUS PERMANEN Order Trading " + otId + "?\nData baris produk & lampiran referensi ikut dihapus.\nTindakan ini tidak bisa dibatalkan.", "Hapus OT");
         if (!okD) return;
@@ -18830,8 +18829,19 @@ function closeOtModal() {
         return;
       }
 
-      const { error } = await sb.from("order_trading").update(patch).eq("ot_id", otId);
-      if (error) return toast(error.message, true);
+      var { error } = await sb.from("order_trading").update(patch).eq("ot_id", otId);
+      if (error) {
+        // fallback: buang kolom opsional yang belum ada di schema
+        var msg = String(error.message || "");
+        if (/cancelled_at|cancelled_by|schema cache|could not find/i.test(msg)) {
+          delete patch.cancelled_at;
+          delete patch.cancelled_by;
+          var r2 = await sb.from("order_trading").update({ status: patch.status || "cancelled", updated_at: now }).eq("ot_id", otId);
+          if (r2.error) return toast(r2.error.message, true);
+        } else {
+          return toast(error.message, true);
+        }
+      }
       await otAddEvent(otId, event, note);
       toast("Status diperbarui: " + otStatusLabel(patch.status || r0.status));
       await loadOrderTrading();
