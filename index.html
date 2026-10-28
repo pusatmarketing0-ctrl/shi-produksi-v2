@@ -1755,6 +1755,40 @@
     }
     #bomModal .bom-form-line td { overflow: visible; }
 
+
+    @media (max-width: 768px) {
+      #page-ranking .desk-only-table { display: none !important; }
+      #page-ranking #rankCards.mobile-cards,
+      #page-ranking .mobile-cards { display: flex !important; flex-direction: column; gap: 0.55rem; }
+      #page-ranking .page-head { gap: 0.5rem; }
+      #page-ranking .page-head input[type="date"] { flex: 1; min-width: 42%; }
+      .rank-m-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.75rem 0.85rem;
+        box-shadow: 0 2px 10px rgba(15,40,30,0.05);
+      }
+      .rank-m-card .rk-top { display: flex; align-items: center; gap: 0.65rem; }
+      .rank-m-card .rk-pos {
+        width: 2rem; height: 2rem; border-radius: 10px;
+        background: #ecfdf5; color: #065f46; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+      }
+      .rank-m-card .rk-pos.top1 { background: #fef3c7; color: #b45309; }
+      .rank-m-card .rk-pos.top2 { background: #e2e8f0; color: #475569; }
+      .rank-m-card .rk-pos.top3 { background: #ffedd5; color: #9a3412; }
+      .rank-m-card .rk-name { font-weight: 700; font-size: 0.95rem; }
+      .rank-m-card .rk-mail { font-size: 0.7rem; color: var(--text-muted); }
+      .rank-m-card .rk-pct { margin-left: auto; text-align: right; }
+      .rank-m-card .rk-pct strong { display: block; font-size: 1.15rem; color: var(--green); }
+      .rank-m-card .rk-meta {
+        display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.35rem;
+        margin-top: 0.55rem; font-size: 0.72rem; color: var(--text-muted);
+      }
+      .rank-m-card .rk-meta b { display: block; color: var(--text); font-size: 0.85rem; }
+    }
+
     .bom-fg-meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 0.15rem; }
     .toast-wrap {
       position: fixed;
@@ -4155,7 +4189,10 @@
               <h1>BOM / Giling</h1>
               <p>Daftar FG → formula BOM (bahan baku & kemas). Satu FG bisa banyak formula. Klik FG untuk membuka form seperti kalkulasi PO.</p>
             </div>
-            <button class="btn btn-primary" type="button" onclick="openBomEditor()">+ BOM</button>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" onclick="openBomImportModal()">Import Excel Odoo</button>
+              <button class="btn btn-primary" type="button" onclick="openBomEditor()">+ BOM</button>
+            </div>
           </div>
           <div class="toolbar">
             <input type="search" id="bomSearch" placeholder="Cari FG / bahan..." oninput="renderBomTable()" />
@@ -4240,18 +4277,20 @@
         <section id="page-ranking" class="page" hidden>
           <div class="page-head">
             <div><h1>Ranking operator</h1><p>Berdasarkan actual vs target adj laporan.</p></div>
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
               <input type="date" id="rankFrom" />
               <input type="date" id="rankTo" />
-              <button class="btn btn-primary" type="button" onclick="loadRanking()">Hitung</button><p style="font-size:0.72rem;color:var(--text-muted);margin:0.35rem 0 0;width:100%">Shift = <b>375 menit</b>. Plan yang belum dilapor dihitung actual 0 (menurunkan %).</p>
+              <button class="btn btn-primary" type="button" onclick="loadRanking()">Hitung</button>
+              <p style="font-size:0.72rem;color:var(--text-muted);margin:0.35rem 0 0;width:100%">Shift = <b>375 menit</b>. Plan yang belum dilapor dihitung actual 0 (menurunkan %).</p>
             </div>
           </div>
-          <div class="table-wrap">
+          <div class="table-wrap desk-only-table">
             <table>
               <thead><tr><th>#</th><th>Operator</th><th>Plan</th><th>Actual</th><th>Target adj</th><th>%</th><th>Grade</th></tr></thead>
               <tbody id="rankBody"></tbody>
             </table>
           </div>
+          <div id="rankCards" class="mobile-cards" style="display:none"></div>
         </section>
 
       
@@ -4472,6 +4511,7 @@
     <symbol id="ico-qc" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
     <symbol id="ico-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 19c1.5-3.2 4-5 7-5s5.5 1.8 7 5"/></symbol>
     <symbol id="ico-pr" viewBox="0 0 24 24"><path d="M8 4h9a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2z"/><path d="M10 9h6"/></symbol>
+    <symbol id="ico-rank" viewBox="0 0 24 24"><path d="M6 20V12M12 20V6M18 20v-8"/><path d="M4 20h16"/></symbol>
   </svg>
 
   <div id="productModal" class="modal-bg">
@@ -4702,6 +4742,44 @@
         <button class="btn btn-ghost" type="button" onclick="closeBomModal()">Tutup</button>
         <button class="btn btn-ghost" type="button" onclick="bomNewFormula()">+ Formula baru</button>
         <button class="btn btn-primary" type="button" onclick="saveBomFormula()">Simpan formula</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="bomImportModal" class="modal-bg" style="display:none">
+    <div class="modal modal-sheet" style="max-width:560px">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h2>Import BOM dari Odoo</h2>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0">Tempel export Excel / CSV Bill of Materials</p>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label>Format kolom (baris pertama = header)</label>
+          <p style="font-size:0.75rem;color:var(--text-dim);margin:0 0 0.4rem;line-height:1.45">
+            Wajib: <code>fg_product_id</code>, <code>material_product_id</code>, <code>qty</code><br/>
+            Opsional: <code>unit</code>, <code>kategori</code> (baku/kemas), <code>formula</code>, <code>rasio</code><br/>
+            Header Odoo dikenali: Product, Component, Quantity, Unit of Measure, BoM Product
+          </p>
+          <textarea id="bomImportArea" rows="12" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.75rem;font-family:ui-monospace,monospace;font-size:0.78rem;outline:none;resize:vertical" placeholder="fg_product_id&#9;material_product_id&#9;qty&#9;unit&#9;kategori&#10;FG002&#9;BB080&#9;100&#9;g&#9;baku&#10;FG002&#9;BK264&#9;1&#9;pcs&#9;kemas"></textarea>
+        </div>
+        <div class="field">
+          <label>Atau pilih file CSV/TSV</label>
+          <input type="file" id="bomImportFile" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" />
+        </div>
+        <div class="field">
+          <label>Mode</label>
+          <select id="bomImportMode" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit">
+            <option value="upsert">Update jika sudah ada · tambah jika belum</option>
+            <option value="replace_fg">Ganti semua komponen FG yang ada di file</option>
+          </select>
+        </div>
+        <div id="bomImportPreview" style="font-size:0.78rem;color:var(--text-muted)"></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeBomImportModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="runBomImport()">Import</button>
       </div>
     </div>
   </div>
@@ -7930,6 +8008,7 @@ function fillOperatorList(selectedEmail) {
           { group: "Operasional", items: [
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "plans", label: "Plan produksi", ico: "ico-plan" },
+            { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "reports", label: "Laporan OP", ico: "ico-report" },
             { page: "absences", label: "Cuti / absensi", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
@@ -7980,13 +8059,14 @@ function fillOperatorList(selectedEmail) {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
           { page: "operasional", label: "Grid", ico: "ico-grid" },
-          { page: "plans", label: "Plan", ico: "ico-plan" },
+          { page: "ranking", label: "Rank", ico: "ico-rank" },
           { page: "reports", label: "Lapor", ico: "ico-report" }
         ],
         more: [
           { group: "Operasional", items: [
             { page: "operasional", label: "Grid", ico: "ico-grid" },
             { page: "plans", label: "Plan", ico: "ico-plan" },
+            { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "reports", label: "Laporan OP", ico: "ico-report" },
             { page: "absences", label: "Cuti operator", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
@@ -8009,6 +8089,7 @@ function fillOperatorList(selectedEmail) {
           { group: "Operasional", items: [
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "plans", label: "Plan", ico: "ico-plan" },
+            { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "reports", label: "Laporan", ico: "ico-report" },
             { page: "marketing", label: "Marketing", ico: "ico-mkt" }
           ]},
@@ -9944,6 +10025,7 @@ function fillOperatorList(selectedEmail) {
       if (!body) return;
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada data di rentang tanggal</td></tr>';
+        if ($("rankCards")) $("rankCards").innerHTML = '<div class="empty" style="padding:1rem;text-align:center">Belum ada data di rentang tanggal</div>';
         return;
       }
       // resolve names from operators cache / profiles
@@ -9969,6 +10051,32 @@ function fillOperatorList(selectedEmail) {
           openRankDetail(window.__rankList[i]);
         };
       });
+      // kartu mobile
+      var cards = $("rankCards");
+      if (cards) {
+        cards.innerHTML = list.map(function(x, i) {
+          var posCls = i === 0 ? " top1" : (i === 1 ? " top2" : (i === 2 ? " top3" : ""));
+          return '<div class="rank-m-card" data-rank-i="' + i + '">' +
+            '<div class="rk-top">' +
+              '<div class="rk-pos' + posCls + '">' + (i + 1) + '</div>' +
+              '<div><div class="rk-name">' + esc(x.name || x.email) + '</div>' +
+                '<div class="rk-mail">' + esc(x.email) + '</div></div>' +
+              '<div class="rk-pct"><strong>' + formatNum(x.pct, 1) + '%</strong>' +
+                '<span class="grade-pill">' + (x.grade ? (x.grade.icon + " " + esc(x.grade.name)) : "") + '</span></div>' +
+            '</div>' +
+            '<div class="rk-meta">' +
+              '<div>Plan / lapor<b>' + formatNum(x.n) + '</b></div>' +
+              '<div>Actual<b>' + formatNum(x.actual) + '</b></div>' +
+              '<div>Target adj<b>' + formatNum(x.target) + '</b></div>' +
+            '</div></div>';
+        }).join("");
+        cards.querySelectorAll(".rank-m-card").forEach(function(card) {
+          card.onclick = function() {
+            var i = Number(card.getAttribute("data-rank-i"));
+            openRankDetail(window.__rankList[i]);
+          };
+        });
+      }
     }
 
     function openRankDetail(x) {
@@ -12030,6 +12138,289 @@ function fillOperatorList(selectedEmail) {
           openBomFormulaForm(btn.getAttribute("data-fg"), "", true);
         };
       });
+    }
+
+
+    function openBomImportModal() {
+      if ($("bomImportArea")) $("bomImportArea").value = "";
+      if ($("bomImportFile")) $("bomImportFile").value = "";
+      if ($("bomImportPreview")) $("bomImportPreview").textContent = "";
+      if ($("bomImportMode")) $("bomImportMode").value = "upsert";
+      var m = $("bomImportModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+      var f = $("bomImportFile");
+      if (f && f.dataset.bound !== "1") {
+        f.dataset.bound = "1";
+        f.addEventListener("change", function() {
+          var file = f.files && f.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function() {
+            if ($("bomImportArea")) $("bomImportArea").value = String(reader.result || "");
+            previewBomImport();
+          };
+          reader.readAsText(file);
+        });
+      }
+      if ($("bomImportArea") && $("bomImportArea").dataset.bound !== "1") {
+        $("bomImportArea").dataset.bound = "1";
+        $("bomImportArea").addEventListener("input", previewBomImport);
+      }
+    }
+    function closeBomImportModal() {
+      var m = $("bomImportModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      document.body.classList.remove("modal-open");
+    }
+    function bomImportNormalizeHeader(h) {
+      h = String(h || "").toLowerCase().trim().replace(/^\uFEFF/, "");
+      h = h.replace(/\s+/g, "_").replace(/[^\w]/g, "");
+      var map = {
+        fg_product_id: "fg_product_id", fg: "fg_product_id", product: "fg_product_id",
+        bom_product: "fg_product_id", product_tmpl: "fg_product_id", finished_product: "fg_product_id",
+        default_code: "fg_product_id", product_code: "fg_product_id",
+        material_product_id: "material_product_id", material: "material_product_id",
+        component: "material_product_id", component_product: "material_product_id",
+        product_component: "material_product_id", bahan: "material_product_id",
+        qty: "qty", quantity: "qty", product_qty: "qty", qty_per_fg: "qty",
+        unit: "unit", uom: "unit", product_uom: "unit", unit_of_measure: "unit", satuan: "unit",
+        kategori: "kategori", type: "kategori", category: "kategori",
+        formula: "formula", formula_name: "formula", bom_name: "formula", name: "formula",
+        rasio: "rasio", ratio: "rasio"
+      };
+      // Odoo often has "product" for both - first product col = FG if also component exists
+      return map[h] || h;
+    }
+    function parseBomImportText(raw) {
+      raw = String(raw || "").replace(/^\uFEFF/, "").trim();
+      if (!raw) return { error: "Data kosong", rows: [] };
+      var lines = raw.split(/\r?\n/).filter(function(l) { return String(l).trim().length; });
+      if (lines.length < 2) return { error: "Minimal header + 1 baris data", rows: [] };
+      var delim = (lines[0].indexOf("\t") >= 0) ? "\t" : (lines[0].indexOf(";") >= 0 ? ";" : ",");
+      function splitLine(line) {
+        if (delim === "\t" || delim === ";") return line.split(delim).map(function(c) { return c.trim().replace(/^"|"$/g, ""); });
+        var out = [], cur = "", q = false;
+        for (var i = 0; i < line.length; i++) {
+          var ch = line[i];
+          if (ch === '"') { q = !q; continue; }
+          if (ch === "," && !q) { out.push(cur.trim()); cur = ""; continue; }
+          cur += ch;
+        }
+        out.push(cur.trim());
+        return out;
+      }
+      var headersRaw = splitLine(lines[0]);
+      var headers = headersRaw.map(bomImportNormalizeHeader);
+      // Odoo export: Product + Component — if two "product" mapped wrong, fix by position
+      var prodIdx = [];
+      headersRaw.forEach(function(h, i) {
+        var n = String(h || "").toLowerCase();
+        if (/product|produk|fg|component|komponen|bahan/.test(n)) prodIdx.push(i);
+      });
+      // Prefer explicit component column
+      var hasFg = headers.indexOf("fg_product_id") >= 0;
+      var hasMat = headers.indexOf("material_product_id") >= 0;
+      if (!hasMat) {
+        // try find component
+        for (var hi = 0; hi < headersRaw.length; hi++) {
+          var hn = String(headersRaw[hi] || "").toLowerCase();
+          if (/component|komponen|bahan|material/.test(hn)) {
+            headers[hi] = "material_product_id";
+            hasMat = true;
+          }
+        }
+      }
+      if (!hasFg) {
+        for (var hj = 0; hj < headersRaw.length; hj++) {
+          var hm = String(headersRaw[hj] || "").toLowerCase();
+          if ((/product|produk|fg|bom/.test(hm)) && headers[hj] !== "material_product_id") {
+            headers[hj] = "fg_product_id";
+            hasFg = true;
+            break;
+          }
+        }
+      }
+      if (headers.indexOf("fg_product_id") < 0 || headers.indexOf("material_product_id") < 0 || headers.indexOf("qty") < 0) {
+        return {
+          error: "Header wajib: FG, komponen, qty. Terdeteksi: " + headers.join(" | "),
+          rows: []
+        };
+      }
+      function extractCode(val) {
+        val = String(val || "").trim();
+        // [BB080] Name → BB080
+        var m = val.match(/\[([^\]]+)\]/);
+        if (m) return m[1].trim();
+        // CODE — Name
+        if (val.indexOf("—") >= 0) return val.split("—")[0].trim();
+        if (val.indexOf(" - ") >= 0 && /^[A-Za-z0-9_-]+/.test(val)) return val.split(" - ")[0].trim();
+        return val;
+      }
+      var rows = [];
+      for (var li = 1; li < lines.length; li++) {
+        var cols = splitLine(lines[li]);
+        if (!cols.length) continue;
+        var obj = {};
+        headers.forEach(function(h, i) { obj[h] = cols[i] != null ? String(cols[i]).trim() : ""; });
+        var fg = resolveProductId(extractCode(obj.fg_product_id)) || extractCode(obj.fg_product_id);
+        var mat = resolveProductId(extractCode(obj.material_product_id)) || extractCode(obj.material_product_id);
+        var qty = parseInputNum(obj.qty);
+        if (!fg || !mat || !(qty > 0)) continue;
+        var unit = (obj.unit || "pcs").trim() || "pcs";
+        var kat = String(obj.kategori || "").toLowerCase().trim();
+        if (kat !== "baku" && kat !== "kemas") {
+          // heuristic: unit gr/g/ml/kg → baku, else kemas
+          if (/^(g|gr|gram|ml|kg|l)$/i.test(unit)) kat = "baku";
+          else kat = "kemas";
+        }
+        var rasio = obj.rasio !== undefined && obj.rasio !== "" ? parseInputNum(obj.rasio) : null;
+        rows.push({
+          fg_product_id: fg,
+          material_product_id: mat,
+          qty_per_fg: qty,
+          unit: unit,
+          kategori: kat,
+          formula: (obj.formula || "Default").trim() || "Default",
+          rasio: rasio
+        });
+      }
+      if (!rows.length) return { error: "Tidak ada baris valid (cek kode FG/komponen & qty)", rows: [] };
+      return { error: null, rows: rows };
+    }
+    function previewBomImport() {
+      var parsed = parseBomImportText(($("bomImportArea") && $("bomImportArea").value) || "");
+      var el = $("bomImportPreview");
+      if (!el) return;
+      if (parsed.error) { el.innerHTML = "<span style='color:#b91c1c'>" + esc(parsed.error) + "</span>"; return; }
+      var fgs = {};
+      parsed.rows.forEach(function(r) { fgs[r.fg_product_id] = (fgs[r.fg_product_id] || 0) + 1; });
+      el.textContent = parsed.rows.length + " komponen · " + Object.keys(fgs).length + " FG";
+    }
+    async function runBomImport() {
+      if (!sb) return;
+      if (!(products && products.length)) {
+        try { await loadProducts(); } catch (eP) {}
+      }
+      var parsed = parseBomImportText(($("bomImportArea") && $("bomImportArea").value) || "");
+      if (parsed.error) return toast(parsed.error, true);
+      var mode = ($("bomImportMode") && $("bomImportMode").value) || "upsert";
+      var rows = parsed.rows;
+      // group by FG + formula
+      var groups = {};
+      rows.forEach(function(r) {
+        var k = r.fg_product_id + "||" + (r.formula || "Default");
+        if (!groups[k]) groups[k] = { fg: r.fg_product_id, formula: r.formula || "Default", lines: [] };
+        groups[k].lines.push(r);
+      });
+      var keys = Object.keys(groups);
+      var ok = 0, upd = 0, fail = 0;
+      var errs = [];
+      for (var gi = 0; gi < keys.length; gi++) {
+        var g = groups[keys[gi]];
+        var formulaId = null;
+        // ensure formula header
+        try {
+          var { data: existingF } = await sb.from("bom_formulas")
+            .select("id,name")
+            .eq("fg_product_id", g.fg)
+            .eq("name", g.formula)
+            .limit(1);
+          if (existingF && existingF[0]) {
+            formulaId = existingF[0].id;
+          } else {
+            var insF = await sb.from("bom_formulas").insert({
+              fg_product_id: g.fg,
+              name: g.formula,
+              unit_bb: "gr",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }).select("id").limit(1);
+            if (!insF.error && insF.data && insF.data[0]) formulaId = insF.data[0].id;
+          }
+        } catch (eF) { console.warn(eF); }
+
+        if (mode === "replace_fg") {
+          try {
+            if (formulaId) {
+              await sb.from("product_bom").delete().eq("fg_product_id", g.fg).eq("formula_id", formulaId);
+            } else {
+              await sb.from("product_bom").delete().eq("fg_product_id", g.fg);
+            }
+          } catch (eD) {}
+        }
+
+        for (var li = 0; li < g.lines.length; li++) {
+          var r = g.lines[li];
+          var row = {
+            fg_product_id: r.fg_product_id,
+            material_product_id: r.material_product_id,
+            qty_per_fg: r.qty_per_fg,
+            unit: r.unit || "pcs",
+            kategori: r.kategori || "baku",
+            rasio: r.rasio != null ? r.rasio : (r.kategori === "baku" ? 100 : r.qty_per_fg),
+            notes: "Import Odoo"
+          };
+          if (formulaId) row.formula_id = formulaId;
+          var ins = await sb.from("product_bom").insert(row);
+          if (ins.error && /duplicate|unique/i.test(String(ins.error.message || ""))) {
+            var patch = {
+              qty_per_fg: row.qty_per_fg,
+              unit: row.unit,
+              kategori: row.kategori,
+              rasio: row.rasio,
+              notes: row.notes
+            };
+            if (formulaId) patch.formula_id = formulaId;
+            var up = await sb.from("product_bom").update(patch)
+              .eq("fg_product_id", r.fg_product_id)
+              .eq("material_product_id", r.material_product_id);
+            if (up.error) {
+              // simple update
+              var up2 = await sb.from("product_bom").update({
+                qty_per_fg: row.qty_per_fg,
+                unit: row.unit,
+                notes: "Import Odoo"
+              }).eq("fg_product_id", r.fg_product_id).eq("material_product_id", r.material_product_id);
+              if (up2.error) { fail++; errs.push(r.fg_product_id + "/" + r.material_product_id + ": " + up2.error.message); }
+              else upd++;
+            } else upd++;
+          } else if (ins.error) {
+            if (/kategori|rasio|formula_id/i.test(String(ins.error.message || ""))) {
+              var simple = {
+                fg_product_id: row.fg_product_id,
+                material_product_id: row.material_product_id,
+                qty_per_fg: row.qty_per_fg,
+                unit: row.unit,
+                notes: (row.kategori || "") + " import odoo"
+              };
+              var ins2 = await sb.from("product_bom").insert(simple);
+              if (ins2.error && /duplicate|unique/i.test(String(ins2.error.message || ""))) {
+                var up3 = await sb.from("product_bom").update({
+                  qty_per_fg: simple.qty_per_fg,
+                  unit: simple.unit,
+                  notes: simple.notes
+                }).eq("fg_product_id", r.fg_product_id).eq("material_product_id", r.material_product_id);
+                if (up3.error) { fail++; errs.push(ins2.error.message); }
+                else upd++;
+              } else if (ins2.error) { fail++; errs.push(ins2.error.message); }
+              else ok++;
+            } else {
+              fail++;
+              errs.push(r.fg_product_id + "/" + r.material_product_id + ": " + ins.error.message);
+            }
+          } else {
+            ok++;
+          }
+        }
+      }
+      toast("Import BOM: +" + ok + " baru · " + upd + " update" + (fail ? " · " + fail + " gagal" : ""));
+      if (errs.length) {
+        console.warn(errs);
+        toast(errs[0], true);
+      }
+      closeBomImportModal();
+      await loadBom();
     }
 
     function openBomEditor(fgPrefill) {
