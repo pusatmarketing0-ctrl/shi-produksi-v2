@@ -14049,7 +14049,7 @@ function fillOperatorList(selectedEmail) {
       var body = $("qcBody");
       if (body) body.innerHTML = '<tr><td colspan="8" class="empty">Memuat…</td></tr>';
       var { data: pos, error } = await sb.from("purchase_orders")
-        .select("po_id,no_so,status,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta,awaiting_eta)")
+        .select("po_id,no_so,no_po_odoo,status,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta,awaiting_eta,qc_form_qty,qc_form_notes,qc_form_photo,qc_form_at,qc_form_by,qc_at,arrived_at)")
         .neq("status", "cancelled")
         .order("po_date", { ascending: false })
         .limit(150);
@@ -14077,6 +14077,7 @@ function fillOperatorList(selectedEmail) {
             line_id: l.id,
             po_id: po.po_id,
             no_so: po.no_so || "",
+            no_po_odoo: po.no_po_odoo || "",
             product_id: l.product_id,
             vendor_name: l.vendor_name || "",
             qty: qOrd,
@@ -14108,11 +14109,25 @@ function fillOperatorList(selectedEmail) {
       var f = ($("qcFilter") && $("qcFilter").value) || "pending";
       var list = qcRows.filter(function(r) {
         var st = r.qc_status || "pending";
+        var formQty = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
+        var doneQty = (Number(r.qty_qc_passed) || 0) + (Number(r.qty_qc_failed) || 0);
+        var remain = Math.max(0, formQty - doneQty);
+        // Antrian: masih ada sisa form yang belum di-ACC
         if (f === "pending") {
-          if (st !== "pending" && st !== "partial") return false;
+          if (!(remain > 1e-9)) return false;
+          if (st === "passed" || st === "failed") return false;
+        } else if (f === "passed") {
+          // lulus penuh ATAU partial yang sudah selesai ACC dan ada qty lulus
+          if (st === "passed") { /* ok */ }
+          else if (st === "partial" && (Number(r.qty_qc_passed) || 0) > 0 && !(remain > 1e-9)) { /* ok */ }
+          else return false;
+        } else if (f === "failed") {
+          if (st === "failed") { /* ok */ }
+          else if (st === "partial" && (Number(r.qty_qc_failed) || 0) > 0 && (Number(r.qty_qc_passed) || 0) <= 0 && !(remain > 1e-9)) { /* ok */ }
+          else return false;
         } else if (f !== "all" && st !== f) return false;
         if (!q) return true;
-        return (r.po_id + " " + r.no_so + " " + r.product_id + " " + r.vendor_name).toLowerCase().indexOf(q) >= 0;
+        return (r.po_id + " " + (r.no_po_odoo || "") + " " + r.no_so + " " + r.product_id + " " + r.vendor_name).toLowerCase().indexOf(q) >= 0;
       });
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada data</td></tr>';
@@ -14123,7 +14138,10 @@ function fillOperatorList(selectedEmail) {
       body.innerHTML = pageList.map(function(r) {
         var st = r.qc_status || "pending";
         var color = st === "passed" ? "#059669" : (st === "failed" ? "#b91c1c" : (st === "partial" ? "#c2410c" : "#a16207"));
-        var label = st === "passed" ? "Lulus" : (st === "failed" ? "Tolak" : (st === "partial" ? "Sebagian" : "Pending"));
+        var formQtyL = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
+        var doneL = (Number(r.qty_qc_passed) || 0) + (Number(r.qty_qc_failed) || 0);
+        var remainL = Math.max(0, formQtyL - doneL);
+        var label = st === "passed" ? "Lulus" : (st === "failed" ? "Tolak" : (st === "partial" ? (remainL > 1e-9 ? "Sebagian" : "Selesai (sebagian)") : "Pending"));
         var pname = "";
         try {
           var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
@@ -14149,10 +14167,13 @@ function fillOperatorList(selectedEmail) {
             if (m2 >= 0) leadHtml += "<div style='font-size:0.65rem;color:#2563eb'>QC ACC: " + m2 + " mnt setelah form</div>";
           }
         } catch (eL) {}
-        var canEdit = st === "pending" || st === "partial";
+        var formQty2 = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
+        var doneQty2 = (Number(r.qty_qc_passed) || 0) + (Number(r.qty_qc_failed) || 0);
+        var remainQc = Math.max(0, formQty2 - doneQty2);
+        var canEdit = remainQc > 1e-9 && (st === "pending" || st === "partial");
         var actions = canEdit
           ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + Number(r.line_id) + ',\'passed\')">ACC QC</button>'
-          : '<span style="font-size:0.75rem;color:var(--text-muted)">Selesai</span>';
+          : '<span style="font-size:0.75rem;color:var(--text-muted)">' + (remainQc > 1e-9 ? "—" : "Selesai") + '</span>';
         if (r.qc_form_photo) {
           actions += ' <button type="button" class="btn btn-ghost btn-sm" data-photo="' + encodeURIComponent(r.qc_form_photo) + '" onclick="window.open(decodeURIComponent(this.getAttribute(\'data-photo\')),\'_blank\')">Foto</button>';
         }
