@@ -1696,9 +1696,18 @@
 
     /* Premium toast & confirm */
     .toast-wrap {
-      position: fixed; top: 1rem; right: 1rem; z-index: 9999;
-      display: flex; flex-direction: column; gap: 0.5rem;
-      max-width: min(380px, calc(100vw - 2rem));
+      position: fixed;
+      top: 1.1rem;
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+      z-index: 300000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      width: min(420px, calc(100vw - 2rem));
+      max-width: min(420px, calc(100vw - 2rem));
       pointer-events: none;
     }
     .toast-item {
@@ -1717,8 +1726,8 @@
     .toast-item .toast-ico { font-size: 1.1rem; line-height: 1.2; }
     .toast-item .toast-msg { flex: 1; line-height: 1.4; }
     @keyframes toastIn {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .app-confirm-bg {
       position: fixed; inset: 0; z-index: 200600;
