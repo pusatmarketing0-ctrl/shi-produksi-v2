@@ -1708,12 +1708,50 @@
     .bom-comp-row td { background: #fff; font-weight: 400; }
     .bom-comp-row td:first-child { border-left: 3px solid #a7f3d0; }
 
-    #bomModal .sheet-body { overflow: visible !important; max-height: none; }
-    #bomModal .modal.modal-sheet { max-height: 90vh; overflow: auto; }
+    #bomModal.modal-bg {
+      align-items: center;
+      justify-content: center;
+    }
+    #bomModal .modal.modal-sheet {
+      max-width: 720px;
+      width: min(720px, 96vw);
+      max-height: min(92vh, 900px);
+      display: flex !important;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 0;
+    }
+    #bomModal .sheet-head {
+      flex: 0 0 auto;
+      padding: 1rem 1.1rem 0.65rem;
+    }
+    #bomModal .sheet-body {
+      flex: 1 1 auto;
+      overflow: auto !important;
+      max-height: none !important;
+      padding: 0.5rem 1.1rem 1rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    #bomModal .sheet-foot {
+      flex: 0 0 auto;
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 0.75rem 1.1rem;
+      border-top: 1px solid var(--border);
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(8px);
+    }
     #bomModal .search-combo { position: relative; z-index: 5; }
     #bomModal .search-combo-list {
-      z-index: 300500 !important;
-      max-height: 220px;
+      z-index: 50 !important;
+      max-height: 200px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
     }
     #bomModal .bom-form-line td { overflow: visible; }
 
@@ -4598,7 +4636,7 @@
         <h2 id="bomFormTitle">BOM produk</h2>
         <p id="bomFormSub" style="font-size:0.8rem;color:var(--text-muted);margin:0.2rem 0 0">Formula · bahan baku · bahan kemas</p>
       </div>
-      <div class="sheet-body" style="max-height:70vh;overflow:auto">
+      <div class="sheet-body">
         <input type="hidden" id="bomFormulaId" />
         <input type="hidden" id="bomFg" />
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.55rem 0.75rem">
