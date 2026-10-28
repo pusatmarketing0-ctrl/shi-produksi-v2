@@ -3752,6 +3752,7 @@
               <option value="so_dibagikan">SO dibagikan</option>
               <option value="dp_diterima">DP diterima</option>
               <option value="terbit_produksi">terbit produksi</option>
+              <option value="cancelled">dibatalkan</option>
             </select>
             <button class="btn btn-ghost btn-sm" type="button" onclick="loadOrderTrading()">Refresh</button>
           </div>
@@ -18658,8 +18659,20 @@ function closeOtModal() {
           btns.push('<div style="width:100%;margin-top:0.35rem"><label style="font-size:0.72rem">No SO Odoo</label><input id="otNoSo" placeholder="SO/2026/..." value="' + esc(row.no_so || "") + '" style="width:100%;margin-top:0.2rem;padding:0.45rem;border-radius:8px;border:1px solid var(--border)"/></div>');
           add("Terbit ke Produksi", "otPublishProduction", "btn-primary");
         }
-        if (st === "terbit_produksi" || st === "in_production" || row.order_id) {
+        if (st === "terbit_produksi" || st === "in_production" || st === "done" || row.order_id) {
           btns.push('<span style="font-size:0.8rem;color:#059669;font-weight:600">Sudah di produksi' + (row.order_id ? " · " + esc(row.order_id) : "") + "</span>");
+        }
+        // Batal / hapus hanya sebelum terbit produksi
+        var preProd = ["draft", "menunggu_so_trading", "so_siap", "so_dibagikan", "dp_diterima"].indexOf(st) >= 0;
+        if (preProd) {
+          add("Batalkan OT", "otCancel", "btn-ghost");
+          if (st === "draft" || st === "menunggu_so_trading") {
+            add("Hapus permanen", "otDelete", "btn-danger");
+          }
+        }
+        if (st === "cancelled") {
+          btns.push('<span style="font-size:0.8rem;color:#64748b">Status: Dibatalkan</span>');
+          add("Hapus permanen", "otDelete", "btn-danger");
         }
       }
       if (role === "trading" || role === "admin") {
@@ -18694,7 +18707,35 @@ function closeOtModal() {
       let event = act;
       let note = "";
 
-      if (act === "otSubmitTrading") {
+      var locked = ["terbit_produksi", "in_production", "done"].indexOf(String(r0.status || "")) >= 0 || !!r0.order_id;
+      if ((act === "otCancel" || act === "otDelete") && locked) {
+        return toast("OT sudah terbit ke produksi — tidak bisa dibatalkan/dihapus", true);
+      }
+      if (act === "otCancel") {
+        var okC = await appConfirm("Batalkan Order Trading " + otId + "?\nCustomer: " + (r0.customer_name || "—") + "\nStatus menjadi Dibatalkan.", "Batalkan OT");
+        if (!okC) return;
+        patch.status = "cancelled";
+        patch.cancelled_at = now;
+        patch.cancelled_by = email;
+        event = "cancelled";
+        note = "Dibatalkan sebelum produksi";
+      } else if (act === "otDelete") {
+        var okD = await appConfirm("HAPUS PERMANEN Order Trading " + otId + "?\nData baris produk & lampiran referensi ikut dihapus.\nTindakan ini tidak bisa dibatalkan.", "Hapus OT");
+        if (!okD) return;
+        try { await sb.from("order_trading_lines").delete().eq("ot_id", otId); } catch (e1) {}
+        try { await sb.from("order_trading_events").delete().eq("ot_id", otId); } catch (e2) {}
+        try { await sb.from("order_trading_files").delete().eq("ot_id", otId); } catch (e3) {}
+        var { error: eDel } = await sb.from("order_trading").delete().eq("ot_id", otId);
+        if (eDel) return toast(eDel.message, true);
+        toast("Order Trading dihapus");
+        try {
+          var m = $("otModal");
+          if (m) { m.classList.remove("show"); m.style.display = "none"; }
+          document.body.classList.remove("modal-open");
+        } catch (eM) {}
+        await loadOrderTrading();
+        return;
+      } else if (act === "otSubmitTrading") {
         patch.status = "menunggu_so_trading";
         patch.submitted_at = now;
         event = "submitted_to_trading";
