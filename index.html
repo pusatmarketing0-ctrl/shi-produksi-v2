@@ -4105,7 +4105,7 @@
           <div class="page-head">
             <div>
               <h1>BOM / Giling</h1>
-              <p>Daftar bahan baku per produk FG. Saat plan proses <strong>giling</strong>, bahan muncul otomatis (plan bahan memakai for_product_id = FG).</p>
+              <p>Daftar FG → formula BOM (bahan baku & kemas). Satu FG bisa banyak formula. Klik FG untuk membuka form seperti kalkulasi PO.</p>
             </div>
             <button class="btn btn-primary" type="button" onclick="openBomEditor()">+ BOM</button>
           </div>
@@ -4582,25 +4582,78 @@
   </div>
 
   <div id="bomModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:440px">
+    <div class="modal modal-sheet" style="max-width:720px">
       <div class="sheet-handle"></div>
-      <div class="sheet-head"><h2>BOM bahan</h2></div>
-      <div class="sheet-body">
-        <input type="hidden" id="bomEditId" />
-        <div class="field"><label>Produk FG</label><input id="bomFg" placeholder="Kode FG" /></div>
-        <datalist id="bomFgList"></datalist>
-        <div class="field"><label>Bahan baku</label><input id="bomMat" placeholder="Kode bahan" /></div>
-        <datalist id="bomMatList"></datalist>
-        <div class="field"><label>Qty per 1 FG</label><input id="bomQty" class="num-input" inputmode="decimal" value="1" /></div>
-        <div class="field"><label>Satuan</label><input id="bomUnit" value="gr" /></div>
-        <div class="field"><label>Catatan</label><input id="bomNotes" /></div>
-        <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;margin-top:0.5rem">
-          <input type="checkbox" id="bomSaveOnly" checked /> Simpan ke master BOM
-        </label>
+      <div class="sheet-head">
+        <h2 id="bomFormTitle">BOM produk</h2>
+        <p id="bomFormSub" style="font-size:0.8rem;color:var(--text-muted);margin:0.2rem 0 0">Formula · bahan baku · bahan kemas</p>
       </div>
-      <div class="sheet-foot">
-        <button class="btn btn-ghost" type="button" onclick="closeBomModal()">Batal</button>
-        <button class="btn btn-primary" type="button" onclick="saveBomRow()">Simpan</button>
+      <div class="sheet-body" style="max-height:70vh;overflow:auto">
+        <input type="hidden" id="bomFormulaId" />
+        <input type="hidden" id="bomFg" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.55rem 0.75rem">
+          <div class="field" style="grid-column:1/-1"><label>Nama produk (FG)</label>
+            <input id="bomFgLabel" readonly style="background:#f8fafc;font-weight:600" />
+          </div>
+          <div class="field"><label>Nama formula</label>
+            <input id="bomFormulaName" placeholder="mis. Box / Pouch" />
+          </div>
+          <div class="field"><label>Kemasan</label>
+            <input id="bomKemasan" placeholder="Box / Pouch / ..." />
+          </div>
+          <div class="field"><label>Isi / kemasan</label>
+            <input id="bomIsiKemasan" class="num-input" inputmode="decimal" placeholder="55" />
+          </div>
+          <div class="field"><label>Isi karton</label>
+            <input id="bomIsiKarton" class="num-input" inputmode="decimal" placeholder="10" />
+          </div>
+          <div class="field"><label>Satuan BB</label>
+            <input id="bomUnitBb" placeholder="gr/ml" value="gr" />
+          </div>
+          <div class="field"><label>Qty PO (kalkulator)</label>
+            <input id="bomPoQty" class="num-input" inputmode="decimal" placeholder="100" value="100" oninput="bomRecalcNeeds()" />
+          </div>
+        </div>
+        <div id="bomNeedSummary" style="margin:0.65rem 0;padding:0.65rem 0.75rem;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;font-size:0.82rem;line-height:1.45"></div>
+
+        <h3 style="margin:0.85rem 0 0.4rem;font-size:0.9rem;color:#065f46">A. Bahan Baku</h3>
+        <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+          <table class="data-table" style="font-size:0.8rem">
+            <thead><tr style="background:#166534;color:#fff">
+              <th>No</th><th>Nama</th><th>Rasio %</th><th>/ PO</th><th>Satuan</th><th></th>
+            </tr></thead>
+            <tbody id="bomBakuBody"></tbody>
+            <tfoot><tr style="background:#fef3c7;font-weight:700">
+              <td colspan="2">Total</td>
+              <td id="bomBakuRasioTot">0%</td>
+              <td id="bomBakuPoTot">0</td>
+              <td id="bomBakuUnitTot"></td>
+              <td></td>
+            </tr></tfoot>
+          </table>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.4rem" onclick="bomAddLine('baku')">+ Bahan baku</button>
+
+        <h3 style="margin:1rem 0 0.4rem;font-size:0.9rem;color:#9a3412">B. Bahan Kemas</h3>
+        <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+          <table class="data-table" style="font-size:0.8rem">
+            <thead><tr style="background:#9a3412;color:#fff">
+              <th>No</th><th>Nama</th><th>Rasio</th><th>/ pcs (×PO)</th><th>Satuan</th><th></th>
+            </tr></thead>
+            <tbody id="bomKemasBody"></tbody>
+            <tfoot><tr style="background:#ffedd5;font-weight:700">
+              <td colspan="3">Total baris</td>
+              <td id="bomKemasPoTot">0</td>
+              <td></td><td></td>
+            </tr></tfoot>
+          </table>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.4rem" onclick="bomAddLine('kemas')">+ Bahan kemas</button>
+      </div>
+      <div class="sheet-foot" style="flex-wrap:wrap;gap:0.4rem">
+        <button class="btn btn-ghost" type="button" onclick="closeBomModal()">Tutup</button>
+        <button class="btn btn-ghost" type="button" onclick="bomNewFormula()">+ Formula baru</button>
+        <button class="btn btn-primary" type="button" onclick="saveBomFormula()">Simpan formula</button>
       </div>
     </div>
   </div>
@@ -11778,8 +11831,13 @@ function fillOperatorList(selectedEmail) {
 
 
     
+
     // ===== Batch 3: BOM + realtime + pindah tanggal plan =====
     let bomRows = [];
+    let bomFormulas = [];
+    let bomFormLines = []; // working lines in modal {kategori, material_product_id, rasio, unit, notes, id}
+    var bomExpanded = {};
+
     async function loadBom(silent) {
       if (!sb) return;
       let data, error;
@@ -11787,7 +11845,7 @@ function fillOperatorList(selectedEmail) {
       if (error) {
         if (!silent) {
           const body = $("bomBody");
-          if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Jalankan batch3_bom.sql — ' + esc(error.message) + '</td></tr>';
+          if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Jalankan SQL BOM — ' + esc(error.message) + '</td></tr>';
         }
         bomRows = [];
         window.__bomRows = [];
@@ -11795,168 +11853,460 @@ function fillOperatorList(selectedEmail) {
       }
       bomRows = data || [];
       window.__bomRows = bomRows;
+      // formulas (opsional)
+      try {
+        var { data: fdata, error: fe } = await sb.from("bom_formulas").select("*").order("fg_product_id").limit(2000);
+        if (!fe) bomFormulas = fdata || [];
+        else bomFormulas = [];
+      } catch (eF) { bomFormulas = []; }
       if (!silent) renderBomTable();
     }
-    var bomExpanded = {}; // fg_product_id -> true
+
+    function bomFgName(fg) {
+      try {
+        var p = (products || []).find(function(x) { return String(x.product_id) === String(fg); });
+        if (p && p.name) return p.name;
+      } catch (e) {}
+      try {
+        var full = productLabel(fg);
+        if (full && full !== fg) return full.replace(fg, "").replace(/^[·\-—\s\[]+/, "").replace(/\]$/, "").trim();
+      } catch (e2) {}
+      return "";
+    }
+
     function renderBomTable() {
       const body = $("bomBody");
       if (!body) return;
       const q = (($("bomSearch") && $("bomSearch").value) || "").toLowerCase().trim();
-      let list = bomRows.slice();
+      // group lines by FG
+      var byFg = {};
+      (bomRows || []).forEach(function(b) {
+        var fg = String(b.fg_product_id || "").trim();
+        if (!fg) return;
+        if (!byFg[fg]) byFg[fg] = [];
+        byFg[fg].push(b);
+      });
+      // also include formulas without lines yet
+      (bomFormulas || []).forEach(function(f) {
+        var fg = String(f.fg_product_id || "").trim();
+        if (fg && !byFg[fg]) byFg[fg] = [];
+      });
+      var fgs = Object.keys(byFg).sort(function(a, b) { return a.localeCompare(b, "id"); });
       if (q) {
-        list = list.filter(function(b) {
-          var fg = String(b.fg_product_id || "").toLowerCase();
-          var mat = String(b.material_product_id || "").toLowerCase();
-          var fgLab = "";
-          var matLab = "";
-          try { fgLab = productLabel(b.fg_product_id).toLowerCase(); } catch (e1) {}
-          try { matLab = productLabel(b.material_product_id).toLowerCase(); } catch (e2) {}
-          return fg.indexOf(q) >= 0 || mat.indexOf(q) >= 0 || fgLab.indexOf(q) >= 0 || matLab.indexOf(q) >= 0;
+        fgs = fgs.filter(function(fg) {
+          var nm = (bomFgName(fg) || "").toLowerCase();
+          if (fg.toLowerCase().indexOf(q) >= 0 || nm.indexOf(q) >= 0) return true;
+          return (byFg[fg] || []).some(function(b) {
+            return String(b.material_product_id || "").toLowerCase().indexOf(q) >= 0;
+          });
         });
       }
-      // group by FG
-      var groups = {};
-      var order = [];
-      list.forEach(function(b) {
-        var fg = String(b.fg_product_id || "").trim() || "—";
-        if (!groups[fg]) { groups[fg] = []; order.push(fg); }
-        groups[fg].push(b);
-      });
-      order.sort(function(a, b) { return a.localeCompare(b, "id"); });
-      if (!order.length) {
-        body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada BOM' + (q ? " untuk pencarian ini" : "") + '</td></tr>';
-        try { pageOf("bom", [], "bomPager"); } catch (eP) {}
+      if (!fgs.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada BOM' + (q ? " untuk pencarian ini" : "") + '. Klik + BOM</td></tr>';
+        try { pageOf("bom", [], "bomPager"); } catch (e0) {}
         return;
       }
-      // pagination by FG groups
-      var pageList = order;
-      try {
-        pageList = pageOf("bom", order, "bomPager") || order;
-      } catch (ePg) { pageList = order; }
-
-      // if searching, auto-expand matching FG
-      if (q) {
-        pageList.forEach(function(fg) { bomExpanded[fg] = true; });
-      }
-
+      var pageList = fgs;
+      try { pageList = pageOf("bom", fgs, "bomPager") || fgs; } catch (e1) {}
       var html = "";
       pageList.forEach(function(fg) {
-        var comps = groups[fg] || [];
-        var open = !!bomExpanded[fg];
-        var fgName = "";
-        try {
-          var p = (products || []).find(function(x) { return String(x.product_id) === String(fg); });
-          fgName = p ? (p.name || "") : "";
-        } catch (eN) {}
-        if (!fgName) {
-          try {
-            var full = productLabel(fg);
-            if (full && full !== fg) fgName = full.replace(fg, "").replace(/^[·\-—\s]+/, "").trim();
-          } catch (e2) {}
+        var lines = byFg[fg] || [];
+        var formulas = (bomFormulas || []).filter(function(f) { return String(f.fg_product_id) === String(fg); });
+        if (!formulas.length) {
+          // virtual default formula from lines
+          formulas = [{ id: "", name: "Default", fg_product_id: fg, _virtual: true }];
         }
+        var open = !!bomExpanded[fg];
+        var nm = bomFgName(fg);
         html += '<tr class="bom-fg-row' + (open ? " open" : "") + '" data-bom-fg="' + esc(fg) + '">' +
           '<td><span class="bom-chevron">▶</span></td>' +
-          '<td><strong>[' + esc(fg) + ']</strong>' +
-            (fgName ? " " + esc(fgName) : "") +
-            '<div class="bom-fg-meta">' + comps.length + " komponen</div></td>" +
-          '<td colspan="3" style="color:var(--text-muted);font-size:0.8rem;font-weight:500">' +
-            (open ? "Klik untuk tutup komponen" : "Klik untuk lihat komponen") +
-          '</td>' +
-          '<td><button type="button" class="btn btn-sm btn-ghost bom-add-fg" data-fg="' + esc(fg) + '">+ Bahan</button></td>' +
-        '</tr>';
+          '<td><strong>[' + esc(fg) + ']</strong>' + (nm ? " " + esc(nm) : "") +
+            '<div class="bom-fg-meta">' + formulas.length + " formula · " + lines.length + " komponen</div></td>" +
+          '<td colspan="3" style="color:var(--text-muted);font-size:0.8rem">' +
+            (open ? "Pilih formula di bawah" : "Klik untuk lihat formula") + "</td>" +
+          '<td><button type="button" class="btn btn-sm btn-primary bom-open-fg" data-fg="' + esc(fg) + '">Buka</button></td>' +
+        "</tr>";
         if (open) {
-          comps.forEach(function(b) {
-            var matName = "";
-            try {
-              var pm = (products || []).find(function(x) { return String(x.product_id) === String(b.material_product_id); });
-              matName = pm ? (pm.name || "") : "";
-            } catch (eM) {}
-            html += '<tr class="bom-comp-row" data-parent-fg="' + esc(fg) + '">' +
-              '<td></td>' +
-              '<td style="color:var(--text-muted);font-size:0.78rem;padding-left:1.25rem">↳ komponen</td>' +
-              '<td><strong>[' + esc(b.material_product_id) + ']</strong>' +
-                (matName ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(matName) + "</div>" : "") +
-              '</td>' +
-              '<td>' + formatNum(b.qty_per_fg) + '</td>' +
-              '<td>' + esc(b.unit || "") + '</td>' +
-              '<td>' + esc(b.notes || "—") + '</td>' +
-              '<td><button type="button" class="btn btn-sm btn-ghost" data-bid="' + esc(b.id) + '">Hapus</button></td>' +
-            '</tr>';
+          formulas.forEach(function(f) {
+            var fLines = lines.filter(function(b) {
+              if (f.id) return String(b.formula_id || "") === String(f.id);
+              return !b.formula_id;
+            });
+            var nBaku = fLines.filter(function(b) { return (b.kategori || "baku") === "baku"; }).length;
+            var nKemas = fLines.filter(function(b) { return b.kategori === "kemas"; }).length;
+            html += '<tr class="bom-comp-row">' +
+              "<td></td>" +
+              '<td style="padding-left:1.2rem">↳ <strong>' + esc(f.name || "Default") + "</strong>" +
+                (f.kemasan ? ' <span style="color:var(--text-muted)">· ' + esc(f.kemasan) + "</span>" : "") +
+                '<div class="bom-fg-meta">Baku ' + nBaku + " · Kemas " + nKemas + "</div></td>" +
+              '<td colspan="3" style="font-size:0.78rem;color:var(--text-muted)">' +
+                (f.isi_kemasan != null ? "Isi/kemasan " + formatNum(f.isi_kemasan) : "") +
+                (f.isi_karton != null ? " · Isi karton " + formatNum(f.isi_karton) : "") +
+              "</td>" +
+              '<td><button type="button" class="btn btn-sm btn-ghost bom-open-formula" data-fg="' + esc(fg) + '" data-fid="' + esc(f.id || "") + '">Edit form</button></td>' +
+            "</tr>";
           });
+          html += '<tr class="bom-comp-row"><td></td><td colspan="5" style="padding-left:1.2rem">' +
+            '<button type="button" class="btn btn-sm btn-ghost bom-new-formula" data-fg="' + esc(fg) + '">+ Formula baru untuk FG ini</button></td></tr>';
         }
       });
       body.innerHTML = html;
-
       body.querySelectorAll(".bom-fg-row").forEach(function(tr) {
-        tr.addEventListener("click", function(e) {
-          if (e.target.closest("button")) return;
+        tr.addEventListener("click", function(ev) {
+          if (ev.target.closest("button")) return;
           var fg = tr.getAttribute("data-bom-fg");
           bomExpanded[fg] = !bomExpanded[fg];
           renderBomTable();
         });
       });
-      body.querySelectorAll(".bom-add-fg").forEach(function(btn) {
-        btn.onclick = function(e) {
-          e.stopPropagation();
-          openBomEditor(btn.getAttribute("data-fg") || "");
+      body.querySelectorAll(".bom-open-fg").forEach(function(btn) {
+        btn.onclick = function(ev) {
+          ev.stopPropagation();
+          var fg = btn.getAttribute("data-fg");
+          bomExpanded[fg] = true;
+          renderBomTable();
+          // open first formula
+          var f = (bomFormulas || []).find(function(x) { return String(x.fg_product_id) === String(fg); });
+          openBomFormulaForm(fg, f ? f.id : "");
         };
       });
-      body.querySelectorAll("[data-bid]").forEach(function(btn) {
-        btn.onclick = async function(e) {
-          e.stopPropagation();
-          if (!(await appConfirm("Hapus baris BOM?"))) return;
-          const { error } = await sb.from("product_bom").delete().eq("id", btn.getAttribute("data-bid"));
-          if (error) return toast(error.message, true);
-          await loadBom();
+      body.querySelectorAll(".bom-open-formula").forEach(function(btn) {
+        btn.onclick = function(ev) {
+          ev.stopPropagation();
+          openBomFormulaForm(btn.getAttribute("data-fg"), btn.getAttribute("data-fid") || "");
         };
       });
-    }
-    function openBomEditor(fgPrefill) {
-      $("bomEditId").value = "";
-      $("bomFg").value = fgPrefill || "";
-      $("bomMat").value = "";
-      $("bomQty").value = "1";
-      $("bomUnit").value = "gr";
-      $("bomNotes").value = "";
-      const fl = $("bomFgList");
-      if (fl) fl.innerHTML = (products || []).slice(0, 500).map(p =>
-        '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>'
-      ).join("");
-      const ml = $("bomMatList");
-      if (ml) ml.innerHTML = (products || []).slice(0, 500).map(p =>
-        '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>'
-      ).join("");
-      $("bomModal").classList.add("show");
-      document.body.classList.add("modal-open");
-      try { mountAllSearchCombos(); } catch (e) {}
-    }
-    function closeBomModal() {
-      $("bomModal").classList.remove("show");
-      document.body.classList.remove("modal-open");
-    }
-    async function saveBomRow() {
-      if (!sb) return;
-      const fg = resolveProductId(($("bomFg").value || "").trim()) || ($("bomFg").value || "").trim();
-      const mat = resolveProductId(($("bomMat").value || "").trim()) || ($("bomMat").value || "").trim();
-      const qty = parseInputNum($("bomQty").value);
-      const unit = ($("bomUnit").value || "gr").trim();
-      const notes = ($("bomNotes").value || "").trim();
-      if (!fg || !mat) return toast("FG dan bahan wajib", true);
-      if (!(qty > 0)) return toast("Qty harus > 0", true);
-      const { error } = await sb.from("product_bom").upsert({
-        fg_product_id: fg,
-        material_product_id: mat,
-        qty_per_fg: qty,
-        unit, notes
-      }, { onConflict: "fg_product_id,material_product_id" });
-      if (error) return toast(error.message, true);
-      toast("BOM disimpan");
-      closeBomModal();
-      await loadBom();
+      body.querySelectorAll(".bom-new-formula").forEach(function(btn) {
+        btn.onclick = function(ev) {
+          ev.stopPropagation();
+          openBomFormulaForm(btn.getAttribute("data-fg"), "", true);
+        };
+      });
     }
 
-    // Realtime: refresh plans/reports when changed
-    let rtChannel = null;
+    function openBomEditor(fgPrefill) {
+      // entry dari tombol + BOM → minta FG lalu formula baru
+      if (fgPrefill) {
+        openBomFormulaForm(fgPrefill, "", true);
+        return;
+      }
+      appPrompt({
+        title: "BOM baru",
+        message: "Ketik kode / nama produk FG:",
+        defaultValue: "",
+        okText: "Lanjut",
+        cancelText: "Batal"
+      }).then(function(raw) {
+        if (raw == null) return;
+        var fg = resolveProductId(String(raw).trim()) || String(raw).trim();
+        if (!fg) return toast("FG wajib", true);
+        openBomFormulaForm(fg, "", true);
+      });
+    }
+
+    function closeBomModal() {
+      var m = $("bomModal");
+      if (m) m.classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    function bomLineRowHtml(line, idx, kind) {
+      line = line || {};
+      var pid = line.material_product_id || "";
+      var nm = bomFgName(pid);
+      var rasio = line.rasio != null ? line.rasio : (kind === "baku" ? 100 : 1);
+      var unit = line.unit || (kind === "baku" ? (($("bomUnitBb") && $("bomUnitBb").value) || "gr") : "pcs");
+      return '<tr class="bom-form-line" data-kind="' + kind + '">' +
+        "<td>" + (idx + 1) + "</td>" +
+        '<td><input class="bom-line-mat" value="' + esc(pid + (nm ? " — " + nm : "")) + '" placeholder="Kode bahan" style="width:100%;min-width:140px;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem;font-family:inherit" />' +
+          '<input type="hidden" class="bom-line-pid" value="' + esc(pid) + '" /></td>' +
+        '<td><input class="bom-line-rasio num-input" inputmode="decimal" value="' + esc(String(rasio)) + '" style="width:5rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem;font-family:inherit" oninput="bomRecalcNeeds()" /></td>' +
+        '<td class="bom-line-need" style="font-variant-numeric:tabular-nums">—</td>' +
+        '<td><input class="bom-line-unit" value="' + esc(unit) + '" style="width:4.5rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem;font-family:inherit" /></td>' +
+        '<td><button type="button" class="btn btn-ghost btn-sm" onclick="this.closest(\'tr\').remove();bomRecalcNeeds()">✕</button></td>' +
+      "</tr>";
+    }
+
+    function bomAddLine(kind) {
+      var tb = kind === "kemas" ? $("bomKemasBody") : $("bomBakuBody");
+      if (!tb) return;
+      var idx = tb.querySelectorAll("tr").length;
+      tb.insertAdjacentHTML("beforeend", bomLineRowHtml({ kategori: kind }, idx, kind));
+      try { bindAllThousandInputs(); } catch (e) {}
+      bomBindMatInputs();
+      bomRecalcNeeds();
+    }
+
+    function bomBindMatInputs() {
+      document.querySelectorAll("#bomModal .bom-line-mat").forEach(function(inp) {
+        if (inp.dataset.bound === "1") return;
+        inp.dataset.bound = "1";
+        inp.addEventListener("change", function() {
+          var pid = resolveProductId(inp.value) || String(inp.value).split("—")[0].trim();
+          var hid = inp.parentElement.querySelector(".bom-line-pid");
+          if (hid) hid.value = pid;
+          bomRecalcNeeds();
+        });
+        inp.addEventListener("blur", function() {
+          var pid = resolveProductId(inp.value) || String(inp.value).split("—")[0].trim();
+          var hid = inp.parentElement.querySelector(".bom-line-pid");
+          if (hid) hid.value = pid;
+          var nm = bomFgName(pid);
+          if (pid) inp.value = pid + (nm ? " — " + nm : "");
+        });
+      });
+    }
+
+    function bomCollectLines() {
+      var out = [];
+      document.querySelectorAll("#bomModal .bom-form-line").forEach(function(tr) {
+        var kind = tr.getAttribute("data-kind") || "baku";
+        var pid = (tr.querySelector(".bom-line-pid") && tr.querySelector(".bom-line-pid").value) || "";
+        if (!pid) {
+          var raw = (tr.querySelector(".bom-line-mat") && tr.querySelector(".bom-line-mat").value) || "";
+          pid = resolveProductId(raw) || String(raw).split("—")[0].trim();
+        }
+        var rasio = parseInputNum(tr.querySelector(".bom-line-rasio") && tr.querySelector(".bom-line-rasio").value);
+        var unit = ((tr.querySelector(".bom-line-unit") && tr.querySelector(".bom-line-unit").value) || "pcs").trim();
+        if (!pid) return;
+        out.push({ kategori: kind, material_product_id: pid, rasio: rasio, unit: unit });
+      });
+      return out;
+    }
+
+    function bomRecalcNeeds() {
+      var po = parseInputNum(($("bomPoQty") && $("bomPoQty").value) || 0) || 0;
+      var isi = parseInputNum(($("bomIsiKemasan") && $("bomIsiKemasan").value) || 0) || 0;
+      var unitBb = (($("bomUnitBb") && $("bomUnitBb").value) || "gr").trim();
+      var needBb = isi * po;
+      if ($("bomNeedSummary")) {
+        $("bomNeedSummary").innerHTML =
+          "<strong>Kebutuhan BB</strong> (isi/kemasan × PO) = <b>" + formatNum(needBb) + "</b> " + esc(unitBb) +
+          " · PO <b>" + formatNum(po) + "</b>" +
+          (isi ? " · Isi/kemasan <b>" + formatNum(isi) + "</b>" : "");
+      }
+      var rasioTot = 0, poTot = 0;
+      document.querySelectorAll("#bomBakuBody .bom-form-line").forEach(function(tr) {
+        var rasio = parseInputNum(tr.querySelector(".bom-line-rasio") && tr.querySelector(".bom-line-rasio").value) || 0;
+        // rasio % dari total BB
+        var need = needBb * (rasio / 100);
+        rasioTot += rasio;
+        poTot += need;
+        var cell = tr.querySelector(".bom-line-need");
+        if (cell) cell.textContent = formatNum(need);
+      });
+      if ($("bomBakuRasioTot")) $("bomBakuRasioTot").textContent = formatNum(rasioTot) + "%";
+      if ($("bomBakuPoTot")) $("bomBakuPoTot").textContent = formatNum(poTot);
+      if ($("bomBakuUnitTot")) $("bomBakuUnitTot").textContent = unitBb;
+      var kemasTot = 0;
+      document.querySelectorAll("#bomKemasBody .bom-form-line").forEach(function(tr) {
+        var rasio = parseInputNum(tr.querySelector(".bom-line-rasio") && tr.querySelector(".bom-line-rasio").value) || 0;
+        // rasio sebagai multiplier per pcs (1 = 1×PO, 0.5 = 50% ×PO)
+        var need = rasio * po;
+        kemasTot += need;
+        var cell = tr.querySelector(".bom-line-need");
+        if (cell) cell.textContent = formatNum(need);
+      });
+      if ($("bomKemasPoTot")) $("bomKemasPoTot").textContent = formatNum(kemasTot);
+    }
+
+    async function openBomFormulaForm(fg, formulaId, forceNew) {
+      fg = String(fg || "").trim();
+      if (!fg) return toast("FG kosong", true);
+      if (!(products && products.length)) {
+        try { await loadProducts(); } catch (e) {}
+      }
+      if (!(bomRows && bomRows.length)) {
+        try { await loadBom(true); } catch (e2) {}
+      }
+      var formula = null;
+      if (!forceNew && formulaId) {
+        formula = (bomFormulas || []).find(function(f) { return String(f.id) === String(formulaId); });
+      }
+      if ($("bomFormulaId")) $("bomFormulaId").value = formula ? (formula.id || "") : "";
+      if ($("bomFg")) $("bomFg").value = fg;
+      if ($("bomFgLabel")) $("bomFgLabel").value = "[" + fg + "] " + (bomFgName(fg) || "");
+      if ($("bomFormulaName")) $("bomFormulaName").value = formula ? (formula.name || "") : (forceNew ? "" : "Default");
+      if ($("bomKemasan")) $("bomKemasan").value = formula ? (formula.kemasan || "") : "";
+      if ($("bomIsiKemasan")) $("bomIsiKemasan").value = formula && formula.isi_kemasan != null ? formatInputNum(formula.isi_kemasan, true) : "";
+      if ($("bomIsiKarton")) $("bomIsiKarton").value = formula && formula.isi_karton != null ? formatInputNum(formula.isi_karton, true) : "";
+      if ($("bomUnitBb")) $("bomUnitBb").value = formula && formula.unit_bb ? formula.unit_bb : "gr";
+      if ($("bomPoQty")) $("bomPoQty").value = "100";
+      if ($("bomFormTitle")) $("bomFormTitle").textContent = "BOM · " + fg;
+      if ($("bomFormSub")) $("bomFormSub").textContent = bomFgName(fg) || "Formula bahan baku & kemas";
+
+      var lines = (bomRows || []).filter(function(b) {
+        if (String(b.fg_product_id) !== String(fg)) return false;
+        if (formula && formula.id) return String(b.formula_id || "") === String(formula.id);
+        if (forceNew) return false;
+        return !b.formula_id || !formulaId;
+      });
+      var baku = lines.filter(function(b) { return (b.kategori || "baku") !== "kemas"; });
+      var kemas = lines.filter(function(b) { return b.kategori === "kemas"; });
+      // map qty_per_fg -> rasio for legacy rows
+      baku = baku.map(function(b) {
+        return {
+          material_product_id: b.material_product_id,
+          rasio: b.rasio != null ? b.rasio : 100,
+          unit: b.unit || "gr",
+          id: b.id
+        };
+      });
+      kemas = kemas.map(function(b) {
+        return {
+          material_product_id: b.material_product_id,
+          rasio: b.rasio != null ? b.rasio : (Number(b.qty_per_fg) || 1),
+          unit: b.unit || "pcs",
+          id: b.id
+        };
+      });
+      if ($("bomBakuBody")) {
+        $("bomBakuBody").innerHTML = baku.length
+          ? baku.map(function(l, i) { return bomLineRowHtml(l, i, "baku"); }).join("")
+          : "";
+      }
+      if ($("bomKemasBody")) {
+        $("bomKemasBody").innerHTML = kemas.length
+          ? kemas.map(function(l, i) { return bomLineRowHtml(l, i, "kemas"); }).join("")
+          : "";
+      }
+      if (!baku.length) bomAddLine("baku");
+      if (!kemas.length) { /* optional empty */ }
+      bomBindMatInputs();
+      try { bindAllThousandInputs(); } catch (e3) {}
+      // recalc after isi fields
+      ["bomIsiKemasan", "bomPoQty", "bomUnitBb"].forEach(function(id) {
+        var el = $(id);
+        if (el && el.dataset.bomBound !== "1") {
+          el.dataset.bomBound = "1";
+          el.addEventListener("input", bomRecalcNeeds);
+        }
+      });
+      bomRecalcNeeds();
+      var m = $("bomModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+    }
+
+    function bomNewFormula() {
+      var fg = ($("bomFg") && $("bomFg").value) || "";
+      if (!fg) return toast("FG kosong", true);
+      openBomFormulaForm(fg, "", true);
+    }
+
+    async function saveBomFormula() {
+      if (!sb) return;
+      var fg = (($("bomFg") && $("bomFg").value) || "").trim();
+      if (!fg) return toast("FG wajib", true);
+      var name = (($("bomFormulaName") && $("bomFormulaName").value) || "").trim() || "Default";
+      var kemasan = (($("bomKemasan") && $("bomKemasan").value) || "").trim();
+      var isi = parseInputNum(($("bomIsiKemasan") && $("bomIsiKemasan").value) || 0);
+      var karton = parseInputNum(($("bomIsiKarton") && $("bomIsiKarton").value) || 0);
+      var unitBb = (($("bomUnitBb") && $("bomUnitBb").value) || "gr").trim();
+      var lines = bomCollectLines();
+      if (!lines.length) return toast("Minimal 1 bahan baku atau kemas", true);
+      var formulaId = (($("bomFormulaId") && $("bomFormulaId").value) || "").trim();
+      var now = new Date().toISOString();
+
+      // 1) upsert formula header
+      var formulaRow = {
+        fg_product_id: fg,
+        name: name,
+        kemasan: kemasan,
+        isi_kemasan: isi || null,
+        isi_karton: karton || null,
+        unit_bb: unitBb,
+        updated_at: now
+      };
+      if (formulaId) {
+        var { error: eF } = await sb.from("bom_formulas").update(formulaRow).eq("id", formulaId);
+        if (eF) {
+          // tabel belum ada → lanjut simpan lines saja
+          console.warn(eF);
+          formulaId = formulaId || "";
+          if (/relation|does not exist|schema cache/i.test(String(eF.message || ""))) {
+            toast("Tabel bom_formulas belum ada — menyimpan komponen saja. Jalankan SQL BOM.", true);
+            formulaId = "";
+          } else if (!/bom_formulas/i.test(String(eF.message || ""))) {
+            return toast(eF.message, true);
+          }
+        }
+      } else {
+        formulaRow.created_at = now;
+        var ins = await sb.from("bom_formulas").insert(formulaRow).select("id").limit(1);
+        if (ins.error) {
+          console.warn(ins.error);
+          if (!/relation|does not exist|schema cache/i.test(String(ins.error.message || ""))) {
+            // maybe id serial returned differently
+          }
+          formulaId = "";
+        } else if (ins.data && ins.data[0]) {
+          formulaId = ins.data[0].id;
+          if ($("bomFormulaId")) $("bomFormulaId").value = formulaId;
+        }
+      }
+
+      // 2) replace lines for this fg+formula
+      try {
+        if (formulaId) {
+          await sb.from("product_bom").delete().eq("fg_product_id", fg).eq("formula_id", formulaId);
+        } else {
+          // legacy: delete lines without formula_id for this fg
+          await sb.from("product_bom").delete().eq("fg_product_id", fg);
+        }
+      } catch (eDel) { console.warn(eDel); }
+
+      var payload = lines.map(function(l) {
+        var rasio = Number(l.rasio) || 0;
+        var qtyPer = rasio;
+        if (l.kategori === "baku" && isi > 0) {
+          // qty per 1 FG = isi_kemasan × rasio%
+          qtyPer = isi * (rasio / 100);
+        }
+        var row = {
+          fg_product_id: fg,
+          material_product_id: l.material_product_id,
+          qty_per_fg: qtyPer,
+          unit: l.unit || (l.kategori === "baku" ? unitBb : "pcs"),
+          kategori: l.kategori || "baku",
+          rasio: rasio,
+          notes: ""
+        };
+        if (formulaId) row.formula_id = formulaId;
+        return row;
+      });
+      var { error: eL } = await sb.from("product_bom").insert(payload);
+      if (eL) {
+        // fallback tanpa kolom baru
+        if (/kategori|rasio|formula_id/i.test(String(eL.message || ""))) {
+          var simple = payload.map(function(r) {
+            return {
+              fg_product_id: r.fg_product_id,
+              material_product_id: r.material_product_id,
+              qty_per_fg: r.qty_per_fg,
+              unit: r.unit,
+              notes: (r.kategori || "") + (r.rasio != null ? " rasio=" + r.rasio : "")
+            };
+          });
+          var r2 = await sb.from("product_bom").insert(simple);
+          if (r2.error) return toast(r2.error.message + " — jalankan SQL BOM di Supabase", true);
+          toast("BOM disimpan (mode sederhana). Jalankan SQL agar rasio/formula penuh.", true);
+        } else {
+          return toast(eL.message, true);
+        }
+      } else {
+        toast("Formula BOM disimpan");
+      }
+      await loadBom();
+      closeBomModal();
+    }
+
+    // kompatibilitas pemanggilan lama
+    async function saveBomRow() {
+      return saveBomFormula();
+    }
+
+
     function setupRealtime() {
       if (!sb || rtChannel) return;
       try {
