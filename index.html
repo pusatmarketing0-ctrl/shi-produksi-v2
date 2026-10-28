@@ -4055,6 +4055,7 @@
                 <option value="received">received</option>
                 <option value="cancelled">cancelled</option>
               </select>
+              <button class="btn btn-ghost btn-sm" type="button" onclick="openPoImportModal()">Import Excel / ETA</button>
               <button class="btn btn-primary btn-sm" type="button" onclick="openPoModal()">+ PO baru</button>
             </div>
             <div class="card" style="padding:0;overflow:hidden">
@@ -5077,6 +5078,44 @@
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeGudangQcForm()">Batal</button>
         <button class="btn btn-primary" type="button" onclick="saveGudangQcForm()">Kirim ke QC</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="poImportModal" class="modal-bg" style="display:none">
+    <div class="modal modal-sheet" style="max-width:560px">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h2>Import PO / ETA dari Odoo</h2>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0">Tempel dari Excel atau unggah CSV/TSV</p>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label>Format kolom (baris pertama = header)</label>
+          <p style="font-size:0.75rem;color:var(--text-dim);margin:0 0 0.4rem;line-height:1.4">
+            Wajib: <code>po_odoo</code>, <code>product_id</code>, <code>qty</code><br/>
+            Opsional: <code>vendor</code>, <code>eta_date</code>, <code>unit</code>, <code>no_so</code>, <code>po_date</code><br/>
+            Header Odoo juga dikenali: Reference, Partner, Product, Quantity, Scheduled Date, Unit
+          </p>
+          <textarea id="poImportArea" rows="12" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.75rem;font-family:ui-monospace,monospace;font-size:0.78rem;outline:none;resize:vertical" placeholder="po_odoo&#9;product_id&#9;qty&#9;eta_date&#9;vendor&#9;no_so&#10;PO/2026/001&#9;ASY001&#9;1000&#9;2026-10-29&#9;serba herbal&#9;SO/2026/00962"></textarea>
+        </div>
+        <div class="field">
+          <label>Atau pilih file CSV/TSV</label>
+          <input type="file" id="poImportFile" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" />
+        </div>
+        <div class="field">
+          <label>Mode</label>
+          <select id="poImportMode" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit">
+            <option value="upsert">Buat PO baru / update ETA jika PO Odoo + produk sudah ada</option>
+            <option value="eta_only">Hanya update ETA (PO harus sudah ada)</option>
+          </select>
+        </div>
+        <div id="poImportPreview" style="font-size:0.78rem;color:var(--text-muted);margin-top:0.35rem"></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closePoImportModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="runPoImport()">Import</button>
       </div>
     </div>
   </div>
@@ -14069,6 +14108,293 @@ function fillOperatorList(selectedEmail) {
       }
     }
     
+
+
+    function openPoImportModal() {
+      if ($("poImportArea")) $("poImportArea").value = "";
+      if ($("poImportFile")) $("poImportFile").value = "";
+      if ($("poImportPreview")) $("poImportPreview").textContent = "";
+      if ($("poImportMode")) $("poImportMode").value = "upsert";
+      var m = $("poImportModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+      var f = $("poImportFile");
+      if (f && f.dataset.bound !== "1") {
+        f.dataset.bound = "1";
+        f.addEventListener("change", function() {
+          var file = f.files && f.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function() {
+            if ($("poImportArea")) $("poImportArea").value = String(reader.result || "");
+            previewPoImport();
+          };
+          reader.readAsText(file);
+        });
+      }
+      if ($("poImportArea") && $("poImportArea").dataset.bound !== "1") {
+        $("poImportArea").dataset.bound = "1";
+        $("poImportArea").addEventListener("input", previewPoImport);
+      }
+    }
+    function closePoImportModal() {
+      var m = $("poImportModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      document.body.classList.remove("modal-open");
+    }
+    function poImportNormalizeHeader(h) {
+      h = String(h || "").toLowerCase().trim().replace(/^\uFEFF/, "");
+      h = h.replace(/\s+/g, "_").replace(/[^\w]/g, "");
+      var map = {
+        po_odoo: "po_odoo", po: "po_odoo", reference: "po_odoo", order_reference: "po_odoo",
+        no_po_odoo: "po_odoo", purchase_order: "po_odoo", po_number: "po_odoo",
+        product_id: "product_id", product: "product_id", default_code: "product_id",
+        product_code: "product_id", kode_produk: "product_id", internal_reference: "product_id",
+        qty: "qty", quantity: "qty", product_qty: "qty", qty_ordered: "qty", demand: "qty",
+        unit: "unit", uom: "unit", product_uom: "unit", satuan: "unit",
+        vendor: "vendor", partner: "vendor", supplier: "vendor", vendor_name: "vendor",
+        partner_name: "vendor", supplier_name: "vendor",
+        eta_date: "eta_date", eta: "eta_date", scheduled_date: "eta_date", date_planned: "eta_date",
+        expected_date: "eta_date", arrival_date: "eta_date", deadline: "eta_date",
+        no_so: "no_so", so: "no_so", sales_order: "no_so", source_document: "no_so", origin: "no_so",
+        po_date: "po_date", order_date: "po_date", date_order: "po_date"
+      };
+      return map[h] || h;
+    }
+    function parsePoImportText(raw) {
+      raw = String(raw || "").replace(/^\uFEFF/, "").trim();
+      if (!raw) return { error: "Data kosong", rows: [] };
+      var lines = raw.split(/\r?\n/).filter(function(l) { return String(l).trim().length; });
+      if (lines.length < 2) return { error: "Minimal header + 1 baris data", rows: [] };
+      var delim = (lines[0].indexOf("\t") >= 0) ? "\t" : (lines[0].indexOf(";") >= 0 ? ";" : ",");
+      function splitLine(line) {
+        // sederhana: tab/semicolon; CSV ber-quote basic
+        if (delim === "\t" || delim === ";") return line.split(delim).map(function(c) { return c.trim(); });
+        var out = [], cur = "", q = false;
+        for (var i = 0; i < line.length; i++) {
+          var ch = line[i];
+          if (ch === '"') { q = !q; continue; }
+          if (ch === "," && !q) { out.push(cur.trim()); cur = ""; continue; }
+          cur += ch;
+        }
+        out.push(cur.trim());
+        return out;
+      }
+      var headers = splitLine(lines[0]).map(poImportNormalizeHeader);
+      var need = ["po_odoo", "product_id", "qty"];
+      var missing = need.filter(function(k) { return headers.indexOf(k) < 0; });
+      if (missing.length) {
+        return { error: "Header wajib tidak ketemu: " + missing.join(", ") + ". Header: " + headers.join(" | "), rows: [] };
+      }
+      var rows = [];
+      for (var li = 1; li < lines.length; li++) {
+        var cols = splitLine(lines[li]);
+        if (!cols.length) continue;
+        var obj = {};
+        headers.forEach(function(h, i) { obj[h] = cols[i] != null ? String(cols[i]).trim() : ""; });
+        var poOdoo = obj.po_odoo || "";
+        var pid = resolveProductId(obj.product_id || "") || (obj.product_id || "").trim();
+        var qty = parseInputNum(obj.qty);
+        if (!poOdoo || !pid || !(qty > 0)) continue;
+        var eta = (obj.eta_date || "").trim();
+        if (eta) {
+          // d/m/y or y-m-d
+          var m = eta.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+          if (m) {
+            var dd = m[1].padStart(2, "0"), mm = m[2].padStart(2, "0"), yy = m[3];
+            if (yy.length === 2) yy = "20" + yy;
+            // assume d/m/y (umum ID/Odoo locale)
+            eta = yy + "-" + mm + "-" + dd;
+          } else {
+            eta = eta.slice(0, 10);
+          }
+        }
+        var poDate = (obj.po_date || "").trim().slice(0, 10);
+        rows.push({
+          po_odoo: poOdoo,
+          product_id: pid,
+          qty: qty,
+          unit: (obj.unit || "pcs").trim() || "pcs",
+          vendor: (obj.vendor || "").trim(),
+          eta_date: eta || null,
+          no_so: (obj.no_so || "").trim(),
+          po_date: poDate || null
+        });
+      }
+      if (!rows.length) return { error: "Tidak ada baris valid (cek product_id & qty)", rows: [] };
+      return { error: null, rows: rows };
+    }
+    function previewPoImport() {
+      var parsed = parsePoImportText(($("poImportArea") && $("poImportArea").value) || "");
+      var el = $("poImportPreview");
+      if (!el) return;
+      if (parsed.error) { el.innerHTML = "<span style='color:#b91c1c'>" + esc(parsed.error) + "</span>"; return; }
+      var pos = {};
+      parsed.rows.forEach(function(r) { pos[r.po_odoo] = (pos[r.po_odoo] || 0) + 1; });
+      el.textContent = parsed.rows.length + " baris · " + Object.keys(pos).length + " nomor PO Odoo";
+    }
+    async function runPoImport() {
+      if (!sb) return;
+      var parsed = parsePoImportText(($("poImportArea") && $("poImportArea").value) || "");
+      if (parsed.error) return toast(parsed.error, true);
+      var mode = ($("poImportMode") && $("poImportMode").value) || "upsert";
+      var rows = parsed.rows;
+      // group by po_odoo
+      var groups = {};
+      rows.forEach(function(r) {
+        if (!groups[r.po_odoo]) groups[r.po_odoo] = [];
+        groups[r.po_odoo].push(r);
+      });
+      // load existing by no_po_odoo
+      var odooNos = Object.keys(groups);
+      var existingByOdoo = {};
+      try {
+        for (var i = 0; i < odooNos.length; i += 50) {
+          var chunk = odooNos.slice(i, i + 50);
+          var { data } = await sb.from("purchase_orders")
+            .select("po_id,no_po_odoo,order_id,no_so,status,purchase_lines(id,product_id,qty,eta_date,vendor_name,unit)")
+            .in("no_po_odoo", chunk)
+            .limit(200);
+          (data || []).forEach(function(po) {
+            if (po.no_po_odoo) existingByOdoo[String(po.no_po_odoo)] = po;
+          });
+        }
+      } catch (eL) { console.warn(eL); }
+      // cache SO by no_so
+      var soCache = {};
+      async function resolveSo(noSo) {
+        noSo = String(noSo || "").trim();
+        if (!noSo) return { order_id: "", no_so: "" };
+        if (soCache[noSo]) return soCache[noSo];
+        try {
+          var { data: o1 } = await sb.from("orders").select("order_id,no_so").eq("no_so", noSo).limit(1).maybeSingle();
+          if (o1) { soCache[noSo] = { order_id: o1.order_id, no_so: o1.no_so || noSo }; return soCache[noSo]; }
+          var { data: o2 } = await sb.from("orders").select("order_id,no_so").eq("order_id", noSo).limit(1).maybeSingle();
+          if (o2) { soCache[noSo] = { order_id: o2.order_id, no_so: o2.no_so || noSo }; return soCache[noSo]; }
+        } catch (e) {}
+        soCache[noSo] = { order_id: "", no_so: noSo };
+        return soCache[noSo];
+      }
+      var okPo = 0, okLine = 0, okEta = 0, skip = 0, errs = [];
+      for (var gi = 0; gi < odooNos.length; gi++) {
+        var odooNo = odooNos[gi];
+        var glist = groups[odooNo];
+        var existing = existingByOdoo[odooNo];
+        if (mode === "eta_only") {
+          if (!existing) { skip += glist.length; continue; }
+          for (var j = 0; j < glist.length; j++) {
+            var r = glist[j];
+            if (!r.eta_date) { skip++; continue; }
+            var line = (existing.purchase_lines || []).find(function(l) {
+              return String(l.product_id) === String(r.product_id);
+            });
+            if (!line) { skip++; continue; }
+            var { error: eEta } = await sb.from("purchase_lines").update({ eta_date: r.eta_date }).eq("id", line.id);
+            if (eEta) errs.push(odooNo + "/" + r.product_id + ": " + eEta.message);
+            else okEta++;
+          }
+          continue;
+        }
+        // upsert
+        if (existing) {
+          // update ETA / qty on matching lines; add missing lines
+          for (var j2 = 0; j2 < glist.length; j2++) {
+            var r2 = glist[j2];
+            var line2 = (existing.purchase_lines || []).find(function(l) {
+              return String(l.product_id) === String(r2.product_id);
+            });
+            if (line2) {
+              var patch = {};
+              if (r2.eta_date) patch.eta_date = r2.eta_date;
+              if (r2.qty > 0) patch.qty = r2.qty;
+              if (r2.vendor) patch.vendor_name = r2.vendor;
+              if (r2.unit) patch.unit = r2.unit;
+              if (!Object.keys(patch).length) { skip++; continue; }
+              var { error: eU } = await sb.from("purchase_lines").update(patch).eq("id", line2.id);
+              if (eU) errs.push(odooNo + "/" + r2.product_id + ": " + eU.message);
+              else { okEta++; okLine++; }
+            } else {
+              var ins = {
+                po_id: existing.po_id,
+                product_id: r2.product_id,
+                qty: r2.qty,
+                unit: r2.unit || "pcs",
+                qty_received: 0,
+                vendor_name: r2.vendor || existing.supplier_name || "",
+                eta_date: r2.eta_date || null,
+                kategori: "baku"
+              };
+              var { error: eI } = await sb.from("purchase_lines").insert(ins);
+              if (eI) errs.push(odooNo + "/" + r2.product_id + ": " + eI.message);
+              else okLine++;
+            }
+          }
+          okPo++;
+        } else {
+          // create new PO
+          var soRef = glist.find(function(x) { return x.no_so; });
+          var so = await resolveSo(soRef ? soRef.no_so : "");
+          var vendor = (glist.find(function(x) { return x.vendor; }) || {}).vendor || "";
+          var poDate = (glist.find(function(x) { return x.po_date; }) || {}).po_date || todayStr();
+          var po_id = await newPoId();
+          var header = {
+            po_id: po_id,
+            order_id: so.order_id || null,
+            no_so: so.no_so || (soRef ? soRef.no_so : "") || null,
+            no_po_odoo: odooNo,
+            po_date: poDate,
+            supplier_name: vendor,
+            status: "ordered",
+            notes: "Import dari Odoo",
+            created_by: (currentUser && currentUser.email) || "",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          // order_id kosong bisa gagal FK — coba dengan null
+          var { error: eH } = await sb.from("purchase_orders").insert(header);
+          if (eH && /order_id/i.test(String(eH.message || ""))) {
+            delete header.order_id;
+            eH = (await sb.from("purchase_orders").insert(header)).error;
+          }
+          if (eH && /no_po_odoo/i.test(String(eH.message || ""))) {
+            // kolom belum ada: simpan di notes
+            delete header.no_po_odoo;
+            header.notes = "Import Odoo PO: " + odooNo;
+            eH = (await sb.from("purchase_orders").insert(header)).error;
+          }
+          if (eH) {
+            errs.push(odooNo + ": " + eH.message);
+            continue;
+          }
+          var lineRows = glist.map(function(r3) {
+            return {
+              po_id: po_id,
+              product_id: r3.product_id,
+              qty: r3.qty,
+              unit: r3.unit || "pcs",
+              qty_received: 0,
+              vendor_name: r3.vendor || vendor,
+              eta_date: r3.eta_date || null,
+              kategori: "baku"
+            };
+          });
+          var { error: eL2 } = await sb.from("purchase_lines").insert(lineRows);
+          if (eL2) errs.push(odooNo + " lines: " + eL2.message);
+          else { okPo++; okLine += lineRows.length; }
+        }
+      }
+      var msg = "Import selesai: " + okPo + " PO · " + okLine + " baris · " + okEta + " update ETA";
+      if (skip) msg += " · " + skip + " dilewati";
+      toast(msg);
+      if (errs.length) {
+        console.warn("PO import errors", errs);
+        toast(errs.slice(0, 2).join(" | "), true);
+      }
+      closePoImportModal();
+      try { await loadPurchaseOrders(); } catch (e1) {}
+      try { await loadGudangInbox(); } catch (e2) {}
+      try { await loadPurchaseDash(); } catch (e3) {}
+    }
 
     async function openPoModal(poId) {
       let dl = document.getElementById("poProdList");
