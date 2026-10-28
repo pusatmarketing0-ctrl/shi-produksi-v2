@@ -1707,6 +1707,16 @@
     .bom-fg-row.open .bom-chevron { transform: rotate(90deg); background: #bbf7d0; color: #065f46; }
     .bom-comp-row td { background: #fff; font-weight: 400; }
     .bom-comp-row td:first-child { border-left: 3px solid #a7f3d0; }
+
+    #bomModal .sheet-body { overflow: visible !important; max-height: none; }
+    #bomModal .modal.modal-sheet { max-height: 90vh; overflow: auto; }
+    #bomModal .search-combo { position: relative; z-index: 5; }
+    #bomModal .search-combo-list {
+      z-index: 300500 !important;
+      max-height: 220px;
+    }
+    #bomModal .bom-form-line td { overflow: visible; }
+
     .bom-fg-meta { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 0.15rem; }
     .toast-wrap {
       position: fixed;
@@ -12031,8 +12041,9 @@ function fillOperatorList(selectedEmail) {
       var unit = line.unit || (kind === "baku" ? (($("bomUnitBb") && $("bomUnitBb").value) || "gr") : "pcs");
       return '<tr class="bom-form-line" data-kind="' + kind + '">' +
         "<td>" + (idx + 1) + "</td>" +
-        '<td><input class="bom-line-mat" value="' + esc(pid + (nm ? " — " + nm : "")) + '" placeholder="Kode bahan" style="width:100%;min-width:140px;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem;font-family:inherit" />' +
-          '<input type="hidden" class="bom-line-pid" value="' + esc(pid) + '" /></td>' +
+        '<td style="min-width:180px;overflow:visible"><div class="search-combo" style="min-width:180px">' +
+          '<input class="bom-line-mat search-combo-input" type="text" value="' + esc(pid + (nm ? " — " + nm : "")) + '" placeholder="Cari kode / nama bahan…" autocomplete="off" style="width:100%" />' +
+          '</div><input type="hidden" class="bom-line-pid" value="' + esc(pid) + '" /></td>' +
         '<td><input class="bom-line-rasio num-input" inputmode="decimal" value="' + esc(String(rasio)) + '" style="width:5rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem;font-family:inherit" oninput="bomRecalcNeeds()" /></td>' +
         '<td class="bom-line-need" style="font-variant-numeric:tabular-nums">—</td>' +
         '<td><input class="bom-line-unit" value="' + esc(unit) + '" style="width:4.5rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem;font-family:inherit" /></td>' +
@@ -12052,21 +12063,39 @@ function fillOperatorList(selectedEmail) {
 
     function bomBindMatInputs() {
       document.querySelectorAll("#bomModal .bom-line-mat").forEach(function(inp) {
-        if (inp.dataset.bound === "1") return;
-        inp.dataset.bound = "1";
-        inp.addEventListener("change", function() {
-          var pid = resolveProductId(inp.value) || String(inp.value).split("—")[0].trim();
-          var hid = inp.parentElement.querySelector(".bom-line-pid");
-          if (hid) hid.value = pid;
-          bomRecalcNeeds();
+        if (inp.dataset.bomSc === "1" && inp.dataset.scBound === "1") return;
+        inp.dataset.bomSc = "1";
+        var cell = inp.closest("td");
+        var hid = cell ? cell.querySelector(".bom-line-pid") : null;
+        var curPid = hid ? hid.value : (inp.dataset.scId || "");
+        try { delete inp.dataset.scBound; } catch (e0) {}
+        attachSearchCombo(inp, scItemsProduct, {
+          valueMode: "id-name",
+          allowFree: false,
+          placeholder: "Cari kode / nama bahan…",
+          onPick: function(id, label) {
+            if (hid) hid.value = id || "";
+            if (inp) {
+              inp.dataset.scId = id || "";
+              inp.value = label || id || "";
+            }
+            // auto isi satuan dari master produk jika kosong
+            try {
+              var p = (products || []).find(function(x) { return String(x.product_id) === String(id); });
+              var unitInp = inp.closest("tr") && inp.closest("tr").querySelector(".bom-line-unit");
+              if (p && unitInp && !(unitInp.value || "").trim()) {
+                unitInp.value = p.unit || unitInp.value || "pcs";
+              }
+            } catch (eU) {}
+            bomRecalcNeeds();
+          }
         });
-        inp.addEventListener("blur", function() {
-          var pid = resolveProductId(inp.value) || String(inp.value).split("—")[0].trim();
-          var hid = inp.parentElement.querySelector(".bom-line-pid");
-          if (hid) hid.value = pid;
-          var nm = bomFgName(pid);
-          if (pid) inp.value = pid + (nm ? " — " + nm : "");
-        });
+        if (curPid) {
+          inp.dataset.scId = curPid;
+          var nm = bomFgName(curPid);
+          inp.value = curPid + (nm ? " — " + nm : "");
+          if (hid) hid.value = curPid;
+        }
       });
     }
 
