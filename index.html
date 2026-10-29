@@ -4190,6 +4190,11 @@
                   <div class="ot-kpi-val" id="poKpiEtaVal" style="color:#c2410c">—</div>
                   <div class="ot-kpi-sub">Datang sebagian · isi ETA vendor</div>
                 </div>
+                <div class="ot-kpi-card po-kpi-card" id="poKpiOverdue" onclick="poKpiFilter('need_overdue')" title="Klik filter ETA terlambat" style="border-top:3px solid #b91c1c">
+                  <div class="ot-kpi-label">ETA terlambat</div>
+                  <div class="ot-kpi-val" id="poKpiOverdueVal" style="color:#b91c1c">—</div>
+                  <div class="ot-kpi-sub">Lewat tanggal · belum datang penuh</div>
+                </div>
                 <div class="ot-kpi-card po-kpi-card po-kpi-draft" id="poKpiDraft" onclick="poKpiFilter('draft')" title="Filter draft">
                   <div class="ot-kpi-label">PO draft</div>
                   <div class="ot-kpi-val" id="poKpiDraftVal">—</div>
@@ -4212,6 +4217,7 @@
               <select id="poStatusFilter" onchange="poPage=1;renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
                 <option value="">Semua status</option>
                 <option value="need_eta">⚠ Perlu ETA sisa</option>
+                <option value="need_overdue">⚠ ETA terlambat</option>
                 <option value="draft">draft</option>
                 <option value="ordered">ordered</option>
                 <option value="partial">partial</option>
@@ -14530,7 +14536,7 @@ function fillOperatorList(selectedEmail) {
     }
     async function loadPurchaseOrders() {
       if (!sb) return;
-      const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id,awaiting_eta,qty,qty_arrived,product_id,vendor_name)").order("po_date", { ascending: false }).limit(200);
+      const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id,awaiting_eta,qty,qty_arrived,product_id,vendor_name,eta_date,replace_eta)").order("po_date", { ascending: false }).limit(200);
       const body = $("poBody");
       if (error) {
         if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Jalankan batch4_purchasing.sql + batch4b_po_by_so.sql — ' + esc(error.message) + '</td></tr>';
@@ -14613,12 +14619,30 @@ function fillOperatorList(selectedEmail) {
       const q = (($("poSearch") && $("poSearch").value) || "").toLowerCase().trim();
       const st = ($("poStatusFilter") && $("poStatusFilter").value) || "";
       let list = poList.slice();
+      function poLineEtaDate(l) {
+        var e = (l.replace_eta || l.eta_date || "");
+        return String(e).slice(0, 10);
+      }
+      function poLineOverdue(l) {
+        var eta = poLineEtaDate(l);
+        if (!eta || !/^\d{4}-\d{2}-\d{2}$/.test(eta)) return false;
+        var today = (typeof todayStr === "function") ? todayStr() : new Date().toISOString().slice(0, 10);
+        if (eta >= today) return false;
+        var qty = Number(l.qty) || 0;
+        var arr = Number(l.qty_arrived) || 0;
+        // belum datang penuh = terlambat
+        return arr < qty;
+      }
       function poNeedsEta(p) {
         return (p.purchase_lines || []).some(function(l) {
           return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty));
         });
       }
+      function poHasOverdue(p) {
+        return (p.purchase_lines || []).some(poLineOverdue);
+      }
       if (st === "need_eta") list = list.filter(poNeedsEta);
+      else if (st === "need_overdue") list = list.filter(poHasOverdue);
       else if (st) list = list.filter(p => p.status === st);
       if (q) list = list.filter(p => {
         const lines = p.purchase_lines || [];
@@ -14663,11 +14687,15 @@ function fillOperatorList(selectedEmail) {
         const lines = p.purchase_lines || [];
         const n = lines.length;
         const needEta = lines.some(function(l) { return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty)); });
+        const overdue = lines.some(poLineOverdue);
         const odoo = p.no_po_odoo || "";
-        return '<tr class="' + (needEta ? "po-need-eta" : "") + '">' +
+        return '<tr class="' + (needEta || overdue ? "po-need-eta" : "") + '">' +
           '<td class="mono"><strong>' + esc(p.po_id) + '</strong>' +
           (odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(odoo) + '</div>' : '') +
-          (needEta ? '<div style="font-size:0.7rem;color:#c2410c;font-weight:700">Perlu ETA sisa</div>' : '') + '</td>' +
+          (needEta ? '<div style="font-size:0.7rem;color:#c2410c;font-weight:700">Perlu ETA sisa</div>' : '') +
+          (overdue && !needEta ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:700">ETA terlambat</div>' : '') +
+          (overdue && needEta ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:700">ETA terlambat</div>' : '') +
+          '</td>' +
           '<td>' + esc(p.no_so || p.order_id || "—") + '</td>' +
           '<td>' + esc(p.po_date) + '</td>' +
           '<td>' + esc(p.supplier_name || "—") + '</td>' +
@@ -14720,22 +14748,27 @@ function fillOperatorList(selectedEmail) {
     }
     function renderPoKpi() {
       if (!$("poKpiEtaVal")) return;
-      var nEta = 0, nDraft = 0, nOrd = 0, nAll = (poList || []).length;
+      var nEta = 0, nOver = 0, nDraft = 0, nOrd = 0, nAll = (poList || []).length;
+      var today = (typeof todayStr === "function") ? todayStr() : new Date().toISOString().slice(0, 10);
       (poList || []).forEach(function(p) {
         var st = String(p.status || "");
         if (st === "draft") nDraft++;
         if (st === "ordered") nOrd++;
         (p.purchase_lines || []).forEach(function(l) {
           if (l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty))) nEta++;
+          var eta = String(l.replace_eta || l.eta_date || "").slice(0, 10);
+          var qty = Number(l.qty) || 0;
+          var arr = Number(l.qty_arrived) || 0;
+          if (eta && /^\d{4}-\d{2}-\d{2}$/.test(eta) && eta < today && arr < qty) nOver++;
         });
       });
       if ($("poKpiEtaVal")) $("poKpiEtaVal").textContent = String(nEta);
+      if ($("poKpiOverdueVal")) $("poKpiOverdueVal").textContent = String(nOver);
       if ($("poKpiDraftVal")) $("poKpiDraftVal").textContent = String(nDraft);
       if ($("poKpiOrderedVal")) $("poKpiOrderedVal").textContent = String(nOrd);
       if ($("poKpiAllVal")) $("poKpiAllVal").textContent = String(nAll);
-      // active state
       var cur = ($("poStatusFilter") && $("poStatusFilter").value) || "";
-      [["poKpiEta", "need_eta"], ["poKpiDraft", "draft"], ["poKpiOrdered", "ordered"], ["poKpiAll", ""]].forEach(function(pair) {
+      [["poKpiEta", "need_eta"], ["poKpiOverdue", "need_overdue"], ["poKpiDraft", "draft"], ["poKpiOrdered", "ordered"], ["poKpiAll", ""]].forEach(function(pair) {
         var el = $(pair[0]);
         if (!el) return;
         if (pair[1] === cur) el.classList.add("active");
@@ -17342,11 +17375,12 @@ function fillOperatorList(selectedEmail) {
           setModTab(mod, tab);
         } catch (e3) {}
       }
-      if (page === "purchasing" && filter === "need_eta") {
+      if (page === "purchasing" && (filter === "need_eta" || filter === "need_overdue")) {
         try {
-          if ($("poStatusFilter")) $("poStatusFilter").value = "need_eta";
+          if ($("poStatusFilter")) $("poStatusFilter").value = filter;
           poPage = 1;
           if (typeof renderPurchaseOrders === "function") renderPurchaseOrders();
+          if (typeof renderPoKpi === "function") renderPoKpi();
         } catch (e4) {}
       }
     }
@@ -17470,6 +17504,26 @@ function fillOperatorList(selectedEmail) {
                 filter: "need_eta",
                 icon: "⏰"
               });
+              // ETA lewat tanggal, belum datang penuh
+              try {
+                var todayN = (typeof todayStr === "function") ? todayStr() : new Date().toISOString().slice(0, 10);
+                var { data: lateLines } = await sb.from("purchase_lines")
+                  .select("id,qty,qty_arrived,eta_date,replace_eta,awaiting_eta")
+                  .limit(200);
+                var nLate = (lateLines || []).filter(function(l) {
+                  var eta = String(l.replace_eta || l.eta_date || "").slice(0, 10);
+                  if (!eta || eta >= todayN) return false;
+                  return (Number(l.qty_arrived) || 0) < (Number(l.qty) || 0);
+                }).length;
+                if (nLate) prItems.push({
+                  label: "ETA terlambat",
+                  count: nLate,
+                  page: "purchasing",
+                  tab: "po",
+                  filter: "need_overdue",
+                  icon: "🚨"
+                });
+              } catch (eLate) { console.warn(eLate); }
             } catch (eEta) { console.warn(eEta); }
           }
           if (prItems.length) {
