@@ -13934,6 +13934,7 @@ function fillOperatorList(selectedEmail) {
         else { stLabel = "Menunggu ACC QC"; stColor = "#2563eb"; }
       } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
       else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
+      else if (arrived > qty) { stLabel = "Datang lebih (+" + formatNum(arrived - qty) + ")"; stColor = "#0369a1"; }
       else { stLabel = "Selesai"; stColor = "#059669"; }
       return { stLabel: stLabel, stColor: stColor, arrived: arrived, passed: passed, received: received, qty: qty };
     }
@@ -14074,6 +14075,8 @@ function fillOperatorList(selectedEmail) {
       var btns = [];
       if (arrived < qty) {
         btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangArrive(" + Number(r.line_id) + ")\">Barang sampai</button>");
+      } else {
+        btns.push("<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"gudangArrive(" + Number(r.line_id) + ")\">Datang lebih</button>");
       }
       if (arrived > 0 && !formAt) {
         btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"openGudangQcForm(" + Number(r.line_id) + ")\">Buat form QC</button>");
@@ -14222,19 +14225,28 @@ function fillOperatorList(selectedEmail) {
       var qty = Number(rowG.qty) || 0;
       var already = Number(rowG.qty_arrived) || 0;
       var sisa = Math.max(0, qty - already);
-      if (sisa <= 0) return toast("Qty PO sudah tercatat datang penuh", true);
+      // boleh datang lebih dari qty PO
+      // if (sisa <= 0) return toast(...);
       var raw = await appPrompt({
-        title: "Barang sampai",
+        title: already >= qty ? "Datang lebih dari PO" : "Barang sampai",
         message: "Qty PO: " + formatNum(qty) + " · Sudah datang: " + formatNum(already) +
-          " · Sisa: " + formatNum(sisa) + "\nIsi qty yang baru datang sekarang:",
-        defaultValue: String(sisa),
+          (sisa > 0 ? " · Sisa PO: " + formatNum(sisa) : " · (sudah ≥ qty PO)") +
+          "\nIsi qty baru datang (boleh melebihi PO jika actual lebih):",
+        defaultValue: sisa > 0 ? String(sisa) : "",
         okText: "Catat datang",
         cancelText: "Batal"
       });
       if (raw == null) return;
       var n = parseInputNum(raw);
       if (!(n > 0)) return toast("Qty tidak valid", true);
-      if (n > sisa) return toast("Maks. sisa: " + formatNum(sisa), true);
+      if (already + n > qty) {
+        var okOver = await appConfirm(
+          "Total datang " + formatNum(already + n) + " > Qty PO " + formatNum(qty) +
+          " (+" + formatNum(already + n - qty) + "). Lanjut catat datang lebih?",
+          "Datang lebih"
+        );
+        if (!okOver) return;
+      }
       var totalArrived = already + n;
       var awaiting = totalArrived < qty;
       var nowIso = new Date().toISOString();
@@ -14265,6 +14277,7 @@ function fillOperatorList(selectedEmail) {
         }
       }
       var msg = "Datang +" + formatNum(n) + " → total datang " + formatNum(totalArrived);
+      if (totalArrived > qty) msg += " · Lebih dari PO +" + formatNum(totalArrived - qty);
       if (awaiting) {
         msg += " · Sisa " + formatNum(qty - totalArrived) + " → Purchase perlu konfirmasi ETA vendor";
         try {
