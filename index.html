@@ -10700,7 +10700,7 @@ function fillOperatorList(selectedEmail) {
           "</td></tr>";
         return;
       }
-      body.innerHTML = list.map(function(r) {
+      body.innerHTML = list.map(function(r, idx) {
         var canShip = r.saldo > 0;
         return "<tr>" +
           "<td><strong>" + esc(r.product_id) + "</strong>" +
@@ -10711,11 +10711,17 @@ function fillOperatorList(selectedEmail) {
           "<td>" + esc(r.unit || "pcs") + "</td>" +
           "<td>" +
             (canShip
-              ? '<button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal(' +
-                  JSON.stringify(String(r.product_id)) + "," + Number(r.saldo) + ')">Instruksi kirim</button>'
+              ? '<button type="button" class="btn btn-primary btn-sm mkt-ship-btn" data-pid="' + esc(r.product_id) + '" data-qty="' + esc(String(r.saldo)) + '">Instruksi kirim</button>'
               : '<span style="font-size:0.75rem;color:var(--text-muted)">Stok 0</span>') +
           "</td></tr>";
       }).join("");
+      body.querySelectorAll(".mkt-ship-btn").forEach(function(btn) {
+        btn.onclick = function() {
+          var pid = btn.getAttribute("data-pid") || "";
+          var qty = parseInputNum(btn.getAttribute("data-qty") || "0");
+          openShipRequestModal(pid, qty);
+        };
+      });
     }
 
     function openShipRequestModal(productId, qty, noSo, customer) {
