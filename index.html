@@ -10732,8 +10732,8 @@ function fillOperatorList(selectedEmail) {
       if ($("shipReqNotes")) $("shipReqNotes").value = "";
       if ($("shipReqLines")) $("shipReqLines").innerHTML = "";
       addShipReqLine(productId ? { product_id: productId, qty: qty || "", unit: "pcs" } : null);
-      fillShipSoSelect().then(function() {
-        // auto-pilih SO jika no_so sudah terisi
+      // filter SO ke produk yang diinstruksikan
+      fillShipSoSelect(productId || "").then(function() {
         var sel = $("shipReqSoSelect");
         var want = (noSo || "").trim();
         if (sel && want) {
@@ -10744,6 +10744,11 @@ function fillOperatorList(selectedEmail) {
               break;
             }
           }
+        }
+        // jika hanya 1 SO cocok untuk produk → auto pilih
+        if (sel && !want && sel.options.length === 2) {
+          sel.selectedIndex = 1;
+          onShipSoChange();
         }
       });
       var m = $("shipRequestModal");
@@ -10761,12 +10766,71 @@ function fillOperatorList(selectedEmail) {
       }
       document.body.classList.remove("modal-open");
     }
-    async function fillShipSoSelect() {
+    async function fillShipSoSelect(filterProductId) {
       var sel = $("shipReqSoSelect");
       if (!sel || !sb) return;
-      var { data } = await sb.from("orders").select("order_id,no_so,customer_name,status").not("status", "in", '("done","cancelled","canceled")').order("created_at", { ascending: false }).limit(80);
-      sel.innerHTML = '<option value="">— Opsional pilih SO —</option>';
-      (data || []).forEach(function(o) {
+      filterProductId = String(filterProductId || "").trim();
+      // jika baris produk sudah diisi di form, pakai itu
+      if (!filterProductId) {
+        try {
+          var first = document.querySelector("#shipReqLines .sl-pid");
+          if (first && first.value) filterProductId = resolveProductId(first.value) || String(first.value).split("—")[0].trim();
+        } catch (e0) {}
+      }
+      sel.innerHTML = '<option value="">Memuat SO…</option>';
+      var orders = [];
+      try {
+        if (filterProductId) {
+          // SO yang punya line produk ini
+          var { data: ols, error: eL } = await sb.from("order_lines")
+            .select("order_id,product_id,qty")
+            .eq("product_id", filterProductId)
+            .limit(200);
+          if (eL) console.warn(eL);
+          var oids = [];
+          var seen = {};
+          (ols || []).forEach(function(l) {
+            if (l.order_id && !seen[l.order_id]) {
+              seen[l.order_id] = true;
+              oids.push(l.order_id);
+            }
+          });
+          if (oids.length) {
+            var { data: od } = await sb.from("orders")
+              .select("order_id,no_so,customer_name,status")
+              .in("order_id", oids.slice(0, 100))
+              .order("created_at", { ascending: false });
+            orders = (od || []).filter(function(o) {
+              var st = String(o.status || "").toLowerCase();
+              return st !== "done" && st !== "cancelled" && st !== "canceled" && st !== "closed";
+            });
+          } else {
+            orders = [];
+          }
+        } else {
+          var { data } = await sb.from("orders")
+            .select("order_id,no_so,customer_name,status")
+            .not("status", "in", '("done","cancelled","canceled")')
+            .order("created_at", { ascending: false })
+            .limit(80);
+          orders = data || [];
+        }
+      } catch (e) {
+        console.warn(e);
+        orders = [];
+      }
+      sel.innerHTML = "";
+      var opt0 = document.createElement("option");
+      opt0.value = "";
+      if (filterProductId) {
+        opt0.textContent = orders.length
+          ? "— Pilih SO yang berisi " + filterProductId + " (" + orders.length + ") —"
+          : "— Tidak ada SO terbuka untuk " + filterProductId + " —";
+      } else {
+        opt0.textContent = "— Opsional pilih SO —";
+      }
+      sel.appendChild(opt0);
+      orders.forEach(function(o) {
         var opt = document.createElement("option");
         opt.value = o.order_id;
         opt.dataset.noso = o.no_so || "";
@@ -10774,6 +10838,25 @@ function fillOperatorList(selectedEmail) {
         opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "");
         sel.appendChild(opt);
       });
+      // opsi tampilkan semua SO jika sedang filter produk
+      if (filterProductId) {
+        var optAll = document.createElement("option");
+        optAll.value = "__all__";
+        optAll.textContent = "… Tampilkan semua SO (tanpa filter produk)";
+        sel.appendChild(optAll);
+        sel.onchange = function() {
+          if (sel.value === "__all__") {
+            fillShipSoSelect("").then(function() {
+              // restore onchange
+              sel.onchange = onShipSoChange;
+            });
+            return;
+          }
+          onShipSoChange();
+        };
+      } else {
+        sel.onchange = onShipSoChange;
+      }
     }
     function onShipSoChange() {
       var sel = $("shipReqSoSelect");
@@ -20746,7 +20829,7 @@ function closeOtModal() {
       <div class="sheet-body">
         <input type="hidden" id="shipReqId" />
         <div class="field"><label>Tanggal minta kirim</label><input type="date" id="shipReqDate" /></div>
-        <div class="field"><label>SO (otomatis dari plan — boleh kosong)</label>
+        <div class="field"><label>SO (difilter produk yang dikirim — boleh kosong)</label>
           <select id="shipReqSoSelect" onchange="onShipSoChange()" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)"></select>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
