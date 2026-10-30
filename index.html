@@ -3157,102 +3157,156 @@
       flex-wrap: wrap;
     }
 
-    /* OT order lines — mobile stack 2 rows */
+    /* OT order lines — mobile: 2 baris rapi */
     @media (max-width: 720px) {
       #otLinesTable thead { display: none; }
-      #otLinesTable, #otLinesTable tbody, #otLinesTable tr.ot-line, #otLinesTable td {
-        display: block;
-        width: 100%;
-      }
+      #otLinesTable { width: 100%; border-collapse: separate; border-spacing: 0 0.55rem; }
+      #otLinesTable tbody { display: block; }
       #otLinesTable tr.ot-line {
-        margin-bottom: 0.65rem;
-        padding: 0.55rem 0.6rem !important;
-        border-radius: 14px !important;
-        background: rgba(255,255,255,0.45) !important;
+        display: grid !important;
+        grid-template-columns: 1.75rem minmax(0, 1fr) 4.6rem;
+        grid-template-areas:
+          "num prod qty"
+          "harga hpp sub";
+        gap: 0.4rem 0.45rem;
+        align-items: end;
+        position: relative;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0.7rem 2rem 0.7rem 0.7rem !important;
+        border-radius: 16px !important;
+        background: rgba(255,255,255,0.38) !important;
         border: 1px solid rgba(255,255,255,0.55) !important;
-        box-shadow: 0 4px 16px rgba(15,40,30,0.06) !important;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 6px 20px rgba(15,40,30,0.06) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
       }
       #otLinesTable tr.ot-line td {
+        display: block !important;
+        width: auto !important;
+        float: none !important;
         border: none !important;
-        padding: 0.2rem 0 !important;
-      }
-      #otLinesTable tr.ot-line td:nth-child(1) { /* # */
-        display: inline-block; width: auto; vertical-align: middle;
-      }
-      #otLinesTable tr.ot-line td:nth-child(2) { /* product */
-        display: inline-block; width: calc(100% - 6.5rem); vertical-align: middle;
-      }
-      #otLinesTable tr.ot-line td:nth-child(3) { /* qty */
-        display: inline-block; width: 5.5rem; vertical-align: middle; float: right;
-      }
-      #otLinesTable tr.ot-line td:nth-child(4),
-      #otLinesTable tr.ot-line td:nth-child(5),
-      #otLinesTable tr.ot-line td:nth-child(6) {
-        display: inline-block;
-        width: 33.33%;
+        padding: 0 !important;
         box-sizing: border-box;
-        padding-right: 0.25rem !important;
       }
-      #otLinesTable tr.ot-line td:nth-child(7) { /* del */
-        display: block; text-align: right; clear: both;
+      #otLinesTable tr.ot-line td:nth-child(1) { grid-area: num; align-self: center; }
+      #otLinesTable tr.ot-line td:nth-child(2) { grid-area: prod; }
+      #otLinesTable tr.ot-line td:nth-child(3) { grid-area: qty; }
+      #otLinesTable tr.ot-line td:nth-child(4) { grid-area: harga; }
+      #otLinesTable tr.ot-line td:nth-child(5) { grid-area: hpp; }
+      #otLinesTable tr.ot-line td:nth-child(6) { grid-area: sub; }
+      #otLinesTable tr.ot-line td:nth-child(7) {
+        grid-area: unset;
+        position: absolute;
+        top: 0.35rem;
+        right: 0.25rem;
       }
-      #otLinesTable tr.ot-line::after {
-        content: "";
-        display: table;
-        clear: both;
+      #otLinesTable tr.ot-line td:nth-child(3)::before,
+      #otLinesTable tr.ot-line td:nth-child(4)::before,
+      #otLinesTable tr.ot-line td:nth-child(5)::before,
+      #otLinesTable tr.ot-line td:nth-child(6)::before {
+        display: block;
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 0.15rem;
+        letter-spacing: 0.02em;
       }
-      #otLinesTable .ot-line-num { margin-right: 0.35rem; }
-      #otLinesTable input {
+      #otLinesTable tr.ot-line td:nth-child(3)::before { content: "Qty"; }
+      #otLinesTable tr.ot-line td:nth-child(4)::before { content: "Harga jual"; }
+      #otLinesTable tr.ot-line td:nth-child(5)::before { content: "HPP"; }
+      #otLinesTable tr.ot-line td:nth-child(6)::before { content: "Subtotal"; }
+      #otLinesTable tr.ot-line input {
+        width: 100% !important;
+        min-height: 2.35rem;
         background: rgba(255,255,255,0.55) !important;
-        border: 1px solid rgba(255,255,255,0.65) !important;
-        border-radius: 10px !important;
+        border: 1px solid rgba(255,255,255,0.7) !important;
+        border-radius: 12px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+        padding: 0.4rem 0.5rem !important;
+        font-size: 0.82rem !important;
       }
-      #otLinesTable td:nth-child(4)::before { content: "Harga"; display:block; font-size:0.62rem; color:#64748b; margin-bottom:0.1rem; }
-      #otLinesTable td:nth-child(5)::before { content: "HPP"; display:block; font-size:0.62rem; color:#64748b; margin-bottom:0.1rem; }
-      #otLinesTable td:nth-child(6)::before { content: "Subtotal"; display:block; font-size:0.62rem; color:#64748b; margin-bottom:0.1rem; }
-      #otLinesTable td:nth-child(3)::before { content: "Qty"; display:block; font-size:0.62rem; color:#64748b; margin-bottom:0.1rem; }
+      #otLinesTable tr.ot-line input:focus {
+        background: rgba(255,255,255,0.78) !important;
+        border-color: rgba(13,159,110,0.4) !important;
+      }
+      #otLinesTable .ot-line-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 1.5rem;
+        margin: 0;
+      }
+      #otLinesTable .ot-del, #otLinesTable .ol-del {
+        font-size: 1.15rem;
+        padding: 0.25rem 0.5rem;
+      }
     }
-    /* Glassy fields di OT / SO form */
+    /* Glassy senada di form OT / SO */
+    #otModal.modal-bg .modal,
+    #orderModal.modal-bg .modal {
+      background: rgba(248, 252, 250, 0.72) !important;
+      backdrop-filter: blur(18px) saturate(1.15);
+      -webkit-backdrop-filter: blur(18px) saturate(1.15);
+      border: 1px solid rgba(255,255,255,0.55);
+      box-shadow: 0 20px 50px rgba(15,40,30,0.12);
+    }
+    #otModal .sheet-foot,
+    #orderModal .sheet-foot {
+      background: rgba(255,255,255,0.45) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,0.5);
+    }
     #otModal .odoo-form-row input,
     #otModal .odoo-form-row select,
     #orderModal .odoo-form-row input,
     #orderModal .odoo-form-row select {
-      background: rgba(255,255,255,0.5) !important;
-      border: 1px solid rgba(255,255,255,0.7) !important;
+      background: rgba(255,255,255,0.42) !important;
+      border: 1px solid rgba(255,255,255,0.65) !important;
       border-radius: 12px !important;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
     #otModal .odoo-form-row input:focus,
     #orderModal .odoo-form-row input:focus {
-      background: rgba(255,255,255,0.72) !important;
-      border-color: rgba(13,159,110,0.45) !important;
-      box-shadow: 0 0 0 2px rgba(13,159,110,0.15);
+      background: rgba(255,255,255,0.7) !important;
+      border-color: rgba(13,159,110,0.4) !important;
+      box-shadow: 0 0 0 2px rgba(13,159,110,0.12);
     }
     #otModal .odoo-lines-table input,
     #orderModal .odoo-lines-table input {
-      background: rgba(255,255,255,0.48) !important;
-      border: 1px solid rgba(226,232,240,0.9) !important;
+      background: rgba(255,255,255,0.42) !important;
+      border: 1px solid rgba(255,255,255,0.6) !important;
       border-radius: 10px !important;
     }
     #otModal #otDropZone,
     #otModal #otStatusBox {
-      background: rgba(255,255,255,0.4) !important;
-      border: 1px solid rgba(255,255,255,0.55) !important;
+      background: rgba(255,255,255,0.35) !important;
+      border: 1px dashed rgba(148,163,184,0.55) !important;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      border-radius: 14px !important;
+    }
+    #otModal #otStatusBox {
+      border-style: solid !important;
+      border-color: rgba(16,185,129,0.2) !important;
+      background: rgba(236,253,245,0.45) !important;
     }
     #otModal #otAttachList > div {
-      background: rgba(255,255,255,0.5) !important;
-      border: 1px solid rgba(255,255,255,0.65) !important;
+      background: rgba(255,255,255,0.4) !important;
+      border: 1px solid rgba(255,255,255,0.55) !important;
       backdrop-filter: blur(8px);
     }
-    #otModal .ot-modal-banner,
-    #otModal .sheet-body {
-      background: transparent;
+    #otModal .ot-modal-banner {
+      background: transparent !important;
+      border-bottom: 1px solid rgba(255,255,255,0.35);
+    }
+    #otModal .sheet-body,
+    #orderModal .sheet-body {
+      background: transparent !important;
     }
 
     .odoo-form-total {
