@@ -3164,16 +3164,16 @@
       #otLinesTable tbody { display: block; }
       #otLinesTable tr.ot-line {
         display: grid !important;
-        grid-template-columns: 1.75rem minmax(0, 1fr) 4.6rem;
+        grid-template-columns: 1.6rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
         grid-template-areas:
-          "num prod qty"
-          "harga hpp sub";
-        gap: 0.4rem 0.45rem;
+          "num prod prod qty"
+          ". harga hpp sub";
+        gap: 0.4rem 0.4rem;
         align-items: end;
         position: relative;
         width: 100%;
         margin: 0 !important;
-        padding: 0.7rem 2rem 0.7rem 0.7rem !important;
+        padding: 0.7rem 1.9rem 0.7rem 0.65rem !important;
         border-radius: 16px !important;
         background: rgba(255,255,255,0.38) !important;
         border: 1px solid rgba(255,255,255,0.55) !important;
@@ -3213,7 +3213,7 @@
         letter-spacing: 0.02em;
       }
       #otLinesTable tr.ot-line td:nth-child(3)::before { content: "Qty"; }
-      #otLinesTable tr.ot-line td:nth-child(4)::before { content: "Harga jual"; }
+      #otLinesTable tr.ot-line td:nth-child(4)::before { content: "Harga"; }
       #otLinesTable tr.ot-line td:nth-child(5)::before { content: "HPP"; }
       #otLinesTable tr.ot-line td:nth-child(6)::before { content: "Subtotal"; }
       #otLinesTable tr.ot-line input {
