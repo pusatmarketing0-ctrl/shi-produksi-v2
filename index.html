@@ -5474,11 +5474,12 @@
           <div>
             <div class="odoo-form-row"><label>Customer</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
             <div class="odoo-form-row"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
+            <div class="odoo-form-row"><label>Catatan DP</label><input id="otDpNote" placeholder="Opsional" /></div>
           </div>
           <div>
             <div class="odoo-form-row"><label>SO Trading</label><input id="otSoTradingNo" placeholder="No SO ke customer" /></div>
+            <div class="odoo-form-row"><label>PO Trading</label><input id="otPoTradingNo" placeholder="No PO Trading" /></div>
             <div class="odoo-form-row"><label>SO Odoo</label><input id="otNoSo" placeholder="SO/2026/..." /></div>
-            <div class="odoo-form-row"><label>Catatan DP</label><input id="otDpNote" placeholder="Opsional" /></div>
           </div>
         </div>
         <input type="hidden" id="otSoTradingNote" />
@@ -20116,6 +20117,7 @@ function closeOtModal() {
       if ($("otNote")) $("otNote").value = "";
       if ($("otSoTradingNo")) $("otSoTradingNo").value = "";
       if ($("otSoTradingNote")) $("otSoTradingNote").value = "";
+      if ($("otPoTradingNo")) $("otPoTradingNo").value = "";
       if ($("otNoSo")) $("otNoSo").value = "";
       if ($("otDpNote")) $("otDpNote").value = "";
       if ($("otDpNote")) $("otDpNote").value = "";
@@ -20153,6 +20155,7 @@ function closeOtModal() {
         if ($("otModalSub")) $("otModalSub").textContent = (row.ot_id || "") + (row.customer_name ? " · " + row.customer_name : "");
         if ($("otSoTradingNo")) $("otSoTradingNo").value = row.so_trading_no || "";
         if ($("otSoTradingNote")) $("otSoTradingNote").value = row.so_trading_note || "";
+        if ($("otPoTradingNo")) $("otPoTradingNo").value = row.po_trading_no || row.po_trading || "";
         if ($("otNoSo")) $("otNoSo").value = row.no_so || "";
         if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
         if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
@@ -20270,9 +20273,34 @@ function closeOtModal() {
             '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(otKindLabel(a.kind)) + ' · ketuk untuk preview</div>' +
           '</div>' +
           '<button type="button" class="btn btn-ghost btn-sm" onclick="otPreviewAttachment(' + idx + ')">Preview</button>' +
+          '<button type="button" class="btn btn-primary btn-sm" onclick="otDownloadAttachment(' + idx + ')">Download</button>' +
           '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="otRemoveAttachment(' + idx + ')">Hapus</button>' +
           '</div>';
       }).join("");
+    }
+    function otDriveDownloadUrl(url) {
+      url = String(url || "");
+      if (!url) return "";
+      var m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m) return "https://drive.google.com/uc?export=download&id=" + m[1];
+      return url;
+    }
+    function otDownloadAttachment(idx) {
+      var a = otAttachments[idx];
+      if (!a || !a.url) return toast("File tidak ditemukan", true);
+      var href = otDriveDownloadUrl(a.url);
+      try {
+        var link = document.createElement("a");
+        link.href = href;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.download = a.name || "download";
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(function() { try { link.remove(); } catch (e) {} }, 400);
+      } catch (e) {
+        window.open(href, "_blank");
+      }
     }
     function otFillFileLinks(row) {
       row = row || {};
@@ -20555,6 +20583,7 @@ function closeOtModal() {
         note: (($("otNote") && $("otNote").value) || "").trim(),
         so_trading_no: (($("otSoTradingNo") && $("otSoTradingNo").value) || "").trim() || null,
         so_trading_note: (($("otSoTradingNote") && $("otSoTradingNote").value) || "").trim() || null,
+        po_trading_no: (($("otPoTradingNo") && $("otPoTradingNo").value) || "").trim() || null,
         no_so: (($("otNoSo") && $("otNoSo").value) || "").trim() || null,
         dp_note: (($("otDpNote") && $("otDpNote").value) || "").trim() || null,
         updated_at: new Date().toISOString()
