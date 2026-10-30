@@ -3390,14 +3390,32 @@
     }
     .ot-prod-name strong { font-weight: 700; }
     .ot-line {
-      border: 1px solid var(--border) !important;
-      border-radius: 14px !important;
-      padding: 0.85rem !important;
-      margin-bottom: 0.55rem !important;
-      background: rgba(255,255,255,0.95) !important;
-      box-shadow: 0 2px 10px rgba(15,23,42,0.04);
-      display: block !important;
+      /* table row — jangan card */
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      display: table-row !important;
     }
+    .ot-line td {
+      padding: 0.35rem 0.4rem !important;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    body.role-operator #otLinesTable .ot-col-harga,
+    body.role-operator #otLinesTable .ot-col-hpp,
+    body.role-operator #otLinesTable .ot-col-sub,
+    body.role-gudang #otLinesTable .ot-col-harga,
+    body.role-gudang #otLinesTable .ot-col-hpp,
+    body.role-gudang #otLinesTable .ot-col-sub,
+    body.role-ppic #otLinesTable .ot-col-harga,
+    body.role-ppic #otLinesTable .ot-col-hpp,
+    body.role-ppic #otLinesTable .ot-col-sub {
+      display: none;
+    }
+
 
   
     /* Revisi target — pilihan aksi */
@@ -5465,11 +5483,25 @@
         <div class="odoo-tabs">
           <button type="button" class="odoo-tab active">Order Lines</button>
         </div>
-        <div class="ot-section-title" style="margin-top:0.5rem">
-          Baris produk
-          <button type="button" class="btn btn-ghost btn-sm ot-sec-act" onclick="otAddLine()">+ Add a product</button>
+        <div style="display:flex;justify-content:flex-end;margin-top:0.35rem">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="otAddLine()">+ Add a product</button>
         </div>
-        <div id="otLines"></div>
+        <div style="overflow:auto">
+          <table class="odoo-lines-table" id="otLinesTable">
+            <thead>
+              <tr>
+                <th style="width:2rem">#</th>
+                <th style="min-width:11rem">Product</th>
+                <th style="width:5.5rem">Qty</th>
+                <th style="width:6.5rem" class="ot-col-harga">Harga jual</th>
+                <th style="width:6rem" class="ot-col-hpp">HPP</th>
+                <th style="width:7rem" class="ot-col-sub">Subtotal</th>
+                <th style="width:2.2rem"></th>
+              </tr>
+            </thead>
+            <tbody id="otLines"></tbody>
+          </table>
+        </div>
         <div id="otFilesBox" class="ot-files-premium" style="display:none">
           <div class="ot-section-title" style="margin-top:0">Lampiran (Google Drive)</div>
           <div id="otDropZone" style="border:1.5px dashed #94a3b8;border-radius:12px;padding:1rem;text-align:center;background:rgba(255,255,255,0.6);cursor:pointer">
@@ -19999,12 +20031,13 @@ function otProductDisplay(productId) {
         el.style.display = "none";
       }
     }
+
     function otRenumberLines() {
       var box = $("otLines");
       if (!box) return;
       box.querySelectorAll(".ot-line").forEach(function(w, i) {
         var n = w.querySelector(".ot-line-num");
-        if (n) n.textContent = "#" + (i + 1);
+        if (n) n.textContent = String(i + 1);
       });
     }
     function otBindLineSubtotal(wrap) {
@@ -20024,15 +20057,16 @@ function otProductDisplay(productId) {
       });
       recalc();
     }
+    function otShowPriceCols() {
+      return currentRole() === "marketing" || currentRole() === "trading" || currentRole() === "admin";
+    }
     function otAddLine(line) {
       const box = $("otLines");
       if (!box) return;
-      const wrap = document.createElement("div");
-      wrap.className = "ot-line card";
-      // jangan pakai grid inline lama
-      wrap.style.cssText = "";
+      const wrap = document.createElement("tr");
+      wrap.className = "ot-line";
       const n = box.querySelectorAll(".ot-line").length + 1;
-      const showPrice = currentRole() === "marketing" || currentRole() === "trading" || currentRole() === "admin";
+      const showPrice = otShowPriceCols();
       const pid = (line && line.product_id) ? String(line.product_id) : "";
       const disp = otProductDisplay(pid);
       const prodVal = esc(disp.input || "");
@@ -20040,29 +20074,15 @@ function otProductDisplay(productId) {
       const hargaVal = (line && line.harga != null) ? formatInputNum(line.harga, true) : "";
       const hppVal = (line && line.hpp != null) ? formatInputNum(line.hpp, true) : "";
       wrap.innerHTML =
-        "<div class='ot-line-head'>" +
-          "<span class='ot-line-num'>#" + n + "</span>" +
-          "<button type='button' class='btn btn-ghost btn-sm ot-del' style='color:#b91c1c'>Hapus</button>" +
-        "</div>" +
-        "<div class='field' style='margin:0 0 0.45rem'>" +
-          "<label>Produk</label>" +
-          "<input class='ot-prod search-combo' data-combo='product' placeholder='Ketik kode atau nama produk...' value='" + prodVal + "' autocomplete='off' />" +
-          "<div class='ot-prod-name'" + (disp.name ? "" : " style='display:none'") + ">" +
-            (disp.name ? ("<strong>" + esc(disp.name) + "</strong>") : "") +
-          "</div>" +
-        "</div>" +
-        "<div style='display:grid;grid-template-columns:1fr 1fr;gap:0.45rem'>" +
-          "<div class='field' style='margin:0'><label>Qty</label>" +
-            "<input class='ot-qty input-thousand' inputmode='decimal' placeholder='0' value='" + qtyVal + "' /></div>" +
-          (showPrice
-            ? "<div class='field' style='margin:0'><label>Harga jual</label>" +
-                "<input class='ot-harga input-thousand' inputmode='decimal' placeholder='0' value='" + hargaVal + "' /></div>" +
-              "<div class='field' style='margin:0'><label>HPP</label>" +
-                "<input class='ot-hpp input-thousand' inputmode='decimal' placeholder='0' value='" + hppVal + "' /></div>" +
-              "<div class='field' style='margin:0'><label>Subtotal</label>" +
-                "<input class='ot-subtotal' disabled placeholder='—' style='background:#f8fafc' /></div>"
-            : "<div class='field' style='margin:0'></div>") +
-        "</div>";
+        "<td><span class='ot-line-num'>" + n + "</span></td>" +
+        "<td><input class='ot-prod search-combo' data-combo='product' placeholder='Kode / nama produk...' value='" + prodVal + "' autocomplete='off' /></td>" +
+        "<td><input class='ot-qty input-thousand' inputmode='decimal' placeholder='0' value='" + qtyVal + "' /></td>" +
+        (showPrice
+          ? ("<td><input class='ot-harga input-thousand' inputmode='decimal' placeholder='0' value='" + hargaVal + "' /></td>" +
+             "<td><input class='ot-hpp input-thousand' inputmode='decimal' placeholder='0' value='" + hppVal + "' /></td>" +
+             "<td><input class='ot-subtotal' disabled placeholder='—' style='background:#f8fafc' /></td>")
+          : "<td colspan='3'></td>") +
+        "<td><button type='button' class='ol-del ot-del' title='Hapus'>×</button></td>";
       box.appendChild(wrap);
       wrap.querySelector(".ot-del").onclick = function() {
         wrap.remove();
@@ -20073,7 +20093,6 @@ function otProductDisplay(productId) {
         var prodInp = wrap.querySelector(".ot-prod");
         otBindLineProduct(prodInp, wrap);
         if (showPrice) otBindLineSubtotal(wrap);
-        if (pid) otUpdateLineProdName(wrap, pid);
       } catch (e) { console.warn(e); }
     }
 
