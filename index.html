@@ -5476,10 +5476,14 @@
             <div class="odoo-form-row"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
           </div>
           <div>
-            <div class="odoo-form-row"><label>SO Trading</label><input id="otSoTradingNoHead" placeholder="No SO ke customer" /></div>
-            <div class="odoo-form-row"><label>SO Odoo</label><input id="otNoSoHead" placeholder="SO/2026/..." /></div>
+            <div class="odoo-form-row"><label>SO Trading</label><input id="otSoTradingNo" placeholder="No SO ke customer" /></div>
+            <div class="odoo-form-row"><label>SO Odoo</label><input id="otNoSo" placeholder="SO/2026/..." /></div>
+            <div class="odoo-form-row"><label>Catatan DP</label><input id="otDpNote" placeholder="Opsional" /></div>
           </div>
         </div>
+        <input type="hidden" id="otSoTradingNote" />
+        <input type="hidden" id="otSoTradingNoHead" />
+        <input type="hidden" id="otNoSoHead" />
         <div class="odoo-tabs">
           <button type="button" class="odoo-tab active">Order Lines</button>
         </div>
@@ -5517,12 +5521,8 @@
           <p style="font-size:0.72rem;color:var(--text-muted);margin:0.4rem 0 0">File di Google Drive. Ketuk item untuk preview di webapp.</p>
         </div>
         <div id="otStatusBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(16,185,129,0.08);display:none">
-          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.4rem">Aksi status / referensi</div>
-          <div class="field"><label>No SO Trading (CV Trading)</label><input id="otSoTradingNo" placeholder="Nomor SO ke customer" /></div>
-          <div class="field"><label>Catatan SO Trading</label><input id="otSoTradingNote" placeholder="Catatan" /></div>
-          <div class="field"><label>No SO Odoo (setelah DP)</label><input id="otNoSo" placeholder="SO/2026/xxxxx" /></div>
-          <div class="field"><label>Catatan DP</label><input id="otDpNote" placeholder="Opsional" /></div>
-          <div id="otActionBtns" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem"></div>
+          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.45rem">Aksi</div>
+          <div id="otActionBtns" style="display:flex;flex-wrap:wrap;gap:0.4rem"></div>
         </div>
         <div id="otTimeline" style="margin-top:0.75rem;font-size:0.78rem;color:var(--text-muted)"></div>
       </div>
@@ -20117,8 +20117,7 @@ function closeOtModal() {
       if ($("otSoTradingNo")) $("otSoTradingNo").value = "";
       if ($("otSoTradingNote")) $("otSoTradingNote").value = "";
       if ($("otNoSo")) $("otNoSo").value = "";
-      if ($("otSoTradingNoHead")) $("otSoTradingNoHead").value = "";
-      if ($("otNoSoHead")) $("otNoSoHead").value = "";
+      if ($("otDpNote")) $("otDpNote").value = "";
       if ($("otDpNote")) $("otDpNote").value = "";
       if ($("otLines")) $("otLines").innerHTML = "";
       if ($("otTimeline")) $("otTimeline").innerHTML = "";
@@ -20155,8 +20154,7 @@ function closeOtModal() {
         if ($("otSoTradingNo")) $("otSoTradingNo").value = row.so_trading_no || "";
         if ($("otSoTradingNote")) $("otSoTradingNote").value = row.so_trading_note || "";
         if ($("otNoSo")) $("otNoSo").value = row.no_so || "";
-        if ($("otSoTradingNoHead")) $("otSoTradingNoHead").value = row.so_trading_no || "";
-        if ($("otNoSoHead")) $("otNoSoHead").value = row.no_so || "";
+        if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
         if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
 
         var lines = otLinesCache[otId] || [];
@@ -20539,15 +20537,6 @@ function closeOtModal() {
       return lines;
     }
     async function saveOrderTrading() {
-      // sinkron header odoo-style ke field status
-      try {
-        if ($("otSoTradingNoHead") && $("otSoTradingNoHead").value) {
-          if ($("otSoTradingNo")) $("otSoTradingNo").value = $("otSoTradingNoHead").value;
-        }
-        if ($("otNoSoHead") && $("otNoSoHead").value) {
-          if ($("otNoSo")) $("otNoSo").value = $("otNoSoHead").value;
-        }
-      } catch (eSync) {}
 
       if (!sb) return;
       const role = currentRole();
@@ -20564,6 +20553,10 @@ function closeOtModal() {
         ot_id: otId,
         customer_name: customer,
         note: (($("otNote") && $("otNote").value) || "").trim(),
+        so_trading_no: (($("otSoTradingNo") && $("otSoTradingNo").value) || "").trim() || null,
+        so_trading_note: (($("otSoTradingNote") && $("otSoTradingNote").value) || "").trim() || null,
+        no_so: (($("otNoSo") && $("otNoSo").value) || "").trim() || null,
+        dp_note: (($("otDpNote") && $("otDpNote").value) || "").trim() || null,
         updated_at: new Date().toISOString()
       };
       if (isNew) {
@@ -20623,7 +20616,6 @@ function closeOtModal() {
         if (st === "so_siap") add("Tandai SO dibagikan", "otMarkShared", "btn-ghost");
         if (st === "so_dibagikan" || st === "so_siap") add("DP diterima", "otMarkDp", "btn-primary");
         if (st === "dp_diterima" || st === "so_dibagikan") {
-          btns.push('<div style="width:100%;margin-top:0.35rem"><label style="font-size:0.72rem">No SO Odoo</label><input id="otNoSo" placeholder="SO/2026/..." value="' + esc(row.no_so || "") + '" style="width:100%;margin-top:0.2rem;padding:0.45rem;border-radius:8px;border:1px solid var(--border)"/></div>');
           add("Terbit ke Produksi", "otPublishProduction", "btn-primary");
         }
         if (st === "terbit_produksi" || st === "in_production" || st === "done" || row.order_id) {
@@ -20644,15 +20636,13 @@ function closeOtModal() {
       }
       if (role === "trading" || role === "admin") {
         if (st === "menunggu_so_trading" || st === "draft") {
-          btns.push('<div style="width:100%"><label style="font-size:0.72rem">No SO Trading</label><input id="otSoTradingNo" value="' + esc(row.so_trading_no || "") + '" placeholder="Nomor SO Trading" style="width:100%;margin-top:0.2rem;padding:0.45rem;border-radius:8px;border:1px solid var(--border)"/></div>');
-          btns.push('<div style="width:100%"><label style="font-size:0.72rem">Catatan</label><input id="otSoTradingNote" value="' + esc(row.so_trading_note || "") + '" placeholder="Opsional" style="width:100%;margin-top:0.2rem;padding:0.45rem;border-radius:8px;border:1px solid var(--border)"/></div>');
           add("SO Trading siap", "otMarkSoReady", "btn-primary");
         }
       }
       if (!btns.length) {
         box.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Status: ' + esc(st) + " — tidak ada aksi</span>";
       } else {
-        box.innerHTML = '<div style="font-size:0.78rem;font-weight:700;margin-bottom:0.35rem">Aksi · ' + esc(st) + '</div><div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:flex-end">' + btns.join("") + "</div>";
+        box.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">' + btns.join("") + "</div>";
         box.querySelectorAll(".ot-act-btn").forEach(function(btn) {
           btn.onclick = function(e) {
             e.preventDefault();
@@ -20708,7 +20698,7 @@ function closeOtModal() {
       } else if (act === "otMarkSoReady") {
         const no = (($("otSoTradingNo") && $("otSoTradingNo").value) || "").trim();
         const nte = (($("otSoTradingNote") && $("otSoTradingNote").value) || "").trim();
-        if (!no && !nte) return toast("Isi nomor atau catatan SO Trading", true);
+        if (!no) return toast("Isi No SO Trading di header form dulu", true);
         patch.status = "so_siap";
         patch.so_trading_no = no;
         patch.so_trading_note = nte;
@@ -20729,7 +20719,7 @@ function closeOtModal() {
         note = patch.dp_note;
       } else if (act === "otPublishProduction") {
         const noSo = (($("otNoSo") && $("otNoSo").value) || "").trim();
-        if (!noSo) return toast("No SO Odoo wajib", true);
+        if (!noSo) return toast("Isi No SO Odoo di header form dulu", true);
         // create production order
         const { data: lines } = await sb.from("order_trading_lines").select("*").eq("ot_id", otId);
         if (!lines || !lines.length) return toast("Tidak ada baris produk", true);
