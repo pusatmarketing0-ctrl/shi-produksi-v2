@@ -5041,7 +5041,7 @@
           <option value="bahan_penunjang">Bahan penunjang</option>
         </select>
       </div>
-      <div class="field"><label>Satuan</label><input id="pUnit" placeholder="pcs / kg / gr" value="pcs" /></div>
+      <div class="field"><label>Satuan</label><select id="pUnit"></select></div>
       <div class="modal-actions">
         <button class="btn btn-ghost" type="button" onclick="closeProductModal()">Batal</button>
         <button class="btn btn-primary" type="button" id="btnSaveProduct">Simpan</button>
@@ -5055,7 +5055,7 @@
       <div class="field"><label>Kode proses</label><input id="mId" placeholder="M01" /></div>
       <div class="field"><label>Nama</label><input id="mName" placeholder="Giling / Filling / ..." /></div>
       <div class="field"><label>Line</label><input id="mLine" placeholder="-" value="-" /></div>
-      <div class="field"><label>Satuan default</label><input id="mUnit" placeholder="pcs / kg" value="pcs" /></div>
+      <div class="field"><label>Satuan default</label><select id="mUnit"></select></div>
       <div class="modal-actions">
         <button class="btn btn-ghost" type="button" onclick="closeMachineModal()">Batal</button>
         <button class="btn btn-primary" type="button" id="btnSaveMachine">Simpan</button>
@@ -5210,7 +5210,7 @@
             <input id="bomIsiKarton" class="num-input" inputmode="decimal" placeholder="10" />
           </div>
           <div class="field"><label>Satuan BB</label>
-            <input id="bomUnitBb" placeholder="gr/ml" value="gr" />
+            <select id="bomUnitBb" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.55rem;font-family:inherit;min-width:5rem"></select>
           </div>
           <div class="field"><label>Qty PO (kalkulator)</label>
             <input id="bomPoQty" class="num-input" inputmode="decimal" placeholder="100" value="100" oninput="bomRecalcNeeds()" />
@@ -5334,7 +5334,7 @@
         <div class="field"><label>Mode</label>
           <select id="waMode"><option value="set">Set saldo</option><option value="add">Tambah</option><option value="sub">Kurangi</option></select>
         </div>
-        <div class="field"><label>Satuan</label><input id="waUnit" value="pcs" /></div>
+        <div class="field"><label>Satuan</label><select id="waUnit"></select></div>
       </div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeWipAdjust()">Batal</button>
@@ -5507,7 +5507,7 @@
       <div id="plSoGilingBom"></div>
       <div id="plSoNormalFields">
       <div class="field"><label>Target</label><input id="plSoTarget" type="number" min="0" step="any" /></div>
-      <div class="field"><label>Satuan</label><input id="plSoUnit" value="pcs" /></div>
+      <div class="field"><label>Satuan</label><select id="plSoUnit"></select></div>
       <div class="field"><label>Operator (dari database)</label>
         <select id="plSoOperator">
           <option value="">— Belum assign (draft) —</option>
@@ -5592,15 +5592,10 @@
       <div class="field"><label>Satuan</label>
         <select id="otNpUnit">
           <option value="pcs">pcs</option>
-          <option value="kg">kg</option>
           <option value="gr">gr</option>
-          <option value="liter">liter</option>
+          <option value="kg">kg</option>
           <option value="ml">ml</option>
-          <option value="box">box</option>
-          <option value="dus">dus</option>
-          <option value="pack">pack</option>
-          <option value="roll">roll</option>
-          <option value="unit">unit</option>
+          <option value="L">L</option>
         </select>
       </div>
       <div class="field"><label>Satuan lain (opsional)</label><input id="otNpUnitCustom" placeholder="Kosongkan jika pakai pilihan di atas" /></div>
@@ -5782,7 +5777,7 @@
         <div id="plGilingBom"></div>
         <div id="plNormalFields">
         <div class="field"><label>Target</label><input id="plTarget" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
-        <div class="field"><label>Satuan</label><input id="plUnit" placeholder="pcs" value="pcs" autocomplete="off" /></div>
+        <div class="field"><label>Satuan</label><select id="plUnit"></select></div>
         <div class="field"><label>Operator (dari database)</label>
           <select id="plOperator">
             <option value="">— Belum assign (draft) —</option>
@@ -6337,6 +6332,59 @@
       if (!(fromGr > 0) || !(toU > 0)) return qty;
       return qty * fromGr / toU;
     }
+
+    var UNIT_OPTIONS = ["pcs", "gr", "kg", "ml", "L"];
+
+    function initStaticUnitSelects() {
+      ["pUnit", "mUnit", "plUnit", "plSoUnit", "waUnit", "bomUnitBb"].forEach(function(id) {
+        var el = $(id);
+        if (!el) return;
+        if (el.tagName !== "SELECT") return;
+        var cur = el.value || (id === "bomUnitBb" ? "gr" : "pcs");
+        fillUnitSelectEl(el, cur);
+      });
+    }
+    function unitSelectHtml(selected, className, idAttr, extraStyle) {
+      selected = String(selected || "pcs").trim() || "pcs";
+      var opts = UNIT_OPTIONS.slice();
+      if (selected && opts.indexOf(selected) < 0) opts.push(selected);
+      var html = "<select" +
+        (className ? ' class="' + className + '"' : "") +
+        (idAttr ? ' id="' + idAttr + '"' : "") +
+        ' style="border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.55rem;font-family:inherit;font-size:0.85rem;background:#fff;width:100%;box-sizing:border-box' +
+        (extraStyle ? (";" + extraStyle) : "") + '">';
+      opts.forEach(function(u) {
+        html += '<option value="' + esc(u) + '"' + (u === selected ? " selected" : "") + ">" + esc(u) + "</option>";
+      });
+      html += "</select>";
+      return html;
+    }
+    function ensureUnitSelectValue(sel, value) {
+      if (!sel) return;
+      value = String(value || "pcs").trim() || "pcs";
+      var found = false;
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === value) { found = true; break; }
+      }
+      if (!found) {
+        var opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = value;
+        sel.appendChild(opt);
+      }
+      sel.value = value;
+    }
+    function fillUnitSelectEl(sel, selected) {
+      if (!sel) return;
+      selected = String(selected || "pcs").trim() || "pcs";
+      var opts = UNIT_OPTIONS.slice();
+      if (selected && opts.indexOf(selected) < 0) opts.push(selected);
+      sel.innerHTML = opts.map(function(u) {
+        return '<option value="' + esc(u) + '"' + (u === selected ? " selected" : "") + ">" + esc(u) + "</option>";
+      }).join("");
+      sel.value = selected;
+    }
+
     function massAltUnit(planUnit) {
       var n = normalizeMassUnit(planUnit);
       if (n === "kg") return "gr";
@@ -6733,7 +6781,7 @@
             if (input) input.value = id + (p && p.name ? " — " + p.name : "");
             const row = input && input.closest(".ord-line");
             const u = row && row.querySelector(".ol-unit");
-            if (p && p.unit && u && !u.dataset.touched) u.value = p.unit;
+            if (p && p.unit && u && !u.dataset.touched) { if (u.tagName === 'SELECT') ensureUnitSelectValue(u, p.unit); else u.value = p.unit; }
           }
         });
       });
@@ -7203,7 +7251,7 @@
         '<td><input type="text" class="ol-desc" placeholder="Description" value="' + esc(desc) + '" /></td>' +
         '<td><input class="ol-qty" type="text" inputmode="decimal" value="' +
           (line && line.qty != null ? formatInputNum(line.qty, true) : "") + '" /></td>' +
-        '<td><input class="ol-unit" value="' + esc((line && line.unit) || (pObj && pObj.unit) || "pcs") + '" /></td>' +
+        '<td>' + unitSelectHtml((line && line.unit) || (pObj && pObj.unit) || "pcs", "ol-unit") + '</td>' +
         '<td><button type="button" class="ol-del" title="Hapus">×</button></td>';
       box.appendChild(row);
       row.querySelector(".ol-del").onclick = function() { row.remove(); refreshOrdTotalQty(); };
@@ -7222,7 +7270,7 @@
             const p = (products || []).find(function(x) { return String(x.product_id) === String(id); });
             const u = row.querySelector(".ol-unit");
             const d = row.querySelector(".ol-desc");
-            if (p && p.unit && u && !u.dataset.touched) u.value = p.unit;
+            if (p && p.unit && u && !u.dataset.touched) { if (u.tagName === 'SELECT') ensureUnitSelectValue(u, p.unit); else u.value = p.unit; }
             if (p && d && !d.value) d.value = p.name || "";
             if (prodInp) prodInp.value = id + (p && p.name ? " — " + p.name : "");
           }
@@ -7454,7 +7502,7 @@
             var L = lines.find(function(x) { return String(x.product_id) === String(id); });
             if (L) {
               if ($("plSoTarget")) $("plSoTarget").value = L.qty || "";
-              if ($("plSoUnit")) $("plSoUnit").value = L.unit || "pcs";
+              if ($("plSoUnit")) fillUnitSelectEl($("plSoUnit"), L.unit || "pcs");
             }
             try { refreshPlanSoGilingBom(); } catch (e) {}
           }
@@ -7469,7 +7517,7 @@
       $("plSoShift").value = "1";
       $("plSoMachine").value = "";
       $("plSoTarget").value = "";
-      $("plSoUnit").value = "pcs";
+      fillUnitSelectEl($("plSoUnit"), "pcs");
       fillOperatorSelect("plSoOperator", "plSoOperatorHint", "");
       $("plSoHint").textContent = "";
       if ($("plSoSelect")) {
@@ -7636,7 +7684,7 @@
       $("plTarget").value = row
         ? formatInputNum(row.target_qty, true)
         : (defaults.target_qty != null && defaults.target_qty !== "" ? formatInputNum(defaults.target_qty, true) : "");
-      $("plUnit").value = row ? (row.unit || "pcs") : (defaults.unit || "pcs");
+      fillUnitSelectEl($("plUnit"), row ? (row.unit || "pcs") : (defaults.unit || "pcs"));
       var st = row ? (row.status || "open") : (defaults.status || "open");
       $("plStatus").value = st;
       // No SO — bisa diedit
@@ -8495,7 +8543,7 @@ function fillOperatorList(selectedEmail) {
       $("pId").disabled = !!row;
       $("pName").value = row ? row.name : "";
       $("pCategory").value = row ? (row.category || "fg") : "fg";
-      $("pUnit").value = row ? (row.unit || "pcs") : "pcs";
+      fillUnitSelectEl($("pUnit"), row ? (row.unit || "pcs") : "pcs");
       $("productModal").classList.add("show");
     }
     function closeProductModal() { $("productModal").classList.remove("show"); }
@@ -8536,7 +8584,7 @@ function fillOperatorList(selectedEmail) {
       $("mId").disabled = !!row;
       $("mName").value = row ? row.name : "";
       $("mLine").value = row ? (row.line || "-") : "-";
-      $("mUnit").value = row ? (row.unit || "pcs") : "pcs";
+      fillUnitSelectEl($("mUnit"), row ? (row.unit || "pcs") : "pcs");
       $("machineModal").classList.add("show");
     }
     function closeMachineModal() { $("machineModal").classList.remove("show"); }
@@ -11462,7 +11510,7 @@ function fillOperatorList(selectedEmail) {
         '<div class="ship-line" style="display:grid;grid-template-columns:1.4fr 0.7fr 0.5fr 32px;gap:0.4rem;margin-bottom:0.4rem">' +
           '<input class="sl-pid" placeholder="Kode FG" value="' + esc(line.product_id || "") + '" />' +
           '<input class="sl-qty num-input" inputmode="decimal" placeholder="Qty" value="' + (line.qty != null && line.qty !== "" ? esc(String(line.qty)) : "") + '" />' +
-          '<input class="sl-unit" placeholder="Unit" value="' + esc(line.unit || "pcs") + '" />' +
+          unitSelectHtml(line.unit || "pcs", "sl-unit") +
           '<button type="button" class="btn btn-ghost btn-sm" onclick="this.parentNode.remove()">×</button></div>');
       try { bindAllThousandInputs(); } catch (e) {}
     }
@@ -12747,6 +12795,12 @@ function fillOperatorList(selectedEmail) {
       if ($("waMachine")) $("waMachine").value = mid || "";
       if ($("waQty")) $("waQty").value = "";
       if ($("waMode")) $("waMode").value = "set";
+      try {
+        var u0 = "pcs";
+        var pr = (products || []).find(function(x) { return String(x.product_id) === String(pid || ""); });
+        if (pr && pr.unit) u0 = pr.unit;
+        fillUnitSelectEl($("waUnit"), u0);
+      } catch (eU) { try { fillUnitSelectEl($("waUnit"), "pcs"); } catch (e2) {} }
       $("wipAdjustModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { mountAllSearchCombos(); } catch (e) {}
@@ -13518,7 +13572,7 @@ function fillOperatorList(selectedEmail) {
       if ($("bomKemasan")) $("bomKemasan").value = formula ? (formula.kemasan || "") : "";
       if ($("bomIsiKemasan")) $("bomIsiKemasan").value = formula && formula.isi_kemasan != null ? formatInputNum(formula.isi_kemasan, true) : "";
       if ($("bomIsiKarton")) $("bomIsiKarton").value = formula && formula.isi_karton != null ? formatInputNum(formula.isi_karton, true) : "";
-      if ($("bomUnitBb")) $("bomUnitBb").value = formula && formula.unit_bb ? formula.unit_bb : "gr";
+      if ($("bomUnitBb")) fillUnitSelectEl($("bomUnitBb"), formula && formula.unit_bb ? formula.unit_bb : "gr");
       if ($("bomPoQty")) $("bomPoQty").value = "100";
       if ($("bomFormTitle")) $("bomFormTitle").textContent = "BOM · " + fg;
       if ($("bomFormSub")) $("bomFormSub").textContent = bomFgName(fg) || "Formula bahan baku & kemas";
@@ -14113,7 +14167,7 @@ function fillOperatorList(selectedEmail) {
         '<div class="do-line" style="display:grid;grid-template-columns:1.4fr 0.6fr 0.5fr 32px;gap:0.4rem;margin-bottom:0.4rem">' +
           '<input class="dol-pid" placeholder="Kode FG" value="' + esc(line.product_id || "") + '" />' +
           '<input class="dol-qty num-input" inputmode="decimal" placeholder="Qty" value="' + (line.qty != null ? esc(String(line.qty)) : "") + '" />' +
-          '<input class="dol-unit" placeholder="Unit" value="' + esc(line.unit || "pcs") + '" />' +
+          unitSelectHtml(line.unit || "pcs", "dol-unit") +
           '<button type="button" class="btn btn-ghost btn-sm" onclick="this.parentNode.remove()" style="color:#b91c1c">×</button>' +
         '</div>');
     }
@@ -15734,7 +15788,7 @@ function fillOperatorList(selectedEmail) {
             '<div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label>' +
               '<input class="pol-qty num-input" inputmode="decimal" placeholder="0" value="' + qtyVal + '" style="width:100%;box-sizing:border-box" /></div>' +
             '<div class="field" style="margin:0"><label style="font-size:0.72rem">Unit</label>' +
-              '<input class="pol-unit" value="' + esc(line.unit || (p && p.unit) || "pcs") + '" style="width:100%;box-sizing:border-box" /></div>' +
+              unitSelectHtml(line.unit || (p && p.unit) || "pcs", "pol-unit", null, "width:100%") + '</div>' +
             '<div class="field" style="margin:0"><label style="font-size:0.72rem">Diterima</label>' +
               '<input class="pol-recv num-input" inputmode="decimal" value="' + recvVal + '" style="width:100%;box-sizing:border-box" /></div>' +
             '<div class="field" style="margin:0;display:flex;align-items:flex-end">' +
@@ -16129,7 +16183,7 @@ function fillOperatorList(selectedEmail) {
         '<div class="pr-line" style="display:grid;grid-template-columns:1.4fr 0.7fr 0.5fr 32px;gap:0.4rem;margin-bottom:0.4rem;align-items:center">' +
           '<input class="prl-pid" placeholder="Kode bahan" list="prProdList" value="' + esc(line.product_id || "") + '" />' +
           '<input class="prl-qty num-input" inputmode="decimal" placeholder="Qty" value="' + (line.qty_needed != null ? esc(String(line.qty_needed)) : "") + '" />' +
-          '<input class="prl-unit" placeholder="Unit" value="' + esc(line.unit || "pcs") + '" />' +
+          unitSelectHtml(line.unit || "pcs", "prl-unit") +
           '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c" onclick="this.parentNode.remove()">×</button>' +
         '</div>');
       try {
@@ -18980,7 +19034,7 @@ function fillOperatorList(selectedEmail) {
         "<div class='field' style='margin:0'><label style='font-size:0.68rem'>Qty siap</label>" +
           "<input class='pl-prep num-input' placeholder='0' value='" + (line.qty_prepared != null ? formatInputNum(line.qty_prepared, true) : "") + "' /></div>" +
         "<div class='field' style='margin:0'><label style='font-size:0.68rem'>Satuan</label>" +
-          "<input class='pl-unit' placeholder='pcs' value='" + esc(line.unit || "pcs") + "' /></div>" +
+          unitSelectHtml(line.unit || "pcs", "pl-unit") + "</div>" +
         "<button type='button' class='btn btn-danger btn-sm' style='margin-bottom:2px' onclick=\"this.closest('.pick-line').remove()\">×</button></div>";
     }
     function pickAddLine(line) {
