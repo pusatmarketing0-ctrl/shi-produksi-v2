@@ -5899,8 +5899,19 @@
         <div id="rpEvalText">—</div>
         <p id="rpRevStatus" style="font-size:0.72rem;margin:0.4rem 0 0;color:#c2410c;display:none"></p>
       </div>
-      <div class="field"><label>Actual qty</label><input id="rpActual" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
-      <div class="field"><label>NG qty</label><input id="rpNg" type="number" min="0" step="any" value="0" inputmode="decimal" /></div>
+      <div class="field"><label>Actual qty</label>
+        <div style="display:grid;grid-template-columns:1fr 6.5rem;gap:0.4rem;align-items:center">
+          <input id="rpActual" type="text" inputmode="decimal" placeholder="0" class="input-thousand" />
+          <select id="rpUnit" title="Satuan input" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.4rem;font-family:inherit;font-size:0.85rem"></select>
+        </div>
+        <p id="rpUnitHint" style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0"></p>
+      </div>
+      <div class="field"><label>NG qty</label>
+        <div style="display:grid;grid-template-columns:1fr 6.5rem;gap:0.4rem;align-items:center">
+          <input id="rpNg" type="text" inputmode="decimal" value="0" class="input-thousand" />
+          <span id="rpNgUnit" style="font-size:0.8rem;color:var(--text-muted);text-align:center">—</span>
+        </div>
+      </div>
       <div class="field"><label>Downtime (menit)</label><input id="rpDt" type="number" min="0" step="1" value="0" inputmode="numeric" /></div>
       <div class="field" id="rpDtCatWrap">
         <label>Kategori kendala <span style="color:#b91c1c">*</span></label>
@@ -6296,6 +6307,41 @@
         const el = $(p[0]);
         if (el) bindThousandInput(el, p[1]);
       });
+    }
+
+
+    /** Normalisasi satuan massa & konversi gr <-> kg */
+    function normalizeMassUnit(u) {
+      u = String(u || "").trim().toLowerCase().replace(/\./g, "");
+      if (!u) return "";
+      if (u === "g" || u === "gr" || u === "gram" || u === "grams") return "gr";
+      if (u === "kg" || u === "kilogram" || u === "kilograms") return "kg";
+      if (u === "mg" || u === "milligram") return "mg";
+      if (u === "ton" || u === "t") return "ton";
+      return u;
+    }
+    function isMassUnit(u) {
+      var n = normalizeMassUnit(u);
+      return n === "gr" || n === "kg" || n === "mg" || n === "ton";
+    }
+    /** Konversi qty dari fromUnit ke toUnit (massa). Lainnya: 1:1 */
+    function convertQtyUnit(qty, fromUnit, toUnit) {
+      qty = Number(qty) || 0;
+      var f = normalizeMassUnit(fromUnit);
+      var t = normalizeMassUnit(toUnit);
+      if (!f || !t || f === t) return qty;
+      // ke gram dulu
+      var toGr = { mg: 0.001, gr: 1, kg: 1000, ton: 1000000 };
+      var fromGr = toGr[f];
+      var toU = toGr[t];
+      if (!(fromGr > 0) || !(toU > 0)) return qty;
+      return qty * fromGr / toU;
+    }
+    function massAltUnit(planUnit) {
+      var n = normalizeMassUnit(planUnit);
+      if (n === "kg") return "gr";
+      if (n === "gr") return "kg";
+      return "";
     }
 
     function formatNum(n, decimals) {
@@ -9701,6 +9747,24 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+
+    function updateRpUnitHint(pl) {
+      pl = pl || {};
+      var planUnit = pl.unit || "pcs";
+      var planT = Number(pl.target_qty) || 0;
+      var inpU = ($("rpUnit") && $("rpUnit").value) || planUnit;
+      var hint = $("rpUnitHint");
+      if (!hint) return;
+      if (!isMassUnit(planUnit) || normalizeMassUnit(inpU) === normalizeMassUnit(planUnit)) {
+        hint.textContent = "Disimpan dalam satuan plan: " + planUnit +
+          (planT > 0 ? " · Target " + formatNum(planT) + " " + planUnit : "");
+        return;
+      }
+      var eq = convertQtyUnit(planT, planUnit, inpU);
+      hint.innerHTML = "Target plan: <b>" + formatNum(planT) + " " + planUnit + "</b> ≈ <b>" +
+        formatNum(eq) + " " + inpU + "</b>. Qty yang diisi akan dikonversi otomatis ke <b>" + planUnit + "</b> saat simpan.";
+    }
+
     async function openReportModal(planId, existing) {
       const plan = reportPlanMap[planId] || reportPlans.find(p => p.plan_id === planId);
       if (!plan && !existing) return toast("Plan tidak ditemukan", true);
@@ -9757,8 +9821,36 @@ function fillOperatorList(selectedEmail) {
           $("rpRevStatus").textContent = "";
         }
       }
+      var planUnit = pl.unit || "pcs";
+      var rpUnitSel = $("rpUnit");
+      if (rpUnitSel) {
+        var opts = [];
+        var pu = normalizeMassUnit(planUnit) || planUnit;
+        opts.push({ v: planUnit, t: planUnit + " (satuan plan)" });
+        var alt = massAltUnit(planUnit);
+        if (alt) {
+          opts.push({ v: alt, t: alt + (alt === "gr" ? " (gram)" : alt === "kg" ? " (kilogram)" : "") });
+        }
+        // selalu sediakan gr/kg jika plan massa
+        if (isMassUnit(planUnit)) {
+          ["gr", "kg"].forEach(function(u) {
+            if (!opts.some(function(o) { return normalizeMassUnit(o.v) === u; })) {
+              opts.push({ v: u, t: u });
+            }
+          });
+        }
+        rpUnitSel.innerHTML = opts.map(function(o) {
+          return '<option value="' + esc(o.v) + '">' + esc(o.t) + "</option>";
+        }).join("");
+        rpUnitSel.value = planUnit;
+        rpUnitSel.onchange = function() { updateRpUnitHint(pl); };
+      }
+      if ($("rpNgUnit")) $("rpNgUnit").textContent = planUnit;
+      // existing actual disimpan dalam satuan plan
       $("rpActual").value = existing ? formatInputNum(existing.actual_qty, true) : "";
       $("rpNg").value = existing ? formatInputNum(existing.ng_qty || 0, true) : "0";
+      try { updateRpUnitHint(pl); } catch (eH) {}
+      try { bindAllThousandInputs(); } catch (eB) {}
       $("rpDt").value = existing ? formatInputNum(existing.downtime_min || 0, false) : "0";
       const rawReason = existing ? (existing.downtime_reason || "") : "";
       const cats = ["Machine", "Material", "Metode", "Man Power", "Plan"];
@@ -9806,8 +9898,16 @@ function fillOperatorList(selectedEmail) {
           }
         } catch (ePl) { console.warn(ePl); }
       }
-      const actual_qty = parseInputNum($("rpActual").value);
-      const ng_qty = parseInputNum($("rpNg").value);
+      const planUnitSave = (plan && plan.unit) || "pcs";
+      const inputUnit = (($("rpUnit") && $("rpUnit").value) || planUnitSave);
+      let actual_qty = parseInputNum($("rpActual").value);
+      let ng_qty = parseInputNum($("rpNg").value);
+      // konversi ke satuan plan (mis. isi gr → simpan kg)
+      if (isMassUnit(planUnitSave) && isMassUnit(inputUnit) &&
+          normalizeMassUnit(inputUnit) !== normalizeMassUnit(planUnitSave)) {
+        actual_qty = convertQtyUnit(actual_qty, inputUnit, planUnitSave);
+        ng_qty = convertQtyUnit(ng_qty, inputUnit, planUnitSave);
+      }
       const downtime_min = parseInputNum($("rpDt").value);
       const dtCat = (($("rpDtCategory") && $("rpDtCategory").value) || "").trim();
       const dtDetail = ($("rpDtReason").value || "").trim();
