@@ -3309,6 +3309,52 @@
       background: transparent !important;
     }
 
+
+    .plan-form-modal.modal.modal-sheet {
+      max-width: min(560px, 96vw) !important;
+    }
+    .plan-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem 0.75rem;
+    }
+    @media (max-width: 520px) {
+      .plan-form-grid { grid-template-columns: 1fr; }
+    }
+    #planModal .field {
+      margin-bottom: 0.7rem;
+    }
+    #planModal .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.3rem;
+    }
+    #planModal .field input,
+    #planModal .field select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: rgba(255,255,255,0.72);
+    }
+    #planModal .field input:focus,
+    #planModal .field select:focus {
+      outline: none;
+      border-color: rgba(13, 159, 110, 0.45);
+      box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.12);
+      background: #fff;
+    }
+    .plan-field-hint {
+      font-size: 0.72rem;
+      color: var(--text-dim, #94a3b8);
+      margin: 0.25rem 0 0;
+    }
+
     .odoo-form-total {
       font-size: 1rem;
       font-weight: 700;
@@ -5756,58 +5802,66 @@
   </div>
 
   <div id="planModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:480px">
+    <div class="modal modal-sheet plan-form-modal" style="max-width:560px">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <div class="sheet-head">
-        <h2 id="planModalTitle">Buat plan</h2>
+      <div class="sheet-head" style="padding-bottom:0.35rem">
+        <h2 id="planModalTitle" style="margin:0">Buat plan</h2>
       </div>
-      <div class="sheet-body">
-        <div class="field"><label>Tanggal</label><input id="plDate" type="date" /></div>
-        <div class="field"><label>Shift</label>
-          <select id="plShift">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-          </select>
+      <div class="sheet-body" style="padding-top:0.35rem">
+        <div class="plan-form-grid">
+          <div class="field"><label>Tanggal</label><input id="plDate" type="date" /></div>
+          <div class="field"><label>Shift</label>
+            <select id="plShift">
+              <option value="1">Shift 1</option>
+              <option value="2">Shift 2</option>
+              <option value="3">Shift 3</option>
+            </select>
+          </div>
         </div>
         <div class="field"><label>Produk</label>
-          <input id="plProduct" placeholder="Ketik kode atau nama..." autocomplete="off" onchange="refreshPlanGilingBom()" onblur="refreshPlanGilingBom()" />
+          <input id="plProduct" placeholder="Ketik kode atau nama produk..." autocomplete="off" onchange="refreshPlanGilingBom()" onblur="refreshPlanGilingBom()" />
           <datalist id="plProductList"></datalist>
         </div>
         <div class="field"><label>Proses</label>
-          <input id="plMachine" placeholder="Ketik kode atau nama..." autocomplete="off" onchange="refreshPlanGilingBom()" onblur="refreshPlanGilingBom()" />
+          <input id="plMachine" placeholder="Ketik kode atau nama proses..." autocomplete="off" onchange="refreshPlanGilingBom()" onblur="refreshPlanGilingBom()" />
           <datalist id="plMachineList"></datalist>
         </div>
-        <div class="field"><label>No SO</label>
-          <input id="plNoSo" placeholder="Ketik no SO / customer…" autocomplete="off" />
-          <p style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0">Bisa diubah saat edit · kosongkan untuk hapus tautan SO</p>
+        <div class="field"><label>No SO <span style="font-weight:500;color:var(--text-muted)">(opsional)</span></label>
+          <input id="plNoSo" placeholder="Ketik no SO / customer..." autocomplete="off" />
+          <p class="plan-field-hint">Kosongkan untuk hapus tautan SO</p>
         </div>
         <div id="plGilingBom"></div>
         <div id="plNormalFields">
-        <div class="field"><label>Target</label><input id="plTarget" type="number" min="0" step="any" placeholder="0" inputmode="decimal" /></div>
-        <div class="field"><label>Satuan</label><select id="plUnit"></select></div>
-        <div class="field"><label>Operator (dari database)</label>
-          <select id="plOperator">
-            <option value="">— Belum assign (draft) —</option>
-          </select>
-          <p id="plOperatorHint" style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0">Memuat daftar operator…</p>
+          <div class="plan-form-grid">
+            <div class="field"><label>Target</label>
+              <input id="plTarget" type="text" inputmode="decimal" placeholder="0" class="input-thousand" />
+            </div>
+            <div class="field"><label>Satuan</label>
+              <select id="plUnit"></select>
+            </div>
+          </div>
+          <div class="field"><label>Operator</label>
+            <select id="plOperator">
+              <option value="">— Belum assign (draft) —</option>
+            </select>
+            <p id="plOperatorHint" class="plan-field-hint">Pilih operator dari database</p>
+          </div>
         </div>
+        <div class="plan-form-grid">
+          <div class="field"><label>Status</label>
+            <select id="plStatus">
+              <option value="open">Open</option>
+              <option value="draft">Draft</option>
+              <option value="in_progress">In progress</option>
+              <option value="done">Done</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="field"><label>Target penilaian <span style="font-weight:500;color:var(--text-muted)">(opsional)</span></label>
+            <input id="plEvalTarget" type="text" inputmode="decimal" placeholder="Auto dari plan" class="input-thousand" />
+          </div>
         </div>
-        <div class="field"><label>Status</label>
-          <select id="plStatus">
-            <option value="open">open</option>
-            <option value="draft">draft</option>
-            <option value="in_progress">in_progress</option>
-            <option value="done">done</option>
-            <option value="cancelled">cancelled</option>
-          </select>
-        </div>
-        <div class="field" id="plEvalWrap">
-          <label>Target penilaian (opsional)</label>
-          <input id="plEvalTarget" type="number" min="0" step="any" placeholder="Kosong = pakai target plan / kapasitas proses" inputmode="decimal" />
-          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0">Untuk ranking. Bisa lebih kecil dari target plan jika overload.</p>
-        </div>
-        <div id="plRevInfo" style="display:none;font-size:0.78rem;padding:0.5rem 0.65rem;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;margin-bottom:0.5rem"></div>
+        <div id="plRevInfo" style="display:none;font-size:0.78rem;padding:0.55rem 0.7rem;border-radius:12px;background:rgba(255,247,237,0.85);border:1px solid #fed7aa;margin-bottom:0.35rem"></div>
       </div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closePlanModal()">Batal</button>
