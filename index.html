@@ -4152,7 +4152,11 @@
             <button class="btn btn-primary" type="button" onclick="openPlanChooser()">+ Buat plan</button>
           </div>
           <div class="toolbar">
-            <input type="date" id="planFilterDate" onchange="pageState.plans={page:1};loadPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
+            <span style="font-size:0.78rem;color:var(--text-muted);align-self:center">Dari</span>
+            <input type="date" id="planFilterDateFrom" onchange="pageState.plans={page:1};loadPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
+            <span style="font-size:0.78rem;color:var(--text-muted);align-self:center">s/d</span>
+            <input type="date" id="planFilterDateTo" onchange="pageState.plans={page:1};loadPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
+            <input type="hidden" id="planFilterDate" />
             <select id="planFilterShift" onchange="pageState.plans={page:1};renderPlans()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
               <option value="">Semua shift</option>
               <option value="1">Shift 1</option>
@@ -4201,7 +4205,11 @@
             </div>
           </div>
           <div class="toolbar">
-            <input type="date" id="reportFilterDate" onchange="loadReportsPage()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
+            <span style="font-size:0.78rem;color:var(--text-muted);align-self:center">Dari</span>
+            <input type="date" id="reportFilterDateFrom" onchange="loadReportsPage()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
+            <span style="font-size:0.78rem;color:var(--text-muted);align-self:center">s/d</span>
+            <input type="date" id="reportFilterDateTo" onchange="loadReportsPage()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
+            <input type="hidden" id="reportFilterDate" />
             <select id="reportFilterShift" onchange="renderReportTasks()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
               <option value="">Semua shift</option>
               <option value="1">Shift 1</option>
@@ -6877,21 +6885,55 @@
         '<option value="' + esc(m.machine_id) + '">' + esc(m.name) + "</option>"
       ).join("");
     }
+
+    function getFilterDateRange(fromId, toId, hiddenId) {
+      var fromEl = $(fromId), toEl = $(toId), hid = hiddenId ? $(hiddenId) : null;
+      var today = todayStr();
+      var from = (fromEl && fromEl.value) || "";
+      var to = (toEl && toEl.value) || "";
+      if (!from && !to) {
+        from = today;
+        to = today;
+        if (fromEl) fromEl.value = from;
+        if (toEl) toEl.value = to;
+      } else if (!from) {
+        from = to || today;
+        if (fromEl) fromEl.value = from;
+      } else if (!to) {
+        to = from;
+        if (toEl) toEl.value = to;
+      }
+      if (to < from) {
+        var tmp = from; from = to; to = tmp;
+        if (fromEl) fromEl.value = from;
+        if (toEl) toEl.value = to;
+      }
+      // sync hidden single-date (kompat kode lama = tanggal "dari")
+      if (hid) hid.value = from;
+      return { from: from, to: to };
+    }
+    function setFilterDateRange(fromId, toId, hiddenId, dateStr) {
+      dateStr = String(dateStr || todayStr()).slice(0, 10);
+      if ($(fromId)) $(fromId).value = dateStr;
+      if ($(toId)) $(toId).value = dateStr;
+      if (hiddenId && $(hiddenId)) $(hiddenId).value = dateStr;
+    }
+
     async function loadPlans() {
       if (!sb) return;
-      const dateEl = $("planFilterDate");
-      if (dateEl && !dateEl.value) dateEl.value = todayStr();
-      const date = dateEl ? dateEl.value : todayStr();
+      var range = getFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate");
+      var from = range.from, to = range.to;
       const { data, error } = await sb.from("plans")
         .select("*")
-        .eq("plan_date", date)
+        .gte("plan_date", from)
+        .lte("plan_date", to)
+        .order("plan_date")
         .order("shift")
         .order("product_id");
       if (error) { toast(error.message, true); return; }
       plans = data || [];
       renderPlans();
-      // update home kpi if same day
-      if (date === todayStr() && $("kpiPlans")) $("kpiPlans").textContent = formatNum(plans.length);
+      if (from === todayStr() && to === todayStr() && $("kpiPlans")) $("kpiPlans").textContent = formatNum(plans.length);
     }
     var planSortKey = "shift";
     var planSortDir = 1;
@@ -7513,7 +7555,7 @@
       fillPlanDatalists();
       try { await loadOperators(); } catch (e) { console.warn(e); }
       try { if (!(allOrders && allOrders.length)) await loadOrdersForPlan(); } catch (e2) {}
-      $("plSoDate").value = ($("planFilterDate") && $("planFilterDate").value) || todayStr();
+      $("plSoDate").value = (($("planFilterDateFrom") && $("planFilterDateFrom").value) || ($("planFilterDate") && $("planFilterDate").value) || todayStr());
       $("plSoShift").value = "1";
       $("plSoMachine").value = "";
       $("plSoTarget").value = "";
@@ -7603,7 +7645,7 @@
           await bulkInsertPlans(packed.rows);
           toast(packed.rows.length + " plan giling dari SO disimpan");
           closePlanSoModal();
-          if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+          setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", plan_date);
           await loadPlans();
           try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e) {}
           return;
@@ -7626,7 +7668,7 @@
       if (error) return toast(error.message, true);
       toast("Plan dari SO disimpan");
       closePlanSoModal();
-      if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+      setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", plan_date);
       await loadPlans();
     });
 
@@ -7659,7 +7701,7 @@
 
       var dateVal = row
         ? String(row.plan_date || "").slice(0, 10)
-        : String(defaults.plan_date || ($("planFilterDate") && $("planFilterDate").value) || todayStr()).slice(0, 10);
+        : String(defaults.plan_date || (($("planFilterDateFrom") && $("planFilterDateFrom").value) || ($("planFilterDate") && $("planFilterDate").value) || todayStr())).slice(0, 10);
       $("plDate").value = dateVal;
 
       $("plShift").value = row
@@ -7860,7 +7902,7 @@
           await bulkInsertPlans(packed.rows);
           toast(packed.rows.length + " plan giling (bahan) disimpan");
           closePlanModal();
-          if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+          setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", plan_date);
           try { await loadPlans(); } catch (e) {}
           try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e2) {}
           return;
@@ -7914,7 +7956,7 @@
       if (error) return toast(error.message, true);
       toast("Plan disimpan");
       closePlanModal();
-      if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+      setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", plan_date);
       await loadPlans();
       try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e3) {}
     });
@@ -9492,14 +9534,14 @@ function fillOperatorList(selectedEmail) {
     async function loadReportsPage() {
       if (!sb) return;
       try { if (!(operators && operators.length)) await loadOperators(); } catch (eOp) {}
-      const dateEl = $("reportFilterDate");
-      if (dateEl && !dateEl.value) dateEl.value = todayStr();
-      const date = dateEl ? dateEl.value : todayStr();
+      var range = getFilterDateRange("reportFilterDateFrom", "reportFilterDateTo", "reportFilterDate");
+      var from = range.from, to = range.to;
+      const date = from; // kompat referensi lama
       const email = (currentUser && currentUser.email) || "";
       const onlyMine = (currentRole() === "operator");
 
-      // plans for day
-      let q = sb.from("plans").select("*").eq("plan_date", date).in("status", ["open","in_progress","draft","done"]);
+      // plans in date range
+      let q = sb.from("plans").select("*").gte("plan_date", from).lte("plan_date", to).in("status", ["open","in_progress","draft","done"]);
       if (onlyMine && email) {
         q = q.eq("assigned_operator", email);
       } else if (!isStaffRole() && email) {
@@ -9525,7 +9567,7 @@ function fillOperatorList(selectedEmail) {
       }
       // staff: juga ambil reports by date; operator: JANGAN (supaya tidak tarik plan orang lain)
       if (!onlyMine) {
-        const { data: r2 } = await sb.from("reports").select("*").eq("report_date", date).order("created_at", { ascending: false });
+        const { data: r2 } = await sb.from("reports").select("*").gte("report_date", from).lte("report_date", to).order("created_at", { ascending: false });
         const byId = {};
         (reports || []).concat(r2 || []).forEach(r => { byId[r.report_id] = r; });
         reportRows = Object.values(byId);
@@ -10050,7 +10092,7 @@ function fillOperatorList(selectedEmail) {
       fillPlanDatalists();
       try { loadOperators(); } catch (e) {}
       try { if (!(machines && machines.length)) loadMachines(); } catch (eM) {}
-      $("ppDate").value = ($("planFilterDate") && $("planFilterDate").value) || todayStr();
+      $("ppDate").value = (($("planFilterDateFrom") && $("planFilterDateFrom").value) || ($("planFilterDate") && $("planFilterDate").value) || todayStr());
       $("ppShift").value = "1";
       $("ppProduct").value = "";
       $("ppSteps").innerHTML = "";
@@ -10564,7 +10606,7 @@ function fillOperatorList(selectedEmail) {
       await bulkInsertPlans(rows);
       toast(rows.length + " plan tersimpan" + (bomToSave.length ? " · BOM diperbarui" : ""));
       closePlanProductModal();
-      if ($("planFilterDate")) $("planFilterDate").value = plan_date;
+      setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", plan_date);
       await loadPlans();
     });
 
@@ -17575,7 +17617,7 @@ function fillOperatorList(selectedEmail) {
       if (skipped.length) msg += ", " + skipped.length + " dilewati (produk/tanggal)";
       toast(msg, fail > 0 || skipped.length > ok);
       if (skipped.length) console.warn("Plan dilewati:", skipped.slice(0, 30));
-      if ($("planFilterDate") && firstDate) $("planFilterDate").value = firstDate;
+      if (firstDate) setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", firstDate);
       await loadPlans();
     }
     
@@ -18907,7 +18949,7 @@ function fillOperatorList(selectedEmail) {
       if ($("hdPager")) $("hdPager").innerHTML = buildPagerHtml(hdPage, pages, from, to, list.length, "hdSetPage(");
     }
     function homeOpenPlan(planId) {
-      if ($("planFilterDate")) $("planFilterDate").value = ($("hdDate") && $("hdDate").value) || todayStr();
+      setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", ($("hdDate") && $("hdDate").value) || todayStr());
       goPage("plans");
       toast("Buka menu Plan · tanggal diset ke hari beranda");
     }
