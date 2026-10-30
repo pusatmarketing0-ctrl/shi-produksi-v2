@@ -3023,6 +3023,146 @@
     /* OT list cards */
     .ot-list { display: flex; flex-direction: column; gap: 0.55rem; padding: 0.65rem; }
 
+
+    .odoo-form-modal.modal.modal-sheet {
+      max-width: min(960px, 96vw) !important;
+      width: min(960px, 96vw);
+    }
+    .odoo-form-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 1rem;
+      letter-spacing: -0.01em;
+    }
+    .odoo-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.35rem 2rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 700px) {
+      .odoo-form-grid { grid-template-columns: 1fr; }
+    }
+    .odoo-form-row {
+      display: grid;
+      grid-template-columns: 7.5rem 1fr;
+      gap: 0.5rem;
+      align-items: start;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .odoo-form-row label {
+      font-size: 0.78rem;
+      color: #64748b;
+      padding-top: 0.55rem;
+      font-weight: 500;
+    }
+    .odoo-form-row input,
+    .odoo-form-row select,
+    .odoo-form-row textarea {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 0.45rem 0.5rem;
+      font-family: inherit;
+      font-size: 0.875rem;
+      background: transparent;
+      width: 100%;
+    }
+    .odoo-form-row input:hover,
+    .odoo-form-row select:hover,
+    .odoo-form-row textarea:hover {
+      background: #f8fafc;
+    }
+    .odoo-form-row input:focus,
+    .odoo-form-row select:focus,
+    .odoo-form-row textarea:focus {
+      outline: none;
+      border-color: #714B67;
+      background: #fff;
+      box-shadow: 0 0 0 1px #714B67;
+    }
+    .odoo-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid #e2e8f0;
+      margin: 0.5rem 0 0;
+    }
+    .odoo-tab {
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      margin-bottom: -1px;
+    }
+    .odoo-tab.active {
+      color: #714B67;
+      border-bottom-color: #714B67;
+    }
+    .odoo-lines-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 0.5rem;
+    }
+    .odoo-lines-table thead th {
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-align: left;
+      padding: 0.5rem 0.55rem;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .odoo-lines-table tbody td {
+      padding: 0.35rem 0.4rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .odoo-lines-table input {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 0.35rem 0.4rem;
+      font-family: inherit;
+      font-size: 0.82rem;
+      background: transparent;
+    }
+    .odoo-lines-table input:focus {
+      outline: none;
+      border-color: #714B67;
+      background: #fff;
+    }
+    .odoo-lines-table .ol-del {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.2rem 0.4rem;
+    }
+    .odoo-lines-table .ol-del:hover { color: #b91c1c; }
+    .odoo-form-foot-note {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+    }
+    .odoo-form-total {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e293b;
+      text-align: right;
+    }
+
     .odoo-list {
       width: 100%;
       border-collapse: collapse;
@@ -5301,7 +5441,7 @@
   </div>
 
   <div id="otModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:560px;padding-top:0.35rem">
+    <div class="modal modal-sheet odoo-form-modal" style="padding-top:0.35rem">
       <div class="sheet-handle"></div>
       <div class="ot-modal-banner">
         <div>
@@ -5312,11 +5452,22 @@
       </div>
       <div class="sheet-body" style="padding-top:0.35rem">
         <input type="hidden" id="otEditId" />
-        <div class="field"><label>Customer akhir</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
-        <div class="field"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
-        <div class="ot-section-title">
+        <div class="odoo-form-grid">
+          <div>
+            <div class="odoo-form-row"><label>Customer</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
+            <div class="odoo-form-row"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
+          </div>
+          <div>
+            <div class="odoo-form-row"><label>SO Trading</label><input id="otSoTradingNoHead" placeholder="No SO ke customer" /></div>
+            <div class="odoo-form-row"><label>SO Odoo</label><input id="otNoSoHead" placeholder="SO/2026/..." /></div>
+          </div>
+        </div>
+        <div class="odoo-tabs">
+          <button type="button" class="odoo-tab active">Order Lines</button>
+        </div>
+        <div class="ot-section-title" style="margin-top:0.5rem">
           Baris produk
-          <button type="button" class="btn btn-ghost btn-sm ot-sec-act" onclick="otAddLine()">+ Baris</button>
+          <button type="button" class="btn btn-ghost btn-sm ot-sec-act" onclick="otAddLine()">+ Add a product</button>
         </div>
         <div id="otLines"></div>
         <div id="otFilesBox" class="ot-files-premium" style="display:none">
@@ -5351,36 +5502,62 @@
   </div>
 
   <div id="orderModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:520px">
+    <div class="modal modal-sheet odoo-form-modal">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <div class="sheet-head">
-        <h2 id="orderModalTitle">Input Sales Order</h2>
-      </div>
-      <div class="sheet-body">
-        <input type="hidden" id="ordEditId" />
-        <div class="field"><label>No SO</label><input id="ordNoSo" placeholder="SO/2026/..." autocomplete="off" /></div>
-        <div class="field"><label>Customer</label>
-          <input id="ordCustomer" placeholder="Pilih atau ketik nama customer..." autocomplete="off" />
-          <datalist id="customerList"></datalist>
-        </div>
-        <div class="field"><label>Tanggal SO</label><input id="ordDate" type="date" /></div>
-        <div class="field"><label>Status</label>
-          <select id="ordStatus">
-            <option value="draft">draft</option>
-            <option value="confirmed">confirmed</option>
-            <option value="in_production">in_production</option>
-            <option value="partial">partial</option>
-            <option value="completed">completed</option>
-            <option value="closed">closed</option>
-            <option value="cancelled">cancelled</option>
+      <div class="sheet-head" style="padding-bottom:0.25rem">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
+          <h2 class="odoo-form-title" id="orderModalTitle">Sales Order</h2>
+          <select id="ordStatus" style="border:1px solid #e2e8f0;border-radius:8px;padding:0.35rem 0.6rem;font-size:0.82rem;font-weight:600;color:#065f46;background:#ecfdf5">
+            <option value="draft">Quotation</option>
+            <option value="confirmed">Locked / Confirmed</option>
+            <option value="in_production">In Production</option>
+            <option value="partial">Partial</option>
+            <option value="completed">Completed</option>
+            <option value="closed">Closed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
-        <div class="field"><label>Catatan</label><input id="ordNotes" placeholder="opsional" autocomplete="off" /></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.75rem 0 0.5rem">
-          <strong style="font-size:0.9rem">Baris produk</strong>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="addOrderLineRow()">+ Produk</button>
+      </div>
+      <div class="sheet-body" style="padding-top:0.25rem">
+        <input type="hidden" id="ordEditId" />
+        <div class="odoo-form-grid">
+          <div>
+            <div class="odoo-form-row"><label>Number</label><input id="ordNoSo" placeholder="SO/2026/..." autocomplete="off" /></div>
+            <div class="odoo-form-row"><label>Customer</label>
+              <input id="ordCustomer" placeholder="Pilih atau ketik customer..." autocomplete="off" />
+              <datalist id="customerList"></datalist>
+            </div>
+            <div class="odoo-form-row"><label>Catatan</label><input id="ordNotes" placeholder="opsional" autocomplete="off" /></div>
+          </div>
+          <div>
+            <div class="odoo-form-row"><label>Order Date</label><input id="ordDate" type="date" /></div>
+            <div class="odoo-form-row"><label>Salesperson</label><input id="ordSalesperson" placeholder="auto dari login" autocomplete="off" /></div>
+          </div>
         </div>
-        <div id="ordLines"></div>
+        <div class="odoo-tabs">
+          <button type="button" class="odoo-tab active" id="ordTabLines">Order Lines</button>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:0.35rem">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addOrderLineRow()">+ Add a product</button>
+        </div>
+        <div style="overflow:auto">
+          <table class="odoo-lines-table">
+            <thead>
+              <tr>
+                <th style="min-width:12rem">Product</th>
+                <th style="min-width:8rem">Description</th>
+                <th style="width:6.5rem">Quantity</th>
+                <th style="width:5rem">UoM</th>
+                <th style="width:2.2rem"></th>
+              </tr>
+            </thead>
+            <tbody id="ordLines"></tbody>
+          </table>
+        </div>
+        <div class="odoo-form-foot-note">
+          <div style="font-size:0.78rem;color:#64748b;max-width:28rem" id="ordFootNote">Isi baris produk lalu simpan. Status Quotation = draft.</div>
+          <div class="odoo-form-total">Total Qty: <span id="ordTotalQty">0</span></div>
+        </div>
       </div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeOrderModal()">Batal</button>
@@ -6773,44 +6950,55 @@
       }
     }
 
+    function refreshOrdTotalQty() {
+      var total = 0;
+      document.querySelectorAll("#ordLines .ol-qty").forEach(function(el) {
+        total += parseInputNum(el.value) || 0;
+      });
+      if ($("ordTotalQty")) $("ordTotalQty").textContent = formatNum(total);
+    }
     function addOrderLineRow(line) {
       const box = $("ordLines");
       if (!box) return;
-      const row = document.createElement("div");
+      const row = document.createElement("tr");
       row.className = "ord-line";
-      row.style.cssText = "border:1px solid var(--border);border-radius:12px;padding:0.75rem;margin-bottom:0.5rem;background:#fafdfb";
       const pid = line && line.product_id ? line.product_id : "";
       const pObj = (products || []).find(function(x) { return String(x.product_id) === String(pid); });
       const display = pid ? (pid + (pObj && pObj.name ? " — " + pObj.name : "")) : "";
+      const desc = (line && line.notes) || (pObj && pObj.name) || "";
       row.innerHTML =
-        '<div class="field" style="margin-bottom:0.5rem"><label>Produk</label>' +
-        '<input type="text" class="ol-product" placeholder="Ketik kode / nama produk..." value="' + esc(display) + '" autocomplete="off" /></div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.45rem;align-items:end">' +
-        '<div class="field" style="margin:0"><label>Qty</label><input class="ol-qty" type="text" inputmode="decimal" value="' +
-        (line ? formatInputNum(line.qty, true) : "") + '" /></div>' +
-        '<div class="field" style="margin:0"><label>Satuan</label><input class="ol-unit" value="' + esc((line && line.unit) || (pObj && pObj.unit) || "pcs") + '" /></div>' +
-        '<button type="button" class="btn btn-danger btn-sm ol-del" style="margin-bottom:2px">Hapus</button></div>';
+        '<td><input type="text" class="ol-product" placeholder="Kode / nama produk..." value="' + esc(display) + '" autocomplete="off" /></td>' +
+        '<td><input type="text" class="ol-desc" placeholder="Description" value="' + esc(desc) + '" /></td>' +
+        '<td><input class="ol-qty" type="text" inputmode="decimal" value="' +
+          (line && line.qty != null ? formatInputNum(line.qty, true) : "") + '" /></td>' +
+        '<td><input class="ol-unit" value="' + esc((line && line.unit) || (pObj && pObj.unit) || "pcs") + '" /></td>' +
+        '<td><button type="button" class="ol-del" title="Hapus">×</button></td>';
       box.appendChild(row);
-      row.querySelector(".ol-del").onclick = function() { row.remove(); };
+      row.querySelector(".ol-del").onclick = function() { row.remove(); refreshOrdTotalQty(); };
       const qtyEl = row.querySelector(".ol-qty");
-      if (qtyEl) bindThousandInput(qtyEl, true);
+      if (qtyEl) {
+        bindThousandInput(qtyEl, true);
+        qtyEl.addEventListener("input", refreshOrdTotalQty);
+      }
       const prodInp = row.querySelector(".ol-product");
       if (prodInp) {
-        // reset so attach can bind again
         prodInp.dataset.scBound = "";
         attachSearchCombo(prodInp, scItemsProduct, {
           valueMode: "id",
-          placeholder: "Ketik kode / nama produk...",
+          placeholder: "Kode / nama produk...",
           onPick: function(id) {
             const p = (products || []).find(function(x) { return String(x.product_id) === String(id); });
             const u = row.querySelector(".ol-unit");
+            const d = row.querySelector(".ol-desc");
             if (p && p.unit && u && !u.dataset.touched) u.value = p.unit;
+            if (p && d && !d.value) d.value = p.name || "";
             if (prodInp) prodInp.value = id + (p && p.name ? " — " + p.name : "");
           }
         });
       }
       const unitInp = row.querySelector(".ol-unit");
       if (unitInp) unitInp.addEventListener("input", function() { unitInp.dataset.touched = "1"; });
+      refreshOrdTotalQty();
     }
 
     function openOrderModal(orderId) {
@@ -6826,6 +7014,11 @@
       $("ordNoSo").value = row ? (row.no_so || "") : "";
       $("ordCustomer").value = row ? (row.customer_name || "") : "";
       $("ordDate").value = row ? (row.order_date || todayStr()) : todayStr();
+      if ($("ordSalesperson")) {
+        $("ordSalesperson").value = row
+          ? (row.salesperson || row.created_by || "")
+          : ((currentUser && (currentUser.email || currentProfile && currentProfile.name)) || "");
+      }
       $("ordStatus").value = row ? (row.status || "confirmed") : "confirmed";
       $("ordNotes").value = row ? (row.notes || "") : "";
       const lines = row ? (row.order_lines || []) : [];
@@ -19905,6 +20098,8 @@ function closeOtModal() {
       if ($("otSoTradingNo")) $("otSoTradingNo").value = "";
       if ($("otSoTradingNote")) $("otSoTradingNote").value = "";
       if ($("otNoSo")) $("otNoSo").value = "";
+      if ($("otSoTradingNoHead")) $("otSoTradingNoHead").value = "";
+      if ($("otNoSoHead")) $("otNoSoHead").value = "";
       if ($("otDpNote")) $("otDpNote").value = "";
       if ($("otLines")) $("otLines").innerHTML = "";
       if ($("otTimeline")) $("otTimeline").innerHTML = "";
@@ -19941,6 +20136,8 @@ function closeOtModal() {
         if ($("otSoTradingNo")) $("otSoTradingNo").value = row.so_trading_no || "";
         if ($("otSoTradingNote")) $("otSoTradingNote").value = row.so_trading_note || "";
         if ($("otNoSo")) $("otNoSo").value = row.no_so || "";
+        if ($("otSoTradingNoHead")) $("otSoTradingNoHead").value = row.so_trading_no || "";
+        if ($("otNoSoHead")) $("otNoSoHead").value = row.no_so || "";
         if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
 
         var lines = otLinesCache[otId] || [];
@@ -20323,6 +20520,16 @@ function closeOtModal() {
       return lines;
     }
     async function saveOrderTrading() {
+      // sinkron header odoo-style ke field status
+      try {
+        if ($("otSoTradingNoHead") && $("otSoTradingNoHead").value) {
+          if ($("otSoTradingNo")) $("otSoTradingNo").value = $("otSoTradingNoHead").value;
+        }
+        if ($("otNoSoHead") && $("otNoSoHead").value) {
+          if ($("otNoSo")) $("otNoSo").value = $("otNoSoHead").value;
+        }
+      } catch (eSync) {}
+
       if (!sb) return;
       const role = currentRole();
       if (!(role === "marketing" || role === "admin")) return toast("Hanya Marketing yang membuat Order Trading", true);
