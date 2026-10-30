@@ -3022,6 +3022,81 @@
   
     /* OT list cards */
     .ot-list { display: flex; flex-direction: column; gap: 0.55rem; padding: 0.65rem; }
+
+    .odoo-list {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .odoo-list thead th {
+      background: #f8fafb;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: none;
+      letter-spacing: 0.01em;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .odoo-list tbody td {
+      padding: 0.7rem 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      color: #334155;
+    }
+    .odoo-list tbody tr {
+      cursor: pointer;
+      transition: background .12s ease;
+    }
+    .odoo-list tbody tr:hover {
+      background: #f0fdf4;
+    }
+    .odoo-list .odoo-num {
+      color: #714B67;
+      font-weight: 600;
+    }
+    .odoo-list .odoo-num:hover { text-decoration: underline; }
+    .odoo-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .odoo-pill.locked { background: #d1fae5; color: #065f46; }
+    .odoo-pill.quotation { background: #e0f2fe; color: #0369a1; }
+    .odoo-pill.progress { background: #fef3c7; color: #92400e; }
+    .odoo-pill.done { background: #e2e8f0; color: #475569; }
+    .odoo-pill.cancel { background: #fee2e2; color: #991b1b; }
+    .odoo-pill.invoice-full { background: #d1fae5; color: #065f46; }
+    .odoo-pill.invoice-none { background: #f1f5f9; color: #64748b; }
+    .odoo-pill.invoice-to { background: #ffedd5; color: #9a3412; }
+    .odoo-avatar {
+      display: inline-flex;
+      width: 1.55rem; height: 1.55rem;
+      border-radius: 999px;
+      align-items: center; justify-content: center;
+      background: #ecfdf5; color: #047857;
+      font-size: 0.7rem; font-weight: 800;
+      margin-right: 0.4rem;
+      flex-shrink: 0;
+    }
+    .odoo-person {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15rem;
+      max-width: 180px;
+    }
+    .odoo-person span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .ot-card {
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -3958,10 +4033,16 @@
           </div>
           <div id="orderCards" class="mobile-cards mobile-only"></div>
           <div class="table-wrap desk-only-table">
-            <table>
+            <table class="odoo-list">
               <thead>
                 <tr>
-                  <th>No SO</th><th>Customer</th><th>Tanggal</th><th>Status</th><th>Baris</th><th>Qty</th><th></th>
+                  <th>Number</th>
+                  <th>Creation Date</th>
+                  <th>Customer</th>
+                  <th>Salesperson</th>
+                  <th style="text-align:right">Total Qty</th>
+                  <th>Status</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="orderBody"></tbody>
@@ -6580,6 +6661,33 @@
     }
 
 
+
+    function odooSoStatusPill(st) {
+      st = String(st || "").toLowerCase();
+      if (st === "draft") return '<span class="odoo-pill quotation">Quotation</span>';
+      if (st === "confirmed" || st === "locked") return '<span class="odoo-pill locked">Locked</span>';
+      if (st === "in_production" || st === "partial") return '<span class="odoo-pill progress">' + (st === "partial" ? "Partial" : "In Production") + '</span>';
+      if (st === "completed" || st === "closed" || st === "done") return '<span class="odoo-pill done">Done</span>';
+      if (st === "cancelled" || st === "canceled") return '<span class="odoo-pill cancel">Cancelled</span>';
+      return '<span class="odoo-pill locked">' + esc(st || "—") + '</span>';
+    }
+    function odooPersonHtml(emailOrName) {
+      var s = String(emailOrName || "").trim();
+      if (!s) return '<span style="color:#94a3b8">—</span>';
+      var name = s;
+      if (s.indexOf("@") >= 0) name = s.split("@")[0].replace(/[._]/g, " ");
+      name = name.replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      var ini = (name.split(/\s+/).map(function(w) { return w.charAt(0); }).join("") || "?").slice(0, 2).toUpperCase();
+      return '<span class="odoo-person"><span class="odoo-avatar">' + esc(ini) + '</span><span title="' + esc(s) + '">' + esc(name) + '</span></span>';
+    }
+    function odooFmtDate(d) {
+      if (!d) return "—";
+      var s = String(d).slice(0, 10);
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return esc(s);
+      var p = s.split("-");
+      return p[2] + "/" + p[1] + "/" + p[0];
+    }
+
     function renderOrders() {
       const body = $("orderBody");
       const cards = $("orderCards");
@@ -6616,13 +6724,15 @@
           var pageList = pageOf("orders", list, "orderPager");
           body.innerHTML = pageList.map(o => {
             const n = (o.order_lines || []).length;
-            return '<tr style="cursor:pointer" data-oid="' + encodeURIComponent(o.order_id) + '">' +
-              '<td class="mono"><strong>' + esc(o.no_so) + '</strong></td>' +
+            const sp = o.salesperson || o.sales_person || o.created_by || o.owner || "";
+            return '<tr data-oid="' + encodeURIComponent(o.order_id) + '">' +
+              '<td><span class="odoo-num">' + esc(o.no_so || o.order_id) + '</span></td>' +
+              '<td>' + odooFmtDate(o.order_date || o.created_at) + '</td>' +
               '<td>' + esc(o.customer_name || "—") + '</td>' +
-              '<td class="mono">' + esc(o.order_date || "—") + '</td>' +
-              '<td>' + statusPill(o.status) + '</td>' +
-              '<td>' + formatNum(n) + '</td>' +
-              '<td><strong>' + formatNum(lineQty(o)) + '</strong></td>' +
+              '<td>' + odooPersonHtml(sp) + '</td>' +
+              '<td style="text-align:right"><strong>' + formatNum(lineQty(o)) + '</strong>' +
+                (n ? '<div style="font-size:0.68rem;color:#94a3b8">' + formatNum(n) + ' line</div>' : '') + '</td>' +
+              '<td>' + odooSoStatusPill(o.status) + '</td>' +
               '<td><button type="button" class="btn btn-ghost btn-sm" data-edit="' + encodeURIComponent(o.order_id) + '">Edit</button></td></tr>';
           }).join("");
           body.querySelectorAll("[data-oid]").forEach(tr => {
@@ -19331,36 +19441,64 @@ var id = await newPickId();
         });
       }
       if (!rows.length) {
-        box.innerHTML = "<div class='ot-list'><div style='padding:2rem;color:var(--text-muted);text-align:center'>Belum ada Order Trading</div></div>";
+        box.innerHTML = "<div style='padding:2rem;color:var(--text-muted);text-align:center'>Belum ada Order Trading</div>";
         return;
       }
-      let html = "<div class='ot-list'>";
+      function otOdooStatus(st) {
+        st = String(st || "").toLowerCase();
+        if (st === "draft") return '<span class="odoo-pill quotation">Draft</span>';
+        if (st === "dp" || st === "waiting_dp") return '<span class="odoo-pill progress">Waiting DP</span>';
+        if (st === "confirmed" || st === "trading") return '<span class="odoo-pill locked">Trading</span>';
+        if (st === "terbit_produksi" || st === "done") return '<span class="odoo-pill locked">Terbit Produksi</span>';
+        if (st === "cancelled" || st === "canceled") return '<span class="odoo-pill cancel">Cancelled</span>';
+        return '<span class="odoo-pill quotation">' + esc(otStatusLabel(st)) + '</span>';
+      }
+      var html = '<table class="odoo-list"><thead><tr>' +
+        '<th>Number</th><th>Creation Date</th><th>Customer</th><th>SO / Ref</th>' +
+        '<th style="text-align:right">Total</th><th>Status</th><th></th>' +
+        '</tr></thead><tbody>';
       rows.forEach(function(r) {
-        const lines = otLinesCache[r.ot_id] || [];
-        const prodHtml = lines.slice(0, 4).map(function(l) {
-          var d = (typeof otProductDisplay === "function") ? otProductDisplay(l.product_id) : { name: "", id: l.product_id };
-          var nm = d.name || d.id || l.product_id;
-          return "<div><strong>" + esc(nm) + "</strong>" +
-            (d.id && d.name ? " <span style='opacity:0.7'>(" + esc(d.id) + ")</span>" : "") +
-            " · " + formatNum(l.qty) + "</div>";
-        }).join("") + (lines.length > 4 ? "<div>+" + (lines.length - 4) + " produk lain</div>" : "");
-        const ref = [];
-        if (r.so_trading_no) ref.push("SO Trading: " + esc(r.so_trading_no));
-        if (r.no_so) ref.push("SO Odoo: " + esc(r.no_so));
-        html += "<div class='ot-card' onclick='openOtModal(" + JSON.stringify(r.ot_id) + ")'>" +
-          "<div>" +
-            "<div class='ot-card-id'>" + esc(r.ot_id) + "</div>" +
-            "<div class='ot-card-cust'>" + esc(r.customer_name || "—") + "</div>" +
-            "<div class='ot-card-prods'>" + (prodHtml || "—") + "</div>" +
-            (ref.length ? "<div class='ot-card-ref'>" + ref.join(" · ") + "</div>" : "") +
-          "</div>" +
-          "<div class='ot-card-right'>" +
-            "<span class='" + otStatusClass(r.status) + "'>" + esc(otStatusLabel(r.status)) + "</span>" +
-            "<button type='button' class='btn btn-ghost btn-sm' onclick='event.stopPropagation();openOtModal(" + JSON.stringify(r.ot_id) + ")'>Detail →</button>" +
-          "</div></div>";
+        var lines = otLinesCache[r.ot_id] || [];
+        var total = 0, qty = 0;
+        lines.forEach(function(ln) {
+          var q = Number(ln.qty) || 0;
+          var h = Number(ln.harga) || 0;
+          qty += q;
+          total += q * h;
+        });
+        var ref = r.so_trading_no || r.no_so || "—";
+        var person = r.created_by || r.salesperson || "";
+        var totalTxt = total > 0
+          ? "Rp " + formatNum(total)
+          : (qty > 0 ? formatNum(qty) + " qty" : "—");
+        html += '<tr data-otid="' + esc(r.ot_id) + '">' +
+          '<td><span class="odoo-num">' + esc(r.ot_id) + '</span></td>' +
+          '<td>' + odooFmtDate(r.created_at || r.ot_date || r.updated_at) + '</td>' +
+          '<td>' + esc(r.customer_name || "—") + '</td>' +
+          '<td style="font-size:0.82rem">' + esc(ref) +
+            (person ? '<div style="margin-top:0.2rem">' + odooPersonHtml(person) + '</div>' : '') +
+          '</td>' +
+          '<td style="text-align:right;font-weight:600">' + totalTxt +
+            (lines.length ? '<div style="font-size:0.68rem;color:#94a3b8;font-weight:500">' + lines.length + ' line</div>' : '') +
+          '</td>' +
+          '<td>' + otOdooStatus(r.status) + '</td>' +
+          '<td><button type="button" class="btn btn-ghost btn-sm ot-open-btn" data-otid="' + esc(r.ot_id) + '">Detail</button></td>' +
+        '</tr>';
       });
-      html += "</div>";
+      html += '</tbody></table>';
       box.innerHTML = html;
+      box.querySelectorAll("tr[data-otid]").forEach(function(tr) {
+        tr.onclick = function(e) {
+          if (e.target && e.target.closest && e.target.closest("button")) return;
+          openOtModal(tr.getAttribute("data-otid"));
+        };
+      });
+      box.querySelectorAll(".ot-open-btn").forEach(function(btn) {
+        btn.onclick = function(e) {
+          e.stopPropagation();
+          openOtModal(btn.getAttribute("data-otid"));
+        };
+      });
     }
 
         
