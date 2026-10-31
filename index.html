@@ -7809,9 +7809,9 @@
         try {
           if (typeof attachSearchCombo === "function" && typeof scItemsPickSo === "function") {
             $("plNoSo").dataset.scBound = "";
-            attachSearchCombo($("plNoSo"), scItemsPickSo, {
+            attachSearchCombo($("plNoSo"), scItemsPickSoForPlan, {
               valueMode: "id-name",
-              placeholder: "Ketik no SO / customer…",
+              placeholder: "SO yang memuat produk ini…",
               onPick: function(id, label, input) {
                 if (input) {
                   input.dataset.scId = id || "";
@@ -10302,6 +10302,9 @@ function fillOperatorList(selectedEmail) {
     }
 
     function refreshPlanGilingBom() {
+      try { rebindPlanSoCombo(); } catch (eR) {}
+      return refreshPlanGilingBom__inner();}
+    function refreshPlanGilingBom__inner() {
       var fg = resolveProductId(($("plProduct") && $("plProduct").value) || "");
       var mid = resolveMachineId(($("plMachine") && $("plMachine").value) || "");
       // jika edit plan yang sudah bahan (punya for_product di row) — skip multi expand
@@ -19194,6 +19197,83 @@ function fillOperatorList(selectedEmail) {
           label: label,
           sub: (o.status || "") + (o.order_date ? " · " + String(o.order_date).slice(0, 10) : ""),
           search: [o.order_id, o.no_so, o.customer_name, o.status].join(" ")
+        };
+      });
+    }
+    /** SO yang memuat produk plan yang dipilih (untuk form plan) */
+    function resolvePlanProductId() {
+      var raw = (($("plProduct") && $("plProduct").value) || "").trim();
+      if (!raw) return "";
+      try {
+        if (typeof resolveProductId === "function") {
+          var r = resolveProductId(raw);
+          if (r) return String(r);
+        }
+      } catch (e) {}
+      var m = raw.match(/^([A-Za-z0-9._\-\/]+)\s*[—\-–]/);
+      if (m) return m[1].trim();
+      return raw.split("—")[0].split("-")[0].trim() || raw;
+    }
+    function orderHasProduct(o, productId) {
+      if (!productId || !o) return false;
+      var pid = String(productId);
+      var lines = o.lines || o.order_lines || [];
+      return lines.some(function(L) {
+        return String(L.product_id || "") === pid;
+      });
+    }
+
+    function rebindPlanSoCombo() {
+      var inp = $("plNoSo");
+      if (!inp) return;
+      try {
+        inp.dataset.scBound = "";
+        if (typeof attachSearchCombo === "function") {
+          attachSearchCombo(inp, scItemsPickSoForPlan, {
+            valueMode: "id-name",
+            placeholder: "SO yang memuat produk ini…",
+            onPick: function(id, label, input) {
+              if (input) {
+                input.dataset.scId = id || "";
+                input.value = label || id || "";
+              }
+            }
+          });
+        }
+        // jika SO terpilih tidak mengandung produk → kosongkan
+        var pid = resolvePlanProductId();
+        var oid = inp.dataset.scId || "";
+        if (pid && oid) {
+          var ord = (allOrders || []).find(function(o) { return o.order_id === oid; });
+          if (ord && !orderHasProduct(ord, pid)) {
+            inp.value = "";
+            inp.dataset.scId = "";
+          }
+        }
+      } catch (e) {}
+    }
+    function scItemsPickSoForPlan() {
+      var productId = resolvePlanProductId();
+      var list = (allOrders || []).filter(function(o) {
+        var st = String(o.status || "").toLowerCase();
+        if (st === "cancelled" || st === "closed" || st === "canceled") return false;
+        if (productId) return orderHasProduct(o, productId);
+        return true;
+      });
+      return list.map(function(o) {
+        var lines = o.lines || o.order_lines || [];
+        var n = lines.length;
+        var lineQty = "";
+        if (productId) {
+          var L = lines.find(function(x) { return String(x.product_id) === String(productId); });
+          if (L) lineQty = " · qty " + (L.qty || 0) + " " + (L.unit || "");
+        }
+        var label = (o.no_so || o.order_id) + " · " + (o.customer_name || "-") + (n ? " (" + n + " item)" : "");
+        return {
+          id: o.order_id,
+          label: label,
+          sub: (o.status || "") + lineQty + (o.order_date ? " · " + String(o.order_date).slice(0, 10) : ""),
+          search: [o.order_id, o.no_so, o.customer_name, o.status, productId].join(" ")
         };
       });
     }
