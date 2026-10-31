@@ -4782,33 +4782,48 @@
           <div class="page-head">
             <div>
               <h1>Monitor produksi (per jam)</h1>
-              <p>Korlap input actual kumulatif per jam · per proses. Cocok untuk pantau shift berjalan.</p>
+              <p>Pilih plan di daftar → isi actual per jam. Mirip laporan operator, khusus korlap pantau shift.</p>
             </div>
             <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-              <input type="date" id="klDate" />
-              <select id="klShift" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <input type="date" id="klDate" onchange="loadKorlapHourly()" />
+              <select id="klShift" onchange="loadKorlapHourly()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+                <option value="">Semua shift</option>
                 <option value="1">Shift 1</option>
                 <option value="2">Shift 2</option>
                 <option value="3">Shift 3</option>
               </select>
               <button class="btn btn-ghost" type="button" onclick="loadKorlapHourly()">Refresh</button>
-              <button class="btn btn-primary" type="button" onclick="openHourlyModal()">+ Input jam</button>
             </div>
           </div>
+          <h3 style="font-size:0.95rem;margin:0 0 0.5rem;font-weight:700">Daftar plan (klik untuk input jam)</h3>
+          <div id="klPlanCards" class="mobile-cards mobile-only"></div>
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
+            <div class="table-wrap desk-only-table">
+              <table class="odoo-list">
+                <thead>
+                  <tr>
+                    <th>Produk</th><th>Proses</th><th>Shift</th><th>Target</th><th>Σ jam</th><th>Input</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="klPlanBody"><tr><td colspan="7" class="empty">Memuat plan…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <h3 style="font-size:0.95rem;margin:0 0 0.5rem;font-weight:700">Riwayat input jam</h3>
           <div class="card" style="padding:0;overflow:hidden">
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Jam</th><th>Produk</th><th>Proses</th><th>Plan</th><th>Actual jam ini</th><th>Catatan</th><th>Oleh</th>
+                    <th>Jam</th><th>Produk</th><th>Proses</th><th>Plan</th><th>Actual</th><th>Catatan</th><th>Oleh</th>
                   </tr>
                 </thead>
-                <tbody id="klBody"><tr><td colspan="7" class="empty">Pilih tanggal</td></tr></tbody>
+                <tbody id="klBody"><tr><td colspan="7" class="empty">Belum ada input</td></tr></tbody>
               </table>
             </div>
           </div>
           <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">
-            Jalankan SQL <code>batch2_hourly_wip.sql</code> di Supabase sekali agar tabel hourly_reports tersedia.
+            Butuh tabel <code>hourly_reports</code> — jalankan SQL batch2 di Supabase sekali bila belum ada.
           </p>
         </section>
 
@@ -5357,16 +5372,19 @@
       <div class="sheet-handle"></div>
       <div class="sheet-head"><h2>Input laporan per jam</h2></div>
       <div class="sheet-body">
+        <div id="hrTargetHint" style="display:none;margin-bottom:0.75rem;padding:0.65rem 0.75rem;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.82rem"></div>
         <div class="field"><label>Tanggal</label><input type="date" id="hrDate" /></div>
-        <div class="field"><label>Jam (0–23)</label><input type="number" id="hrHour" min="0" max="23" value="8" /></div>
-        <div class="field"><label>Shift</label>
-          <select id="hrShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem">
+          <div class="field"><label>Jam (0–23)</label><input type="number" id="hrHour" min="0" max="23" value="8" /></div>
+          <div class="field"><label>Shift</label>
+            <select id="hrShift"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+          </div>
         </div>
-        <div class="field"><label>Produk (kode)</label><input id="hrProduct" placeholder="FG001" /></div>
+        <div class="field"><label>Produk</label><input id="hrProduct" placeholder="Kode / nama produk" /></div>
         <datalist id="hrProductList"></datalist>
-        <div class="field"><label>Proses / mesin</label><input id="hrMachine" placeholder="M03" /></div>
+        <div class="field"><label>Proses / mesin</label><input id="hrMachine" placeholder="Kode proses" /></div>
         <datalist id="hrMachineList"></datalist>
-        <div class="field"><label>Plan ID (opsional)</label><input id="hrPlanId" placeholder="PLN-..." /></div>
+        <div class="field"><label>Plan ID</label><input id="hrPlanId" placeholder="otomatis dari plan" readonly style="background:#f8fafc" /></div>
         <div class="field"><label>Actual qty (jam ini)</label><input id="hrActual" class="num-input" inputmode="decimal" placeholder="0" /></div>
         <div class="field"><label>Catatan</label><input id="hrNotes" placeholder="opsional" /></div>
       </div>
@@ -12772,52 +12790,179 @@ function fillOperatorList(selectedEmail) {
     
     
     // ===== Batch 2: Korlap hourly + WIP =====
+    var klHourlyCache = [];
+    var klPlanCache = [];
     async function loadKorlapHourly() {
       if (!sb) return;
       const d = ($("klDate") && $("klDate").value) || todayStr();
       if ($("klDate") && !$("klDate").value) $("klDate").value = d;
       const shift = ($("klShift") && $("klShift").value) || "";
-      let q = sb.from("hourly_reports").select("*").eq("report_date", d).order("hour_slot").limit(500);
-      const { data, error } = await q;
-      const body = $("klBody");
+
+      // 1) daftar plan hari ini (mirip operator)
+      var pq = sb.from("plans").select("*").eq("plan_date", d)
+        .in("status", ["open", "in_progress", "draft", "done"]);
+      if (shift) pq = pq.eq("shift", shift);
+      var { data: planData, error: eP } = await pq.order("shift").order("product_id");
+      if (eP) toast(eP.message, true);
+      klPlanCache = planData || [];
+
+      // 2) hourly reports
+      var hq = sb.from("hourly_reports").select("*").eq("report_date", d).order("hour_slot").limit(500);
+      var { data, error } = await hq;
+      klHourlyCache = [];
+      if (!error) {
+        klHourlyCache = data || [];
+        if (shift) klHourlyCache = klHourlyCache.filter(function(r) { return String(r.shift) === String(shift); });
+      }
+
+      // aggregate hourly by plan_id
+      var sumByPlan = {};
+      var countByPlan = {};
+      klHourlyCache.forEach(function(r) {
+        var pid = r.plan_id || (r.product_id + "|" + r.machine_id);
+        sumByPlan[pid] = (sumByPlan[pid] || 0) + (Number(r.actual_qty) || 0);
+        countByPlan[pid] = (countByPlan[pid] || 0) + 1;
+      });
+
+      var planBody = $("klPlanBody");
+      var planCards = $("klPlanCards");
+      if (planBody) {
+        if (!klPlanCache.length) {
+          planBody.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada plan untuk tanggal/shift ini</td></tr>';
+        } else {
+          planBody.innerHTML = klPlanCache.map(function(p) {
+            var sum = sumByPlan[p.plan_id] || 0;
+            var cnt = countByPlan[p.plan_id] || 0;
+            var pname = "";
+            try {
+              var pr = (products || []).find(function(x) { return String(x.product_id) === String(p.product_id); });
+              pname = pr ? pr.name : "";
+            } catch (e) {}
+            return '<tr style="cursor:pointer" data-kl-plan="' + esc(p.plan_id) + '">' +
+              '<td><strong>' + esc(p.product_id) + '</strong>' +
+                (pname ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(pname) + '</div>' : '') + '</td>' +
+              '<td>' + esc(typeof machineLabel === "function" ? machineLabel(p.machine_id) : (p.machine_id || "—")) + '</td>' +
+              '<td>' + esc(String(p.shift || "")) + '</td>' +
+              '<td><strong>' + formatNum(p.target_qty) + '</strong> ' + esc(p.unit || "") + '</td>' +
+              '<td><strong>' + formatNum(sum) + '</strong></td>' +
+              '<td>' + (cnt ? (cnt + "x") : "—") + '</td>' +
+              '<td><button type="button" class="btn btn-primary btn-sm" data-kl-input="' + esc(p.plan_id) + '">Input jam</button></td></tr>';
+          }).join("");
+          planBody.querySelectorAll("[data-kl-plan]").forEach(function(tr) {
+            tr.onclick = function(e) {
+              if (e.target && e.target.closest && e.target.closest("button")) return;
+              openHourlyModal(tr.getAttribute("data-kl-plan"));
+            };
+          });
+          planBody.querySelectorAll("[data-kl-input]").forEach(function(btn) {
+            btn.onclick = function(e) {
+              e.stopPropagation();
+              openHourlyModal(btn.getAttribute("data-kl-input"));
+            };
+          });
+        }
+      }
+      if (planCards) {
+        if (!klPlanCache.length) {
+          planCards.innerHTML = '<div class="empty" style="padding:1rem;text-align:center;color:var(--text-muted)">Tidak ada plan</div>';
+        } else {
+          planCards.innerHTML = klPlanCache.map(function(p) {
+            var sum = sumByPlan[p.plan_id] || 0;
+            var cnt = countByPlan[p.plan_id] || 0;
+            return '<div class="m-card" data-kl-plan="' + esc(p.plan_id) + '" style="cursor:pointer">' +
+              '<div class="m-title">' + esc(p.product_id) + '</div>' +
+              '<div class="m-sub">' + esc(typeof machineLabel === "function" ? machineLabel(p.machine_id) : p.machine_id) +
+                ' · Shift ' + esc(String(p.shift || "")) + '</div>' +
+              '<div class="m-row"><span>Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") +
+                '</strong></span><span>Σ jam <strong>' + formatNum(sum) + '</strong> (' + cnt + 'x)</span></div>' +
+              '<button type="button" class="btn btn-primary btn-sm" style="margin-top:0.5rem;width:100%" data-kl-input="' + esc(p.plan_id) + '">Input jam</button></div>';
+          }).join("");
+          planCards.querySelectorAll("[data-kl-plan]").forEach(function(el) {
+            el.onclick = function(e) {
+              if (e.target && e.target.closest && e.target.closest("button")) return;
+              openHourlyModal(el.getAttribute("data-kl-plan"));
+            };
+          });
+          planCards.querySelectorAll("[data-kl-input]").forEach(function(btn) {
+            btn.onclick = function(e) {
+              e.stopPropagation();
+              openHourlyModal(btn.getAttribute("data-kl-input"));
+            };
+          });
+        }
+      }
+
+      var body = $("klBody");
       if (!body) return;
       if (error) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Tabel hourly_reports belum ada. Jalankan batch2_hourly_wip.sql — ' + esc(error.message) + '</td></tr>';
         return;
       }
-      let rows = data || [];
-      if (shift) rows = rows.filter(r => String(r.shift) === String(shift));
+      var rows = klHourlyCache;
       if (!rows.length) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada input jam untuk tanggal ini</td></tr>';
         return;
       }
-      body.innerHTML = rows.map(r =>
-        '<tr>' +
-        '<td><strong>' + String(r.hour_slot).padStart(2, "0") + ':00</strong></td>' +
-        '<td>' + esc(r.product_id) + '</td>' +
-        '<td>' + esc(r.machine_id) + '</td>' +
-        '<td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "—") + '</td>' +
-        '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
-        '<td>' + esc(r.notes || "") + '</td>' +
-        '<td style="font-size:0.75rem">' + esc(r.created_by || "") + '</td></tr>'
-      ).join("");
+      body.innerHTML = rows.map(function(r) {
+        return '<tr>' +
+          '<td><strong>' + String(r.hour_slot).padStart(2, "0") + ':00</strong></td>' +
+          '<td>' + esc(r.product_id) + '</td>' +
+          '<td>' + esc(r.machine_id) + '</td>' +
+          '<td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "—") + '</td>' +
+          '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
+          '<td>' + esc(r.notes || "") + '</td>' +
+          '<td style="font-size:0.75rem">' + esc(r.created_by || "") + '</td></tr>';
+      }).join("");
     }
-    function openHourlyModal() {
-      if ($("hrDate")) $("hrDate").value = ($("klDate") && $("klDate").value) || todayStr();
-      if ($("hrShift")) $("hrShift").value = ($("klShift") && $("klShift").value) || "1";
+    function openHourlyModal(planId) {
+      var plan = null;
+      if (planId) {
+        plan = (klPlanCache || []).find(function(p) { return String(p.plan_id) === String(planId); });
+      }
+      if ($("hrDate")) $("hrDate").value = (plan && plan.plan_date) || (($("klDate") && $("klDate").value) || todayStr());
+      if ($("hrShift")) $("hrShift").value = (plan && plan.shift) || (($("klShift") && $("klShift").value) || "1");
       if ($("hrHour")) {
-        const h = new Date().getHours();
+        var h = new Date().getHours();
         $("hrHour").value = h;
       }
-      // datalists
+      if ($("hrProduct")) {
+        if (plan && plan.product_id) {
+          var pr = (products || []).find(function(x) { return String(x.product_id) === String(plan.product_id); });
+          $("hrProduct").value = plan.product_id + (pr && pr.name ? " — " + pr.name : "");
+        } else {
+          $("hrProduct").value = "";
+        }
+      }
+      if ($("hrMachine")) {
+        if (plan && plan.machine_id) {
+          $("hrMachine").value = (typeof machineLabel === "function" ? machineLabel(plan.machine_id) : plan.machine_id) || plan.machine_id;
+          $("hrMachine").dataset.mid = plan.machine_id;
+        } else {
+          $("hrMachine").value = "";
+          $("hrMachine").dataset.mid = "";
+        }
+      }
+      if ($("hrPlanId")) $("hrPlanId").value = (plan && plan.plan_id) || "";
+      if ($("hrActual")) $("hrActual").value = "";
+      if ($("hrNotes")) $("hrNotes").value = "";
+      if ($("hrTargetHint")) {
+        if (plan) {
+          $("hrTargetHint").style.display = "";
+          $("hrTargetHint").innerHTML = "Plan <b>" + esc(plan.plan_id) + "</b> · Target <b>" +
+            formatNum(plan.target_qty) + " " + esc(plan.unit || "") + "</b>" +
+            (plan.assigned_operator ? " · OP " + esc(plan.assigned_operator) : "");
+        } else {
+          $("hrTargetHint").style.display = "none";
+        }
+      }
       const pl = $("hrProductList");
-      if (pl) pl.innerHTML = (products || []).slice(0, 400).map(p =>
-        '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>'
-      ).join("");
+      if (pl) pl.innerHTML = (products || []).slice(0, 400).map(function(p) {
+        return '<option value="' + esc(p.product_id) + '">' + esc(p.name || "") + '</option>';
+      }).join("");
       const ml = $("hrMachineList");
-      if (ml) ml.innerHTML = (machines || []).map(m =>
-        '<option value="' + esc(m.machine_id) + '">' + esc(m.name || "") + '</option>'
-      ).join("");
+      if (ml) ml.innerHTML = (machines || []).map(function(m) {
+        return '<option value="' + esc(m.machine_id) + '">' + esc(m.name || "") + '</option>';
+      }).join("");
       $("hourlyModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { mountAllSearchCombos(); } catch (e) {}
@@ -12831,8 +12976,29 @@ function fillOperatorList(selectedEmail) {
       const report_date = ($("hrDate") && $("hrDate").value) || todayStr();
       const hour_slot = Number(($("hrHour") && $("hrHour").value) || 0);
       const shift = ($("hrShift") && $("hrShift").value) || "1";
-      const product_id = (($("hrProduct") && $("hrProduct").value) || "").trim();
-      const machine_id = (($("hrMachine") && $("hrMachine").value) || "").trim();
+      let product_id = (($("hrProduct") && $("hrProduct").value) || "").trim();
+      try {
+        if (typeof resolveProductId === "function") {
+          var rp = resolveProductId(product_id);
+          if (rp) product_id = rp;
+        } else {
+          var m = product_id.match(/^([A-Za-z0-9._\-\/]+)\s*[—\-–]/);
+          if (m) product_id = m[1].trim();
+        }
+      } catch (e) {}
+      let machine_id = (($("hrMachine") && $("hrMachine").dataset && $("hrMachine").dataset.mid) || "").trim();
+      if (!machine_id) {
+        machine_id = (($("hrMachine") && $("hrMachine").value) || "").trim();
+        try {
+          if (typeof resolveMachineId === "function") {
+            var rm = resolveMachineId(machine_id);
+            if (rm) machine_id = rm;
+          } else {
+            var mm = machine_id.match(/^([A-Za-z0-9._\-\/]+)\s*[—\-–]/);
+            if (mm) machine_id = mm[1].trim();
+          }
+        } catch (e2) {}
+      }
       const plan_id = (($("hrPlanId") && $("hrPlanId").value) || "").trim();
       const actual_qty = parseInputNum(($("hrActual") && $("hrActual").value) || 0);
       const notes = (($("hrNotes") && $("hrNotes").value) || "").trim();
