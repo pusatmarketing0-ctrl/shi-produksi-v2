@@ -12710,19 +12710,21 @@ function fillOperatorList(selectedEmail) {
         g.status = opsStatusOf(g);
       });
 
-      // SO aktif tanpa plan tetap tampil di grid (qty plan/actual 0)
+      // SO aktif: update po_qty pada group existing; SO baru hanya jika relevan bulan ini
       (orders || []).forEach(function(o) {
         var st = String(o.status || "").toLowerCase();
-        // skip selesai/batal
-        if (st === "completed" || st === "done" || st === "cancelled" || st === "canceled") return;
+        if (st === "completed" || st === "done" || st === "cancelled" || st === "canceled" || st === "closed") return;
         var lines = o.order_lines || [];
         if (!lines.length) return;
+        var od = o.order_date ? String(o.order_date).slice(0, 10) : "";
+        var inMonth = od && od >= start && od <= end;
+        var hasPoMark = !!(poDaysByOrder[o.order_id] || poDaysByNoSo[o.no_so]);
         lines.forEach(function(l) {
           var pid = l.product_id;
           if (!pid) return;
+          if (opsLineClosed(l, o.notes, pid)) return;
           var key = String(pid) + "||" + String(o.no_so || o.order_id || "");
           if (groups[key]) {
-            // akumulasi qty PO jika beberapa baris produk sama
             if (!groups[key]._poFromOrder) {
               groups[key].po_qty = Number(l.qty) || 0;
               groups[key]._poFromOrder = true;
@@ -12732,30 +12734,26 @@ function fillOperatorList(selectedEmail) {
             if (!groups[key].customer && o.customer_name) groups[key].customer = o.customer_name;
             if (!groups[key].order_date && o.order_date) groups[key].order_date = o.order_date;
             if (!groups[key].so_mark_day && o.order_date) groups[key].so_mark_day = String(o.order_date).slice(0, 10);
-            if (o.ot_id) groups[key].from_ot = true;
-            if (!groups[key].order_id && o.order_id) groups[key].order_id = o.order_id;
-            if (!groups[key].order_status) groups[key].order_status = o.status || "";
-            if (!groups[key].db_status) groups[key].db_status = o.status || "";
-            // penting: sync close per produk (sebelumnya terlewat jika grup sudah ada dari plan)
-            if (opsLineClosed(l, o.notes, pid)) {
-              groups[key].line_closed = true;
-              groups[key].status = "DONE";
-            }
+            if (!groups[key].order_id) groups[key].order_id = o.order_id || "";
+            if (!groups[key].no_so) groups[key].no_so = o.no_so || "";
             return;
           }
+          // baris baru: hanya jika SO bulan ini, atau ada PO di bulan ini, atau sudah ada plan (handled above)
+          if (!inMonth && !hasPoMark) return;
           groups[key] = {
             product_id: pid,
             no_so: o.no_so || "",
             order_id: o.order_id || "",
             order_date: o.order_date || "",
-            so_mark_day: o.order_date ? String(o.order_date).slice(0, 10) : "",
+            so_mark_day: od || "",
             customer: o.customer_name || "",
             order_status: o.status || "",
             db_status: o.status || "",
-            line_closed: opsLineClosed(l, o.notes, pid),
+            line_closed: false,
             ot_id: o.ot_id || "",
-            from_ot: !!(o.ot_id),
+            from_ot: !!o.ot_id,
             po_qty: Number(l.qty) || 0,
+            _poFromOrder: true,
             planDay: {},
             opDay: {},
             actDay: {},
@@ -12767,7 +12765,7 @@ function fillOperatorList(selectedEmail) {
             plan_total: 0,
             act_total: 0,
             op_total: 0,
-            status: opsLineClosed(l, o.notes, pid) ? "DONE" : "OPEN"
+            status: "OPEN"
           };
         });
       });
@@ -12791,10 +12789,18 @@ function fillOperatorList(selectedEmail) {
       });
 
       opsRows = Object.values(groups).filter(function(g) {
-        // jangan tampilkan baris bahan baku murni (giling harusnya di FG)
         if (isMaterialProductId(g.product_id) && !(g._planFg > 0)) return false;
-        return true;
-      }).sort((a, b) => String(a.product_id).localeCompare(String(b.product_id)));
+        var hasPlan = (Number(g.plan_total) || 0) > 0 || (Number(g._planAll) || 0) > 0 ||
+          (g.planDay && Object.keys(g.planDay).length) ||
+          (g.primerDay && Object.keys(g.primerDay).length);
+        var hasAct = (Number(g.act_total) || 0) > 0;
+        var od = g.order_date ? String(g.order_date).slice(0, 10) : (g.so_mark_day || "");
+        var inMonth = od && od >= start && od <= end;
+        var hasPo = g.po_mark_days && Object.keys(g.po_mark_days).length > 0;
+        // bulan ini: tampilkan jika ada aktivitas plan/actual, atau SO/PO milik bulan ini
+        if (hasPlan || hasAct || inMonth || hasPo) return true;
+        return false;
+      }).sort(function(a, b) { return String(a.product_id).localeCompare(String(b.product_id)); });
 
       // daily summary + today panel
       opsDayMeta = {};
@@ -12839,7 +12845,15 @@ function fillOperatorList(selectedEmail) {
       const z = n => String(n).padStart(2, "0");
       const yest = yestDate.getFullYear() + "-" + z(yestDate.getMonth() + 1) + "-" + z(yestDate.getDate());
 
-      const poMonth = opsRows.reduce((s, g) => s + (Number(g.po_qty) || 0), 0);
+      const poMonth = opsRows.reduce(function(s, g) {
+        var od = g.order_date ? String(g.order_date).slice(0, 10) : (g.so_mark_day || "");
+        var inMonth = od && od >= start && od <= end;
+        var hasPlan = (Number(g.plan_total) || 0) > 0 || (g.planDay && Object.keys(g.planDay).some(function(d) { return Number(g.planDay[d]) > 0; }));
+        var hasAct = (Number(g.act_total) || 0) > 0;
+        var hasPo = g.po_mark_days && Object.keys(g.po_mark_days).length > 0;
+        if (inMonth || hasPlan || hasAct || hasPo) return s + (Number(g.po_qty) || 0);
+        return s;
+      }, 0);
       // Plan / Actual KPI hanya packing masterbox (FG), bukan semua proses
       const planMonth = opsRows.reduce((s, g) => s + (Number(g.plan_total_fg) || Number(g._planFg) || 0), 0);
       const actMonth = opsRows.reduce((s, g) => s + (Number(g.act_total) || 0), 0);
