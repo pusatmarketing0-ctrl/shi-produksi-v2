@@ -204,6 +204,33 @@
         position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;
       }
     }
+
+    /* Nav section labels — selalu terbaca penuh */
+    .sidebar .nav-label {
+      font-size: 0.7rem !important;
+      font-weight: 700 !important;
+      color: #64748b !important;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.9rem 0.85rem 0.4rem !important;
+      margin: 0;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+      max-width: none !important;
+      opacity: 1 !important;
+      height: auto !important;
+      line-height: 1.3;
+      display: block !important;
+    }
+    .layout.sidebar-collapsed .sidebar .nav-label {
+      opacity: 0 !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+
     .nav-label {
       font-size: 0.65rem; font-weight: 700; color: var(--text-dim);
       text-transform: uppercase; letter-spacing: 0.08em; padding: 0.85rem 0.85rem 0.35rem;
@@ -3967,6 +3994,8 @@
         <div class="nav-label" data-nav-group="master">Master data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/></svg></span><span class="nav-txt"> Produk</span></button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span><span class="nav-txt"> Proses</span></button>
+        <button class="nav-item" data-page="customers" data-roles="admin,ppic,marketing,trading,korlap" data-tip="Customer"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-txt"> Customer</span></button>
+        <button class="nav-item" data-page="vendors" data-roles="admin,ppic,purchasing,gudang" data-tip="Vendor"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt"> Vendor</span></button>
         <button class="nav-item" data-page="pr-ppic" data-roles="admin,ppic" data-tip="Permintaan beli"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></span><span class="nav-txt">Permintaan</span></button>
         <button class="nav-item" data-page="purchasing" data-roles="admin,purchasing" data-tip="Purchasing"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg></span><span class="nav-txt"> Purchasing</span><span id="purchasingNavBadge" class="nav-badge" style="display:none">0</span></button>
         <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z"/><path d="M9 22V12h6v10"/></svg></span><span class="nav-txt">Gudang</span></button>
@@ -4149,7 +4178,42 @@
           <div id="machinePager" class="pg-bar"></div>
         </section>
 
-        
+        <section id="page-customers" class="page" hidden>
+          <div class="page-head">
+            <div><h1>Customer</h1><p>Master customer untuk Sales Order & Order Trading.</p></div>
+            <button class="btn btn-primary" type="button" onclick="openCustomerModal()">+ Tambah customer</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="customerSearch" placeholder="Cari nama / kode / telepon..." oninput="renderCustomersPage()" />
+            <button class="btn btn-ghost btn-sm" type="button" onclick="loadCustomers().then(renderCustomersPage)">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table class="odoo-list">
+              <thead><tr><th>Kode</th><th>Nama</th><th>Telepon</th><th>Catatan</th><th></th></tr></thead>
+              <tbody id="customerBody"><tr><td colspan="5" class="empty">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+          <div id="customerPager" class="pg-bar"></div>
+        </section>
+
+        <section id="page-vendors" class="page" hidden>
+          <div class="page-head">
+            <div><h1>Vendor</h1><p>Master supplier / vendor untuk Purchasing & Gudang.</p></div>
+            <button class="btn btn-primary" type="button" onclick="openVendorModal()">+ Tambah vendor</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="vendorSearch" placeholder="Cari nama vendor..." oninput="renderVendorsPage()" />
+            <button class="btn btn-ghost btn-sm" type="button" onclick="loadVendors().then(renderVendorsPage)">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table class="odoo-list">
+              <thead><tr><th>Kode</th><th>Nama</th><th>Telepon</th><th>Catatan</th><th></th></tr></thead>
+              <tbody id="vendorBody"><tr><td colspan="5" class="empty">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+          <div id="vendorPager" class="pg-bar"></div>
+        </section>
+
         <section id="page-routes" class="page" hidden>
           <div class="page-head">
             <div>
@@ -5968,6 +6032,42 @@
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeOrderModal()">Batal</button>
         <button class="btn btn-primary" type="button" id="btnSaveOrder">Simpan SO</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="customerModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:440px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2 id="customerModalTitle">Tambah customer</h2></div>
+      <div class="sheet-body">
+        <input type="hidden" id="custEditId" />
+        <div class="field"><label>Kode (opsional)</label><input id="custId" placeholder="auto jika kosong" /></div>
+        <div class="field"><label>Nama *</label><input id="custName" placeholder="Nama customer" /></div>
+        <div class="field"><label>Telepon</label><input id="custPhone" placeholder="08..." /></div>
+        <div class="field"><label>Catatan</label><input id="custNotes" placeholder="opsional" /></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeCustomerModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="saveCustomerMaster()">Simpan</button>
+      </div>
+    </div>
+  </div>
+  <div id="vendorModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:440px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2 id="vendorModalTitle">Tambah vendor</h2></div>
+      <div class="sheet-body">
+        <input type="hidden" id="vendEditId" />
+        <div class="field"><label>Kode (opsional)</label><input id="vendId" placeholder="auto jika kosong" /></div>
+        <div class="field"><label>Nama *</label><input id="vendName" placeholder="Nama vendor / supplier" /></div>
+        <div class="field"><label>Telepon</label><input id="vendPhone" placeholder="08..." /></div>
+        <div class="field"><label>Catatan</label><input id="vendNotes" placeholder="opsional" /></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closeVendorModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="saveVendorMaster()">Simpan</button>
       </div>
     </div>
   </div>
@@ -8555,6 +8655,223 @@
     
     let customers = [];
     let operators = [];
+
+
+    var vendors = [];
+    function renderCustomersPage() {
+      var body = $("customerBody");
+      if (!body) return;
+      var q = (($("customerSearch") && $("customerSearch").value) || "").toLowerCase().trim();
+      var list = (customers || []).slice();
+      if (q) {
+        list = list.filter(function(c) {
+          return [c.customer_id, c.name, c.phone, c.notes].join(" ").toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      list.sort(function(a, b) { return String(a.name || "").localeCompare(String(b.name || ""), "id"); });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="5" class="empty">Belum ada customer</td></tr>';
+        if ($("customerPager")) $("customerPager").innerHTML = "";
+        return;
+      }
+      var pageList = typeof pageOf === "function" ? pageOf("customers", list, "customerPager") : list;
+      body.innerHTML = pageList.map(function(c) {
+        return '<tr>' +
+          '<td class="mono">' + esc(c.customer_id || "—") + '</td>' +
+          '<td><strong>' + esc(c.name || "—") + '</strong></td>' +
+          '<td>' + esc(c.phone || "—") + '</td>' +
+          '<td style="color:#64748b">' + esc(c.notes || "—") + '</td>' +
+          '<td><button type="button" class="btn btn-ghost btn-sm" data-cedit="' + esc(c.customer_id || c.name) + '">Edit</button></td></tr>';
+      }).join("");
+      body.querySelectorAll("[data-cedit]").forEach(function(btn) {
+        btn.onclick = function() {
+          var id = btn.getAttribute("data-cedit");
+          var row = (customers || []).find(function(c) {
+            return String(c.customer_id) === id || String(c.name) === id;
+          });
+          openCustomerModal(row);
+        };
+      });
+    }
+    function openCustomerModal(row) {
+      if ($("custEditId")) $("custEditId").value = row ? (row.customer_id || "") : "";
+      if ($("customerModalTitle")) $("customerModalTitle").textContent = row ? "Edit customer" : "Tambah customer";
+      if ($("custId")) { $("custId").value = row ? (row.customer_id || "") : ""; $("custId").disabled = !!(row && row.customer_id); }
+      if ($("custName")) $("custName").value = row ? (row.name || "") : "";
+      if ($("custPhone")) $("custPhone").value = row ? (row.phone || "") : "";
+      if ($("custNotes")) $("custNotes").value = row ? (row.notes || "") : "";
+      var m = $("customerModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+    }
+    function closeCustomerModal() {
+      var m = $("customerModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      document.body.classList.remove("modal-open");
+    }
+    async function saveCustomerMaster() {
+      if (!sb) return;
+      var name = (($("custName") && $("custName").value) || "").trim();
+      if (!name) return toast("Nama customer wajib", true);
+      var id = (($("custId") && $("custId").value) || "").trim();
+      var editId = (($("custEditId") && $("custEditId").value) || "").trim();
+      if (!id) {
+        id = "CUS-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+        if (!id || id === "CUS-") id = "CUS-" + Date.now();
+      }
+      var payload = {
+        customer_id: editId || id,
+        name: name,
+        phone: (($("custPhone") && $("custPhone").value) || "").trim() || null,
+        notes: (($("custNotes") && $("custNotes").value) || "").trim() || null,
+        active: true
+      };
+      var error;
+      if (editId) {
+        var r = await sb.from("customers").update({ name: payload.name, phone: payload.phone, notes: payload.notes, active: true }).eq("customer_id", editId);
+        error = r.error;
+        if (error && /phone|notes|column/i.test(String(error.message || ""))) {
+          r = await sb.from("customers").update({ name: payload.name, active: true }).eq("customer_id", editId);
+          error = r.error;
+        }
+      } else {
+        var r2 = await sb.from("customers").upsert(payload);
+        error = r2.error;
+        if (error && /phone|notes|column/i.test(String(error.message || ""))) {
+          r2 = await sb.from("customers").upsert({ customer_id: payload.customer_id, name: payload.name, active: true });
+          error = r2.error;
+        }
+      }
+      if (error) return toast(error.message, true);
+      toast("Customer disimpan");
+      closeCustomerModal();
+      await loadCustomers();
+      renderCustomersPage();
+    }
+
+    async function loadVendors() {
+      vendors = [];
+      if (!sb) return vendors;
+      try {
+        var res = await sb.from("vendors").select("*").order("name").limit(2000);
+        if (!res.error && res.data) {
+          vendors = res.data;
+        } else {
+          // fallback: distinct dari purchase_lines + __suppliersExtra
+          var names = {};
+          try {
+            var { data: pls } = await sb.from("purchase_lines").select("vendor_name").limit(2000);
+            (pls || []).forEach(function(l) {
+              var n = String(l.vendor_name || "").trim();
+              if (n) names[n.toLowerCase()] = n;
+            });
+          } catch (e1) {}
+          try {
+            var { data: pos } = await sb.from("purchase_orders").select("supplier_name").limit(1000);
+            (pos || []).forEach(function(p) {
+              var n = String(p.supplier_name || "").trim();
+              if (n) names[n.toLowerCase()] = n;
+            });
+          } catch (e2) {}
+          (window.__suppliersExtra || []).forEach(function(n) {
+            n = String(n || "").trim();
+            if (n) names[n.toLowerCase()] = n;
+          });
+          vendors = Object.keys(names).map(function(k) {
+            return { vendor_id: "VEN-" + k.replace(/[^a-z0-9]+/g, "-").slice(0, 36), name: names[k], active: true };
+          });
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+      vendors.sort(function(a, b) { return String(a.name || "").localeCompare(String(b.name || ""), "id"); });
+      return vendors;
+    }
+    function renderVendorsPage() {
+      var body = $("vendorBody");
+      if (!body) return;
+      var q = (($("vendorSearch") && $("vendorSearch").value) || "").toLowerCase().trim();
+      var list = (vendors || []).slice();
+      if (q) {
+        list = list.filter(function(v) {
+          return [v.vendor_id, v.name, v.phone, v.notes].join(" ").toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="5" class="empty">Belum ada vendor — tambah manual atau dari PO</td></tr>';
+        if ($("vendorPager")) $("vendorPager").innerHTML = "";
+        return;
+      }
+      var pageList = typeof pageOf === "function" ? pageOf("vendors", list, "vendorPager") : list;
+      body.innerHTML = pageList.map(function(v) {
+        return '<tr>' +
+          '<td class="mono">' + esc(v.vendor_id || "—") + '</td>' +
+          '<td><strong>' + esc(v.name || "—") + '</strong></td>' +
+          '<td>' + esc(v.phone || "—") + '</td>' +
+          '<td style="color:#64748b">' + esc(v.notes || "—") + '</td>' +
+          '<td><button type="button" class="btn btn-ghost btn-sm" data-vedit="' + esc(v.vendor_id || v.name) + '">Edit</button></td></tr>';
+      }).join("");
+      body.querySelectorAll("[data-vedit]").forEach(function(btn) {
+        btn.onclick = function() {
+          var id = btn.getAttribute("data-vedit");
+          var row = (vendors || []).find(function(v) {
+            return String(v.vendor_id) === id || String(v.name) === id;
+          });
+          openVendorModal(row);
+        };
+      });
+    }
+    function openVendorModal(row) {
+      if ($("vendEditId")) $("vendEditId").value = row ? (row.vendor_id || "") : "";
+      if ($("vendorModalTitle")) $("vendorModalTitle").textContent = row ? "Edit vendor" : "Tambah vendor";
+      if ($("vendId")) { $("vendId").value = row ? (row.vendor_id || "") : ""; $("vendId").disabled = !!(row && row.vendor_id); }
+      if ($("vendName")) $("vendName").value = row ? (row.name || "") : "";
+      if ($("vendPhone")) $("vendPhone").value = row ? (row.phone || "") : "";
+      if ($("vendNotes")) $("vendNotes").value = row ? (row.notes || "") : "";
+      var m = $("vendorModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+    }
+    function closeVendorModal() {
+      var m = $("vendorModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      document.body.classList.remove("modal-open");
+    }
+    async function saveVendorMaster() {
+      if (!sb) return;
+      var name = (($("vendName") && $("vendName").value) || "").trim();
+      if (!name) return toast("Nama vendor wajib", true);
+      var id = (($("vendId") && $("vendId").value) || "").trim();
+      var editId = (($("vendEditId") && $("vendEditId").value) || "").trim();
+      if (!id) {
+        id = "VEN-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+        if (!id || id === "VEN-") id = "VEN-" + Date.now();
+      }
+      var payload = {
+        vendor_id: editId || id,
+        name: name,
+        phone: (($("vendPhone") && $("vendPhone").value) || "").trim() || null,
+        notes: (($("vendNotes") && $("vendNotes").value) || "").trim() || null,
+        active: true
+      };
+      var { error } = await sb.from("vendors").upsert(payload);
+      if (error) {
+        // tabel belum ada — simpan ke memory + extra
+        window.__suppliersExtra = window.__suppliersExtra || [];
+        if (window.__suppliersExtra.indexOf(name) < 0) window.__suppliersExtra.push(name);
+        vendors = vendors.filter(function(v) { return String(v.vendor_id) !== payload.vendor_id && String(v.name).toLowerCase() !== name.toLowerCase(); });
+        vendors.push(payload);
+        toast("Vendor disimpan lokal (buat tabel vendors di Supabase untuk permanen)", false);
+        closeVendorModal();
+        renderVendorsPage();
+        return;
+      }
+      toast("Vendor disimpan");
+      closeVendorModal();
+      await loadVendors();
+      renderVendorsPage();
+    }
+
 
     async function loadCustomers() {
       if (!sb) return;
@@ -20220,6 +20537,8 @@ var id = await newPickId();
       else { try { closeRouteEditor(); } catch (e4) {} }
       if (page === "products") { try { renderProducts(); } catch (e) {} }
       if (page === "machines") { try { renderMachines(); } catch (e) {} }
+      if (page === "customers") { try { loadCustomers().then(function() { renderCustomersPage(); }); } catch (e) {} }
+      if (page === "vendors") { try { loadVendors().then(function() { renderVendorsPage(); }); } catch (e) {} }
       if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
       if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
       if (page === "gudang") { try { setGudangTab(gudangActiveTab || "stok"); } catch (eG) {} }
