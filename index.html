@@ -12936,6 +12936,8 @@ function fillOperatorList(selectedEmail) {
         }
 
         lifePlans.forEach(function(p) {
+          // HANYA packing masterbox (FG) — jangan seluruh proses
+          if (!isFgMachine(p.machine_id)) return;
           applyActToGroup(p, actBeforeByPlan[p.plan_id] || 0, actEndByPlan[p.plan_id] || 0);
         });
 
