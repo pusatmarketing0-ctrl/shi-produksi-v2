@@ -12798,75 +12798,118 @@ function fillOperatorList(selectedEmail) {
         g.status = opsStatusOf(g);
       });
 
-      // Qty PO tampil = sisa = PO asli − actual kumulatif (semua waktu s/d akhir bulan tampilan)
+      // Qty PO tampil = sisa = PO asli − actual kumulatif (s/d akhir bulan tampilan)
       try {
         Object.keys(groups).forEach(function(k) {
           var g = groups[k];
-          g.po_qty_orig = Number(g.po_qty) || 0;
+          g.po_qty_orig = Number(g.po_qty_orig != null ? g.po_qty_orig : g.po_qty) || 0;
           g.act_life = 0;
         });
         var lifeKeys = Object.keys(groups);
         var orderIds = [];
         var noSos = [];
+        var productIds = [];
         lifeKeys.forEach(function(k) {
           var g = groups[k];
           if (g.order_id) orderIds.push(g.order_id);
           if (g.no_so) noSos.push(g.no_so);
+          if (g.product_id) productIds.push(g.product_id);
         });
         orderIds = Array.from(new Set(orderIds));
         noSos = Array.from(new Set(noSos));
+        productIds = Array.from(new Set(productIds));
+
         var lifePlans = [];
-        // ambil plan historis terkait SO (batas akhir = end bulan tampilan)
-        for (var oi = 0; oi < orderIds.length; oi += 80) {
-          var chunk = orderIds.slice(oi, oi + 80);
+        function pushPlans(arr) {
+          (arr || []).forEach(function(p) {
+            if (p && p.plan_id) lifePlans.push(p);
+          });
+        }
+        for (var oi = 0; oi < orderIds.length; oi += 60) {
+          var chunk = orderIds.slice(oi, oi + 60);
           if (!chunk.length) break;
-          var { data: lp } = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
-            .in("order_id", chunk).lte("plan_date", end).limit(4000);
-          if (lp) lifePlans = lifePlans.concat(lp);
+          var rOrd = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
+            .in("order_id", chunk).lte("plan_date", end).limit(5000);
+          pushPlans(rOrd.data);
         }
-        for (var si = 0; si < noSos.length; si += 80) {
-          var chunkS = noSos.slice(si, si + 80);
+        for (var si = 0; si < noSos.length; si += 60) {
+          var chunkS = noSos.slice(si, si + 60);
           if (!chunkS.length) break;
-          var { data: lp2 } = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
-            .in("no_so", chunkS).lte("plan_date", end).limit(4000);
-          if (lp2) lifePlans = lifePlans.concat(lp2);
+          var rNoSo = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
+            .in("no_so", chunkS).lte("plan_date", end).limit(5000);
+          pushPlans(rNoSo.data);
         }
-        // dedupe plans
+        // tambahan: plan FG produk yang sama (tanpa SO) s/d akhir bulan — last resort match by product+SO di bawah
+        for (var pi = 0; pi < productIds.length; pi += 40) {
+          var chunkP = productIds.slice(pi, pi + 40);
+          if (!chunkP.length) break;
+          var rProd = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
+            .in("product_id", chunkP).lte("plan_date", end).limit(5000);
+          pushPlans(rProd.data);
+        }
+
         var planById = {};
-        lifePlans.forEach(function(p) { if (p && p.plan_id) planById[p.plan_id] = p; });
+        lifePlans.forEach(function(p) { planById[p.plan_id] = p; });
         lifePlans = Object.values(planById);
+
         var lifePlanIds = lifePlans.map(function(p) { return p.plan_id; });
         var lifeActByPlan = {};
-        for (var ri = 0; ri < lifePlanIds.length; ri += 120) {
-          var chunkR = lifePlanIds.slice(ri, ri + 120);
+        for (var ri = 0; ri < lifePlanIds.length; ri += 100) {
+          var chunkR = lifePlanIds.slice(ri, ri + 100);
           if (!chunkR.length) break;
-          var { data: rr } = await sb.from("reports").select("plan_id,actual_qty,report_date")
-            .in("plan_id", chunkR);
-          (rr || []).forEach(function(r) {
+          var rr = await sb.from("reports").select("plan_id,actual_qty,report_date").in("plan_id", chunkR);
+          (rr.data || []).forEach(function(r) {
             var rd = r.report_date ? String(r.report_date).slice(0, 10) : "";
-            if (rd && rd > end) return; // hanya s/d akhir bulan tampilan
+            if (rd && rd > end) return;
             lifeActByPlan[r.plan_id] = (lifeActByPlan[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
           });
         }
-        lifePlans.forEach(function(p) {
-          if (!isFgMachine(p.machine_id)) return;
+
+        function groupKeyFromPlan(p) {
           var rowPid = resolveOpsRowProductId(p);
-          if (!rowPid) return;
-          var key = rowPid + "||" + String(p.no_so || p.order_id || "");
-          var g = groups[key];
-          if (!g) return;
-          g.act_life = (Number(g.act_life) || 0) + (Number(lifeActByPlan[p.plan_id]) || 0);
+          if (!rowPid) rowPid = p.product_id;
+          if (!rowPid) return "";
+          return String(rowPid) + "||" + String(p.no_so || p.order_id || "");
+        }
+
+        lifePlans.forEach(function(p) {
+          // Hitung actual FG ke baris yang sama; jika bukan mesin FG tapi ada actual, tetap hitung
+          var qty = Number(lifeActByPlan[p.plan_id]) || 0;
+          if (!(qty > 0)) return;
+          var key = groupKeyFromPlan(p);
+          if (!key || !groups[key]) {
+            // coba cocokkan product saja + no_so / order_id longgar
+            var pid = resolveOpsRowProductId(p) || p.product_id;
+            Object.keys(groups).forEach(function(gk) {
+              var g = groups[gk];
+              if (String(g.product_id) !== String(pid)) return;
+              var sameSo = (p.order_id && g.order_id && String(p.order_id) === String(g.order_id)) ||
+                (p.no_so && g.no_so && String(p.no_so) === String(g.no_so)) ||
+                (!p.order_id && !p.no_so && !g.order_id && !g.no_so);
+              if (sameSo) g.act_life = (Number(g.act_life) || 0) + qty;
+            });
+            return;
+          }
+          // prefer FG; non-FG actual juga dihitung agar sisa turun
+          groups[key].act_life = (Number(groups[key].act_life) || 0) + qty;
         });
+
+        // pastikan actual bulan tampilan ikut (jika life query kurang)
         Object.keys(groups).forEach(function(k) {
           var g = groups[k];
-          var orig = Number(g.po_qty_orig != null ? g.po_qty_orig : g.po_qty) || 0;
+          var monthAct = Number(g.act_total) || 0;
+          if (monthAct > (Number(g.act_life) || 0)) {
+            // life kurang dari actual bulan ini → pakai minimal month (seharusnya life >= month)
+            // jangan overwrite life lebih besar
+          }
+          // life minimal = actual di plan bulan ini yang sudah di-load
+          g.act_life = Math.max(Number(g.act_life) || 0, monthAct);
+          var orig = Number(g.po_qty_orig) || 0;
           var life = Number(g.act_life) || 0;
-          g.po_qty_orig = orig;
-          g.po_qty = Math.max(0, orig - life); // sisa PO
-          // status pakai actual lifetime vs PO asli
+          g.po_qty = Math.max(0, orig - life);
           if (g.line_closed) g.status = "DONE";
           else if (orig > 0 && life >= orig) g.status = "DONE";
-          else if (life > 0 || (Number(g.act_total) || 0) > 0 || (Number(g.plan_total) || 0) > 0) g.status = "PARTIAL";
+          else if (life > 0 || monthAct > 0 || (Number(g.plan_total) || 0) > 0) g.status = "PARTIAL";
           else g.status = "OPEN";
         });
       } catch (eLife) {
@@ -12949,20 +12992,18 @@ function fillOperatorList(selectedEmail) {
       const z = n => String(n).padStart(2, "0");
       const yest = yestDate.getFullYear() + "-" + z(yestDate.getMonth() + 1) + "-" + z(yestDate.getDate());
 
-      // PO sisa = po_qty (sudah PO−actual). Lanjutan = SO sebelum bulan ini; Bulan ini = SO di bulan tampilan
+      // PO sisa (sudah − actual kumulatif s/d akhir bulan). Lanjutan = SO < awal bulan
       var poLanjutan = 0, poBulanIni = 0, poTotalSisa = 0;
       opsRows.forEach(function(g) {
         var sisa = Number(g.po_qty) || 0;
         if (sisa <= 0) return;
-        // skip BJ
         if (/^BJ/i.test(String(g.product_id || ""))) return;
         poTotalSisa += sisa;
         var od = g.order_date ? String(g.order_date).slice(0, 10) : (g.so_mark_day || "");
         if (od && od < start) poLanjutan += sisa;
-        else if (od && od >= start && od <= end) poBulanIni += sisa;
-        else poBulanIni += sisa; // tanpa tgl → anggap bulan aktif
+        else poBulanIni += sisa;
       });
-      const poMonth = poBulanIni; // kompat label lama
+      const poMonth = poBulanIni;
       // Plan / Actual KPI hanya packing masterbox (FG), bukan semua proses
       const planMonth = opsRows.reduce((s, g) => s + (Number(g.plan_total_fg) || Number(g._planFg) || 0), 0);
       const actMonth = opsRows.reduce((s, g) => s + (Number(g.act_total) || 0), 0);
