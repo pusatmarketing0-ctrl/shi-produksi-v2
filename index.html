@@ -3313,6 +3313,129 @@
     .plan-form-modal.modal.modal-sheet {
       max-width: min(560px, 96vw) !important;
     }
+
+    /* Korlap monitor — professional */
+    #page-korlap .kl-toolbar {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+    }
+    #page-korlap .kl-toolbar input[type="date"],
+    #page-korlap .kl-toolbar select {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.5rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.875rem;
+      background: rgba(255,255,255,0.85);
+    }
+    #page-korlap .kl-kpi {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.15rem;
+    }
+    @media (max-width: 800px) {
+      #page-korlap .kl-kpi { grid-template-columns: repeat(2, 1fr); }
+    }
+    #page-korlap .kl-kpi-card {
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(255,255,255,0.65);
+      border-radius: 16px;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 4px 16px rgba(15,40,30,0.05);
+      backdrop-filter: blur(10px);
+    }
+    #page-korlap .kl-kpi-label {
+      font-size: 0.72rem; font-weight: 600; color: #64748b;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    #page-korlap .kl-kpi-val {
+      font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 0.15rem;
+    }
+    #page-korlap .kl-kpi-sub {
+      font-size: 0.72rem; color: #94a3b8; margin-top: 0.15rem;
+    }
+    #page-korlap .kl-section {
+      margin-bottom: 1.35rem;
+    }
+    #page-korlap .kl-section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; margin-bottom: 0.65rem; flex-wrap: wrap;
+    }
+    #page-korlap .kl-section-head h3 {
+      margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b;
+    }
+    #page-korlap .kl-section-head span {
+      font-size: 0.75rem; color: #94a3b8;
+    }
+    #page-korlap .kl-table-card {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(226,232,240,0.9);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(15,40,30,0.05);
+    }
+    #page-korlap .kl-table-card table {
+      width: 100%; border-collapse: collapse; font-size: 0.875rem;
+    }
+    #page-korlap .kl-table-card thead th {
+      background: #f8fafc;
+      color: #64748b;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-align: left;
+      padding: 0.7rem 0.85rem;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    #page-korlap .kl-table-card tbody td {
+      padding: 0.75rem 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      color: #334155;
+    }
+    #page-korlap .kl-table-card tbody tr:hover {
+      background: #f0fdf4;
+    }
+    #page-korlap .kl-table-card tbody tr:last-child td { border-bottom: none; }
+    #page-korlap .kl-pill {
+      display: inline-flex; align-items: center;
+      padding: 0.15rem 0.5rem; border-radius: 999px;
+      font-size: 0.7rem; font-weight: 700;
+    }
+    #page-korlap .kl-pill.ok { background: #d1fae5; color: #065f46; }
+    #page-korlap .kl-pill.none { background: #f1f5f9; color: #64748b; }
+    #page-korlap .kl-pill.shift {
+      background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;
+    }
+    #page-korlap .kl-plan-card {
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(226,232,240,0.95);
+      border-radius: 16px;
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.65rem;
+      box-shadow: 0 4px 14px rgba(15,40,30,0.05);
+      cursor: pointer;
+      transition: transform .12s, box-shadow .12s;
+    }
+    #page-korlap .kl-plan-card:active { transform: scale(0.99); }
+    #page-korlap .kl-plan-card .kl-pc-top {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;
+    }
+    #page-korlap .kl-plan-card .kl-pc-title {
+      font-weight: 700; font-size: 0.95rem; color: #0f172a;
+    }
+    #page-korlap .kl-plan-card .kl-pc-sub {
+      font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;
+    }
+    #page-korlap .kl-plan-card .kl-pc-meta {
+      display: flex; flex-wrap: wrap; gap: 0.65rem;
+      margin-top: 0.65rem; font-size: 0.8rem; color: #475569;
+    }
+    #page-korlap .kl-plan-card .kl-pc-meta strong { color: #0f172a; }
+    #page-korlap .kl-hint {
+      font-size: 0.75rem; color: #94a3b8; margin-top: 0.85rem;
+    }
+
     .plan-form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -4781,12 +4904,12 @@
         <section id="page-korlap" class="page" hidden>
           <div class="page-head">
             <div>
-              <h1>Monitor produksi (per jam)</h1>
-              <p>Pilih plan di daftar → isi actual per jam. Mirip laporan operator, khusus korlap pantau shift.</p>
+              <h1>Monitor produksi</h1>
+              <p>Pantau plan shift · input actual per jam · ringkas seperti laporan operator</p>
             </div>
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+            <div class="kl-toolbar">
               <input type="date" id="klDate" onchange="loadKorlapHourly()" />
-              <select id="klShift" onchange="loadKorlapHourly()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <select id="klShift" onchange="loadKorlapHourly()">
                 <option value="">Semua shift</option>
                 <option value="1">Shift 1</option>
                 <option value="2">Shift 2</option>
@@ -4795,36 +4918,66 @@
               <button class="btn btn-ghost" type="button" onclick="loadKorlapHourly()">Refresh</button>
             </div>
           </div>
-          <h3 style="font-size:0.95rem;margin:0 0 0.5rem;font-weight:700">Daftar plan (klik untuk input jam)</h3>
-          <div id="klPlanCards" class="mobile-cards mobile-only"></div>
-          <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
-            <div class="table-wrap desk-only-table">
-              <table class="odoo-list">
-                <thead>
-                  <tr>
-                    <th>Produk</th><th>Proses</th><th>Shift</th><th>Target</th><th>Σ jam</th><th>Input</th><th></th>
-                  </tr>
-                </thead>
-                <tbody id="klPlanBody"><tr><td colspan="7" class="empty">Memuat plan…</td></tr></tbody>
-              </table>
+          <div class="kl-kpi">
+            <div class="kl-kpi-card">
+              <div class="kl-kpi-label">Plan aktif</div>
+              <div class="kl-kpi-val" id="klKpiPlans">—</div>
+              <div class="kl-kpi-sub">tanggal terpilih</div>
+            </div>
+            <div class="kl-kpi-card">
+              <div class="kl-kpi-label">Sudah diinput</div>
+              <div class="kl-kpi-val" id="klKpiDone">—</div>
+              <div class="kl-kpi-sub">plan punya ≥1 jam</div>
+            </div>
+            <div class="kl-kpi-card">
+              <div class="kl-kpi-label">Total entry</div>
+              <div class="kl-kpi-val" id="klKpiEntries">—</div>
+              <div class="kl-kpi-sub">baris input jam</div>
+            </div>
+            <div class="kl-kpi-card">
+              <div class="kl-kpi-label">Σ actual</div>
+              <div class="kl-kpi-val" id="klKpiQty">—</div>
+              <div class="kl-kpi-sub">akumulasi qty jam</div>
             </div>
           </div>
-          <h3 style="font-size:0.95rem;margin:0 0 0.5rem;font-weight:700">Riwayat input jam</h3>
-          <div class="card" style="padding:0;overflow:hidden">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Jam</th><th>Produk</th><th>Proses</th><th>Plan</th><th>Actual</th><th>Catatan</th><th>Oleh</th>
-                  </tr>
-                </thead>
-                <tbody id="klBody"><tr><td colspan="7" class="empty">Belum ada input</td></tr></tbody>
-              </table>
+          <div class="kl-section">
+            <div class="kl-section-head">
+              <h3>Daftar plan</h3>
+              <span>Klik baris / tombol untuk isi jam</span>
+            </div>
+            <div id="klPlanCards" class="mobile-only"></div>
+            <div class="kl-table-card desk-only-table">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produk</th><th>Proses</th><th>Shift</th><th>Target</th><th>Σ jam</th><th>Status</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="klPlanBody"><tr><td colspan="7" class="empty">Memuat plan…</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">
-            Butuh tabel <code>hourly_reports</code> — jalankan SQL batch2 di Supabase sekali bila belum ada.
-          </p>
+          <div class="kl-section">
+            <div class="kl-section-head">
+              <h3>Riwayat input jam</h3>
+              <span id="klHistorySub">—</span>
+            </div>
+            <div class="kl-table-card">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Jam</th><th>Produk</th><th>Proses</th><th>Plan</th><th>Actual</th><th>Catatan</th><th>Oleh</th>
+                    </tr>
+                  </thead>
+                  <tbody id="klBody"><tr><td colspan="7" class="empty">Belum ada input</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <p class="kl-hint">Tabel <code>hourly_reports</code> wajib ada di Supabase (SQL batch2).</p>
         </section>
 
         <section id="page-wip" class="page" hidden>
@@ -12823,6 +12976,15 @@ function fillOperatorList(selectedEmail) {
         sumByPlan[pid] = (sumByPlan[pid] || 0) + (Number(r.actual_qty) || 0);
         countByPlan[pid] = (countByPlan[pid] || 0) + 1;
       });
+      var totalQty = 0;
+      klHourlyCache.forEach(function(r) { totalQty += Number(r.actual_qty) || 0; });
+      var plansWithInput = 0;
+      klPlanCache.forEach(function(p) { if (countByPlan[p.plan_id]) plansWithInput++; });
+      if ($("klKpiPlans")) $("klKpiPlans").textContent = formatNum(klPlanCache.length);
+      if ($("klKpiDone")) $("klKpiDone").textContent = formatNum(plansWithInput);
+      if ($("klKpiEntries")) $("klKpiEntries").textContent = formatNum(klHourlyCache.length);
+      if ($("klKpiQty")) $("klKpiQty").textContent = formatNum(totalQty);
+      if ($("klHistorySub")) $("klHistorySub").textContent = klHourlyCache.length ? (klHourlyCache.length + " entry") : "Belum ada";
 
       var planBody = $("klPlanBody");
       var planCards = $("klPlanCards");
@@ -12838,14 +13000,17 @@ function fillOperatorList(selectedEmail) {
               var pr = (products || []).find(function(x) { return String(x.product_id) === String(p.product_id); });
               pname = pr ? pr.name : "";
             } catch (e) {}
+            var stPill = cnt
+              ? '<span class="kl-pill ok">' + cnt + ' jam</span>'
+              : '<span class="kl-pill none">Belum</span>';
             return '<tr style="cursor:pointer" data-kl-plan="' + esc(p.plan_id) + '">' +
               '<td><strong>' + esc(p.product_id) + '</strong>' +
-                (pname ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(pname) + '</div>' : '') + '</td>' +
+                (pname ? '<div style="font-size:0.72rem;color:#94a3b8">' + esc(pname) + '</div>' : '') + '</td>' +
               '<td>' + esc(typeof machineLabel === "function" ? machineLabel(p.machine_id) : (p.machine_id || "—")) + '</td>' +
-              '<td>' + esc(String(p.shift || "")) + '</td>' +
-              '<td><strong>' + formatNum(p.target_qty) + '</strong> ' + esc(p.unit || "") + '</td>' +
+              '<td><span class="kl-pill shift">S' + esc(String(p.shift || "")) + '</span></td>' +
+              '<td><strong>' + formatNum(p.target_qty) + '</strong> <span style="color:#94a3b8">' + esc(p.unit || "") + '</span></td>' +
               '<td><strong>' + formatNum(sum) + '</strong></td>' +
-              '<td>' + (cnt ? (cnt + "x") : "—") + '</td>' +
+              '<td>' + stPill + '</td>' +
               '<td><button type="button" class="btn btn-primary btn-sm" data-kl-input="' + esc(p.plan_id) + '">Input jam</button></td></tr>';
           }).join("");
           planBody.querySelectorAll("[data-kl-plan]").forEach(function(tr) {
@@ -12869,13 +13034,18 @@ function fillOperatorList(selectedEmail) {
           planCards.innerHTML = klPlanCache.map(function(p) {
             var sum = sumByPlan[p.plan_id] || 0;
             var cnt = countByPlan[p.plan_id] || 0;
-            return '<div class="m-card" data-kl-plan="' + esc(p.plan_id) + '" style="cursor:pointer">' +
-              '<div class="m-title">' + esc(p.product_id) + '</div>' +
-              '<div class="m-sub">' + esc(typeof machineLabel === "function" ? machineLabel(p.machine_id) : p.machine_id) +
-                ' · Shift ' + esc(String(p.shift || "")) + '</div>' +
-              '<div class="m-row"><span>Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") +
-                '</strong></span><span>Σ jam <strong>' + formatNum(sum) + '</strong> (' + cnt + 'x)</span></div>' +
-              '<button type="button" class="btn btn-primary btn-sm" style="margin-top:0.5rem;width:100%" data-kl-input="' + esc(p.plan_id) + '">Input jam</button></div>';
+            var stPill = cnt
+              ? '<span class="kl-pill ok">' + cnt + ' jam</span>'
+              : '<span class="kl-pill none">Belum</span>';
+            return '<div class="kl-plan-card" data-kl-plan="' + esc(p.plan_id) + '">' +
+              '<div class="kl-pc-top"><div><div class="kl-pc-title">' + esc(p.product_id) + '</div>' +
+              '<div class="kl-pc-sub">' + esc(typeof machineLabel === "function" ? machineLabel(p.machine_id) : p.machine_id) +
+                '</div></div>' + stPill + '</div>' +
+              '<div class="kl-pc-meta">' +
+                '<span class="kl-pill shift">Shift ' + esc(String(p.shift || "")) + '</span>' +
+                '<span>Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</strong></span>' +
+                '<span>Σ <strong>' + formatNum(sum) + '</strong></span></div>' +
+              '<button type="button" class="btn btn-primary btn-sm" style="margin-top:0.75rem;width:100%" data-kl-input="' + esc(p.plan_id) + '">Input jam</button></div>';
           }).join("");
           planCards.querySelectorAll("[data-kl-plan]").forEach(function(el) {
             el.onclick = function(e) {
@@ -12904,14 +13074,16 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       body.innerHTML = rows.map(function(r) {
+        var by = String(r.created_by || "");
+        if (by.indexOf("@") >= 0) by = by.split("@")[0];
         return '<tr>' +
           '<td><strong>' + String(r.hour_slot).padStart(2, "0") + ':00</strong></td>' +
           '<td>' + esc(r.product_id) + '</td>' +
-          '<td>' + esc(r.machine_id) + '</td>' +
-          '<td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "—") + '</td>' +
+          '<td>' + esc(typeof machineLabel === "function" ? machineLabel(r.machine_id) : (r.machine_id || "—")) + '</td>' +
+          '<td style="font-size:0.72rem;color:#94a3b8">' + esc(r.plan_id || "—") + '</td>' +
           '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
-          '<td>' + esc(r.notes || "") + '</td>' +
-          '<td style="font-size:0.75rem">' + esc(r.created_by || "") + '</td></tr>';
+          '<td style="color:#64748b">' + esc(r.notes || "—") + '</td>' +
+          '<td style="font-size:0.75rem;color:#94a3b8">' + esc(by || "—") + '</td></tr>';
       }).join("");
     }
     function openHourlyModal(planId) {
