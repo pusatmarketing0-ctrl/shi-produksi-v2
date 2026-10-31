@@ -6286,21 +6286,44 @@
           <span id="rpNgUnit" style="font-size:0.8rem;color:var(--text-muted);text-align:center">—</span>
         </div>
       </div>
-      <div class="field"><label>Downtime (menit)</label><input id="rpDt" type="number" min="0" step="1" value="0" inputmode="numeric" /></div>
-      <div class="field" id="rpDtCatWrap">
-        <label>Kategori kendala <span style="color:#b91c1c">*</span></label>
-        <select id="rpDtCategory">
-          <option value="">— Pilih kategori —</option>
-          <option value="Machine">1. Machine</option>
-          <option value="Material">2. Material</option>
-          <option value="Metode">3. Metode</option>
-          <option value="Man Power">4. Man Power</option>
-          <option value="Plan">5. Plan</option>
-        </select>
-        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0">Wajib diisi jika downtime &gt; 0</p>
+      <div class="field" style="margin-top:0.35rem">
+        <label style="font-weight:700">Kendala (kolom terpisah — bukan catatan)</label>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.2rem 0 0.5rem">Material = qty · Machine/Man/Method = menit · Plan = ajukan revisi</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+          <div class="field" style="margin:0">
+            <label>Material (qty kurang)</label>
+            <input id="rpMatQty" class="num-input" inputmode="decimal" placeholder="0" value="0" />
+          </div>
+          <div class="field" style="margin:0">
+            <label>Satuan material</label>
+            <select id="rpMatUnit"><option value="pcs">pcs</option><option value="gr">gr</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option></select>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Machine (menit)</label>
+            <input id="rpDtMachine" type="number" min="0" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="field" style="margin:0">
+            <label>Man power (menit)</label>
+            <input id="rpDtMan" type="number" min="0" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="field" style="margin:0">
+            <label>Method (menit)</label>
+            <input id="rpDtMethod" type="number" min="0" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="field" style="margin:0">
+            <label>Plan</label>
+            <button class="btn btn-ghost btn-sm" type="button" id="btnRpPlanRev" style="width:100%;border-color:#fdba74;color:#c2410c" onclick="openRevRequestModal()">Ajukan revisi target</button>
+          </div>
+        </div>
+        <div class="field" style="margin:0.55rem 0 0">
+          <label>Detail kendala (opsional)</label>
+          <input id="rpDtReason" placeholder="Contoh: roller macet, material kosong..." />
+        </div>
+        <div id="rpAdjPreview" style="margin-top:0.5rem;padding:0.55rem 0.65rem;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.78rem;display:none"></div>
       </div>
-      <div class="field"><label>Detail kendala (opsional)</label><input id="rpDtReason" placeholder="Contoh: roller macet, material kosong..." /></div>
-      <div class="field"><label>Catatan</label><input id="rpNotes" placeholder="opsional" /></div>
+      <input type="hidden" id="rpDt" value="0" />
+      <input type="hidden" id="rpDtCategory" value="" />
+      <div class="field"><label>Catatan</label><input id="rpNotes" placeholder="opsional — tidak digabung dengan kendala" /></div>
       <p id="rpHint" style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem"></p>
       <div class="modal-actions" style="display:flex;flex-wrap:wrap;gap:0.45rem;justify-content:flex-end;align-items:center">
         <button class="btn btn-ghost" type="button" onclick="closeReportModal()">Batal</button>
@@ -10097,15 +10120,88 @@ function fillOperatorList(selectedEmail) {
     }
 
 
-    function calcTargetAdj(target, downtimeMin) {
+    function calcTargetAdj(target, downtimeMin, materialQty) {
       const t = Number(target) || 0;
       const dt = Number(downtimeMin) || 0;
+      const mat = Math.max(0, Number(materialQty) || 0);
       const base = SHIFT_MINUTES > 0 ? SHIFT_MINUTES : 375;
-      // Hanya downtime yang mengurangi target. Kapasitas proses TIDAK ikut di sini.
-      // dt <= 0 → target adj = target plan utuh
-      if (dt <= 0) return t;
-      const adj = t * Math.max(0, (base - dt) / base);
+      // potong waktu proporsional + potong material (qty)
+      var potongWaktu = 0;
+      if (dt > 0 && base > 0) potongWaktu = t * (Math.min(dt, base) / base);
+      var adj = t - potongWaktu - mat;
+      if (adj < 0) adj = 0;
       return Math.round(adj * 100) / 100;
+    }
+    function parseKendalaFromReport(r) {
+      var out = { material_qty: 0, material_unit: "pcs", dt_machine: 0, dt_man: 0, dt_method: 0, detail: "" };
+      if (!r) return out;
+      // kolom khusus jika sudah ada di DB
+      if (r.material_qty != null) out.material_qty = Number(r.material_qty) || 0;
+      if (r.material_unit) out.material_unit = r.material_unit;
+      if (r.dt_machine != null) out.dt_machine = Number(r.dt_machine) || 0;
+      if (r.dt_man != null) out.dt_man = Number(r.dt_man) || 0;
+      if (r.dt_method != null) out.dt_method = Number(r.dt_method) || 0;
+      var raw = String(r.downtime_reason || "");
+      if (raw.indexOf("KENDALA_JSON:") === 0) {
+        try {
+          var j = JSON.parse(raw.slice("KENDALA_JSON:".length));
+          if (j) {
+            out.material_qty = Number(j.material_qty) || out.material_qty;
+            out.material_unit = j.material_unit || out.material_unit;
+            out.dt_machine = Number(j.dt_machine) || out.dt_machine;
+            out.dt_man = Number(j.dt_man) || out.dt_man;
+            out.dt_method = Number(j.dt_method) || out.dt_method;
+            out.detail = j.detail || "";
+          }
+        } catch (e) {}
+      } else if (raw) {
+        // format lama "Machine: detail"
+        out.detail = raw;
+        var cat = raw.split(":")[0].trim().toLowerCase();
+        var dt = Number(r.downtime_min) || 0;
+        if (cat.indexOf("machine") >= 0) out.dt_machine = dt;
+        else if (cat.indexOf("man") >= 0) out.dt_man = dt;
+        else if (cat.indexOf("metode") >= 0 || cat.indexOf("method") >= 0) out.dt_method = dt;
+      }
+      return out;
+    }
+    function buildKendalaPayload() {
+      var material_qty = parseInputNum(($("rpMatQty") && $("rpMatQty").value) || 0);
+      var material_unit = (($("rpMatUnit") && $("rpMatUnit").value) || "pcs").trim();
+      var dt_machine = parseInputNum(($("rpDtMachine") && $("rpDtMachine").value) || 0);
+      var dt_man = parseInputNum(($("rpDtMan") && $("rpDtMan").value) || 0);
+      var dt_method = parseInputNum(($("rpDtMethod") && $("rpDtMethod").value) || 0);
+      var detail = (($("rpDtReason") && $("rpDtReason").value) || "").trim();
+      var downtime_min = dt_machine + dt_man + dt_method;
+      var obj = { material_qty: material_qty, material_unit: material_unit, dt_machine: dt_machine, dt_man: dt_man, dt_method: dt_method, detail: detail };
+      return {
+        material_qty: material_qty,
+        material_unit: material_unit,
+        dt_machine: dt_machine,
+        dt_man: dt_man,
+        dt_method: dt_method,
+        downtime_min: downtime_min,
+        downtime_reason: "KENDALA_JSON:" + JSON.stringify(obj),
+        detail: detail
+      };
+    }
+    function updateRpAdjPreview() {
+      var box = $("rpAdjPreview");
+      if (!box) return;
+      var planId = ($("rpPlanId") && $("rpPlanId").value) || "";
+      var plan = (plans || []).find(function(p) { return String(p.plan_id) === String(planId); });
+      var t = plan ? (Number(plan.target_qty) || 0) : 0;
+      var k = buildKendalaPayload();
+      var adj = calcTargetAdj(t, k.downtime_min, k.material_qty);
+      var base = SHIFT_MINUTES > 0 ? SHIFT_MINUTES : 375;
+      var potongW = (t > 0 && base > 0) ? (t * (Math.min(k.downtime_min, base) / base)) : 0;
+      if (!(k.material_qty > 0) && !(k.downtime_min > 0)) {
+        box.style.display = "none";
+        return;
+      }
+      box.style.display = "";
+      box.innerHTML = "Potong material: <b>" + formatNum(k.material_qty) + "</b> · Potong waktu: <b>" + formatNum(Math.round(potongW * 100) / 100) +
+        "</b> (" + formatNum(k.downtime_min) + " m)<br/>Target adj: <b>" + formatNum(adj) + "</b> / plan <b>" + formatNum(t) + "</b>";
     }
 
     function isOwnPlan_(p, email) {
@@ -10371,7 +10467,18 @@ function fillOperatorList(selectedEmail) {
           '<td style="font-size:0.8rem">' + esc(opName) + '</td>' +
           '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
           '<td>' + formatNum(r.ng_qty || 0) + '</td>' +
-          '<td>' + formatNum(r.downtime_min || 0) + (r.downtime_reason ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(String(r.downtime_reason).split(":")[0]) + '</div>' : '') + '</td>' +
+          (function() {
+            var kk = parseKendalaFromReport(r);
+            var bits = [];
+            if (kk.material_qty > 0) bits.push("Mat " + formatNum(kk.material_qty) + (kk.material_unit ? " " + kk.material_unit : ""));
+            if (kk.dt_machine > 0) bits.push("Mch " + formatNum(kk.dt_machine) + "m");
+            if (kk.dt_man > 0) bits.push("Man " + formatNum(kk.dt_man) + "m");
+            if (kk.dt_method > 0) bits.push("Mtd " + formatNum(kk.dt_method) + "m");
+            var dtSum = (kk.dt_machine || 0) + (kk.dt_man || 0) + (kk.dt_method || 0);
+            if (!bits.length && (Number(r.downtime_min) || 0) > 0) bits.push(formatNum(r.downtime_min) + "m");
+            return '<td title="' + esc(kk.detail || "") + '"><strong>' + formatNum(dtSum || r.downtime_min || 0) + '</strong>' +
+              (bits.length ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(bits.join(" · ")) + '</div>' : "") + '</td>';
+          })() +
           '<td>' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</td>' +
           '<td><button type="button" class="btn btn-ghost btn-sm" data-rid="' + encodeURIComponent(r.report_id) + '">Edit</button></td></tr>';
       }).join("");
@@ -10529,32 +10636,32 @@ function fillOperatorList(selectedEmail) {
       $("rpNg").value = existing ? formatInputNum(existing.ng_qty || 0, true) : "0";
       try { updateRpUnitHint(pl); } catch (eH) {}
       try { bindAllThousandInputs(); } catch (eB) {}
-      $("rpDt").value = existing ? formatInputNum(existing.downtime_min || 0, false) : "0";
-      const rawReason = existing ? (existing.downtime_reason || "") : "";
-      const cats = ["Machine", "Material", "Metode", "Man Power", "Plan"];
-      let cat = "", detail = rawReason;
-      for (let i = 0; i < cats.length; i++) {
-        if (rawReason === cats[i] || rawReason.indexOf(cats[i] + ":") === 0 || rawReason.indexOf(cats[i] + " -") === 0) {
-          cat = cats[i];
-          detail = rawReason.slice(cats[i].length).replace(/^\s*[:\-]\s*/, "");
-          break;
-        }
-      }
-      if ($("rpDtCategory")) $("rpDtCategory").value = cat;
-      $("rpDtReason").value = detail;
+      var k0 = existing ? parseKendalaFromReport(existing) : { material_qty: 0, material_unit: "pcs", dt_machine: 0, dt_man: 0, dt_method: 0, detail: "" };
+      if ($("rpMatQty")) $("rpMatQty").value = formatInputNum(k0.material_qty || 0, false);
+      if ($("rpMatUnit")) $("rpMatUnit").value = k0.material_unit || "pcs";
+      if ($("rpDtMachine")) $("rpDtMachine").value = String(k0.dt_machine || 0);
+      if ($("rpDtMan")) $("rpDtMan").value = String(k0.dt_man || 0);
+      if ($("rpDtMethod")) $("rpDtMethod").value = String(k0.dt_method || 0);
+      if ($("rpDt")) $("rpDt").value = String((k0.dt_machine || 0) + (k0.dt_man || 0) + (k0.dt_method || 0));
+      if ($("rpDtReason")) $("rpDtReason").value = k0.detail || "";
+      try { updateRpAdjPreview(); } catch (eP) {}
       $("rpNotes").value = existing ? (existing.notes || "") : "";
       try { syncDtCategoryUi(); } catch (e) {}
       $("rpHint").textContent = existing
         ? "Sudah ada laporan untuk plan ini — simpan akan memperbarui (bukan buat baru)."
-        : "Target adj dihitung otomatis dari downtime (basis 375 menit/shift). 1 plan = 1 laporan.";
+        : "Target adj = target − potong material − potong waktu (Machine/Man/Method, basis 375 m). Plan → revisi terpisah. 1 plan = 1 laporan.";
       $("reportModal").classList.add("show");
       document.body.classList.add("modal-open");
       try { bindAllThousandInputs(); } catch (e) {}
-      if ($("rpDt") && !$("rpDt").dataset.dtBound) {
-        $("rpDt").dataset.dtBound = "1";
-        $("rpDt").addEventListener("input", syncDtCategoryUi);
-        $("rpDt").addEventListener("change", syncDtCategoryUi);
-      }
+      ["rpMatQty","rpDtMachine","rpDtMan","rpDtMethod"].forEach(function(id) {
+        var el = $(id);
+        if (el && !el.dataset.kendalaBound) {
+          el.dataset.kendalaBound = "1";
+          el.addEventListener("input", updateRpAdjPreview);
+          el.addEventListener("change", updateRpAdjPreview);
+        }
+      });
+      try { updateRpAdjPreview(); } catch (e2) {}
       try { syncDtCategoryUi(); } catch (e2) {}
     }
     function closeReportModal() {
@@ -10586,27 +10693,16 @@ function fillOperatorList(selectedEmail) {
         actual_qty = convertQtyUnit(actual_qty, inputUnit, planUnitSave);
         ng_qty = convertQtyUnit(ng_qty, inputUnit, planUnitSave);
       }
-      const downtime_min = parseInputNum($("rpDt").value);
-      const dtCat = (($("rpDtCategory") && $("rpDtCategory").value) || "").trim();
-      const dtDetail = ($("rpDtReason").value || "").trim();
-      if (downtime_min > 0 && !dtCat) {
-        toast("Downtime > 0 wajib pilih kategori kendala (Machine / Material / Metode / Man Power / Plan)", true);
-        if ($("rpDtCategory")) $("rpDtCategory").focus();
-        return;
-      }
-      const downtime_reason = dtCat
-        ? (dtDetail ? (dtCat + ": " + dtDetail) : dtCat)
-        : dtDetail;
+      const k = buildKendalaPayload();
+      const downtime_min = k.downtime_min;
+      const downtime_reason = k.downtime_reason;
       const notes = ($("rpNotes").value || "").trim();
       const planTarget = plan ? Number(plan.target_qty) || 0 : 0;
-      // target_qty di laporan = target plan (asli)
-      // target_adj = target plan disesuaikan downtime SAJA (bukan kapasitas proses)
-      // kapasitas/eval_target hanya untuk ranking, bukan Target adj
       const target_qty = planTarget;
       if (!(planTarget > 0)) {
         toast("Target plan kosong — cek plan di menu Plan", true);
       }
-      const target_adj = calcTargetAdj(planTarget, downtime_min);
+      const target_adj = calcTargetAdj(planTarget, downtime_min, k.material_qty);
       const report_date = plan && plan.plan_date ? plan.plan_date : ((($("reportFilterDate") && $("reportFilterDate").value) || todayStr()));
       const reported_by = (currentUser && currentUser.email) || "";
       let report_id = ($("rpReportId").value || "").trim();
