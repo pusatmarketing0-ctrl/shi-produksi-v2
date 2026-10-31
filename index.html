@@ -12504,7 +12504,7 @@ function fillOperatorList(selectedEmail) {
 
       const [{ data: plans, error: e1 }, { data: orders }, poRes] = await Promise.all([
         sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000),
-        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").limit(800),
+        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000),
         sb.from("purchase_orders").select("po_id,order_id,no_so,po_date,status,purchase_lines(eta_date,for_product_id,product_id,vendor_name)").neq("status", "cancelled").limit(500)
       ]);
       if (e1) {
@@ -12753,8 +12753,8 @@ function fillOperatorList(selectedEmail) {
             if (!groups[key].no_so) groups[key].no_so = o.no_so || "";
             return;
           }
-          // baris baru: hanya jika SO bulan ini, atau ada PO di bulan ini, atau sudah ada plan (handled above)
-          if (!inMonth && !hasPoMark) return;
+          // SO aktif selalu masuk group; filter tampilan di opsRows (sisa PO / aktivitas bulan)
+
           groups[key] = {
             product_id: pid,
             no_so: o.no_so || "",
@@ -12880,15 +12880,22 @@ function fillOperatorList(selectedEmail) {
 
       opsRows = Object.values(groups).filter(function(g) {
         if (isMaterialProductId(g.product_id) && !(g._planFg > 0)) return false;
+        // sembunyikan biaya/jasa non-FG (BJ...) kecuali ada plan di bulan ini
+        var pid = String(g.product_id || "");
+        var isBj = /^BJ/i.test(pid);
         var hasPlan = (Number(g.plan_total) || 0) > 0 || (Number(g._planAll) || 0) > 0 ||
-          (g.planDay && Object.keys(g.planDay).length) ||
+          (g.planDay && Object.keys(g.planDay).some(function(d) { return g.planDay[d] != null; })) ||
           (g.primerDay && Object.keys(g.primerDay).length);
         var hasAct = (Number(g.act_total) || 0) > 0;
-        var od = g.order_date ? String(g.order_date).slice(0, 10) : (g.so_mark_day || "");
-        var inMonth = od && od >= start && od <= end;
-        var hasPo = g.po_mark_days && Object.keys(g.po_mark_days).length > 0;
-        // bulan ini: tampilkan jika ada aktivitas plan/actual, atau SO/PO milik bulan ini
-        if (hasPlan || hasAct || inMonth || hasPo) return true;
+        var remain = Number(g.po_qty) || 0; // sudah = sisa (PO - act_life)
+        var st = String(g.status || "").toUpperCase();
+        // PO belum selesai (sisa > 0) → tetap muncul di bulan manapun
+        if (remain > 0 && st !== "DONE") {
+          if (isBj && !hasPlan) return false; // biaya giling/kirim jangan ganggu grid
+          return true;
+        }
+        // selesai tapi masih ada aktivitas bulan ini
+        if (hasPlan || hasAct) return true;
         return false;
       }).sort(function(a, b) { return String(a.product_id).localeCompare(String(b.product_id)); });
 
