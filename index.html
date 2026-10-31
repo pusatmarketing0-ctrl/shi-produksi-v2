@@ -913,32 +913,39 @@
       box-shadow: 0 1px 3px rgba(15, 36, 28, 0.04), 0 10px 28px rgba(15, 36, 28, 0.05);
     }
 
-    /* KPI ops: pill label lebih kecil, nilai kanan rapi */
+
+    /* KPI ops: kartu putih lebih sempit, label & angka tetap enak dibaca */
+    @media (min-width: 1100px) {
+      #page-operasional .ops-dash {
+        grid-template-columns: minmax(180px, 220px) minmax(180px, 220px) 200px minmax(240px, 1fr) !important;
+        gap: 0.65rem !important;
+      }
+    }
+    #page-operasional .ops-kpi-stack {
+      width: 100%;
+      max-width: 220px;
+    }
     #page-operasional .ops-kpi-row {
       display: flex !important;
       justify-content: space-between !important;
       align-items: center !important;
-      gap: 0.5rem !important;
-      padding: 0.38rem 0.55rem !important;
+      gap: 0.4rem !important;
+      padding: 0.4rem 0.5rem !important;
     }
     #page-operasional .ops-kpi-row .k {
       flex: 0 0 auto !important;
       min-width: 0 !important;
-      max-width: none !important;
+      max-width: 58% !important;
       width: auto !important;
       white-space: nowrap;
-      font-size: 0.58rem !important;
-      font-weight: 650 !important;
-      padding: 0.2rem 0.42rem !important;
-      border-radius: 7px !important;
-      letter-spacing: 0.01em !important;
-      line-height: 1.2 !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+      font-size: 0.62rem !important;
+      padding: 0.28rem 0.48rem !important;
+      border-radius: 8px !important;
     }
     #page-operasional .ops-kpi-row .v {
       flex: 0 0 auto !important;
       text-align: right !important;
-      font-size: 0.82rem !important;
+      font-size: 0.84rem !important;
       white-space: nowrap;
       margin-left: auto;
     }
