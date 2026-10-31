@@ -12798,17 +12798,17 @@ function fillOperatorList(selectedEmail) {
         g.status = opsStatusOf(g);
       });
 
-      // Qty PO tampil = sisa = PO asli − actual kumulatif (s/d akhir bulan tampilan)
+      // Sisa PO untuk bulan tampilan = PO asli − actual SEBELUM awal bulan
+      // → Produksi Oktober mengurangi angka di November (PO Lanjutan), TIDAK mengurangi Oktober
       try {
         Object.keys(groups).forEach(function(k) {
           var g = groups[k];
           g.po_qty_orig = Number(g.po_qty_orig != null ? g.po_qty_orig : g.po_qty) || 0;
-          g.act_life = 0;
+          g.act_life = 0;       // actual sebelum awal bulan tampilan
+          g.act_through_end = 0; // actual s/d akhir bulan (info saja)
         });
         var lifeKeys = Object.keys(groups);
-        var orderIds = [];
-        var noSos = [];
-        var productIds = [];
+        var orderIds = [], noSos = [], productIds = [];
         lifeKeys.forEach(function(k) {
           var g = groups[k];
           if (g.order_id) orderIds.push(g.order_id);
@@ -12839,7 +12839,6 @@ function fillOperatorList(selectedEmail) {
             .in("no_so", chunkS).lte("plan_date", end).limit(5000);
           pushPlans(rNoSo.data);
         }
-        // tambahan: plan FG produk yang sama (tanpa SO) s/d akhir bulan — last resort match by product+SO di bawah
         for (var pi = 0; pi < productIds.length; pi += 40) {
           var chunkP = productIds.slice(pi, pi + 40);
           if (!chunkP.length) break;
@@ -12847,69 +12846,70 @@ function fillOperatorList(selectedEmail) {
             .in("product_id", chunkP).lte("plan_date", end).limit(5000);
           pushPlans(rProd.data);
         }
-
         var planById = {};
         lifePlans.forEach(function(p) { planById[p.plan_id] = p; });
         lifePlans = Object.values(planById);
 
         var lifePlanIds = lifePlans.map(function(p) { return p.plan_id; });
-        var lifeActByPlan = {};
+        // actual per plan: pisah sebelum start vs s/d end
+        var actBeforeByPlan = {};
+        var actEndByPlan = {};
         for (var ri = 0; ri < lifePlanIds.length; ri += 100) {
           var chunkR = lifePlanIds.slice(ri, ri + 100);
           if (!chunkR.length) break;
           var rr = await sb.from("reports").select("plan_id,actual_qty,report_date").in("plan_id", chunkR);
           (rr.data || []).forEach(function(r) {
             var rd = r.report_date ? String(r.report_date).slice(0, 10) : "";
-            if (rd && rd > end) return;
-            lifeActByPlan[r.plan_id] = (lifeActByPlan[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
+            var q = Number(r.actual_qty) || 0;
+            if (!q) return;
+            // s/d akhir bulan tampilan
+            if (!rd || rd <= end) {
+              actEndByPlan[r.plan_id] = (actEndByPlan[r.plan_id] || 0) + q;
+            }
+            // SEBELUM awal bulan tampilan → yang mengurangi sisa masuk bulan ini
+            if (rd && rd < start) {
+              actBeforeByPlan[r.plan_id] = (actBeforeByPlan[r.plan_id] || 0) + q;
+            }
           });
         }
 
-        function groupKeyFromPlan(p) {
-          var rowPid = resolveOpsRowProductId(p);
-          if (!rowPid) rowPid = p.product_id;
-          if (!rowPid) return "";
-          return String(rowPid) + "||" + String(p.no_so || p.order_id || "");
+        function applyActToGroup(p, qtyBefore, qtyEnd) {
+          if (!(qtyBefore > 0) && !(qtyEnd > 0)) return;
+          var rowPid = resolveOpsRowProductId(p) || p.product_id;
+          if (!rowPid) return;
+          var key = String(rowPid) + "||" + String(p.no_so || p.order_id || "");
+          function addTo(g) {
+            if (!g) return;
+            g.act_life = (Number(g.act_life) || 0) + (qtyBefore || 0);
+            g.act_through_end = (Number(g.act_through_end) || 0) + (qtyEnd || 0);
+          }
+          if (groups[key]) {
+            addTo(groups[key]);
+            return;
+          }
+          Object.keys(groups).forEach(function(gk) {
+            var g = groups[gk];
+            if (String(g.product_id) !== String(rowPid)) return;
+            var sameSo = (p.order_id && g.order_id && String(p.order_id) === String(g.order_id)) ||
+              (p.no_so && g.no_so && String(p.no_so) === String(g.no_so));
+            if (sameSo) addTo(g);
+          });
         }
 
         lifePlans.forEach(function(p) {
-          // Hitung actual FG ke baris yang sama; jika bukan mesin FG tapi ada actual, tetap hitung
-          var qty = Number(lifeActByPlan[p.plan_id]) || 0;
-          if (!(qty > 0)) return;
-          var key = groupKeyFromPlan(p);
-          if (!key || !groups[key]) {
-            // coba cocokkan product saja + no_so / order_id longgar
-            var pid = resolveOpsRowProductId(p) || p.product_id;
-            Object.keys(groups).forEach(function(gk) {
-              var g = groups[gk];
-              if (String(g.product_id) !== String(pid)) return;
-              var sameSo = (p.order_id && g.order_id && String(p.order_id) === String(g.order_id)) ||
-                (p.no_so && g.no_so && String(p.no_so) === String(g.no_so)) ||
-                (!p.order_id && !p.no_so && !g.order_id && !g.no_so);
-              if (sameSo) g.act_life = (Number(g.act_life) || 0) + qty;
-            });
-            return;
-          }
-          // prefer FG; non-FG actual juga dihitung agar sisa turun
-          groups[key].act_life = (Number(groups[key].act_life) || 0) + qty;
+          applyActToGroup(p, actBeforeByPlan[p.plan_id] || 0, actEndByPlan[p.plan_id] || 0);
         });
 
-        // pastikan actual bulan tampilan ikut (jika life query kurang)
         Object.keys(groups).forEach(function(k) {
           var g = groups[k];
-          var monthAct = Number(g.act_total) || 0;
-          if (monthAct > (Number(g.act_life) || 0)) {
-            // life kurang dari actual bulan ini → pakai minimal month (seharusnya life >= month)
-            // jangan overwrite life lebih besar
-          }
-          // life minimal = actual di plan bulan ini yang sudah di-load
-          g.act_life = Math.max(Number(g.act_life) || 0, monthAct);
           var orig = Number(g.po_qty_orig) || 0;
-          var life = Number(g.act_life) || 0;
-          g.po_qty = Math.max(0, orig - life);
+          // Sisa di grid/KPI bulan ini = PO − actual SEBELUM bulan tampilan
+          var before = Number(g.act_life) || 0;
+          g.po_qty = Math.max(0, orig - before);
+          var through = Number(g.act_through_end) || 0;
           if (g.line_closed) g.status = "DONE";
-          else if (orig > 0 && life >= orig) g.status = "DONE";
-          else if (life > 0 || monthAct > 0 || (Number(g.plan_total) || 0) > 0) g.status = "PARTIAL";
+          else if (orig > 0 && through >= orig) g.status = "DONE";
+          else if (through > 0 || before > 0 || (Number(g.act_total) || 0) > 0 || (Number(g.plan_total) || 0) > 0) g.status = "PARTIAL";
           else g.status = "OPEN";
         });
       } catch (eLife) {
@@ -13257,7 +13257,7 @@ function fillOperatorList(selectedEmail) {
             body += '<td class="fz fz-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
             body += '<td class="fz fz-so" rowspan="3" style="cursor:pointer" title="Klik aksi SO" onclick="event.stopPropagation();openOpsProductMenu(\'' + pidSafe + '\',\'' + nosoSafe + '\',\'' + oidSafe + '\')">' + esc(g.no_so || "—") + '</td>';
             body += '<td class="sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
-            body += '<td class="sc-po" rowspan="3" title="Sisa PO = PO ' + formatNum(g.po_qty_orig || g.po_qty) + ' − Actual kumulatif ' + formatNum(g.act_life || 0) + '">' + formatNum(g.po_qty) + '</td>';
+            body += '<td class="sc-po" rowspan="3" title="Sisa masuk bulan = PO ' + formatNum(g.po_qty_orig || g.po_qty) + ' − Actual sebelum bulan ini ' + formatNum(g.act_life || 0) + '">' + formatNum(g.po_qty) + '</td>';
             body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
             body += '<td class="sc-ac" rowspan="3">' + formatNum(g.act_total) + '</td>';
             body += '<td class="sc-op" rowspan="3">' + formatNum(g.op_total) + '</td>';
