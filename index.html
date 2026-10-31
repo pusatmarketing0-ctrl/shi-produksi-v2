@@ -913,28 +913,34 @@
       box-shadow: 0 1px 3px rgba(15, 36, 28, 0.04), 0 10px 28px rgba(15, 36, 28, 0.05);
     }
 
-    /* KPI ops: label deket nilai */
+    /* KPI ops: pill label lebih kecil, nilai kanan rapi */
     #page-operasional .ops-kpi-row {
       display: flex !important;
-      justify-content: flex-start !important;
+      justify-content: space-between !important;
       align-items: center !important;
-      gap: 0.45rem !important;
-      padding: 0.42rem 0.55rem !important;
+      gap: 0.5rem !important;
+      padding: 0.38rem 0.55rem !important;
     }
     #page-operasional .ops-kpi-row .k {
-      min-width: auto !important;
-      max-width: none !important;
       flex: 0 0 auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      width: auto !important;
       white-space: nowrap;
-      font-size: 0.64rem !important;
-      padding: 0.28rem 0.5rem !important;
+      font-size: 0.58rem !important;
+      font-weight: 650 !important;
+      padding: 0.2rem 0.42rem !important;
+      border-radius: 7px !important;
+      letter-spacing: 0.01em !important;
+      line-height: 1.2 !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
     }
     #page-operasional .ops-kpi-row .v {
-      flex: 0 1 auto !important;
-      text-align: left !important;
-      margin-left: 0 !important;
-      font-size: 0.86rem !important;
+      flex: 0 0 auto !important;
+      text-align: right !important;
+      font-size: 0.82rem !important;
       white-space: nowrap;
+      margin-left: auto;
     }
 
     .ops-kpi-row {
