@@ -894,9 +894,16 @@
     }
     @media (min-width: 1100px) {
       .ops-dash {
-        grid-template-columns: 248px 218px 200px minmax(260px, 1fr);
+        grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) 200px minmax(240px, 1.2fr);
         align-items: stretch;
       }
+    }
+    .ops-kpi-stack {
+      min-height: 100%;
+    }
+    .ops-kpi-row .k {
+      min-width: 7.2rem;
+      max-width: 48%;
     }
     .ops-kpi-stack {
       display: flex; flex-direction: column; gap: 0;
@@ -12942,15 +12949,20 @@ function fillOperatorList(selectedEmail) {
       const z = n => String(n).padStart(2, "0");
       const yest = yestDate.getFullYear() + "-" + z(yestDate.getMonth() + 1) + "-" + z(yestDate.getDate());
 
-      const poMonth = opsRows.reduce(function(s, g) {
+      // PO sisa = po_qty (sudah PO−actual). Lanjutan = SO sebelum bulan ini; Bulan ini = SO di bulan tampilan
+      var poLanjutan = 0, poBulanIni = 0, poTotalSisa = 0;
+      opsRows.forEach(function(g) {
+        var sisa = Number(g.po_qty) || 0;
+        if (sisa <= 0) return;
+        // skip BJ
+        if (/^BJ/i.test(String(g.product_id || ""))) return;
+        poTotalSisa += sisa;
         var od = g.order_date ? String(g.order_date).slice(0, 10) : (g.so_mark_day || "");
-        var inMonth = od && od >= start && od <= end;
-        var hasPlan = (Number(g.plan_total) || 0) > 0 || (g.planDay && Object.keys(g.planDay).some(function(d) { return Number(g.planDay[d]) > 0; }));
-        var hasAct = (Number(g.act_total) || 0) > 0;
-        var hasPo = g.po_mark_days && Object.keys(g.po_mark_days).length > 0;
-        if (inMonth || hasPlan || hasAct || hasPo) return s + (Number(g.po_qty) || 0);
-        return s;
-      }, 0);
+        if (od && od < start) poLanjutan += sisa;
+        else if (od && od >= start && od <= end) poBulanIni += sisa;
+        else poBulanIni += sisa; // tanpa tgl → anggap bulan aktif
+      });
+      const poMonth = poBulanIni; // kompat label lama
       // Plan / Actual KPI hanya packing masterbox (FG), bukan semua proses
       const planMonth = opsRows.reduce((s, g) => s + (Number(g.plan_total_fg) || Number(g._planFg) || 0), 0);
       const actMonth = opsRows.reduce((s, g) => s + (Number(g.act_total) || 0), 0);
@@ -13013,22 +13025,25 @@ function fillOperatorList(selectedEmail) {
         hariKerja = Math.round((Number(poMonth) / (jmlOpAkun * planPcsOp)) * 10) / 10;
       }
 
+      // samakan jumlah baris kiri–kanan (7)
       el.innerHTML =
         '<div class="ops-kpi-stack">' +
-          kpiRow("PO Bulan Ini", formatNum(poMonth) + " Pcs", "k") +
-          kpiRow("PO Pending", formatNum(poPending) + " Pcs", "k") +
+          kpiRow("PO Lanjutan", formatNum(poLanjutan) + " Pcs", "k") +
+          kpiRow("PO Bulan Ini", formatNum(poBulanIni) + " Pcs", "k") +
+          kpiRow("PO Total Sisa", formatNum(poTotalSisa) + " Pcs", "k") +
           kpiRow("Plan Pending", formatNum(planPending) + " Pcs", "k3") +
           kpiRow("Plan Bulan Ini", formatNum(planMonth) + " Pcs", "k3") +
-          kpiRow("Plan Year Today", formatNum(planMtd) + " Pcs", "k3") +
-          kpiRow("Actual Year Today", formatNum(actMtd) + " Pcs", "k3") +
           kpiRow("Pencapaian", pencapaian + "%", "k4") +
           kpiRow("Op", formatNum(jmlOpAkun || opUnique) + " Operator", "k4") +
         '</div>' +
         '<div class="ops-kpi-stack">' +
-          kpiRow("PO Released Ke Produksi", formatNum(poReleased) + " Pcs", "k3") +
+          kpiRow("PO Released", formatNum(poBulanIni + poLanjutan) + " Pcs", "k3") +
           kpiRow("Plan Pcs/Op", formatNum(planPcsOp), "k3") +
-          kpiRow("Pencapaian (ref)", pencapaian + "%", "k3") +
           kpiRow("Actual OP / Bulan", formatNum(actualOpBulan) + " Pcs/OP", "k3") +
+          kpiRow("Plan MTD", formatNum(planMtd) + " Pcs", "k3") +
+          kpiRow("Actual MTD", formatNum(actMtd) + " Pcs", "k3") +
+          kpiRow("Actual Bulan", formatNum(actMonth) + " Pcs", "k3") +
+          kpiRow("Pencapaian (ref)", pencapaian + "%", "k3") +
         '</div>' +
         '<div class="ops-card-blue">' +
           '<div class="pair">' +
