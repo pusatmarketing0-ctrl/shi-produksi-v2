@@ -10623,9 +10623,21 @@ function fillOperatorList(selectedEmail) {
             return '<div class="m-card">' +
               '<div class="m-title">' + esc(productLabel(pl.product_id || "")) + '</div>' +
               '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ((pl.no_so || pl.order_id) ? ' · SO ' + esc(pl.no_so || pl.order_id) : '') + ' · ' + esc(opN) + ' · ' + esc(tm) + '</div>' +
-              '<div class="m-row"><span>Actual <strong>' + formatNum(r.actual_qty) + '</strong></span>' +
-              '<span>NG ' + formatNum(r.ng_qty || 0) + '</span><span>DT ' + formatNum(r.downtime_min || 0) + ' m</span>' +
-              '<span>Target ' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</span></div>' +
+              (function() {
+                var kk = parseKendalaFromReport(r);
+                var bits = [];
+                if (kk.material_qty > 0) bits.push("Material " + formatNum(kk.material_qty) + (kk.material_unit ? " " + kk.material_unit : ""));
+                if (kk.dt_machine > 0) bits.push("Machine " + formatNum(kk.dt_machine) + "m");
+                if (kk.dt_man > 0) bits.push("Man " + formatNum(kk.dt_man) + "m");
+                if (kk.dt_method > 0) bits.push("Method " + formatNum(kk.dt_method) + "m");
+                if (!bits.length && (Number(r.downtime_min) || 0) > 0) bits.push("DT " + formatNum(r.downtime_min) + "m");
+                var kLine = bits.length ? bits.join(" · ") : "Tanpa kendala";
+                return '<div class="m-row"><span>Actual <strong>' + formatNum(r.actual_qty) + '</strong></span>' +
+                  '<span>NG ' + formatNum(r.ng_qty || 0) + '</span>' +
+                  '<span>Adj ' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</span></div>' +
+                  '<div class="m-sub" style="margin-top:0.25rem">Kendala: ' + esc(kLine) +
+                  (kk.detail ? " — " + esc(kk.detail) : "") + "</div>";
+              })() +
               '<div class="m-actions"><button type="button" class="btn btn-ghost" data-rid="' +
               encodeURIComponent(r.report_id) + '">Edit</button></div></div>';
           }).join("");
