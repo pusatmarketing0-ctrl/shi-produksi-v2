@@ -6287,43 +6287,64 @@
         </div>
       </div>
       <div class="field" style="margin-top:0.35rem">
-        <label style="font-weight:700">Kendala (kolom terpisah — bukan catatan)</label>
-        <p style="font-size:0.72rem;color:var(--text-muted);margin:0.2rem 0 0.5rem">Material = qty · Machine/Man/Method = menit · Plan = ajukan revisi</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
-          <div class="field" style="margin:0">
-            <label>Material (qty kurang)</label>
-            <input id="rpMatQty" class="num-input" inputmode="decimal" placeholder="0" value="0" />
+        <label style="font-weight:700">Kendala</label>
+        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.35rem;align-items:center">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnRpKendalaToggle" onclick="toggleRpKendalaPanel()">+ Tambah kendala</button>
+          <span id="rpKendalaSummary" style="font-size:0.75rem;color:var(--text-muted)"></span>
+        </div>
+        <div id="rpKendalaPanel" style="display:none;margin-top:0.55rem;padding:0.75rem;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,0.7)">
+          <div class="field" style="margin:0 0 0.55rem">
+            <label>Pilih kategori kendala</label>
+            <select id="rpKendalaCat" onchange="onRpKendalaCatChange()">
+              <option value="">— Pilih —</option>
+              <option value="Material">Material (qty kurang)</option>
+              <option value="Machine">Machine (downtime menit)</option>
+              <option value="Man Power">Man power (downtime menit)</option>
+              <option value="Metode">Method (delay menit)</option>
+              <option value="Plan">Plan (ajukan revisi target)</option>
+            </select>
           </div>
-          <div class="field" style="margin:0">
-            <label>Satuan material</label>
-            <select id="rpMatUnit"><option value="pcs">pcs</option><option value="gr">gr</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option></select>
-          </div>
-          <div class="field" style="margin:0">
-            <label>Machine (menit)</label>
-            <input id="rpDtMachine" type="number" min="0" step="1" value="0" inputmode="numeric" />
-          </div>
-          <div class="field" style="margin:0">
-            <label>Man power (menit)</label>
-            <input id="rpDtMan" type="number" min="0" step="1" value="0" inputmode="numeric" />
-          </div>
-          <div class="field" style="margin:0">
-            <label>Method (menit)</label>
-            <input id="rpDtMethod" type="number" min="0" step="1" value="0" inputmode="numeric" />
-          </div>
-          <div class="field" style="margin:0">
-            <label>Plan</label>
-            <button class="btn btn-ghost btn-sm" type="button" id="btnRpPlanRev" style="width:100%;border-color:#fdba74;color:#c2410c" onclick="openRevRequestModal()">Ajukan revisi target</button>
+          <div id="rpKendalaFields" style="display:none">
+            <div id="rpKendalaMaterial" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                <div class="field" style="margin:0"><label>Qty material kurang</label>
+                  <input id="rpMatQty" class="num-input" inputmode="decimal" placeholder="0" value="0" />
+                </div>
+                <div class="field" style="margin:0"><label>Satuan</label>
+                  <select id="rpMatUnit"><option value="pcs">pcs</option><option value="gr">gr</option><option value="kg">kg</option><option value="ml">ml</option><option value="L">L</option></select>
+                </div>
+              </div>
+            </div>
+            <div id="rpKendalaTime" style="display:none">
+              <div class="field" style="margin:0"><label>Durasi (menit)</label>
+                <input id="rpKendalaMin" type="number" min="0" step="1" value="0" inputmode="numeric" />
+              </div>
+            </div>
+            <div id="rpKendalaPlan" style="display:none">
+              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.45rem">Kategori Plan tidak memotong target di laporan. Ajukan revisi agar PPIC ubah target plan.</p>
+              <button class="btn btn-ghost btn-sm" type="button" style="border-color:#fdba74;color:#c2410c" onclick="openRevRequestModal()">Ajukan revisi target</button>
+            </div>
+            <div class="field" style="margin:0.55rem 0 0">
+              <label>Catatan kendala</label>
+              <input id="rpDtReason" placeholder="Wajib diisi singkat — mis. roller macet, BB kosong..." />
+            </div>
+            <div style="display:flex;gap:0.4rem;margin-top:0.55rem;justify-content:flex-end">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="clearRpKendala()">Hapus kendala</button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="applyRpKendala()">Simpan kendala</button>
+            </div>
           </div>
         </div>
-        <div class="field" style="margin:0.55rem 0 0">
-          <label>Detail kendala (opsional)</label>
-          <input id="rpDtReason" placeholder="Contoh: roller macet, material kosong..." />
-        </div>
+        <!-- nilai tersimpan (bisa 1 set aktif; multi kategori disimpan di JSON) -->
+        <input type="hidden" id="rpMatQtyStore" value="0" />
+        <input type="hidden" id="rpMatUnitStore" value="pcs" />
+        <input type="hidden" id="rpDtMachine" value="0" />
+        <input type="hidden" id="rpDtMan" value="0" />
+        <input type="hidden" id="rpDtMethod" value="0" />
+        <input type="hidden" id="rpDt" value="0" />
+        <input type="hidden" id="rpDtCategory" value="" />
         <div id="rpAdjPreview" style="margin-top:0.5rem;padding:0.55rem 0.65rem;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.78rem;display:none"></div>
       </div>
-      <input type="hidden" id="rpDt" value="0" />
-      <input type="hidden" id="rpDtCategory" value="" />
-      <div class="field"><label>Catatan</label><input id="rpNotes" placeholder="opsional — tidak digabung dengan kendala" /></div>
+      <div class="field"><label>Catatan laporan</label><input id="rpNotes" placeholder="opsional — terpisah dari catatan kendala" /></div>
       <p id="rpHint" style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem"></p>
       <div class="modal-actions" style="display:flex;flex-wrap:wrap;gap:0.45rem;justify-content:flex-end;align-items:center">
         <button class="btn btn-ghost" type="button" onclick="closeReportModal()">Batal</button>
@@ -10152,6 +10173,7 @@ function fillOperatorList(selectedEmail) {
             out.dt_man = Number(j.dt_man) || out.dt_man;
             out.dt_method = Number(j.dt_method) || out.dt_method;
             out.detail = j.detail || "";
+            out.category = j.category || "";
           }
         } catch (e) {}
       } else if (raw) {
@@ -10166,14 +10188,15 @@ function fillOperatorList(selectedEmail) {
       return out;
     }
     function buildKendalaPayload() {
-      var material_qty = parseInputNum(($("rpMatQty") && $("rpMatQty").value) || 0);
-      var material_unit = (($("rpMatUnit") && $("rpMatUnit").value) || "pcs").trim();
+      var material_qty = parseInputNum(($("rpMatQtyStore") && $("rpMatQtyStore").value) || ($("rpMatQty") && $("rpMatQty").value) || 0);
+      var material_unit = (($("rpMatUnitStore") && $("rpMatUnitStore").value) || ($("rpMatUnit") && $("rpMatUnit").value) || "pcs").trim();
       var dt_machine = parseInputNum(($("rpDtMachine") && $("rpDtMachine").value) || 0);
       var dt_man = parseInputNum(($("rpDtMan") && $("rpDtMan").value) || 0);
       var dt_method = parseInputNum(($("rpDtMethod") && $("rpDtMethod").value) || 0);
       var detail = (($("rpDtReason") && $("rpDtReason").value) || "").trim();
+      var cat = (($("rpDtCategory") && $("rpDtCategory").value) || "").trim();
       var downtime_min = dt_machine + dt_man + dt_method;
-      var obj = { material_qty: material_qty, material_unit: material_unit, dt_machine: dt_machine, dt_man: dt_man, dt_method: dt_method, detail: detail };
+      var obj = { material_qty: material_qty, material_unit: material_unit, dt_machine: dt_machine, dt_man: dt_man, dt_method: dt_method, detail: detail, category: cat };
       return {
         material_qty: material_qty,
         material_unit: material_unit,
@@ -10182,9 +10205,108 @@ function fillOperatorList(selectedEmail) {
         dt_method: dt_method,
         downtime_min: downtime_min,
         downtime_reason: "KENDALA_JSON:" + JSON.stringify(obj),
-        detail: detail
+        detail: detail,
+        category: cat
       };
     }
+
+    function toggleRpKendalaPanel() {
+      var p = $("rpKendalaPanel");
+      if (!p) return;
+      var show = p.style.display === "none" || !p.style.display;
+      p.style.display = show ? "block" : "none";
+      if (show) {
+        if ($("rpKendalaCat")) $("rpKendalaCat").value = ($("rpDtCategory") && $("rpDtCategory").value) || "";
+        onRpKendalaCatChange();
+      }
+    }
+    function onRpKendalaCatChange() {
+      var cat = (($("rpKendalaCat") && $("rpKendalaCat").value) || "").trim();
+      var fields = $("rpKendalaFields");
+      var mat = $("rpKendalaMaterial");
+      var time = $("rpKendalaTime");
+      var plan = $("rpKendalaPlan");
+      if (fields) fields.style.display = cat ? "block" : "none";
+      if (mat) mat.style.display = cat === "Material" ? "block" : "none";
+      if (time) time.style.display = (cat === "Machine" || cat === "Man Power" || cat === "Metode") ? "block" : "none";
+      if (plan) plan.style.display = cat === "Plan" ? "block" : "none";
+      // prefill time field from store
+      if (cat === "Machine" && $("rpKendalaMin")) $("rpKendalaMin").value = ($("rpDtMachine") && $("rpDtMachine").value) || "0";
+      if (cat === "Man Power" && $("rpKendalaMin")) $("rpKendalaMin").value = ($("rpDtMan") && $("rpDtMan").value) || "0";
+      if (cat === "Metode" && $("rpKendalaMin")) $("rpKendalaMin").value = ($("rpDtMethod") && $("rpDtMethod").value) || "0";
+      if (cat === "Material") {
+        if ($("rpMatQty")) $("rpMatQty").value = ($("rpMatQtyStore") && $("rpMatQtyStore").value) || "0";
+        if ($("rpMatUnit")) $("rpMatUnit").value = ($("rpMatUnitStore") && $("rpMatUnitStore").value) || "pcs";
+      }
+    }
+    function clearRpKendala() {
+      if ($("rpMatQtyStore")) $("rpMatQtyStore").value = "0";
+      if ($("rpMatUnitStore")) $("rpMatUnitStore").value = "pcs";
+      if ($("rpDtMachine")) $("rpDtMachine").value = "0";
+      if ($("rpDtMan")) $("rpDtMan").value = "0";
+      if ($("rpDtMethod")) $("rpDtMethod").value = "0";
+      if ($("rpDt")) $("rpDt").value = "0";
+      if ($("rpDtCategory")) $("rpDtCategory").value = "";
+      if ($("rpDtReason")) $("rpDtReason").value = "";
+      if ($("rpKendalaCat")) $("rpKendalaCat").value = "";
+      if ($("rpKendalaMin")) $("rpKendalaMin").value = "0";
+      if ($("rpMatQty")) $("rpMatQty").value = "0";
+      onRpKendalaCatChange();
+      refreshRpKendalaSummary();
+      updateRpAdjPreview();
+      toast("Kendala dihapus");
+    }
+    function applyRpKendala() {
+      var cat = (($("rpKendalaCat") && $("rpKendalaCat").value) || "").trim();
+      if (!cat) return toast("Pilih kategori kendala", true);
+      var note = (($("rpDtReason") && $("rpDtReason").value) || "").trim();
+      if (cat !== "Plan" && !note) return toast("Isi catatan kendala", true);
+      // reset time/material then set selected
+      if ($("rpDtMachine")) $("rpDtMachine").value = "0";
+      if ($("rpDtMan")) $("rpDtMan").value = "0";
+      if ($("rpDtMethod")) $("rpDtMethod").value = "0";
+      if ($("rpMatQtyStore")) $("rpMatQtyStore").value = "0";
+      if (cat === "Material") {
+        var q = parseInputNum(($("rpMatQty") && $("rpMatQty").value) || 0);
+        if (!(q > 0)) return toast("Isi qty material kurang", true);
+        if ($("rpMatQtyStore")) $("rpMatQtyStore").value = String(q);
+        if ($("rpMatUnitStore")) $("rpMatUnitStore").value = (($("rpMatUnit") && $("rpMatUnit").value) || "pcs");
+      } else if (cat === "Machine" || cat === "Man Power" || cat === "Metode") {
+        var m = parseInputNum(($("rpKendalaMin") && $("rpKendalaMin").value) || 0);
+        if (!(m > 0)) return toast("Isi durasi menit", true);
+        if (cat === "Machine" && $("rpDtMachine")) $("rpDtMachine").value = String(m);
+        if (cat === "Man Power" && $("rpDtMan")) $("rpDtMan").value = String(m);
+        if (cat === "Metode" && $("rpDtMethod")) $("rpDtMethod").value = String(m);
+      } else if (cat === "Plan") {
+        // no target cut — just mark category + note
+      }
+      if ($("rpDtCategory")) $("rpDtCategory").value = cat;
+      var dt = (parseInputNum(($("rpDtMachine")&&$("rpDtMachine").value)||0)
+        + parseInputNum(($("rpDtMan")&&$("rpDtMan").value)||0)
+        + parseInputNum(($("rpDtMethod")&&$("rpDtMethod").value)||0));
+      if ($("rpDt")) $("rpDt").value = String(dt);
+      refreshRpKendalaSummary();
+      updateRpAdjPreview();
+      toast("Kendala disimpan di form — klik Simpan laporan untuk commit");
+      var p = $("rpKendalaPanel");
+      if (p) p.style.display = "none";
+    }
+    function refreshRpKendalaSummary() {
+      var el = $("rpKendalaSummary");
+      if (!el) return;
+      var k = buildKendalaPayload();
+      var bits = [];
+      if (k.material_qty > 0) bits.push("Material " + formatNum(k.material_qty) + " " + (k.material_unit || ""));
+      if (k.dt_machine > 0) bits.push("Machine " + formatNum(k.dt_machine) + "m");
+      if (k.dt_man > 0) bits.push("Man " + formatNum(k.dt_man) + "m");
+      if (k.dt_method > 0) bits.push("Method " + formatNum(k.dt_method) + "m");
+      var cat = (($("rpDtCategory") && $("rpDtCategory").value) || "");
+      if (cat === "Plan") bits.push("Plan (revisi)");
+      el.textContent = bits.length ? bits.join(" · ") : "Belum ada kendala";
+      var btn = $("btnRpKendalaToggle");
+      if (btn) btn.textContent = bits.length ? "✎ Ubah kendala" : "+ Tambah kendala";
+    }
+
     function updateRpAdjPreview() {
       var box = $("rpAdjPreview");
       if (!box) return;
@@ -10637,6 +10759,8 @@ function fillOperatorList(selectedEmail) {
       try { updateRpUnitHint(pl); } catch (eH) {}
       try { bindAllThousandInputs(); } catch (eB) {}
       var k0 = existing ? parseKendalaFromReport(existing) : { material_qty: 0, material_unit: "pcs", dt_machine: 0, dt_man: 0, dt_method: 0, detail: "" };
+      if ($("rpMatQtyStore")) $("rpMatQtyStore").value = String(k0.material_qty || 0);
+      if ($("rpMatUnitStore")) $("rpMatUnitStore").value = k0.material_unit || "pcs";
       if ($("rpMatQty")) $("rpMatQty").value = formatInputNum(k0.material_qty || 0, false);
       if ($("rpMatUnit")) $("rpMatUnit").value = k0.material_unit || "pcs";
       if ($("rpDtMachine")) $("rpDtMachine").value = String(k0.dt_machine || 0);
@@ -10644,7 +10768,15 @@ function fillOperatorList(selectedEmail) {
       if ($("rpDtMethod")) $("rpDtMethod").value = String(k0.dt_method || 0);
       if ($("rpDt")) $("rpDt").value = String((k0.dt_machine || 0) + (k0.dt_man || 0) + (k0.dt_method || 0));
       if ($("rpDtReason")) $("rpDtReason").value = k0.detail || "";
-      try { updateRpAdjPreview(); } catch (eP) {}
+      // restore category
+      var cat0 = "";
+      if (k0.material_qty > 0) cat0 = "Material";
+      else if (k0.dt_machine > 0) cat0 = "Machine";
+      else if (k0.dt_man > 0) cat0 = "Man Power";
+      else if (k0.dt_method > 0) cat0 = "Metode";
+      if ($("rpDtCategory")) $("rpDtCategory").value = cat0;
+      if ($("rpKendalaPanel")) $("rpKendalaPanel").style.display = "none";
+      try { refreshRpKendalaSummary(); updateRpAdjPreview(); } catch (eP) {}
       $("rpNotes").value = existing ? (existing.notes || "") : "";
       try { syncDtCategoryUi(); } catch (e) {}
       $("rpHint").textContent = existing
