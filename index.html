@@ -4778,6 +4778,7 @@
                 <option value="partial">Partial</option>
               </select>
               <input type="search" id="opsSearch" placeholder="Cari produk / customer / SO..." oninput="renderOperasional()" />
+              <button class="btn btn-ghost btn-sm" type="button" onclick="exportOperasionalExcel()">Export Excel</button>
               <button class="btn btn-primary btn-sm" type="button" onclick="loadOperasional()">Refresh</button>
             </div>
           </div>
@@ -12981,6 +12982,149 @@ function fillOperatorList(selectedEmail) {
 
       renderOpsDash(start, end);
       renderOperasional();
+    }
+
+
+    function exportOperasionalExcel() {
+      if (typeof XLSX === "undefined") {
+        toast("Library Excel belum termuat — refresh halaman", true);
+        return;
+      }
+      if (!(opsRows && opsRows.length) || !(opsDays && opsDays.length)) {
+        toast("Grid masih kosong — load dulu", true);
+        return;
+      }
+      try {
+        // filter sama seperti tampilan grid
+        var statusF = ($("opsStatusFilter") && $("opsStatusFilter").value) || "aktif";
+        var q = (($("opsSearch") && $("opsSearch").value) || "").toLowerCase().trim();
+        var list = (opsRows || []).slice();
+        if (statusF === "aktif") list = list.filter(function(g) { return String(g.status || "").toUpperCase() !== "DONE"; });
+        else if (statusF === "done") list = list.filter(function(g) { return String(g.status || "").toUpperCase() === "DONE"; });
+        else if (statusF === "partial") list = list.filter(function(g) { return String(g.status || "").toUpperCase() === "PARTIAL"; });
+        if (q) {
+          list = list.filter(function(g) {
+            var blob = [g.product_id, g.customer, g.no_so, g.order_id].join(" ").toLowerCase();
+            return blob.indexOf(q) >= 0;
+          });
+        }
+        if (opsFocusDay) {
+          list = list.filter(function(g) {
+            return (Number(g.planDay && g.planDay[opsFocusDay]) || 0) > 0 ||
+              (g.primerDay && g.primerDay[opsFocusDay]) ||
+              (Number(g.actDay && g.actDay[opsFocusDay]) || 0) > 0 ||
+              (Number(g.opDay && g.opDay[opsFocusDay]) || 0) > 0;
+          });
+        }
+
+        var bulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+        var monthLabel = bulan[opsMonth] + " " + opsYear;
+        var aoa = [];
+
+        // Judul
+        aoa.push(["Plan Operasional — " + monthLabel]);
+        aoa.push(["Diexport: " + new Date().toLocaleString("id-ID") + " · Baris: " + list.length]);
+        aoa.push([]);
+
+        // Header ringkasan harian
+        var fixed = ["", "", "Ringkasan", "Tgl SO", "Qty PO", "Qty Plan", "Qty Actual", "Qty OP", "Status", "Jenis", "Ket"];
+        var dayHdr = opsDays.map(function(d) {
+          return String(Number(d.slice(8, 10))).padStart(2, "0") + " " + opsWeekday(d);
+        });
+
+        function sumRow(label, getter) {
+          var row = ["", "", label, "", "", "", "", "", "", "", ""];
+          opsDays.forEach(function(d) {
+            var v = getter(d);
+            row.push(v == null || v === "" || v === 0 ? "" : v);
+          });
+          aoa.push(row);
+        }
+        sumRow("Plan", function(d) { return (opsDayMeta[d] && opsDayMeta[d].plan) || ""; });
+        sumRow("Actual", function(d) { return (opsDayMeta[d] && opsDayMeta[d].act) || ""; });
+        sumRow("%", function(d) {
+          var v = opsDayMeta[d] && opsDayMeta[d].pct;
+          return v ? (v + "%") : "";
+        });
+        sumRow("OP", function(d) { return (opsDayMeta[d] && opsDayMeta[d].op) || ""; });
+        aoa.push([]);
+
+        // Header kolom utama
+        aoa.push(fixed.concat(dayHdr));
+
+        list.forEach(function(g) {
+          var pname = "";
+          try {
+            var pr = (products || []).find(function(p) { return p.product_id === g.product_id; });
+            pname = pr ? pr.name : "";
+          } catch (e) {}
+          var prodLabel = "[" + (g.product_id || "") + "] " + (pname || "");
+          var st = String(g.status || "OPEN").toUpperCase();
+          var jenis = g.from_ot ? "OT" : "SO";
+          var tgl = g.order_date ? String(g.order_date).slice(0, 10) : (g.so_mark_day || "");
+
+          function dayVals(map, primerMap, mode) {
+            return opsDays.map(function(d) {
+              if (mode === "plan" && primerMap && primerMap[d] && !(Number(map && map[d]) > 0)) return "PRIMER";
+              if (mode === "act" && primerMap && primerMap[d] && !(Number(map && map[d]) > 0)) {
+                var tot = (g.procTotalDay && g.procTotalDay[d]) || 0;
+                var done = (g.procDoneDay && g.procDoneDay[d]) || 0;
+                if (tot > 0) return Math.round((done / tot) * 100) + "%";
+                return "";
+              }
+              var v = Number(map && map[d]) || 0;
+              return v ? v : "";
+            });
+          }
+
+          // 3 baris: Plan, OP, Actual (mirip grid)
+          var basePlan = [
+            prodLabel,
+            g.customer || "",
+            g.no_so || g.order_id || "",
+            tgl,
+            Number(g.po_qty) || 0,
+            Number(g.plan_total_fg || g.plan_total) || 0,
+            Number(g.act_total) || 0,
+            Number(g.op_total) || 0,
+            st,
+            jenis,
+            "PLAN"
+          ];
+          aoa.push(basePlan.concat(dayVals(g.planDay, g.primerDay, "plan")));
+
+          var baseOp = [
+            "", "", "", "", "", "", "", "", "", "", "OP"
+          ];
+          aoa.push(baseOp.concat(dayVals(g.opDay, {}, "op")));
+
+          var baseAct = [
+            "", "", "", "", "", "", "", "", "", "", "ACTUAL"
+          ];
+          aoa.push(baseAct.concat(dayVals(g.actDay, g.primerDay, "act")));
+        });
+
+        var ws = XLSX.utils.aoa_to_sheet(aoa);
+        // lebar kolom kasar
+        var cols = [
+          { wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 12 },
+          { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 },
+          { wch: 10 }, { wch: 8 }, { wch: 8 }
+        ];
+        opsDays.forEach(function() { cols.push({ wch: 6 }); });
+        ws["!cols"] = cols;
+        // merge title
+        ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
+
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Ops " + (opsMonth + 1) + "-" + opsYear);
+        var fname = "plan-operasional-" + opsYear + "-" + String(opsMonth + 1).padStart(2, "0") + ".xlsx";
+        XLSX.writeFile(wb, fname);
+        toast("Excel diexport: " + fname);
+      } catch (e) {
+        console.warn(e);
+        toast("Gagal export: " + (e.message || e), true);
+      }
     }
 
     function renderOpsDash(start, end) {
