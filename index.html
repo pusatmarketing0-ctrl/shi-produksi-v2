@@ -12808,11 +12808,18 @@ function fillOperatorList(selectedEmail) {
       if ($("opsEmpty")) { $("opsEmpty").style.display = "block"; $("opsEmpty").textContent = "Memuat…"; }
       if ($("opsTable")) $("opsTable").style.display = "none";
 
-      const [{ data: plans, error: e1 }, { data: orders }, poRes] = await Promise.all([
-        sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000),
-        sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000),
-        sb.from("purchase_orders").select("po_id,order_id,no_so,po_date,status,purchase_lines(eta_date,for_product_id,product_id,vendor_name)").neq("status", "cancelled").limit(500)
-      ]);
+      var plansRes = await sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000);
+      var e1 = plansRes.error;
+      var plans = plansRes.data;
+      var ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes,harga,unit_price,price)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
+      if (ordersRes.error && /harga|unit_price|price|column/i.test(String(ordersRes.error.message || ""))) {
+        ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
+      }
+      if (ordersRes.error) {
+        ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes").order("order_date",{ascending:false}).limit(2000);
+      }
+      var orders = ordersRes.data;
+      var poRes = await sb.from("purchase_orders").select("po_id,order_id,no_so,po_date,status,purchase_lines(eta_date,for_product_id,product_id,vendor_name)").neq("status", "cancelled").limit(500);
       if (e1) {
         toast(e1.message, true);
         if ($("opsEmpty")) $("opsEmpty").textContent = e1.message;
@@ -12821,6 +12828,60 @@ function fillOperatorList(selectedEmail) {
       const planList = plans || [];
       const orderMap = {};
       (orders || []).forEach(o => { orderMap[o.order_id] = o; });
+      // peta harga jual: order_id|product → harga (SO), fallback OT
+      var unitPriceMap = {};
+      function putPrice(oid, pid, harga) {
+        var h = Number(harga) || 0;
+        if (!(h > 0) || !pid) return;
+        if (oid) unitPriceMap[String(oid) + "||" + String(pid)] = h;
+      }
+      (orders || []).forEach(function(o) {
+        (o.order_lines || []).forEach(function(l) {
+          putPrice(o.order_id, l.product_id, l.harga || l.unit_price || l.price);
+        });
+      });
+      // Order Trading harga
+      try {
+        var { data: otLinesPrice } = await sb.from("order_trading_lines").select("ot_id,product_id,harga,qty").limit(3000);
+        var otIdToOrder = {};
+        (orders || []).forEach(function(o) {
+          if (o.ot_id) otIdToOrder[o.ot_id] = o.order_id;
+        });
+        (otLinesPrice || []).forEach(function(l) {
+          var oid = otIdToOrder[l.ot_id];
+          putPrice(oid, l.product_id, l.harga);
+          // juga by ot alone
+          if (l.ot_id) unitPriceMap["ot:" + l.ot_id + "||" + String(l.product_id)] = Number(l.harga) || 0;
+        });
+      } catch (ePr) { console.warn("unit price OT", ePr); }
+      function resolveUnitPrice(g) {
+        if (!g) return 0;
+        var pid = g.product_id;
+        if (g.order_id && unitPriceMap[String(g.order_id) + "||" + String(pid)]) {
+          return unitPriceMap[String(g.order_id) + "||" + String(pid)];
+        }
+        if (g.ot_id && unitPriceMap["ot:" + g.ot_id + "||" + String(pid)]) {
+          return unitPriceMap["ot:" + g.ot_id + "||" + String(pid)];
+        }
+        // cari order by no_so
+        var ord = null;
+        if (g.order_id) ord = orderMap[g.order_id];
+        if (!ord && g.no_so) {
+          ord = (orders || []).find(function(o) { return String(o.no_so) === String(g.no_so); });
+        }
+        if (ord) {
+          var lines = ord.order_lines || [];
+          for (var i = 0; i < lines.length; i++) {
+            if (String(lines[i].product_id) === String(pid)) {
+              return Number(lines[i].harga || lines[i].unit_price || lines[i].price) || 0;
+            }
+          }
+          if (ord.ot_id && unitPriceMap["ot:" + ord.ot_id + "||" + String(pid)]) {
+            return unitPriceMap["ot:" + ord.ot_id + "||" + String(pid)];
+          }
+        }
+        return 0;
+      }
       // map SO → tanggal PO (tanda di grid)
       const poDaysByOrder = {};
       const poDaysByNoSo = {};
@@ -12925,6 +12986,7 @@ function fillOperatorList(selectedEmail) {
             ot_id: (ord && ord.ot_id) || "",
             from_ot: !!(ord && ord.ot_id),
             po_qty: poQty,
+            unit_price: 0,
             planDay: {},
             opDay: {},
             actDay: {},
@@ -12934,6 +12996,7 @@ function fillOperatorList(selectedEmail) {
             opSetDay: {},
             planIdsByDay: {}
           };
+          groups[key].unit_price = resolveUnitPrice(groups[key]);
         }
         const g = groups[key];
         const day = String(p.plan_date).slice(0, 10);
@@ -13229,6 +13292,11 @@ function fillOperatorList(selectedEmail) {
         if (byFg) Object.keys(byFg).forEach(function(d) { g.po_mark_days[d] = true; });
       });
 
+      Object.keys(groups).forEach(function(k) {
+        var g = groups[k];
+        if (!(Number(g.unit_price) > 0)) g.unit_price = resolveUnitPrice(g);
+      });
+
       opsRows = Object.values(groups).filter(function(g) {
         if (isMaterialProductId(g.product_id) && !(g._planFg > 0)) return false;
         // sembunyikan biaya/jasa non-FG (BJ...) kecuali ada plan di bulan ini
@@ -13268,7 +13336,14 @@ function fillOperatorList(selectedEmail) {
         });
         const op = Object.keys(opSetDay).length;
         const pct = plan > 0 ? Math.round((act / plan) * 100) : 0;
-        opsDayMeta[d] = { plan, act, op, pct };
+        var money = 0;
+        opsRows.forEach(function(g) {
+          var pq = Number((g.planDayFg && g.planDayFg[d]) || 0);
+          if (!(pq > 0)) return;
+          var up = Number(g.unit_price) || 0;
+          if (up > 0) money += pq * up;
+        });
+        opsDayMeta[d] = { plan, act, op, pct, money };
       });
       const today = todayStr();
       opsTodayList = opsRows.filter(g => (Number(g.planDay[today]) || 0) > 0 || g.primerDay[today] || (Number(g.opDay[today]) || 0) > 0)
@@ -13340,6 +13415,7 @@ function fillOperatorList(selectedEmail) {
           });
           aoa.push(row);
         }
+        sumRow("Est Rp", function(d) { return (opsDayMeta[d] && opsDayMeta[d].money) || ""; });
         sumRow("Plan", function(d) { return (opsDayMeta[d] && opsDayMeta[d].plan) || ""; });
         sumRow("Actual", function(d) { return (opsDayMeta[d] && opsDayMeta[d].act) || ""; });
         sumRow("%", function(d) {
@@ -13649,6 +13725,16 @@ function fillOperatorList(selectedEmail) {
           '<th class="fz fz-so ops-sum-label">' + label + '</th>' +
           '<th colspan="8"></th>';
       }
+      head += '<tr class="ops-sum-row ops-sum-money">' + sumLead('Est Rp') +
+        dayCells(function(d) {
+          var v = (opsDayMeta[d] || {}).money;
+          if (!(v > 0)) return "";
+          // format singkat: 1.2jt / 850rb / full
+          if (v >= 1e9) return (Math.round(v / 1e8) / 10) + "M";
+          if (v >= 1e6) return (Math.round(v / 1e5) / 10) + "jt";
+          if (v >= 1e3) return formatNum(Math.round(v / 1e3)) + "rb";
+          return formatNum(Math.round(v));
+        }, "") + '</tr>';
       head += '<tr class="ops-sum-row">' + sumLead('Plan') +
         dayCells(d => { const v = (opsDayMeta[d]||{}).plan; return v ? formatNum(v) : ""; }, "") + '</tr>';
       head += '<tr class="ops-sum-row">' + sumLead('Actual') +
