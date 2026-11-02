@@ -6501,7 +6501,23 @@
     }
 
     function appConfirm(message, title, opts) {
+      // Dukung 2 bentuk:
+      // 1) appConfirm("teks", "Judul", { yesText, noText, altText })
+      // 2) appConfirm({ title, message, okText, cancelText, yesText, noText, altText, danger })
       opts = opts || {};
+      if (message && typeof message === "object" && !Array.isArray(message)) {
+        var o = message;
+        message = o.message != null ? o.message : (o.msg != null ? o.msg : (o.text != null ? o.text : ""));
+        title = o.title != null ? o.title : title;
+        opts = Object.assign({}, o, opts);
+      }
+      if (message == null) message = "";
+      if (typeof message !== "string") {
+        try { message = JSON.stringify(message); } catch (e) { message = String(message); }
+      }
+      title = title || opts.title || "Konfirmasi";
+      var yesText = opts.yesText || opts.okText || "Ya";
+      var noText = opts.noText || opts.cancelText || "Tidak";
       return new Promise(function(resolve) {
         const bg = $("appConfirmBg");
         const msg = $("appConfirmMsg");
@@ -6510,14 +6526,18 @@
         const no = $("appConfirmNo");
         const alt = $("appConfirmAlt");
         if (!bg || !msg) {
-          resolve(window.confirm(message));
+          resolve(window.confirm(String(message)));
           return;
         }
         if (tit) tit.textContent = title || "Konfirmasi";
         msg.textContent = String(message || "");
         msg.style.whiteSpace = "pre-line";
-        if (yes) yes.textContent = opts.yesText || "Ya";
-        if (no) no.textContent = opts.noText || "Tidak";
+        if (yes) {
+          yes.textContent = yesText;
+          if (opts.danger) yes.classList.add("btn-danger");
+          else yes.classList.remove("btn-danger");
+        }
+        if (no) no.textContent = noText;
         if (alt) {
           if (opts.altText) {
             alt.style.display = "";
@@ -6532,7 +6552,7 @@
         function done(val) {
           bg.hidden = true;
           _confirmResolver = null;
-          if (yes) yes.textContent = "Ya";
+          if (yes) { yes.textContent = "Ya"; yes.classList.remove("btn-danger"); }
           if (no) no.textContent = "Tidak";
           if (alt) { alt.style.display = "none"; alt.textContent = "Perbaiki"; }
           resolve(val);
