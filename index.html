@@ -7527,15 +7527,12 @@
       try { applySoPageRoleUI(); } catch (e) {}
       try { loadSoOtQueue(); } catch (e) {}
       try {
-        if (!window._soHargaBackfillDone) {
-          window._soHargaBackfillDone = true;
-          backfillSoHargaFromOt().then(function(r) {
-            if (r && r.updated > 0) {
-              toast("Harga jual " + r.updated + " baris SO diisi otomatis dari Order Trading");
-              try { loadOrdersPage(); } catch (e2) {}
-            }
-          });
-        }
+        backfillSoHargaFromOt().then(function(r) {
+          if (r && r.updated > 0) {
+            toast("Harga jual " + r.updated + " baris SO diisi otomatis dari Order Trading");
+            try { loadOrdersPage(); } catch (e2) {}
+          }
+        });
       } catch (eBf) {}
     }
 
@@ -7742,7 +7739,8 @@
       const pObj = (products || []).find(function(x) { return String(x.product_id) === String(pid); });
       const display = pid ? (pid + (pObj && pObj.name ? " — " + pObj.name : "")) : "";
       const desc = (line && line.notes) || (pObj && pObj.name) || "";
-      var harga0 = line ? (line.harga != null ? line.harga : (line.unit_price != null ? line.unit_price : line.price)) : null;
+      var harga0 = line ? lineHargaValue(line) : 0;
+      if (!(harga0 > 0)) harga0 = null;
       row.innerHTML =
         '<td><input type="text" class="ol-product" placeholder="Kode / nama produk..." value="' + esc(display) + '" autocomplete="off" /></td>' +
         '<td><input type="text" class="ol-desc" placeholder="Description" value="' + esc(desc) + '" /></td>' +
@@ -7807,25 +7805,44 @@
       $("ordStatus").value = row ? (row.status || "confirmed") : "confirmed";
       $("ordNotes").value = row ? (row.notes || "") : "";
       var lines = row ? (row.order_lines || []).slice() : [];
-      if (row && row.ot_id && lines.length && sb) {
+      if (row && lines.length && sb) {
         try {
-          var need = lines.some(function(l) {
-            return !(Number(l.harga || l.unit_price || l.price) > 0);
-          });
+          var need = lines.some(function(l) { return !(lineHargaValue(l) > 0); });
           if (need) {
-            var { data: otL } = await sb.from("order_trading_lines").select("product_id,harga,unit_price,price").eq("ot_id", row.ot_id);
-            var pm = {};
-            (otL || []).forEach(function(l) {
-              var h = Number(l.harga != null ? l.harga : (l.unit_price != null ? l.unit_price : l.price)) || 0;
-              if (h > 0) pm[String(l.product_id)] = h;
-            });
-            lines = lines.map(function(l) {
-              if (Number(l.harga || l.unit_price || l.price) > 0) return l;
-              var h2 = pm[String(l.product_id)] || 0;
-              return h2 > 0 ? Object.assign({}, l, { harga: h2 }) : l;
-            });
+            var otId = row.ot_id || "";
+            if (!otId && row.order_id) {
+              var { data: otByOrd } = await sb.from("order_trading").select("ot_id").eq("order_id", row.order_id).limit(1).maybeSingle();
+              if (otByOrd) otId = otByOrd.ot_id;
+            }
+            if (!otId && row.no_so) {
+              var { data: otBySo } = await sb.from("order_trading").select("ot_id").eq("no_so", row.no_so).limit(1).maybeSingle();
+              if (otBySo) otId = otBySo.ot_id;
+              if (!otId) {
+                var { data: otBySt } = await sb.from("order_trading").select("ot_id").eq("so_trading_no", row.no_so).limit(1).maybeSingle();
+                if (otBySt) otId = otBySt.ot_id;
+              }
+            }
+            if (otId) {
+              var { data: otL } = await sb.from("order_trading_lines").select("product_id,harga,unit_price,price").eq("ot_id", otId);
+              var pm = {};
+              (otL || []).forEach(function(l) {
+                var h = Number(l.harga != null ? l.harga : (l.unit_price != null ? l.unit_price : l.price)) || 0;
+                if (h > 0) pm[String(l.product_id)] = h;
+              });
+              lines = lines.map(function(l) {
+                var cur = lineHargaValue(l);
+                if (cur > 0) return Object.assign({}, l, { harga: cur });
+                var h2 = pm[String(l.product_id)] || 0;
+                return h2 > 0 ? Object.assign({}, l, { harga: h2 }) : l;
+              });
+            } else {
+              lines = lines.map(function(l) {
+                var cur = lineHargaValue(l);
+                return cur > 0 ? Object.assign({}, l, { harga: cur }) : l;
+              });
+            }
           }
-        } catch (eOtH) {}
+        } catch (eOtH) { console.warn(eOtH); }
       }
       if (lines.length) lines.forEach(function(l) { addOrderLineRow(l); });
       else addOrderLineRow();
@@ -22485,49 +22502,81 @@ function closeOtModal() {
     }
 
     /** Isi harga SO dari Order Trading (SO sudah terbit tanpa harga) */
+
+    function lineHargaValue(l) {
+      if (!l) return 0;
+      var h = Number(l.harga != null ? l.harga : (l.unit_price != null ? l.unit_price : l.price)) || 0;
+      if (h > 0) return h;
+      var n = String(l.notes || "");
+      var m = n.match(/\[HARGA:([0-9.]+)\]/);
+      if (m) return Number(m[1]) || 0;
+      return 0;
+    }
     async function backfillSoHargaFromOt() {
       if (!sb) return { updated: 0 };
       try {
-        var { data: ords } = await sb.from("orders").select("order_id,ot_id,no_so").not("ot_id", "is", null).limit(500);
+        // 1) ambil semua OT lines yang punya harga
+        var { data: otAll } = await sb.from("order_trading_lines").select("ot_id,product_id,harga,unit_price,price").limit(5000);
+        var priceByOtProd = {};
+        (otAll || []).forEach(function(l) {
+          var h = Number(l.harga != null ? l.harga : (l.unit_price != null ? l.unit_price : l.price)) || 0;
+          if (h > 0 && l.ot_id && l.product_id) {
+            priceByOtProd[String(l.ot_id) + "||" + String(l.product_id)] = h;
+          }
+        });
+        // 2) header OT → order_id / no_so
+        var { data: otHdr } = await sb.from("order_trading").select("ot_id,order_id,no_so,so_trading_no").limit(1000);
+        var otByOrderId = {}, otByNoSo = {};
+        (otHdr || []).forEach(function(h) {
+          if (h.order_id) otByOrderId[String(h.order_id)] = h.ot_id;
+          if (h.no_so) otByNoSo[String(h.no_so)] = h.ot_id;
+          if (h.so_trading_no) otByNoSo[String(h.so_trading_no)] = h.ot_id;
+        });
+        // 3) orders (semua, atau yang punya ot_id / no_so)
+        var { data: ords } = await sb.from("orders").select("order_id,ot_id,no_so").limit(800);
         if (!ords || !ords.length) return { updated: 0 };
-        var otIds = Array.from(new Set(ords.map(function(o) { return o.ot_id; }).filter(Boolean)));
-        if (!otIds.length) return { updated: 0 };
-        var otPrice = {};
-        for (var i = 0; i < otIds.length; i += 50) {
-          var chunk = otIds.slice(i, i + 50);
-          var { data: lns } = await sb.from("order_trading_lines").select("ot_id,product_id,harga,unit_price,price").in("ot_id", chunk);
-          (lns || []).forEach(function(l) {
-            var h = Number(l.harga != null ? l.harga : (l.unit_price != null ? l.unit_price : l.price)) || 0;
-            if (h > 0) otPrice[String(l.ot_id) + "||" + String(l.product_id)] = h;
-          });
-        }
-        var updated = 0;
+        var updated = 0, failed = 0;
         for (var oi = 0; oi < ords.length; oi++) {
           var o = ords[oi];
-          if (!o.ot_id) continue;
-          var { data: soLines } = await sb.from("order_lines").select("id,product_id,harga,unit_price,price,qty").eq("order_id", o.order_id);
+          var otId = o.ot_id || otByOrderId[String(o.order_id)] || (o.no_so ? otByNoSo[String(o.no_so)] : null);
+          if (!otId) continue;
+          // pastikan link ot_id tersimpan di SO
+          if (!o.ot_id) {
+            try { await sb.from("orders").update({ ot_id: otId }).eq("order_id", o.order_id); } catch (eL) {}
+          }
+          var { data: soLines } = await sb.from("order_lines").select("*").eq("order_id", o.order_id);
           if (!soLines || !soLines.length) continue;
           for (var li = 0; li < soLines.length; li++) {
             var sl = soLines[li];
             var cur = Number(sl.harga != null ? sl.harga : (sl.unit_price != null ? sl.unit_price : sl.price)) || 0;
             if (cur > 0) continue;
-            var want = otPrice[String(o.ot_id) + "||" + String(sl.product_id)] || 0;
+            var want = priceByOtProd[String(otId) + "||" + String(sl.product_id)] || 0;
             if (!(want > 0)) continue;
-            var patchOk = false;
-            var tries = [{ harga: want }, { unit_price: want }, { price: want }];
-            for (var t = 0; t < tries.length; t++) {
-              var up = null;
-              if (sl.id != null) {
-                up = await sb.from("order_lines").update(tries[t]).eq("id", sl.id);
-                if (!up.error) { patchOk = true; break; }
-              }
-              var up2 = await sb.from("order_lines").update(tries[t]).eq("order_id", o.order_id).eq("product_id", sl.product_id);
-              if (!up2.error) { patchOk = true; break; }
+            var ok = false;
+            var keys = ["harga", "unit_price", "price"];
+            for (var ki = 0; ki < keys.length; ki++) {
+              var patch = {};
+              patch[keys[ki]] = want;
+              var q = sb.from("order_lines").update(patch).eq("order_id", o.order_id).eq("product_id", sl.product_id);
+              if (sl.id != null) q = sb.from("order_lines").update(patch).eq("id", sl.id);
+              var up = await q;
+              if (!up.error) { ok = true; break; }
             }
-            if (patchOk) updated++;
+            // fallback: notes [HARGA:xxx]
+            if (!ok) {
+              var note = String(sl.notes || "");
+              note = note.replace(/\s*\[HARGA:[^\]]*\]\s*/g, "").trim();
+              note = (note ? note + " " : "") + "[HARGA:" + want + "]";
+              var upN = await sb.from("order_lines").update({ notes: note }).eq("order_id", o.order_id).eq("product_id", sl.product_id);
+              if (!upN.error) ok = true;
+            }
+            if (ok) updated++; else failed++;
           }
         }
-        return { updated: updated };
+        if (failed && !updated) {
+          console.warn("backfill harga gagal semua — cek kolom harga di order_lines");
+        }
+        return { updated: updated, failed: failed };
       } catch (e) {
         console.warn("backfillSoHargaFromOt", e);
         return { updated: 0 };
