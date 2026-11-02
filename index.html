@@ -7490,7 +7490,7 @@
     async function loadOrdersPage() {
       if (!sb) return;
       const { data, error } = await sb.from("orders")
-        .select("*, order_lines(id,product_id,qty,unit,notes)")
+        .select("*, order_lines(id,product_id,qty,unit,notes,harga,unit_price,price)")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) {
@@ -7708,11 +7708,17 @@
     }
 
     function refreshOrdTotalQty() {
-      var total = 0;
-      document.querySelectorAll("#ordLines .ol-qty").forEach(function(el) {
-        total += parseInputNum(el.value) || 0;
+      var total = 0, totalRp = 0;
+      document.querySelectorAll("#ordLines .ord-line").forEach(function(row) {
+        var qty = parseInputNum((row.querySelector(".ol-qty") && row.querySelector(".ol-qty").value) || 0) || 0;
+        var harga = parseInputNum((row.querySelector(".ol-harga") && row.querySelector(".ol-harga").value) || 0) || 0;
+        total += qty;
+        totalRp += qty * harga;
+        var sub = row.querySelector(".ol-sub");
+        if (sub) sub.value = (qty && harga) ? formatInputNum(qty * harga, true) : "";
       });
       if ($("ordTotalQty")) $("ordTotalQty").textContent = formatNum(total);
+      if ($("ordTotalRp")) $("ordTotalRp").textContent = formatNum(Math.round(totalRp));
     }
     function addOrderLineRow(line) {
       const box = $("ordLines");
@@ -7723,12 +7729,16 @@
       const pObj = (products || []).find(function(x) { return String(x.product_id) === String(pid); });
       const display = pid ? (pid + (pObj && pObj.name ? " — " + pObj.name : "")) : "";
       const desc = (line && line.notes) || (pObj && pObj.name) || "";
+      var harga0 = line ? (line.harga != null ? line.harga : (line.unit_price != null ? line.unit_price : line.price)) : null;
       row.innerHTML =
         '<td><input type="text" class="ol-product" placeholder="Kode / nama produk..." value="' + esc(display) + '" autocomplete="off" /></td>' +
         '<td><input type="text" class="ol-desc" placeholder="Description" value="' + esc(desc) + '" /></td>' +
         '<td><input class="ol-qty" type="text" inputmode="decimal" value="' +
           (line && line.qty != null ? formatInputNum(line.qty, true) : "") + '" /></td>' +
         '<td>' + unitSelectHtml((line && line.unit) || (pObj && pObj.unit) || "pcs", "ol-unit") + '</td>' +
+        '<td><input class="ol-harga" type="text" inputmode="decimal" placeholder="0" value="' +
+          (harga0 != null && harga0 !== "" ? formatInputNum(harga0, true) : "") + '" /></td>' +
+        '<td><input class="ol-sub" type="text" readonly tabindex="-1" style="background:#f8fafc;color:#334155" value="" /></td>' +
         '<td><button type="button" class="ol-del" title="Hapus">×</button></td>';
       box.appendChild(row);
       row.querySelector(".ol-del").onclick = function() { row.remove(); refreshOrdTotalQty(); };
@@ -7736,6 +7746,11 @@
       if (qtyEl) {
         bindThousandInput(qtyEl, true);
         qtyEl.addEventListener("input", refreshOrdTotalQty);
+      }
+      const hargaEl = row.querySelector(".ol-harga");
+      if (hargaEl) {
+        bindThousandInput(hargaEl, true);
+        hargaEl.addEventListener("input", refreshOrdTotalQty);
       }
       const prodInp = row.querySelector(".ol-product");
       if (prodInp) {
@@ -7806,7 +7821,8 @@
         const product_id = resolveProductId(el.querySelector(".ol-product").value);
         const qty = parseInputNum(el.querySelector(".ol-qty").value);
         const unit = (el.querySelector(".ol-unit").value || "pcs").trim() || "pcs";
-        if (product_id && qty > 0) lines.push({ product_id, qty, unit });
+        const harga = parseInputNum((el.querySelector(".ol-harga") && el.querySelector(".ol-harga").value) || 0) || 0;
+        if (product_id && qty > 0) lines.push({ product_id, qty, unit, harga });
       });
       if (!lines.length) return toast("Minimal 1 baris produk dengan qty > 0", true);
 
@@ -7829,10 +7845,27 @@
 
       // replace lines
       await sb.from("order_lines").delete().eq("order_id", order_id);
-      const lineRows = lines.map(l => ({
-        order_id, product_id: l.product_id, qty: l.qty, unit: l.unit, notes: ""
-      }));
-      const ins = await sb.from("order_lines").insert(lineRows);
+      var lineRows = lines.map(function(l) {
+        return { order_id: order_id, product_id: l.product_id, qty: l.qty, unit: l.unit, harga: l.harga || 0, notes: "" };
+      });
+      var ins = await sb.from("order_lines").insert(lineRows);
+      if (ins.error && /harga|column|schema/i.test(String(ins.error.message || ""))) {
+        // coba unit_price
+        lineRows = lines.map(function(l) {
+          return { order_id: order_id, product_id: l.product_id, qty: l.qty, unit: l.unit, unit_price: l.harga || 0, notes: "" };
+        });
+        ins = await sb.from("order_lines").insert(lineRows);
+      }
+      if (ins.error && /unit_price|harga|column|schema/i.test(String(ins.error.message || ""))) {
+        // kolom harga belum ada — simpan tanpa harga + beri petunjuk
+        lineRows = lines.map(function(l) {
+          return { order_id: order_id, product_id: l.product_id, qty: l.qty, unit: l.unit, notes: "" };
+        });
+        ins = await sb.from("order_lines").insert(lineRows);
+        if (!ins.error) {
+          toast("SO tersimpan, tapi kolom harga belum ada di DB — jalankan SQL: alter table order_lines add column harga numeric", true);
+        }
+      }
       if (ins.error) return toast("SO tersimpan, baris gagal: " + ins.error.message, true);
 
       toast("SO disimpan");
@@ -7845,7 +7878,7 @@
     async function loadOrdersForPlan() {
       if (!sb) return;
       try {
-        const { data, error } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(400);
+        const { data, error } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit,harga,unit_price,price)").order("created_at", { ascending: false }).limit(400);
         if (error) {
           // fallback without embed
           const r2 = await sb.from("orders").select("*").order("created_at", { ascending: false }).limit(100);
@@ -17363,7 +17396,7 @@ function fillOperatorList(selectedEmail) {
       if (!inp) return;
       let orders = [];
       try {
-        const { data } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(300);
+        const { data } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit,harga,unit_price,price)").order("created_at", { ascending: false }).limit(300);
         orders = data || [];
       } catch (e) {}
       poSoOrdersCache = orders.filter(function(o) {
