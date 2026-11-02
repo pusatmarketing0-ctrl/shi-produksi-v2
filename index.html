@@ -21886,7 +21886,17 @@ function closeOtModal() {
         if ($("otModalSub")) $("otModalSub").textContent = (row.ot_id || "") + (row.customer_name ? " · " + row.customer_name : "");
         if ($("otSoTradingNo")) $("otSoTradingNo").value = row.so_trading_no || "";
         if ($("otSoTradingNote")) $("otSoTradingNote").value = row.so_trading_note || "";
-        if ($("otPoTradingNo")) $("otPoTradingNo").value = row.po_trading_no || row.po_trading || "";
+        if ($("otPoTradingNo")) {
+          var poV = row.po_trading_no || row.po_trading || "";
+          if (!poV && row.note) {
+            var mPo = String(row.note).match(/\[PO_TRADING:([^\]]+)\]/);
+            if (mPo) poV = mPo[1].trim();
+          }
+          $("otPoTradingNo").value = poV;
+        }
+        if ($("otNote") && row.note) {
+          $("otNote").value = String(row.note).replace(/\s*\[PO_TRADING:[^\]]*\]\s*/g, "").trim();
+        }
         if ($("otNoSo")) $("otNoSo").value = row.no_so || "";
         if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
         if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
@@ -22308,27 +22318,61 @@ function closeOtModal() {
       let otId = ($("otEditId") && $("otEditId").value) || "";
       const isNew = !otId;
       if (!otId) otId = await newOtId();
+      var poTrading = (($("otPoTradingNo") && $("otPoTradingNo").value) || "").trim();
+      var noteBase = (($("otNote") && $("otNote").value) || "").trim();
+      // bersihkan tag lama bila ada
+      noteBase = noteBase.replace(/\s*\[PO_TRADING:[^\]]*\]\s*/g, "").trim();
       const payload = {
         ot_id: otId,
         customer_name: customer,
-        note: (($("otNote") && $("otNote").value) || "").trim(),
+        note: noteBase,
         so_trading_no: (($("otSoTradingNo") && $("otSoTradingNo").value) || "").trim() || null,
         so_trading_note: (($("otSoTradingNote") && $("otSoTradingNote").value) || "").trim() || null,
-        po_trading_no: (($("otPoTradingNo") && $("otPoTradingNo").value) || "").trim() || null,
+        po_trading_no: poTrading || null,
         no_so: (($("otNoSo") && $("otNoSo").value) || "").trim() || null,
         dp_note: (($("otDpNote") && $("otDpNote").value) || "").trim() || null,
         updated_at: new Date().toISOString()
       };
+      async function otUpsertHeader(pl) {
+        if (isNew) {
+          pl.status = pl.status || "draft";
+          pl.created_by = (currentUser && currentUser.email) || "";
+          pl.created_at = new Date().toISOString();
+          return await sb.from("order_trading").insert(pl);
+        }
+        return await sb.from("order_trading").update(pl).eq("ot_id", otId);
+      }
+      var resHdr = await otUpsertHeader(payload);
+      if (resHdr.error) {
+        var msg = String(resHdr.error.message || "");
+        // kolom po_trading_no belum ada di Supabase → simpan fallback ke note + coba tanpa kolom
+        if (/po_trading_no|column|schema/i.test(msg)) {
+          var pl2 = Object.assign({}, payload);
+          delete pl2.po_trading_no;
+          if (poTrading) {
+            pl2.note = (pl2.note ? pl2.note + " " : "") + "[PO_TRADING:" + poTrading + "]";
+          }
+          resHdr = await otUpsertHeader(pl2);
+          if (resHdr.error) {
+            // coba nama kolom alternatif
+            var pl3 = Object.assign({}, payload);
+            delete pl3.po_trading_no;
+            pl3.po_trading = poTrading || null;
+            resHdr = await otUpsertHeader(pl3);
+            if (resHdr.error) {
+              delete pl3.po_trading;
+              resHdr = await otUpsertHeader(pl3);
+            }
+          }
+          if (!resHdr.error && poTrading) {
+            toast("PO Trading disimpan (tambah kolom po_trading_no di Supabase agar permanen)", false);
+          }
+        }
+        if (resHdr.error) return toast(resHdr.error.message, true);
+      }
       if (isNew) {
-        payload.status = "draft";
-        payload.created_by = (currentUser && currentUser.email) || "";
-        payload.created_at = new Date().toISOString();
-        const { error } = await sb.from("order_trading").insert(payload);
-        if (error) return toast(error.message, true);
         try { await otAddEvent(otId, "created", customer); } catch (e) {}
       } else {
-        const { error } = await sb.from("order_trading").update(payload).eq("ot_id", otId);
-        if (error) return toast(error.message, true);
         await sb.from("order_trading_lines").delete().eq("ot_id", otId);
         try { await otAddEvent(otId, "updated", lines.length + " produk"); } catch (e) {}
       }
