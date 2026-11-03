@@ -6112,7 +6112,7 @@
       </div>
       <div class="field">
         <label>Uraian <span style="color:#b91c1c">*</span></label>
-        <textarea id="impBody" rows="4" placeholder="Jelaskan ide perbaikan…" style="width:100%;resize:vertical;font-family:inherit;padding:0.65rem;border-radius:10px;border:1px solid var(--border)"></textarea>
+        <textarea id="impContent" rows="4" placeholder="Jelaskan ide perbaikan…" style="width:100%;resize:vertical;font-family:inherit;padding:0.65rem;border-radius:10px;border:1px solid var(--border)"></textarea>
       </div>
       <div id="impAdminBox" style="display:none;margin-top:0.5rem;padding:0.65rem;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0">
         <div class="field" style="margin:0 0 0.5rem">
@@ -20527,11 +20527,11 @@ function fillOperatorList(selectedEmail) {
       if ($("impCategory")) $("impCategory").value = "proses";
       if ($("impArea")) $("impArea").value = "";
       if ($("impTitle")) $("impTitle").value = "";
-      if ($("impBody")) $("impBody").value = "";
+      if ($("impContent")) $("impContent").value = "";
       if ($("impAdminBox")) $("impAdminBox").style.display = "none";
       if ($("btnSaveImp")) $("btnSaveImp").textContent = "Kirim";
       // unlock fields for new
-      ["impCategory", "impArea", "impTitle", "impBody"].forEach(function(id) {
+      ["impCategory", "impArea", "impTitle", "impContent"].forEach(function(id) {
         var el = $(id); if (el) el.disabled = false;
       });
       var m = $("impModal");
@@ -20545,11 +20545,11 @@ function fillOperatorList(selectedEmail) {
       if ($("impCategory")) $("impCategory").value = row.category || "lainnya";
       if ($("impArea")) $("impArea").value = row.area || "";
       if ($("impTitle")) $("impTitle").value = row.title || "";
-      if ($("impBody")) $("impBody").value = row.body || "";
+      if ($("impContent")) $("impContent").value = row.body || "";
       var isAdmin = currentRole() === "admin";
       var mine = String(row.created_by || "").toLowerCase() === String((currentUser && currentUser.email) || "").toLowerCase();
       // pengirim: read-only; admin: bisa status
-      ["impCategory", "impArea", "impTitle", "impBody"].forEach(function(id) {
+      ["impCategory", "impArea", "impTitle", "impContent"].forEach(function(id) {
         var el = $(id); if (el) el.disabled = true;
       });
       if ($("impAdminBox")) {
@@ -20599,7 +20599,7 @@ function fillOperatorList(selectedEmail) {
       // create
       var category = (($("impCategory") && $("impCategory").value) || "").trim();
       var title = (($("impTitle") && $("impTitle").value) || "").trim();
-      var body = (($("impBody") && $("impBody").value) || "").trim();
+      var body = (($("impContent") && $("impContent").value) || "").trim();
       var area = (($("impArea") && $("impArea").value) || "").trim();
       if (!category) return toast("Pilih kategori", true);
       if (!title) return toast("Judul wajib", true);
