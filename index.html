@@ -20359,8 +20359,74 @@ function fillOperatorList(selectedEmail) {
         procSel.innerHTML = opts;
         procSel.value = cur;
       }
+      try { await loadHomeFgYesterday(); } catch (eFg) { console.warn(eFg); }
       renderHomeDaily();
     }
+
+    async function loadHomeFgYesterday() {
+      if (!sb) return;
+      var body = $("hdFgYestBody");
+      var yestDate = new Date();
+      yestDate.setDate(yestDate.getDate() - 1);
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      var yest = yestDate.getFullYear() + "-" + z(yestDate.getMonth() + 1) + "-" + z(yestDate.getDate());
+      if ($("hdFgYestLabel")) $("hdFgYestLabel").textContent = yest;
+      if ($("hdFgYestHint")) $("hdFgYestHint").textContent = "Tanggal " + yest;
+      try {
+        var { data: pls } = await sb.from("plans").select("plan_id,product_id,machine_id,no_so,order_id,target_qty").eq("plan_date", yest).neq("status", "cancelled").limit(2000);
+        var fgPlans = (pls || []).filter(function(p) { return isFgMachine(p.machine_id); });
+        if (!fgPlans.length) {
+          if ($("hdFgYestQty")) $("hdFgYestQty").textContent = "0";
+          if ($("hdFgYestSku")) $("hdFgYestSku").textContent = "0";
+          if (body) body.innerHTML = '<tr><td colspan="3" class="empty">Tidak ada plan FG kemarin</td></tr>';
+          return;
+        }
+        var actBy = {};
+        var ids = fgPlans.map(function(p) { return p.plan_id; });
+        for (var i = 0; i < ids.length; i += 100) {
+          var chunk = ids.slice(i, i + 100);
+          var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", chunk);
+          (reps || []).forEach(function(r) {
+            actBy[r.plan_id] = (actBy[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
+          });
+        }
+        // juga by report_date
+        try {
+          var { data: r2 } = await sb.from("reports").select("plan_id,actual_qty").eq("report_date", yest).limit(3000);
+          (r2 || []).forEach(function(r) {
+            if (actBy[r.plan_id] == null) actBy[r.plan_id] = 0;
+            // jangan double-count jika sudah dari plan_id — hanya tambah jika belum
+          });
+        } catch (eR) {}
+        var byProd = {};
+        fgPlans.forEach(function(p) {
+          var act = Number(actBy[p.plan_id]) || 0;
+          if (!(act > 0)) return;
+          if (!byProd[p.product_id]) byProd[p.product_id] = { product_id: p.product_id, actual: 0, nos: {} };
+          byProd[p.product_id].actual += act;
+          if (p.no_so) byProd[p.product_id].nos[p.no_so] = true;
+        });
+        var list = Object.values(byProd).sort(function(a, b) { return b.actual - a.actual; });
+        var totalQty = list.reduce(function(s, x) { return s + (Number(x.actual) || 0); }, 0);
+        if ($("hdFgYestQty")) $("hdFgYestQty").textContent = formatNum(totalQty);
+        if ($("hdFgYestSku")) $("hdFgYestSku").textContent = String(list.length);
+        if ($("hdFgYestHint")) $("hdFgYestHint").textContent = list.length ? (list.length + " SKU · " + yest) : ("Tidak ada output · " + yest);
+        if (!list.length) {
+          if (body) body.innerHTML = '<tr><td colspan="3" class="empty">Belum ada laporan FG kemarin</td></tr>';
+          return;
+        }
+        if (body) body.innerHTML = list.map(function(x) {
+          var nos = Object.keys(x.nos || {}).join(", ") || "—";
+          return "<tr><td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" +
+            esc(productLabel(x.product_id)) + "</div></td><td><strong>" + formatNum(x.actual) +
+            "</strong></td><td style='font-size:0.78rem'>" + esc(nos) + "</td></tr>";
+        }).join("");
+      } catch (e) {
+        console.warn("loadHomeFgYesterday", e);
+        if (body) body.innerHTML = '<tr><td colspan="3" class="empty">Gagal muat FG kemarin</td></tr>';
+      }
+    }
+
     var hdPage = 1;
     var hdSortKey = "shift";
     var hdSortDir = 1;
