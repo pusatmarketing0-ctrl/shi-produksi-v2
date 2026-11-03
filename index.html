@@ -19527,10 +19527,19 @@ function fillOperatorList(selectedEmail) {
       try {
         await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats(), loadBom(true)]);
         try { loadInboxNotifs(); } catch (eIn) {}
-        try { /* orders page lazy */ } catch (e) {}
         try { fillRouteProductSelect(); } catch (e2) {}
       } catch (e) {
         toast(e.message || "Gagal muat master (cek schema.sql & role)", true);
+      }
+      // Beranda: muat otomatis tanpa perlu klik Refresh
+      try {
+        if (currentRole() === "operator") {
+          if (typeof loadOperatorHome === "function") await loadOperatorHome();
+        } else {
+          await loadHomeDaily();
+        }
+      } catch (eHome) {
+        console.warn("home auto-load", eHome);
       }
     }
 
@@ -20275,12 +20284,17 @@ function fillOperatorList(selectedEmail) {
 
     var homeDailyRows = [];
     async function loadHomeDaily() {
-      if (!sb) return;
+      if (!sb) {
+        var b0 = $("hdBody");
+        if (b0) b0.innerHTML = '<tr><td colspan="9" class="empty">Supabase belum siap</td></tr>';
+        return;
+      }
       var dateEl = $("hdDate");
-      var date = (dateEl && dateEl.value) || todayStr();
-      if (dateEl && !dateEl.value) dateEl.value = date;
+      var date = (dateEl && dateEl.value) || (typeof todayStr === "function" ? todayStr() : new Date().toISOString().slice(0, 10));
+      if (dateEl) dateEl.value = date;
       var body = $("hdBody");
       if (body) body.innerHTML = '<tr><td colspan="9" class="empty">Memuat…</td></tr>';
+      try {
       // Pastikan master data ada (tanpa blok lama)
       try {
         var needP = !(products && products.length);
@@ -20361,6 +20375,13 @@ function fillOperatorList(selectedEmail) {
       }
       try { await loadHomeFgYesterday(); } catch (eFg) { console.warn(eFg); }
       renderHomeDaily();
+      } catch (eAll) {
+        console.warn("loadHomeDaily", eAll);
+        if (body) body.innerHTML = '<tr><td colspan="9" class="empty">Gagal muat: ' + esc(eAll.message || eAll) + '</td></tr>';
+        if ($("hdPlan")) $("hdPlan").textContent = "—";
+        if ($("hdDone")) $("hdDone").textContent = "—";
+        if ($("hdPct")) $("hdPct").textContent = "—";
+      }
     }
 
     async function loadHomeFgYesterday() {
@@ -21382,9 +21403,13 @@ var id = await newPickId();
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
       if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
-      if (page === "home" && currentRole() === "operator") { try { loadOperatorHome(); } catch (e) {} }
-      if (page === "home") { try { loadInboxNotifs(); } catch (eIn) {} }
-      if (page === "home" && currentRole() !== "operator") { try { loadHomeDaily(); } catch (eHd) {} }
+      if (page === "home") {
+        try { loadInboxNotifs(); } catch (eIn) {}
+        try {
+          if (currentRole() === "operator") loadOperatorHome();
+          else loadHomeDaily();
+        } catch (eHd) { console.warn(eHd); }
+      }
       if (page === "routes") { try { loadRoutes(); renderRouteProductTable(); } catch (e) {} }
       else { try { closeRouteEditor(); } catch (e4) {} }
       if (page === "products") { try { renderProducts(); } catch (e) {} }
