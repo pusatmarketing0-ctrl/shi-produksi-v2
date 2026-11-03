@@ -4051,6 +4051,7 @@
         <button class="nav-item" data-page="bom" data-roles="admin,ppic" data-tip="BOM Giling"><span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/><circle cx="18" cy="12" r="2"/></svg></span><span class="nav-txt"> BOM / Giling</span></button>
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 7.5l7 3.5M8.5 16.5l7-3.5"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-3 3.5-4.5 6-4.5S13.8 16 15 19"/><circle cx="17" cy="9" r="2.5"/><path d="M17 13.5c2 0 3.8 1.2 4.5 3.5"/></svg></span><span class="nav-txt"> Data Akun</span></button>
+        <button class="nav-item" data-page="improvements" data-roles="all" data-tip="Ide & Improvement"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 4 12c-.8.8-1.2 1.7-1.4 2.7H9.4C9.2 15.7 8.8 14.8 8 14A7 7 0 0 1 12 2z"/></svg></span><span class="nav-txt"> Ide & Improvement</span><span class="nav-badge" id="navImpBadge" style="display:none">0</span></button>
         <button class="nav-item" data-page="export-data" data-roles="admin,ppic,marketing" data-tip="Export Data" onclick="goPage('export-data')"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg></span><span class="nav-txt">Export Data</span></button>
 
 </aside>
@@ -4067,8 +4068,8 @@
               <div class="value" id="homeEtaCount" style="font-size:1.8rem;color:#c2410c">0</div>
               <div class="hint" id="homeEtaHint" style="color:#9a3412">Baris PO menunggu ETA vendor setelah datang sebagian</div>
             </div>
-            <div class="grid-kpi" id="homeDailyKpi">
-              <div class="kpi" style="grid-column:1/-1;max-width:420px">
+            <div class="grid-kpi" id="homeDailyKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0.75rem">
+              <div class="kpi">
                 <div class="label">Plan & laporan hari ini</div>
                 <div style="display:flex;align-items:baseline;gap:1.25rem;flex-wrap:wrap;margin:0.35rem 0 0.2rem">
                   <div><div class="value" id="hdPlan" style="font-size:1.8rem">—</div><div class="hint">Plan</div></div>
@@ -4076,6 +4077,26 @@
                   <div><div class="value" id="hdPct" style="font-size:1.8rem;color:#0d9f6e">—</div><div class="hint">Pencapaian</div></div>
                 </div>
                 <div class="hint" id="hdPendingHint">Belum laporan: —</div>
+              </div>
+              <div class="kpi" style="background:linear-gradient(145deg,#ecfdf5,#f0fdf4);border:1px solid #bbf7d0">
+                <div class="label" style="color:#047857">Output FG kemarin</div>
+                <div style="display:flex;align-items:baseline;gap:1.25rem;flex-wrap:wrap;margin:0.35rem 0 0.2rem">
+                  <div><div class="value" id="hdFgYestQty" style="font-size:1.8rem;color:#047857">—</div><div class="hint">Qty packing MB</div></div>
+                  <div><div class="value" id="hdFgYestSku" style="font-size:1.8rem;color:#0f766e">—</div><div class="hint">SKU</div></div>
+                </div>
+                <div class="hint" id="hdFgYestHint">—</div>
+              </div>
+            </div>
+            <div class="card" id="homeFgYestCard" style="margin-top:0.75rem;padding:0.85rem 1rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
+                <h3 style="margin:0;font-size:0.92rem;font-weight:700">Detail FG kemarin</h3>
+                <span id="hdFgYestLabel" style="font-size:0.78rem;color:var(--text-muted)"></span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Produk</th><th>Actual FG</th><th>No SO</th></tr></thead>
+                  <tbody id="hdFgYestBody"><tr><td colspan="3" class="empty">Memuat…</td></tr></tbody>
+                </table>
               </div>
             </div>
             <div class="toolbar" style="margin-top:0.75rem;flex-wrap:wrap">
@@ -4767,6 +4788,56 @@
             </table>
           </div>
           <div id="absPager" class="pg-bar"></div>
+        </section>
+
+
+        <section id="page-improvements" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Ide &amp; Improvement SHI</h1>
+              <p>Usukan ide perbaikan proses kerja, efisiensi, dan lingkungan kerja.</p>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openImpForm()">+ Kirim ide</button>
+          </div>
+          <div class="mod-tabs" style="margin-bottom:0.75rem">
+            <button type="button" class="mod-tab active" id="impTabMine" onclick="setImpTab('mine')">Ide saya</button>
+            <button type="button" class="mod-tab" id="impTabInbox" onclick="setImpTab('inbox')" style="display:none">Inbox admin <span id="impInboxBadge" class="nav-badge" style="display:none;margin-left:0.25rem">0</span></button>
+          </div>
+          <div class="toolbar" style="flex-wrap:wrap;gap:0.45rem;margin-bottom:0.65rem">
+            <select id="impFilterCat" onchange="renderImprovements()">
+              <option value="">Semua kategori</option>
+              <option value="proses">Proses kerja</option>
+              <option value="efisiensi">Efisiensi</option>
+              <option value="lingkungan">Lingkungan kerja</option>
+              <option value="lainnya">Lainnya</option>
+            </select>
+            <select id="impFilterStatus" onchange="renderImprovements()">
+              <option value="">Semua status</option>
+              <option value="baru">Baru</option>
+              <option value="ditinjau">Ditinjau</option>
+              <option value="diterima">Diterima</option>
+              <option value="ditolak">Ditolak</option>
+              <option value="ditunda">Ditunda</option>
+              <option value="selesai">Selesai</option>
+            </select>
+            <input type="search" id="impSearch" placeholder="Cari judul / isi…" oninput="renderImprovements()" style="min-width:12rem" />
+            <button type="button" class="btn btn-ghost btn-sm" onclick="loadImprovements()">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th id="impThSender">Pengirim</th>
+                  <th>Kategori</th>
+                  <th>Judul</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="impBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+            </table>
+          </div>
         </section>
 
         <section id="page-revisions" class="page" hidden>
@@ -6013,6 +6084,56 @@
       <div class="sheet-foot" style="display:flex;gap:0.5rem;justify-content:flex-end;padding:0.75rem 1rem">
         <button type="button" class="btn btn-ghost" onclick="closeOtModal()">Tutup</button>
         <button type="button" class="btn btn-primary" id="btnOtSave" onclick="saveOrderTrading()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="impModal" class="modal-bg">
+    <div class="modal" style="max-width:480px">
+      <h2 id="impModalTitle">Kirim ide</h2>
+      <input type="hidden" id="impEditId" />
+      <div class="field">
+        <label>Kategori <span style="color:#b91c1c">*</span></label>
+        <select id="impCategory">
+          <option value="proses">Proses kerja</option>
+          <option value="efisiensi">Efisiensi</option>
+          <option value="lingkungan">Lingkungan kerja</option>
+          <option value="lainnya">Lainnya</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Area / divisi (opsional)</label>
+        <input id="impArea" placeholder="Produksi, Gudang, Marketing…" />
+      </div>
+      <div class="field">
+        <label>Judul <span style="color:#b91c1c">*</span></label>
+        <input id="impTitle" placeholder="Ringkas ide Anda" />
+      </div>
+      <div class="field">
+        <label>Uraian <span style="color:#b91c1c">*</span></label>
+        <textarea id="impBody" rows="4" placeholder="Jelaskan ide perbaikan…" style="width:100%;resize:vertical;font-family:inherit;padding:0.65rem;border-radius:10px;border:1px solid var(--border)"></textarea>
+      </div>
+      <div id="impAdminBox" style="display:none;margin-top:0.5rem;padding:0.65rem;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0">
+        <div class="field" style="margin:0 0 0.5rem">
+          <label>Status (admin)</label>
+          <select id="impStatus">
+            <option value="baru">Baru</option>
+            <option value="ditinjau">Ditinjau</option>
+            <option value="diterima">Diterima</option>
+            <option value="ditolak">Ditolak</option>
+            <option value="ditunda">Ditunda</option>
+            <option value="selesai">Selesai</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Catatan admin</label>
+          <textarea id="impAdminNote" rows="2" placeholder="Tanggapan untuk pengirim…" style="width:100%;resize:vertical;font-family:inherit;padding:0.55rem;border-radius:10px;border:1px solid var(--border)"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions" style="display:flex;gap:0.45rem;justify-content:flex-end;margin-top:0.85rem">
+        <button type="button" class="btn btn-ghost" onclick="closeImpModal()">Batal</button>
+        <button type="button" class="btn btn-primary" id="btnSaveImp" onclick="saveImprovement()">Kirim</button>
       </div>
     </div>
   </div>
@@ -19528,6 +19649,7 @@ function fillOperatorList(selectedEmail) {
         await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats(), loadBom(true)]);
         try { loadInboxNotifs(); } catch (eIn) {}
         try { fillRouteProductSelect(); } catch (e2) {}
+        try { if (currentRole() === "admin") loadImprovements(); } catch (eImp0) {}
       } catch (e) {
         toast(e.message || "Gagal muat master (cek schema.sql & role)", true);
       }
@@ -20283,6 +20405,227 @@ function fillOperatorList(selectedEmail) {
     }
 
     var homeDailyRows = [];
+
+    var impTab = "mine";
+    var impRows = [];
+    function setImpTab(tab) {
+      impTab = tab === "inbox" ? "inbox" : "mine";
+      var a = $("impTabMine"), b = $("impTabInbox");
+      if (a) a.classList.toggle("active", impTab === "mine");
+      if (b) b.classList.toggle("active", impTab === "inbox");
+      var th = $("impThSender");
+      if (th) th.style.display = (impTab === "inbox" || currentRole() === "admin") ? "" : "none";
+      renderImprovements();
+    }
+    function impStatusLabel(s) {
+      var m = { baru: "Baru", ditinjau: "Ditinjau", diterima: "Diterima", ditolak: "Ditolak", ditunda: "Ditunda", selesai: "Selesai" };
+      return m[s] || s || "—";
+    }
+    function impCatLabel(c) {
+      var m = { proses: "Proses kerja", efisiensi: "Efisiensi", lingkungan: "Lingkungan kerja", lainnya: "Lainnya" };
+      return m[c] || c || "—";
+    }
+    function impStatusPill(s) {
+      var colors = {
+        baru: "#1d4ed8", ditinjau: "#a16207", diterima: "#047857",
+        ditolak: "#b91c1c", ditunda: "#6b7280", selesai: "#0f766e"
+      };
+      var bg = {
+        baru: "#dbeafe", ditinjau: "#fef3c7", diterima: "#d1fae5",
+        ditolak: "#fee2e2", ditunda: "#f3f4f6", selesai: "#ccfbf1"
+      };
+      s = s || "baru";
+      return '<span class="pill" style="background:' + (bg[s] || "#f3f4f6") + ";color:" + (colors[s] || "#334155") + '">' + esc(impStatusLabel(s)) + "</span>";
+    }
+    async function loadImprovements() {
+      if (!sb) return;
+      var body = $("impBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      var isAdmin = currentRole() === "admin";
+      var tabInbox = $("impTabInbox");
+      if (tabInbox) tabInbox.style.display = isAdmin ? "" : "none";
+      try {
+        var q = sb.from("improvements").select("*").order("created_at", { ascending: false }).limit(500);
+        var { data, error } = await q;
+        if (error) {
+          // table mungkin belum ada
+          impRows = [];
+          if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Tabel improvements belum ada. Jalankan SQL create table di Supabase.<br/><small>' + esc(error.message) + "</small></td></tr>";
+          return;
+        }
+        impRows = data || [];
+        // badge admin: status baru
+        var nBaru = impRows.filter(function(r) { return String(r.status || "") === "baru"; }).length;
+        var badge = $("navImpBadge");
+        var badge2 = $("impInboxBadge");
+        if (isAdmin && nBaru > 0) {
+          if (badge) { badge.style.display = ""; badge.textContent = String(nBaru); }
+          if (badge2) { badge2.style.display = ""; badge2.textContent = String(nBaru); }
+        } else {
+          if (badge) badge.style.display = "none";
+          if (badge2) badge2.style.display = "none";
+        }
+        if (!isAdmin && impTab === "inbox") impTab = "mine";
+        setImpTab(impTab);
+      } catch (e) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(e.message || e) + "</td></tr>";
+      }
+    }
+    function renderImprovements() {
+      var body = $("impBody");
+      if (!body) return;
+      var isAdmin = currentRole() === "admin";
+      var email = ((currentUser && currentUser.email) || "").toLowerCase();
+      var cat = (($("impFilterCat") && $("impFilterCat").value) || "").trim();
+      var st = (($("impFilterStatus") && $("impFilterStatus").value) || "").trim();
+      var q = (($("impSearch") && $("impSearch").value) || "").toLowerCase().trim();
+      var list = (impRows || []).slice();
+      if (!isAdmin || impTab === "mine") {
+        list = list.filter(function(r) {
+          return String(r.created_by || "").toLowerCase() === email;
+        });
+      }
+      if (cat) list = list.filter(function(r) { return String(r.category || "") === cat; });
+      if (st) list = list.filter(function(r) { return String(r.status || "") === st; });
+      if (q) {
+        list = list.filter(function(r) {
+          return (String(r.title || "") + " " + String(r.body || "") + " " + String(r.created_by_name || "")).toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">' + (impTab === "mine" ? "Belum ada ide Anda. Klik + Kirim ide." : "Inbox kosong.") + "</td></tr>";
+        return;
+      }
+      body.innerHTML = list.map(function(r) {
+        var tgl = r.created_at ? formatDateTimeWib(r.created_at) : "—";
+        var sender = esc((r.created_by_name || "") + (r.created_by ? " · " + r.created_by : ""));
+        if (r.created_by_role) sender += ' <span style="font-size:0.68rem;color:#94a3b8">(' + esc(r.created_by_role) + ")</span>";
+        var senderTd = (isAdmin && impTab === "inbox") ? ("<td style='font-size:0.78rem'>" + sender + "</td>") : (isAdmin ? ("<td style='font-size:0.78rem'>" + sender + "</td>") : "<td style='display:none'></td>");
+        // non-admin hide sender col via th already; still output for colspan consistency when admin on mine
+        if (!isAdmin) senderTd = "";
+        return "<tr>" +
+          "<td style='font-size:0.78rem;white-space:nowrap'>" + esc(tgl) + "</td>" +
+          (isAdmin ? senderTd : "") +
+          "<td>" + esc(impCatLabel(r.category)) + "</td>" +
+          "<td><strong>" + esc(r.title || "") + "</strong>" +
+            (r.area ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(r.area) + "</div>" : "") +
+            "</td>" +
+          "<td>" + impStatusPill(r.status) + "</td>" +
+          '<td><button type="button" class="btn btn-ghost btn-sm" data-imp-id="' + esc(r.id) + '">Detail</button></td></tr>';
+      }).join("");
+      body.querySelectorAll("[data-imp-id]").forEach(function(btn) {
+        btn.onclick = function() {
+          var id = btn.getAttribute("data-imp-id");
+          var row = (impRows || []).find(function(x) { return String(x.id) === String(id); });
+          if (row) openImpDetail(row);
+        };
+      });
+    }
+    function openImpForm() {
+      if ($("impEditId")) $("impEditId").value = "";
+      if ($("impModalTitle")) $("impModalTitle").textContent = "Kirim ide";
+      if ($("impCategory")) $("impCategory").value = "proses";
+      if ($("impArea")) $("impArea").value = "";
+      if ($("impTitle")) $("impTitle").value = "";
+      if ($("impBody")) $("impBody").value = "";
+      if ($("impAdminBox")) $("impAdminBox").style.display = "none";
+      if ($("btnSaveImp")) $("btnSaveImp").textContent = "Kirim";
+      // unlock fields for new
+      ["impCategory", "impArea", "impTitle", "impBody"].forEach(function(id) {
+        var el = $(id); if (el) el.disabled = false;
+      });
+      var m = $("impModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+    }
+    function openImpDetail(row) {
+      if (!row) return;
+      if ($("impEditId")) $("impEditId").value = row.id || "";
+      if ($("impModalTitle")) $("impModalTitle").textContent = "Detail ide";
+      if ($("impCategory")) $("impCategory").value = row.category || "lainnya";
+      if ($("impArea")) $("impArea").value = row.area || "";
+      if ($("impTitle")) $("impTitle").value = row.title || "";
+      if ($("impBody")) $("impBody").value = row.body || "";
+      var isAdmin = currentRole() === "admin";
+      var mine = String(row.created_by || "").toLowerCase() === String((currentUser && currentUser.email) || "").toLowerCase();
+      // pengirim: read-only; admin: bisa status
+      ["impCategory", "impArea", "impTitle", "impBody"].forEach(function(id) {
+        var el = $(id); if (el) el.disabled = true;
+      });
+      if ($("impAdminBox")) {
+        $("impAdminBox").style.display = isAdmin ? "block" : (row.admin_note ? "block" : "none");
+      }
+      if ($("impStatus")) {
+        $("impStatus").value = row.status || "baru";
+        $("impStatus").disabled = !isAdmin;
+      }
+      if ($("impAdminNote")) {
+        $("impAdminNote").value = row.admin_note || "";
+        $("impAdminNote").disabled = !isAdmin;
+      }
+      if ($("btnSaveImp")) {
+        $("btnSaveImp").style.display = isAdmin ? "" : "none";
+        $("btnSaveImp").textContent = "Simpan status";
+      }
+      var m = $("impModal");
+      if (m) { m.classList.add("show"); m.style.display = "flex"; }
+      document.body.classList.add("modal-open");
+    }
+    function closeImpModal() {
+      var m = $("impModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      document.body.classList.remove("modal-open");
+    }
+    async function saveImprovement() {
+      if (!sb) return toast("Supabase belum siap", true);
+      var id = (($("impEditId") && $("impEditId").value) || "").trim();
+      var isAdmin = currentRole() === "admin";
+      if (id && isAdmin) {
+        // update status only
+        var patch = {
+          status: (($("impStatus") && $("impStatus").value) || "baru"),
+          admin_note: (($("impAdminNote") && $("impAdminNote").value) || "").trim() || null,
+          reviewed_by: (currentUser && currentUser.email) || "",
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        var { error } = await sb.from("improvements").update(patch).eq("id", id);
+        if (error) return toast(error.message, true);
+        toast("Status ide diperbarui");
+        closeImpModal();
+        await loadImprovements();
+        return;
+      }
+      // create
+      var category = (($("impCategory") && $("impCategory").value) || "").trim();
+      var title = (($("impTitle") && $("impTitle").value) || "").trim();
+      var body = (($("impBody") && $("impBody").value) || "").trim();
+      var area = (($("impArea") && $("impArea").value) || "").trim();
+      if (!category) return toast("Pilih kategori", true);
+      if (!title) return toast("Judul wajib", true);
+      if (!body) return toast("Uraian wajib", true);
+      var row = {
+        title: title,
+        body: body,
+        category: category,
+        area: area || null,
+        status: "baru",
+        created_by: (currentUser && currentUser.email) || "",
+        created_by_name: (currentProfile && currentProfile.name) || "",
+        created_by_role: currentRole() || "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      var { error } = await sb.from("improvements").insert(row);
+      if (error) {
+        return toast("Gagal simpan: " + error.message + " — pastikan tabel improvements sudah dibuat", true);
+      }
+      toast("Ide terkirim. Terima kasih!");
+      closeImpModal();
+      await loadImprovements();
+    }
+
+
     async function loadHomeDaily() {
       if (!sb) {
         var b0 = $("hdBody");
@@ -21403,6 +21746,7 @@ var id = await newPickId();
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
       if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
+      if (page === "improvements") { try { loadImprovements(); } catch (eImp) {} }
       if (page === "home") {
         try { loadInboxNotifs(); } catch (eIn) {}
         try {
