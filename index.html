@@ -410,14 +410,20 @@
     }
     .mobile-nav button.active .mnav-ico { background: rgba(5,150,105,0.12); }
     .mobile-nav button .mnav-ico svg {
-      width: 18px; height: 18px;
-      pointer-events: none; contain: strict;
+      width: 22px; height: 22px;
+      pointer-events: none;
     }
-    .mobile-nav button .mnav-ico svg path,
-    .mobile-nav button .mnav-ico svg rect,
+    .mobile-nav button .mnav-ico svg path[fill],
+    .mobile-nav button .mnav-ico svg rect[fill],
+    #moreSheet .more-item svg path[fill],
+    #moreSheet .more-item svg rect[fill] {
+      fill: unset;
+    }
+    .mobile-nav button .mnav-ico svg path:not([fill]),
+    .mobile-nav button .mnav-ico svg rect:not([fill]),
     .mobile-nav button .mnav-ico svg circle:not([fill]),
-    #moreSheet .more-item svg path,
-    #moreSheet .more-item svg rect,
+    #moreSheet .more-item svg path:not([fill]),
+    #moreSheet .more-item svg rect:not([fill]),
     #moreSheet .more-item svg circle:not([fill]) {
       stroke: currentColor; fill: none;
       stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
@@ -2965,12 +2971,22 @@
     body.role-operator #page-reports .desk-only-table { display: none !important; }
     body.role-operator #page-reports .mobile-cards { display: flex !important; }
     body.role-operator #page-reports .page-head h1 { font-size: 1.25rem; }
-    body.role-operator #page-reports .toolbar {
-      display: flex; flex-wrap: wrap; gap: 0.45rem;
-    }
-    body.role-operator #page-reports .toolbar input,
-    body.role-operator #page-reports .toolbar select {
-      flex: 1 1 120px; min-width: 0;
+    @media (max-width: 899px) {
+      #page-reports .toolbar {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+      }
+      #page-reports .toolbar span { display: none; }
+      #page-reports .toolbar input[type="date"],
+      #page-reports .toolbar select,
+      #page-reports .toolbar input[type="search"] {
+        width: 100% !important;
+        padding: 0.45rem 0.55rem !important;
+        font-size: 0.82rem !important;
+        min-height: 0 !important;
+      }
+      #page-reports .toolbar input[type="search"] { grid-column: 1 / -1; }
     }
     body.role-operator .rep-sec {
       margin-bottom: 1.35rem;
@@ -5449,26 +5465,26 @@
   </div>
 
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
-    <symbol id="ico-home" viewBox="0 0 24 24"><path d="M4 11.2 12 5l8 6.2V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z"/><path d="M10 20.5v-5h4v5"/><circle cx="12" cy="11.5" r="1.2" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="ico-inbox" viewBox="0 0 24 24"><path d="M4 13.5h3.2L9 16.5h6l1.8-3H20v4.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18z"/><path d="M4 13.5V7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5v6"/><path d="M9 10.5h6"/></symbol>
-    <symbol id="ico-out" viewBox="0 0 24 24"><path d="M12 15V5"/><path d="m8 8.5 4-4 4 4"/><path d="M6 15v4.5A1.5 1.5 0 0 0 7.5 21h9a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
-    <symbol id="ico-truck" viewBox="0 0 24 24"><path d="M2 8h12v8H2z" rx="1"/><path d="M14 11h4l3 3v2h-7"/><circle cx="6.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/><path d="M5 11h4"/></symbol>
-    <symbol id="ico-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.7" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="ico-report" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="m8.5 12.5 2.4 2.4 4.6-5"/><path d="M8.5 7.5h7"/></symbol>
-    <symbol id="ico-leave" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2.5"/><path d="M4 10.5h16"/><path d="M8 4.5v3.5M16 4.5v3.5"/><circle cx="12" cy="15" r="1.3" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="ico-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></symbol>
-    <symbol id="ico-plan" viewBox="0 0 24 24"><path d="M8 4.5h9A2 2 0 0 1 19 6.5v13l-3.2-1.8L12.5 20l-3.3-2.3L6 19.5v-13A2 2 0 0 1 8 4.5z"/><path d="M9.5 9h5.5M9.5 12.5h5.5M9.5 16h3"/></symbol>
-    <symbol id="ico-so" viewBox="0 0 24 24"><path d="M7 7.5h13l-1.6 8.5H8.6L7 7.5z"/><path d="M7 7.5 6 4.5H3"/><path d="M10.5 11.5h6"/><circle cx="9.5" cy="19.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="19.5" r="1.3" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="ico-ot" viewBox="0 0 24 24"><path d="M4 7.5h16M4 12h16M4 16.5h9"/><circle cx="18" cy="16.5" r="2.6"/><path d="M17.2 16.5h1.6M18 15.7v1.6"/></symbol>
-    <symbol id="ico-mkt" viewBox="0 0 24 24"><path d="M4 12.5v-2l12-4v10l-12-4z"/><path d="M7 13.2v3.3a2 2 0 0 0 2 2h1"/><path d="M18 9.5v5"/><path d="M20.5 7.5 19 9l1.5 1.5"/></symbol>
-    <symbol id="ico-box" viewBox="0 0 24 24"><path d="m3.5 8.5 8.5-4.5 8.5 4.5v7.5l-8.5 4.5-8.5-4.5z"/><path d="m3.5 8.5 8.5 4.5 8.5-4.5M12 13v8"/><path d="M9.5 10.5 12 12l2.5-1.5"/></symbol>
-    <symbol id="ico-cart" viewBox="0 0 24 24"><path d="M6.5 7h14l-1.6 8.5H8.1L6.5 7z"/><path d="M6.5 7 5.5 4H2.5"/><circle cx="9" cy="19.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="17" cy="19.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="ico-qc" viewBox="0 0 24 24"><path d="M12 3.5 20 7v5.2c0 4.2-3.1 7.4-8 8.8-4.9-1.4-8-4.6-8-8.8V7z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/></symbol>
-    <symbol id="ico-user" viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="3.4"/><path d="M5.5 19.2c1.4-3 3.8-4.6 6.5-4.6s5.1 1.6 6.5 4.6"/><path d="M16.5 7.2 18 5.8"/></symbol>
-    <symbol id="ico-pr" viewBox="0 0 24 24"><path d="M8 4.5h9A2 2 0 0 1 19 6.5v13l-3.2-1.8L12.5 20l-3.3-2.3L6 19.5v-13A2 2 0 0 1 8 4.5z"/><path d="M12 8.5v5M9.5 11h5"/></symbol>
-    <symbol id="ico-rank" viewBox="0 0 24 24"><path d="M7 20V12.5M12 20V6.5M17 20v-6"/><path d="M4.5 20h15"/><path d="M12 4.5 13.2 6.2 15.2 6.5 13.8 7.8 14.1 9.8 12 8.9 9.9 9.8 10.2 7.8 8.8 6.5 10.8 6.2z"/></symbol>
-    <symbol id="ico-edit" viewBox="0 0 24 24"><path d="M12.5 19.5h8"/><path d="M16.2 4.2a2 2 0 0 1 2.8 2.8L7.2 18.8 3.5 20l1.2-3.7z"/><path d="M14.5 5.8l2.8 2.8"/></symbol>
-    <symbol id="ico-idea" viewBox="0 0 24 24"><path d="M9.2 17.5h5.6"/><path d="M10.2 20.5h3.6"/><path d="M12 3.5a6.2 6.2 0 0 1 3.6 11.1c-.7.7-1.1 1.5-1.2 2.4H9.6c-.1-.9-.5-1.7-1.2-2.4A6.2 6.2 0 0 1 12 3.5z"/><path d="M12 8.5v2.2"/><path d="M18.5 5.5 17.2 6.5M5.5 5.5 6.8 6.5"/></symbol>
+    <symbol id="ico-home" viewBox="0 0 24 24"><path fill="#059669" d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><rect x="10" y="14" width="4" height="6" fill="#fff" rx="0.6"/></symbol>
+    <symbol id="ico-inbox" viewBox="0 0 24 24"><path fill="#8b5cf6" d="M4 8h16v10H4z"/><path fill="#c4b5fd" d="M4 8 12 4l8 4"/></symbol>
+    <symbol id="ico-out" viewBox="0 0 24 24"><path stroke="#059669" stroke-width="2" fill="none" d="M12 4v10M8 10l4 4 4-4"/><path stroke="#059669" stroke-width="2" d="M5 18h14"/></symbol>
+    <symbol id="ico-truck" viewBox="0 0 24 24"><path fill="#e11d48" d="M2 9h12v7H2z"/><path fill="#fb7185" d="M14 12h4l3 2.5V16h-7z"/><circle cx="6.5" cy="18.2" r="1.5" fill="#9f1239"/><circle cx="17.5" cy="18.2" r="1.5" fill="#9f1239"/><rect x="5" y="11" width="5" height="3.5" rx="0.6" fill="#fde68a"/></symbol>
+    <symbol id="ico-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.7" fill="#64748b"/><circle cx="12" cy="12" r="1.7" fill="#64748b"/><circle cx="18" cy="12" r="1.7" fill="#64748b"/></symbol>
+    <symbol id="ico-report" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5" fill="#059669"/><path stroke="#fff" stroke-width="2" fill="none" d="m8.5 12.5 2.4 2.4 4.6-5"/></symbol>
+    <symbol id="ico-leave" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2.5" fill="#14b8a6"/><path stroke="#fff" stroke-width="1.6" d="M4 10.5h16"/><circle cx="12" cy="15" r="1.5" fill="#fff"/></symbol>
+    <symbol id="ico-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6" fill="#2563eb"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" fill="#60a5fa"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" fill="#60a5fa"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" fill="#2563eb"/></symbol>
+    <symbol id="ico-plan" viewBox="0 0 24 24"><path fill="#d97706" d="M7 4h10v16l-5-2.8L7 20z"/><path stroke="#fff" stroke-width="1.6" fill="none" d="M10 9h4M10 13h4"/></symbol>
+    <symbol id="ico-so" viewBox="0 0 24 24"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></symbol>
+    <symbol id="ico-ot" viewBox="0 0 24 24"><path stroke="#7c3aed" stroke-width="2" fill="none" d="M4 8h16M4 12h16M4 16h8"/><circle cx="18" cy="16" r="3" fill="#c4b5fd"/></symbol>
+    <symbol id="ico-mkt" viewBox="0 0 24 24"><path fill="#f43f5e" d="M4 12.5v-2l12-4v10z"/></symbol>
+    <symbol id="ico-box" viewBox="0 0 24 24"><path fill="#059669" d="m4 8 8-4 8 4v8l-8 4-8-4z"/><path stroke="#fff" stroke-width="1.4" fill="none" d="m4 8 8 4 8-4"/></symbol>
+    <symbol id="ico-cart" viewBox="0 0 24 24"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></symbol>
+    <symbol id="ico-qc" viewBox="0 0 24 24"><path fill="#7c3aed" d="M12 3.2 20 7.2v5.2c0 4.2-3.2 7.2-8 8.6-4.8-1.4-8-4.4-8-8.6V7.2z"/><path stroke="#fff" stroke-width="2" fill="none" d="m8.5 12 2.2 2.2 4.4-4.6"/></symbol>
+    <symbol id="ico-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2" fill="#059669"/><path fill="#34d399" d="M5.5 19c1.4-3 3.8-4.6 6.5-4.6s5.1 1.6 6.5 4.6z"/></symbol>
+    <symbol id="ico-pr" viewBox="0 0 24 24"><path fill="#059669" d="M7 4h10v16l-5-2.8L7 20z"/><path stroke="#fff" stroke-width="1.8" d="M12 8.5v5M9.5 11h5"/></symbol>
+    <symbol id="ico-rank" viewBox="0 0 24 24"><rect x="5" y="12" width="3.5" height="8" rx="1" fill="#34d399"/><rect x="10.2" y="6" width="3.5" height="14" rx="1" fill="#059669"/><rect x="15.5" y="9" width="3.5" height="11" rx="1" fill="#6ee7b7"/></symbol>
+    <symbol id="ico-edit" viewBox="0 0 24 24"><path fill="#f59e0b" d="M16 4.2 19.8 8 8 19.8 3.5 21l1.2-4.5z"/></symbol>
+    <symbol id="ico-idea" viewBox="0 0 24 24"><path fill="#fbbf24" d="M9 17h6v2H9zM10 20h4v1.5h-4z"/><path fill="#f59e0b" d="M12 3.5a5.5 5.5 0 0 1 3.2 10c-.6.6-1 1.3-1.1 2.1H9.9c-.1-.8-.5-1.5-1.1-2.1A5.5 5.5 0 0 1 12 3.5z"/></symbol>
   </svg>
 
   <div id="productModal" class="modal-bg">
@@ -7489,6 +7505,15 @@
       var today = todayStr();
       var from = (fromEl && fromEl.value) || "";
       var to = (toEl && toEl.value) || "";
+      // Laporan: default Dari = awal bulan, s/d = hari ini
+      if (fromId === "reportFilterDateFrom" && !from && !to) {
+        var d = new Date();
+        var z = function(n) { return String(n).padStart(2, "0"); };
+        from = d.getFullYear() + "-" + z(d.getMonth() + 1) + "-01";
+        to = today;
+        if (fromEl) fromEl.value = from;
+        if (toEl) toEl.value = to;
+      }
       if (!from && !to) {
         from = today;
         to = today;
@@ -7506,7 +7531,6 @@
         if (fromEl) fromEl.value = from;
         if (toEl) toEl.value = to;
       }
-      // sync hidden single-date (kompat kode lama = tanggal "dari")
       if (hid) hid.value = from;
       return { from: from, to: to };
     }
@@ -19700,6 +19724,7 @@ function fillOperatorList(selectedEmail) {
       try {
         await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats(), loadBom(true)]);
         try { loadInboxNotifs(); } catch (eIn) {}
+        try { loadSidebarBadges(); } catch (eSb) {}
         try { fillRouteProductSelect(); } catch (e2) {}
         try { if (currentRole() === "admin") loadImprovements(); } catch (eImp0) {}
       } catch (e) {
@@ -20103,6 +20128,49 @@ function fillOperatorList(selectedEmail) {
       }
       setNotifBadge(total);
       try { applyNavBadges(groups); } catch (eB) {}
+    }
+    async function loadSidebarBadges() {
+      if (!sb) return;
+      var role = currentRole();
+      var staff = role === "admin" || role === "ppic" || role === "korlap";
+      try {
+        if (staff) {
+          var { data: revs } = await sb.from("plan_revision_requests")
+            .select("id")
+            .eq("revision_status", "requested")
+            .limit(100);
+          var nRev = (revs || []).length;
+          var navB = $("navRevBadge");
+          if (navB) {
+            if (nRev > 0) { navB.style.display = ""; navB.textContent = String(nRev); }
+            else navB.style.display = "none";
+          }
+          document.querySelectorAll('.mobile-nav button[data-page="revisions"]').forEach(function(btn) {
+            var old = btn.querySelector(".nav-count");
+            if (old) old.remove();
+            if (nRev > 0) {
+              var sp = document.createElement("span");
+              sp.className = "nav-count";
+              sp.textContent = nRev > 99 ? "99+" : String(nRev);
+              btn.appendChild(sp);
+            }
+          });
+        }
+      } catch (eR) { console.warn(eR); }
+      try {
+        if (role === "admin") {
+          var { data: imps } = await sb.from("improvements")
+            .select("id")
+            .eq("status", "baru")
+            .limit(100);
+          var nImp = (imps || []).length;
+          var badge = $("navImpBadge");
+          if (badge) {
+            if (nImp > 0) { badge.style.display = ""; badge.textContent = String(nImp); }
+            else badge.style.display = "none";
+          }
+        }
+      } catch (eI) { console.warn(eI); }
     }
     async function loadInboxNotifs() {
       if (!sb) return;
