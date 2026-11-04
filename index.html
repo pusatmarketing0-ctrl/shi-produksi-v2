@@ -254,9 +254,10 @@
       font-size: 0.65rem; font-weight: 700; line-height: 18px; text-align: center;
       flex-shrink: 0;
     }
-    .layout.sidebar-collapsed .nav-item .nav-count {
-      position: absolute; top: 4px; right: 4px; margin: 0;
-      min-width: 16px; height: 16px; line-height: 16px; font-size: 0.6rem;
+    .layout.sidebar-collapsed .nav-item .nav-count,
+    .layout.sidebar-collapsed .nav-item .nav-badge {
+      position: absolute; top: 2px; left: 28px; right: auto; margin: 0;
+      min-width: 16px; height: 16px; line-height: 16px; font-size: 0.58rem;
     }
     .mobile-nav button { position: relative; }
     .mobile-nav .nav-count {
@@ -1542,27 +1543,40 @@
 
     /* Industrial nav icons */
     .sidebar .nav-item .nav-ico {
-      width: 22px; min-width: 22px; height: 22px;
+      width: 36px; min-width: 36px; height: 36px;
+      border-radius: 0;
       display: inline-flex; align-items: center; justify-content: center;
-      color: #5a6b62;
-    }
-    .sidebar .nav-item .nav-ico {
-      width: 34px; min-width: 34px; height: 34px;
-      border-radius: 10px;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: #ecfdf5;
-      border: 1.5px solid #a7f3d0;
-      overflow: hidden;
+      background: transparent;
+      border: none;
+      overflow: visible;
     }
     .sidebar .nav-item .nav-ico svg {
-      width: 20px; height: 20px;
+      width: 26px; height: 26px;
       stroke-linecap: round; stroke-linejoin: round;
     }
-    .sidebar .nav-item.active .nav-ico {
-      box-shadow: 0 4px 12px rgba(13,159,110,0.25);
-      transform: scale(1.04);
+    .sidebar .nav-item { position: relative; }
+    .sidebar .nav-item .nav-badge,
+    .sidebar .nav-item .nav-count {
+      position: absolute;
+      top: 2px;
+      left: 28px;
+      margin: 0;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      font-size: 0.58rem; line-height: 16px;
+      z-index: 2;
     }
-    /* Animations when menu selected */
+    .sidebar .nav-item.active .nav-ico {
+      box-shadow: none;
+      transform: none;
+    }
+    .mobile-nav button .mnav-ico {
+      width: 28px; height: 28px; border-radius: 0;
+      background: transparent; border: none;
+    }
+    .sidebar .nav-item.active .nav-ico,
+    .sidebar .nav-item:hover .nav-ico {
+      color: var(--green);
+    }
     .nav-item.active .anim-bounce { animation: icoBounce 0.7s ease; }
     .nav-item.active .anim-spin { animation: icoSpin 1s linear infinite; }
     .nav-item.active .anim-pulse { animation: icoPulse 1.1s ease infinite; }
@@ -1579,22 +1593,14 @@
     @keyframes pkgLoad { 0%{transform:translate(-6px,2px);opacity:0} 40%{opacity:1} 100%{transform:translate(2px,0);opacity:1} }
     @keyframes barGrow { from{transform:scaleY(0.4)} to{transform:scaleY(1)} }
     @keyframes bulbGlow { 0%,100%{filter:drop-shadow(0 0 0 transparent)} 50%{filter:drop-shadow(0 0 4px #fbbf24)} }
-    .mobile-nav button .mnav-ico {
-      width: 32px; height: 32px; border-radius: 9px;
-      background: #ecfdf5; border: 1px solid #a7f3d0;
-    }
-    .sidebar .nav-item.active .nav-ico,
-    .sidebar .nav-item:hover .nav-ico {
-      color: var(--green);
-    }
     .sidebar .nav-item.active .nav-ico svg {
       stroke-width: 2.1;
     }
     .layout.sidebar-collapsed .sidebar .nav-item .nav-ico {
-      width: 24px; min-width: 24px; height: 24px;
+      width: 36px; min-width: 36px; height: 36px;
     }
     .layout.sidebar-collapsed .sidebar .nav-item .nav-ico svg {
-      width: 20px; height: 20px;
+      width: 26px; height: 26px;
     }
     .mobile-nav button span:first-child {
       display: inline-flex; align-items: center; justify-content: center;
