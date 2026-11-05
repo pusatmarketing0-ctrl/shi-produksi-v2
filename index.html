@@ -23,6 +23,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    }
+  </script>
   <style>
 
     :root {
@@ -21318,6 +21324,111 @@ function fillOperatorList(selectedEmail) {
       });
       toast(bom.length + " bahan dari BOM");
     }
+    function normalizePickUnit(u) {
+      u = String(u || "").trim().toLowerCase();
+      if (!u) return "pcs";
+      if (u === "g" || u === "gr" || u === "gram" || u === "grams") return "gr";
+      if (u === "kg" || u === "kilogram") return "kg";
+      if (u === "ml") return "ml";
+      if (u === "l" || u === "lt" || u === "liter") return "l";
+      if (u === "pcs" || u === "pc" || u === "unit" || u === "units") return "pcs";
+      return u;
+    }
+    function parseOdooPickPdfText(text) {
+      text = String(text || "").replace(/\r/g, "\n");
+      var meta = { pick_no: "", mo_no: "", order: "" };
+      var mPick = text.match(/\b(SHI\/PC\/\d+)\b/i) || text.match(/\b(WH\/[A-Z]+\/\d+)\b/i) || text.match(/\b(PICK\/\d{4}\/\d+)\b/i);
+      if (mPick) meta.pick_no = mPick[1];
+      var mMo = text.match(/\b(SHI\/MO\/\d+)\b/i) || text.match(/Order:\s*([A-Z0-9\/\-]+)/i);
+      if (mMo) meta.mo_no = mMo[1];
+      // [CODE] Name .... qty unit
+      var re = /\[([A-Za-z]{1,4}\d{2,6})\]\s*([^\[\n]*?)\s+([\d]{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|[\d]+(?:[.,]\d+)?)\s*(g|gr|gram|grams|kg|pcs|pc|Pcs|ml|l)?\b/gi;
+      var map = {};
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        var code = String(m[1] || "").toUpperCase();
+        var qtyStr = String(m[3] || "").replace(/\s/g, "");
+        // ID format 28,950.90 or 28950.90 or 0.00
+        if (qtyStr.indexOf(",") >= 0 && qtyStr.indexOf(".") >= 0) {
+          qtyStr = qtyStr.replace(/,/g, "");
+        } else if (qtyStr.indexOf(",") >= 0 && qtyStr.indexOf(".") < 0) {
+          // 28,950 -> 28950 or European 0,46
+          var parts = qtyStr.split(",");
+          if (parts.length === 2 && parts[1].length <= 2) qtyStr = parts[0] + "." + parts[1];
+          else qtyStr = qtyStr.replace(/,/g, "");
+        }
+        var qty = parseFloat(qtyStr);
+        if (!(qty > 0)) continue;
+        var unit = normalizePickUnit(m[4] || "pcs");
+        var name = String(m[2] || "").replace(/\s+/g, " ").trim();
+        if (!map[code]) map[code] = { product_id: code, name: name, qty_request: 0, unit: unit };
+        map[code].qty_request += qty;
+        if (name && !map[code].name) map[code].name = name;
+        if (unit) map[code].unit = unit;
+      }
+      var lines = Object.keys(map).map(function(k) { return map[k]; });
+      lines.sort(function(a, b) { return String(a.product_id).localeCompare(String(b.product_id)); });
+      return { meta: meta, lines: lines };
+    }
+    async function extractPdfText(file) {
+      if (!window.pdfjsLib) throw new Error("PDF.js belum termuat — cek koneksi CDN");
+      var buf = await file.arrayBuffer();
+      var doc = await window.pdfjsLib.getDocument({ data: buf }).promise;
+      var parts = [];
+      for (var i = 1; i <= doc.numPages; i++) {
+        var page = await doc.getPage(i);
+        var content = await page.getTextContent();
+        var line = (content.items || []).map(function(it) { return it.str; }).join(" ");
+        parts.push(line);
+      }
+      return parts.join("\n");
+    }
+    async function importPickFromOdooPdf(input) {
+      try {
+        var file = input && input.files && input.files[0];
+        if (!file) return;
+        toast("Membaca PDF…");
+        var text = await extractPdfText(file);
+        var parsed = parseOdooPickPdfText(text);
+        if (!parsed.lines.length) {
+          // fallback: coba gabung tanpa spasi berlebih
+          parsed = parseOdooPickPdfText(text.replace(/\s+/g, " "));
+        }
+        if (!parsed.lines.length) {
+          return toast("Tidak menemukan baris bahan di PDF. Pastikan PDF Picking Operations Odoo (bukan scan gambar).", true);
+        }
+        if (parsed.meta.pick_no && $("pickNoOdoo")) $("pickNoOdoo").value = parsed.meta.pick_no;
+        var note = ($("pickNotes") && $("pickNotes").value) || "";
+        if (parsed.meta.mo_no) {
+          var tag = "MO: " + parsed.meta.mo_no;
+          if (note.indexOf(tag) < 0) $("pickNotes").value = (note ? note + " · " : "") + tag;
+        }
+        var box = $("pickLines");
+        if (box) box.innerHTML = "";
+        parsed.lines.forEach(function(l) {
+          var label = l.product_id + (l.name ? " — " + l.name : "");
+          pickAddLine({
+            product_id: l.product_id,
+            qty_request: Math.round(l.qty_request * 1000) / 1000,
+            unit: l.unit || "pcs",
+            qty_prepared: 0
+          });
+          // set display label on last row
+          var row = box && box.lastElementChild;
+          var inp = row && row.querySelector(".pl-pid");
+          if (inp) {
+            inp.dataset.scId = l.product_id;
+            inp.value = label;
+          }
+        });
+        toast(parsed.lines.length + " bahan dari PDF" + (parsed.meta.pick_no ? " · " + parsed.meta.pick_no : ""));
+      } catch (e) {
+        console.warn(e);
+        toast(e.message || "Gagal baca PDF", true);
+      } finally {
+        try { if (input) input.value = ""; } catch (e2) {}
+      }
+    }
     function scItemsPickSo() {
       return (allOrders || []).filter(function(o) {
         var st = String(o.status || "").toLowerCase();
@@ -23950,10 +24061,18 @@ function closeOtModal() {
           </div>
         </div>
         <div class="field"><label>Catatan</label><input id="pickNotes" placeholder="Opsional" /></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.6rem 0 0.35rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.6rem 0 0.35rem;flex-wrap:wrap;gap:0.35rem">
           <strong style="font-size:0.85rem">Bahan</strong>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="pickAddLine()">+ Bahan</button>
+          <div style="display:flex;flex-wrap:wrap;gap:0.35rem">
+            <label class="btn btn-ghost btn-sm" style="margin:0;cursor:pointer">
+              📄 Import PDF Odoo
+              <input type="file" id="pickPdfFile" accept="application/pdf,.pdf" hidden onchange="importPickFromOdooPdf(this)" />
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="pickFillFromBom()">Isi dari BOM</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="pickAddLine()">+ Bahan</button>
+          </div>
         </div>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 0.35rem">Import PDF Picking Operations Odoo (SHI/PC/…) — qty 0 diabaikan, bahan sama digabung.</p>
         <div id="pickLines"></div>
         <div id="pickHandoverBox" style="display:none;margin-top:0.75rem;padding:0.65rem;border:1px dashed #86efac;border-radius:12px;background:#f0fdf4">
           <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.35rem">Serah terima</div>
