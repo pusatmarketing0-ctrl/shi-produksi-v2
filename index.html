@@ -8569,8 +8569,65 @@
         toast("Operator hanya mengisi laporan, tidak bisa edit plan", true);
         return;
       }
-      const row = plans.find(p => p.plan_id === id);
-      if (row) openPlanModal(row);
+      if (!id) return;
+      var row = (plans || []).find(function(p) { return String(p.plan_id) === String(id); });
+      if (!row && sb) {
+        try {
+          var { data, error } = await sb.from("plans").select("*").eq("plan_id", id).maybeSingle();
+          if (error) toast(error.message, true);
+          row = data || null;
+        } catch (e) { console.warn(e); }
+      }
+      if (!row) return toast("Plan tidak ditemukan", true);
+      openPlanModal(row);
+    }
+    /** Edit plan dari grid operasional tanpa pindah ke menu Plan */
+    async function editPlanFromGrid(ids, day) {
+      if (currentRole() === "operator") {
+        toast("Operator hanya mengisi laporan, tidak bisa edit plan", true);
+        return;
+      }
+      var list = Array.isArray(ids) ? ids.filter(Boolean) : (ids ? [ids] : []);
+      if (!list.length) return toast("Tidak ada plan di tanggal ini", true);
+      if (list.length === 1) {
+        await editPlan(list[0]);
+        return;
+      }
+      var rows = [];
+      for (var i = 0; i < list.length; i++) {
+        var r = (plans || []).find(function(p) { return String(p.plan_id) === String(list[i]); });
+        if (!r && sb) {
+          try {
+            var res = await sb.from("plans").select("plan_id,product_id,machine_id,target_qty,unit,shift,assigned_operator,status").eq("plan_id", list[i]).maybeSingle();
+            r = res.data;
+          } catch (e) {}
+        }
+        if (r) rows.push(r);
+      }
+      if (!rows.length) {
+        await editPlan(list[0]);
+        return;
+      }
+      var msg = "Pilih plan yang diedit" + (day ? " (" + day + ")" : "") + ":\n\n";
+      rows.forEach(function(r, idx) {
+        msg += (idx + 1) + ". " + machineLabel(r.machine_id) + " · target " + formatNum(r.target_qty) + " " + (r.unit || "") +
+          " · shift " + (r.shift || "-") + "\n";
+      });
+      msg += "\nKetik nomor 1-" + rows.length;
+      var pick = null;
+      try {
+        if (typeof appPrompt === "function") {
+          pick = await appPrompt({ title: "Edit plan dari grid", message: msg, defaultValue: "1" });
+        } else {
+          pick = window.prompt(msg, "1");
+        }
+      } catch (e) {
+        pick = window.prompt(msg.replace(/\\n/g, "\n"), "1");
+      }
+      if (pick == null) return;
+      var n = parseInt(String(pick).trim(), 10);
+      if (!(n >= 1 && n <= rows.length)) return toast("Nomor tidak valid", true);
+      await editPlan(rows[n - 1].plan_id);
     }
     async function deletePlan(id) {
       if (currentRole() === "operator") {
@@ -14291,8 +14348,7 @@ function fillOperatorList(selectedEmail) {
           }
           const ids = g.planIdsByDay[day];
           if (ids.length === 1) {
-            goPage("plans");
-            setTimeout(function() { editPlan(ids[0]); }, 250);
+            editPlanFromGrid(ids, day);
             return;
           }
           openOpsPlanPicker(day, g, ids);
@@ -18711,8 +18767,7 @@ function fillOperatorList(selectedEmail) {
         btn.onclick = function() {
           closeOpsPlanPicker();
           var pid = btn.getAttribute("data-pid");
-          goPage("plans");
-          setTimeout(function() { try { editPlan(pid); } catch (eE) {} }, 250);
+          try { editPlanFromGrid([pid], day); } catch (eE) { editPlan(pid); }
         };
       });
       box.querySelectorAll(".ops-move-btn").forEach(function(btn) {
