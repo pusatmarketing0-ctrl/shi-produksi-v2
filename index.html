@@ -5041,7 +5041,13 @@
               <h1 id="pickPageTitle">Minta bahan</h1>
               <p id="pickPageSub">Produksi kirim permintaan bahan ke gudang</p>
             </div>
-            <button class="btn btn-primary" type="button" id="btnPickNew" onclick="openPickModal()">+ Minta bahan</button>
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">
+              <label class="btn btn-ghost" style="margin:0;cursor:pointer" id="btnPickBulkPdfLab">
+                📄 Import massal PDF
+                <input type="file" id="pickBulkPdfFiles" accept="application/pdf,.pdf" multiple hidden onchange="importPickBulkFromOdooPdfs(this)" />
+              </label>
+              <button class="btn btn-primary" type="button" id="btnPickNew" onclick="openPickModal()">+ Minta bahan</button>
+            </div>
           </div>
           <div class="toolbar">
             <input type="search" id="pickSearch" placeholder="Cari no pick / SO / produk..." oninput="pageState.pick={page:1};renderPicks()" />
@@ -5061,9 +5067,9 @@
             <div class="table-wrap">
               <table>
                 <thead><tr>
-                  <th>No Pick</th><th>SO / FG</th><th>Status</th><th>Bahan</th><th>Asal</th><th></th>
+                  <th>No Pick</th><th>SO / FG</th><th>Status</th><th>Bahan</th><th>Lead time</th><th>Asal</th><th></th>
                 </tr></thead>
-                <tbody id="pickBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                <tbody id="pickBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
             <div id="pickPager" class="pg-bar"></div>
@@ -21173,6 +21179,8 @@ function fillOperatorList(selectedEmail) {
         if (title) title.textContent = "Pick gudang";
         if (sub) sub.textContent = "Antrean permintaan dari produksi · siapkan qty · serah terima";
         if (btn) btn.style.display = "none";
+        var bulkLab = $("btnPickBulkPdfLab");
+        if (bulkLab) bulkLab.style.display = "none";
         // Jangan paksa filter "requested" — partial/prepared harus tetap terlihat
         if (st && prev !== "wh") {
           st.value = "";
@@ -21202,10 +21210,10 @@ function fillOperatorList(selectedEmail) {
     async function loadPicks() {
       if (!sb) return;
       var body = $("pickBody");
-      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Memuat…</td></tr>';
       var { data, error } = await sb.from("picks").select("*, pick_lines(*)").order("created_at", { ascending: false }).limit(400);
       if (error) {
-        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(error.message) + ' — jalankan pick_komponen.sql</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="7" class="empty">' + esc(error.message) + ' — jalankan pick_komponen.sql</td></tr>';
         pickList = [];
         return;
       }
@@ -21232,7 +21240,7 @@ function fillOperatorList(selectedEmail) {
         return (p.pick_id + " " + (p.no_pick_odoo || "") + " " + (p.no_so || "") + " " + (p.product_id || "")).toLowerCase().indexOf(q) >= 0;
       });
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pick</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada pick</td></tr>';
         pageOf("pick", [], "pickPager");
         return;
       }
@@ -21255,6 +21263,7 @@ function fillOperatorList(selectedEmail) {
             return pickStatusLabel(st);
           })()) + "</span></td>" +
           "<td>" + n + "</td>" +
+          "<td style='font-size:0.72rem;color:var(--text-muted);max-width:11rem'>" + esc(pickLeadSummary(p)) + "</td>" +
           "<td style='font-size:0.75rem'>" + esc(origin) + "</td>" +
           "<td><button type='button' class='btn btn-sm btn-primary' onclick='openPickModal(" + JSON.stringify(p.pick_id) + ")'>Buka</button></td></tr>";
       }).join("");
@@ -21429,6 +21438,133 @@ function fillOperatorList(selectedEmail) {
         try { if (input) input.value = ""; } catch (e2) {}
       }
     }
+    function pickHoursBetween(a, b) {
+      if (!a || !b) return null;
+      var t0 = new Date(a).getTime(), t1 = new Date(b).getTime();
+      if (!t0 || !t1 || t1 < t0) return null;
+      return Math.round(((t1 - t0) / 36e5) * 10) / 10;
+    }
+    function formatPickLeadHours(h) {
+      if (h == null || isNaN(h)) return "—";
+      if (h < 1) return Math.round(h * 60) + " mnt";
+      if (h < 48) return h + " jam";
+      return (Math.round((h / 24) * 10) / 10) + " hr";
+    }
+    function pickLeadSummary(p) {
+      if (!p) return "—";
+      var req = p.requested_at || p.created_at;
+      var prep = p.prepared_at;
+      var hand = p.handover_at;
+      var done = p.picked_at;
+      var parts = [];
+      var h1 = pickHoursBetween(req, prep);
+      var h2 = pickHoursBetween(prep || req, hand);
+      var h3 = pickHoursBetween(hand || prep || req, done);
+      var hAll = pickHoursBetween(req, done || hand || prep);
+      if (h1 != null) parts.push("siap " + formatPickLeadHours(h1));
+      if (h2 != null) parts.push("serah " + formatPickLeadHours(h2));
+      if (h3 != null) parts.push("terima " + formatPickLeadHours(h3));
+      if (!parts.length && hAll != null) parts.push("total " + formatPickLeadHours(hAll));
+      if (!parts.length && req) {
+        try { parts.push("minta " + formatDateTimeWib(req)); } catch (e) { parts.push("minta ✓"); }
+      }
+      return parts.length ? parts.join(" · ") : "—";
+    }
+    async function importPickBulkFromOdooPdfs(input) {
+      try {
+        var files = input && input.files ? Array.prototype.slice.call(input.files) : [];
+        if (!files.length) return;
+        if (!sb) return toast("Supabase belum siap", true);
+        var role = currentRole();
+        if (!(role === "ppic" || role === "korlap" || role === "admin" || role === "gudang")) {
+          return toast("Role tidak bisa buat permintaan bahan", true);
+        }
+        toast("Memproses " + files.length + " PDF…");
+        var ok = 0, skip = 0, fail = 0, msgs = [];
+        for (var i = 0; i < files.length; i++) {
+          var file = files[i];
+          try {
+            var textPdf = await extractPdfText(file);
+            var parsed = parseOdooPickPdfText(textPdf);
+            if (!parsed.lines.length) parsed = parseOdooPickPdfText(textPdf.replace(/\s+/g, " "));
+            if (!parsed.lines.length) {
+              fail++;
+              msgs.push(file.name + ": tidak ada bahan");
+              continue;
+            }
+            var noOdoo = (parsed.meta.pick_no || "").trim();
+            // cek duplikat no pick odoo
+            if (noOdoo) {
+              var { data: exists } = await sb.from("picks").select("pick_id").eq("no_pick_odoo", noOdoo).limit(1);
+              if (exists && exists.length) {
+                skip++;
+                msgs.push(noOdoo + ": sudah ada");
+                continue;
+              }
+            }
+            var id = await newPickId();
+            var now = new Date().toISOString();
+            var notes = parsed.meta.mo_no ? ("MO: " + parsed.meta.mo_no + " · import massal PDF") : "import massal PDF";
+            var payload = {
+              pick_id: id,
+              no_pick_odoo: noOdoo || id,
+              no_so: "",
+              product_id: "",
+              status: "requested",
+              notes: notes,
+              created_by: (currentUser && currentUser.email) || "",
+              created_at: now,
+              requested_at: now,
+              updated_at: now
+            };
+            var up = await sb.from("picks").upsert(payload);
+            if (up.error) {
+              // fallback tanpa requested_at
+              delete payload.requested_at;
+              up = await sb.from("picks").upsert(payload);
+            }
+            if (up.error) {
+              fail++;
+              msgs.push((noOdoo || file.name) + ": " + up.error.message);
+              continue;
+            }
+            var rows = parsed.lines.map(function(l) {
+              return {
+                pick_id: id,
+                product_id: l.product_id,
+                qty_request: Math.round(l.qty_request * 1000) / 1000,
+                qty_prepared: 0,
+                unit: l.unit || "pcs"
+              };
+            });
+            var ins = await sb.from("pick_lines").insert(rows);
+            if (ins.error) {
+              fail++;
+              msgs.push((noOdoo || file.name) + ": lines " + ins.error.message);
+              continue;
+            }
+            ok++;
+          } catch (eOne) {
+            fail++;
+            msgs.push(file.name + ": " + (eOne.message || eOne));
+          }
+        }
+        await loadPicks();
+        try { loadInboxNotifs(); } catch (eN) {}
+        var msg = "Import massal: " + ok + " dibuat";
+        if (skip) msg += ", " + skip + " skip (sudah ada)";
+        if (fail) msg += ", " + fail + " gagal";
+        toast(msg, fail && !ok);
+        if (msgs.length && msgs.length <= 8) {
+          try { console.log("pick bulk", msgs); } catch (e) {}
+        }
+      } catch (e) {
+        toast(e.message || "Gagal import massal", true);
+      } finally {
+        try { if (input) input.value = ""; } catch (e2) {}
+      }
+    }
+
     function scItemsPickSo() {
       return (allOrders || []).filter(function(o) {
         var st = String(o.status || "").toLowerCase();
@@ -21848,7 +21984,9 @@ function fillOperatorList(selectedEmail) {
       (p && p.pick_lines ? p.pick_lines : []).forEach(function(l) { pickAddLine(l); });
       if (!p) pickAddLine();
       $("pickModalTitle").textContent = p ? ("Pick " + (p.no_pick_odoo || p.pick_id)) : "Pick baru";
-      $("pickModalSub").textContent = p ? pickStatusLabel(p.status) : "Draft · kirim ke gudang setelah lengkap";
+      $("pickModalSub").textContent = p
+        ? (pickStatusLabel(p.status) + " · " + pickLeadSummary(p))
+        : "Draft · kirim ke gudang setelah lengkap";
       if ($("pickHandoverBox")) $("pickHandoverBox").style.display = (p && (p.status === "prepared" || p.status === "handover" || p.status === "picked")) ? "block" : "none";
       renderPickActions(p);
       bindPickCombos();
@@ -22003,14 +22141,37 @@ function fillOperatorList(selectedEmail) {
         handover_photo_url: ($("pickHandoverPhoto") && $("pickHandoverPhoto").value || "").trim(),
         updated_at: new Date().toISOString()
       };
-      if (!($("pickEditId").value || "").trim()) payload.created_by = (currentUser && currentUser.email) || "";
-      if (status === "prepared" || status === "partial") payload.prepared_by = (currentUser && currentUser.email) || "";
-      if (status === "handover") payload.handed_gudang_by = (currentUser && currentUser.email) || "";
+      if (!($("pickEditId").value || "").trim()) {
+        payload.created_by = (currentUser && currentUser.email) || "";
+        payload.created_at = payload.created_at || new Date().toISOString();
+      }
+      var nowTs = new Date().toISOString();
+      if (status === "requested" && nextStatus === "requested") {
+        payload.requested_at = nowTs;
+      }
+      if (status === "prepared" || status === "partial") {
+        payload.prepared_by = (currentUser && currentUser.email) || "";
+        payload.prepared_at = nowTs;
+      }
+      if (status === "handover") {
+        payload.handed_gudang_by = (currentUser && currentUser.email) || "";
+        payload.handover_at = nowTs;
+      }
       if (status === "picked") {
         if (!payload.handover_photo_url) return toast("Isi foto form bertanda tangan", true);
         payload.handed_prod_by = (currentUser && currentUser.email) || "";
+        payload.picked_at = nowTs;
       }
       var { error } = await sb.from("picks").upsert(payload);
+      // fallback jika kolom lead-time belum ada
+      if (error && /column|requested_at|prepared_at|handover_at|picked_at/i.test(String(error.message || ""))) {
+        delete payload.requested_at;
+        delete payload.prepared_at;
+        delete payload.handover_at;
+        delete payload.picked_at;
+        var retry = await sb.from("picks").upsert(payload);
+        error = retry.error;
+      }
       if (error) return toast(error.message, true);
       await sb.from("pick_lines").delete().eq("pick_id", id);
       var rows = lines.map(function(l) {
