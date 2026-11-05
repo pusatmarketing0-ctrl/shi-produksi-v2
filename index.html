@@ -2798,32 +2798,37 @@
       width: min(340px, calc(100vw - 24px));
       max-height: min(72vh, calc(100vh - 80px));
       overflow: auto;
-      background: #0f172a; color: #e2e8f0;
-      border: 1px solid #1e293b; border-radius: 14px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text, #0f1f18);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(15, 40, 30, 0.14), 0 0 0 1px rgba(255,255,255,0.6) inset;
       z-index: 200510;
       padding: 0.4rem 0.35rem 0.55rem;
-      /* tetap tajam di atas modal blur */
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
     }
     .notif-panel-head {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 0.45rem 0.65rem 0.55rem; border-bottom: 1px solid #1e293b;
-      font-size: 0.82rem;
+      padding: 0.5rem 0.7rem 0.55rem;
+      border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #047857;
     }
-    .notif-panel-head .btn { color: #94a3b8; }
+    .notif-panel-head .btn { color: var(--text-muted, #4a6358); }
+    .notif-panel-head .btn:hover { color: var(--green, #0d9f6e); background: var(--green-light); }
     .notif-tree { padding: 0.25rem 0; }
     .notif-cat {
       display: flex; align-items: center; gap: 0.5rem;
       width: 100%; padding: 0.55rem 0.7rem; border: none; background: transparent;
-      color: #f1f5f9; font-size: 0.84rem; font-weight: 600; cursor: pointer;
-      border-radius: 8px; text-align: left;
+      color: var(--text, #0f1f18); font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      border-radius: 10px; text-align: left;
     }
-    .notif-cat:hover { background: rgba(255,255,255,0.06); }
+    .notif-cat:hover { background: rgba(16, 185, 129, 0.1); color: #047857; }
     .notif-cat .nc-ico { width: 1.15rem; text-align: center; }
     .notif-cat .nc-label { flex: 1; }
-    .notif-cat .nc-caret { color: #64748b; font-size: 0.7rem; margin-left: 0.25rem; }
+    .notif-cat .nc-caret { color: #94a3b8; font-size: 0.7rem; margin-left: 0.25rem; }
     .notif-sub {
       padding: 0.1rem 0.35rem 0.35rem 1.4rem;
       display: none; flex-direction: column; gap: 0.05rem;
@@ -2832,10 +2837,15 @@
     .notif-sub-item {
       display: flex; align-items: center; gap: 0.45rem;
       width: 100%; padding: 0.42rem 0.55rem; border: none; background: transparent;
-      color: #cbd5e1; font-size: 0.8rem; cursor: pointer; border-radius: 8px; text-align: left;
+      color: var(--text-muted, #4a6358); font-size: 0.8rem; cursor: pointer; border-radius: 10px; text-align: left;
     }
-    .notif-sub-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .notif-sub-item:hover { background: rgba(16, 185, 129, 0.1); color: #047857; }
     .notif-sub-item .ns-label { flex: 1; }
+    /* badge count di tree — hijau */
+    .notif-panel .nav-badge, .notif-panel .notif-count {
+      background: #059669 !important;
+      color: #fff !important;
+    }
     .home-inbox-tree { background: transparent; }
     .home-inbox-tree .notif-cat { color: var(--text); }
     .home-inbox-tree .notif-sub-item { color: var(--text-muted); }
@@ -20114,6 +20124,10 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+    function closeNotifPanel() {
+      var p = $("notifPanel");
+      if (p) p.setAttribute("hidden", "");
+    }
     function toggleNotifPanel() {
       var p = $("notifPanel");
       if (!p) return;
@@ -20121,8 +20135,21 @@ function fillOperatorList(selectedEmail) {
       if (open) {
         p.removeAttribute("hidden");
         try { loadInboxNotifs(); } catch (e) {}
+        // klik di luar panel / lonceng → tutup
+        setTimeout(function() {
+          if (window.__notifOutsideBound) return;
+          window.__notifOutsideBound = true;
+          document.addEventListener("click", function notifOutside(ev) {
+            var panel = $("notifPanel");
+            var btn = $("btnNotif");
+            if (!panel || panel.hasAttribute("hidden")) return;
+            if (panel.contains(ev.target)) return;
+            if (btn && (btn === ev.target || btn.contains(ev.target))) return;
+            closeNotifPanel();
+          }, true);
+        }, 0);
       } else {
-        p.setAttribute("hidden", "");
+        closeNotifPanel();
       }
     }
     function setNotifBadge(n) {
@@ -20235,7 +20262,7 @@ function fillOperatorList(selectedEmail) {
       (groups || []).forEach(function(g) {
         total += g.count != null ? g.count : (g.items ? g.items.length : 0);
       });
-      var html = buildNotifTreeHtml(groups, true);
+      var html = buildNotifTreeHtml(groups, false);
       if ($("notifList")) $("notifList").innerHTML = html;
       if ($("homeInboxList")) {
         $("homeInboxList").className = "home-inbox-tree";
