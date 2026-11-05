@@ -21346,10 +21346,21 @@ function fillOperatorList(selectedEmail) {
     function parseOdooPickPdfText(text) {
       text = String(text || "").replace(/\r/g, "\n");
       var meta = { pick_no: "", mo_no: "", order: "" };
-      var mPick = text.match(/\b(SHI\/PC\/\d+)\b/i) || text.match(/\b(WH\/[A-Z]+\/\d+)\b/i) || text.match(/\b(PICK\/\d{4}\/\d+)\b/i);
-      if (mPick) meta.pick_no = mPick[1];
-      var mMo = text.match(/\b(SHI\/MO\/\d+)\b/i) || text.match(/Order:\s*([A-Z0-9\/\-]+)/i);
-      if (mMo) meta.mo_no = mMo[1];
+      var mPick = text.match(/\b(SHI\/PC\/\d+)\b/i)
+        || text.match(/\b(SHI[_\-\s]?PC[_\-\s]?\d+)\b/i)
+        || text.match(/\b(WH\/[A-Z]+\/\d+)\b/i)
+        || text.match(/\b(PICK\/\d{4}\/\d+)\b/i);
+      if (mPick) {
+        meta.pick_no = String(mPick[1]).toUpperCase().replace(/[\s_]+/g, "/").replace(/PC\//, "PC/");
+        // SHI/PC/05159 normalisasi
+        meta.pick_no = meta.pick_no.replace(/^SHI\/?PC\/?/, "SHI/PC/");
+      }
+      var mMo = text.match(/\b(SHI\/MO\/\d+)\b/i)
+        || text.match(/\b(SHI[_\-\s]?MO[_\-\s]?\d+)\b/i)
+        || text.match(/Order:\s*([A-Z0-9\/\-]+)/i);
+      if (mMo) {
+        meta.mo_no = String(mMo[1]).toUpperCase().replace(/[\s_]+/g, "/").replace(/^SHI\/?MO\/?/, "SHI/MO/");
+      }
       // [CODE] Name .... qty unit
       var re = /\[([A-Za-z]{1,4}\d{2,6})\]\s*([^\[\n]*?)\s+([\d]{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|[\d]+(?:[.,]\d+)?)\s*(g|gr|gram|grams|kg|pcs|pc|Pcs|ml|l)?\b/gi;
       var map = {};
@@ -21480,54 +21491,88 @@ function fillOperatorList(selectedEmail) {
           return toast("Role tidak bisa buat permintaan bahan", true);
         }
         toast("Memproses " + files.length + " PDF…");
+        // seed sequence sekali, lalu ambil ID unik per file dari memori
+        try { await seedSeqPrefix("PK", "picks", "pick_id"); } catch (eS) {}
         var ok = 0, skip = 0, fail = 0, msgs = [];
+        var seenNo = {};
         for (var i = 0; i < files.length; i++) {
           var file = files[i];
           try {
             var textPdf = await extractPdfText(file);
             var parsed = parseOdooPickPdfText(textPdf);
-            if (!parsed.lines.length) parsed = parseOdooPickPdfText(textPdf.replace(/\s+/g, " "));
+            if (!parsed.lines.length) parsed = parseOdooPickPdfText(String(textPdf || "").replace(/\s+/g, " "));
+            // no pick dari nama file jika teks kosong/gagal
+            var fromName = "";
+            try {
+              var fn = String(file.name || "");
+              var mFn = fn.match(/SHI[_\-\s\/]?PC[_\-\s\/]?(\d+)/i);
+              if (mFn) fromName = "SHI/PC/" + mFn[1];
+            } catch (eFn) {}
+            var noOdoo = (parsed.meta.pick_no || fromName || "").trim();
             if (!parsed.lines.length) {
               fail++;
-              msgs.push(file.name + ": tidak ada bahan");
+              msgs.push((i + 1) + ". " + file.name + " → gagal: tidak ada baris bahan di PDF");
               continue;
             }
-            var noOdoo = (parsed.meta.pick_no || "").trim();
-            // cek duplikat no pick odoo
+            if (noOdoo && seenNo[noOdoo]) {
+              skip++;
+              msgs.push((i + 1) + ". " + noOdoo + " → skip: sama dengan file lain di batch ini");
+              continue;
+            }
             if (noOdoo) {
               var { data: exists } = await sb.from("picks").select("pick_id").eq("no_pick_odoo", noOdoo).limit(1);
               if (exists && exists.length) {
                 skip++;
-                msgs.push(noOdoo + ": sudah ada");
+                msgs.push((i + 1) + ". " + noOdoo + " → skip: sudah ada di sistem (" + exists[0].pick_id + ")");
                 continue;
               }
             }
-            var id = await newPickId();
+            var id = takeSeqId("PK");
+            // pastikan unik di batch
+            var guard = 0;
+            while (guard < 20) {
+              var clash = false;
+              try {
+                var { data: idHit } = await sb.from("picks").select("pick_id").eq("pick_id", id).limit(1);
+                if (idHit && idHit.length) clash = true;
+              } catch (eC) {}
+              if (!clash) break;
+              id = takeSeqId("PK");
+              guard++;
+            }
             var now = new Date().toISOString();
-            var notes = parsed.meta.mo_no ? ("MO: " + parsed.meta.mo_no + " · import massal PDF") : "import massal PDF";
+            var notes = [];
+            if (parsed.meta.mo_no) notes.push("MO: " + parsed.meta.mo_no);
+            notes.push("import massal PDF");
+            notes.push("file: " + (file.name || ""));
+            if (!noOdoo) noOdoo = id;
             var payload = {
               pick_id: id,
-              no_pick_odoo: noOdoo || id,
+              no_pick_odoo: noOdoo,
               no_so: "",
               product_id: "",
               status: "requested",
-              notes: notes,
+              notes: notes.join(" · "),
               created_by: (currentUser && currentUser.email) || "",
               created_at: now,
               requested_at: now,
               updated_at: now
             };
-            var up = await sb.from("picks").upsert(payload);
-            if (up.error) {
-              // fallback tanpa requested_at
+            var up = await sb.from("picks").insert(payload);
+            if (up.error && /requested_at|column/i.test(String(up.error.message || ""))) {
               delete payload.requested_at;
+              up = await sb.from("picks").insert(payload);
+            }
+            if (up.error) {
+              // last resort upsert
               up = await sb.from("picks").upsert(payload);
             }
             if (up.error) {
               fail++;
-              msgs.push((noOdoo || file.name) + ": " + up.error.message);
+              msgs.push((i + 1) + ". " + (noOdoo || file.name) + " → gagal simpan: " + up.error.message);
               continue;
             }
+            if (noOdoo) seenNo[noOdoo] = true;
             var rows = parsed.lines.map(function(l) {
               return {
                 pick_id: id,
@@ -21540,23 +21585,30 @@ function fillOperatorList(selectedEmail) {
             var ins = await sb.from("pick_lines").insert(rows);
             if (ins.error) {
               fail++;
-              msgs.push((noOdoo || file.name) + ": lines " + ins.error.message);
+              msgs.push((i + 1) + ". " + noOdoo + " → header ok, lines gagal: " + ins.error.message);
               continue;
             }
             ok++;
+            msgs.push((i + 1) + ". " + noOdoo + " → dibuat (" + rows.length + " bahan, id " + id + ")");
           } catch (eOne) {
             fail++;
-            msgs.push(file.name + ": " + (eOne.message || eOne));
+            msgs.push((i + 1) + ". " + file.name + " → error: " + (eOne.message || eOne));
           }
         }
         await loadPicks();
         try { loadInboxNotifs(); } catch (eN) {}
         var msg = "Import massal: " + ok + " dibuat";
-        if (skip) msg += ", " + skip + " skip (sudah ada)";
+        if (skip) msg += ", " + skip + " skip";
         if (fail) msg += ", " + fail + " gagal";
         toast(msg, fail && !ok);
-        if (msgs.length && msgs.length <= 8) {
-          try { console.log("pick bulk", msgs); } catch (e) {}
+        try {
+          if (typeof appConfirm === "function") {
+            await appConfirm(msgs.join("\n"), "Hasil import " + files.length + " PDF");
+          } else {
+            alert(msg + "\n\n" + msgs.join("\n"));
+          }
+        } catch (eA) {
+          console.log("pick bulk result", msgs);
         }
       } catch (e) {
         toast(e.message || "Gagal import massal", true);
