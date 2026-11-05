@@ -13392,14 +13392,8 @@ function fillOperatorList(selectedEmail) {
         Object.keys(g.opSetDay).forEach(day => {
           g.opDay[day] = Object.keys(g.opSetDay[day]).length;
         });
-        // plan_total: prefer FG sum, else all
-        g.plan_total = g._planFg || g._planAll || 0;
-        // if no FG at all, still show all targets in totals
-        if (!g._planFg) {
-          g.plan_total = g._planAll || 0;
-          // fill planDay with all targets for non-FG products
-          // rebuild planDay from plans - stored as 0; need fix
-        }
+        // plan_total: HANYA packing FG (masterbox) — primer tidak dijumlah ke QTY PLAN
+        g.plan_total = Number(g._planFg) || 0;
         g.act_total = Object.values(g.actDay).reduce((s, v) => s + v, 0);
         g.op_total = Object.values(g.opDay).reduce((s, v) => s + v, 0);
         g.status = opsStatusOf(g);
@@ -13430,16 +13424,19 @@ function fillOperatorList(selectedEmail) {
           if (cell.fg > 0) {
             g.planDay[day] = cell.fg;
             g.planDayFg[day] = cell.fg;
-          } else if (cell.primer) { g.primerDay[day] = true; g.planDay[day] = null; }
-          else if (cell.all > 0) g.planDay[day] = cell.all;
+          } else if (cell.primer) {
+            g.primerDay[day] = true;
+            g.planDay[day] = null; // tampil PRIMER, bukan qty proses non-FG
+          }
+          // tidak pakai cell.all (target mixing/filling) sebagai qty plan
         });
         g.plan_total = 0;
         g.plan_total_fg = 0;
         Object.keys(g.planDay).forEach(d => { g.plan_total += Number(g.planDay[d]) || 0; });
         Object.keys(g.planDayFg).forEach(d => { g.plan_total_fg += Number(g.planDayFg[d]) || 0; });
-        // grid boleh fallback ke semua proses jika tidak ada FG sama sekali
-        if (g.plan_total === 0 && g._planAll) g.plan_total = g._planAll;
+        // Jangan fallback ke target primer (mixing/filling dll) — QTY PLAN = FG saja
         if (!g.plan_total_fg && g._planFg) g.plan_total_fg = g._planFg;
+        if (!(g.plan_total > 0) && g.plan_total_fg > 0) g.plan_total = g.plan_total_fg;
         g.status = opsStatusOf(g);
       });
 
