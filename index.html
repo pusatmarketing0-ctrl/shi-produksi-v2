@@ -21343,6 +21343,20 @@ function fillOperatorList(selectedEmail) {
       if (u === "pcs" || u === "pc" || u === "unit" || u === "units") return "pcs";
       return u;
     }
+    function parseOdooQtyNumber(qtyStr) {
+      qtyStr = String(qtyStr || "").replace(/\s/g, "");
+      if (!qtyStr) return 0;
+      // 340,000.00 or 1,000.00
+      if (qtyStr.indexOf(",") >= 0 && qtyStr.indexOf(".") >= 0) {
+        qtyStr = qtyStr.replace(/,/g, "");
+      } else if (qtyStr.indexOf(",") >= 0 && qtyStr.indexOf(".") < 0) {
+        var parts = qtyStr.split(",");
+        if (parts.length === 2 && parts[1].length <= 2) qtyStr = parts[0] + "." + parts[1];
+        else qtyStr = qtyStr.replace(/,/g, "");
+      }
+      var qty = parseFloat(qtyStr);
+      return isNaN(qty) ? 0 : qty;
+    }
     function parseOdooPickPdfText(text) {
       text = String(text || "").replace(/\r/g, "\n");
       var meta = { pick_no: "", mo_no: "", order: "" };
@@ -21352,7 +21366,6 @@ function fillOperatorList(selectedEmail) {
         || text.match(/\b(PICK\/\d{4}\/\d+)\b/i);
       if (mPick) {
         meta.pick_no = String(mPick[1]).toUpperCase().replace(/[\s_]+/g, "/").replace(/PC\//, "PC/");
-        // SHI/PC/05159 normalisasi
         meta.pick_no = meta.pick_no.replace(/^SHI\/?PC\/?/, "SHI/PC/");
       }
       var mMo = text.match(/\b(SHI\/MO\/\d+)\b/i)
@@ -21361,31 +21374,50 @@ function fillOperatorList(selectedEmail) {
       if (mMo) {
         meta.mo_no = String(mMo[1]).toUpperCase().replace(/[\s_]+/g, "/").replace(/^SHI\/?MO\/?/, "SHI/MO/");
       }
-      // [CODE] Name .... qty unit
-      var re = /\[([A-Za-z]{1,4}\d{2,6})\]\s*([^\[\n]*?)\s+([\d]{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|[\d]+(?:[.,]\d+)?)\s*(g|gr|gram|grams|kg|pcs|pc|Pcs|ml|l)?\b/gi;
+
+      // Pecah per kode produk [BB090] ... sampai sebelum [ berikutnya
+      // Qty HARUS ada spasi sebelum satuan agar "250gr" di nama produk tidak ikut
+      // Prefer kolom ORDERED: angka + spasi + unit (g/Pcs/kg)
       var map = {};
-      var m;
-      while ((m = re.exec(text)) !== null) {
-        var code = String(m[1] || "").toUpperCase();
-        var qtyStr = String(m[3] || "").replace(/\s/g, "");
-        // ID format 28,950.90 or 28950.90 or 0.00
-        if (qtyStr.indexOf(",") >= 0 && qtyStr.indexOf(".") >= 0) {
-          qtyStr = qtyStr.replace(/,/g, "");
-        } else if (qtyStr.indexOf(",") >= 0 && qtyStr.indexOf(".") < 0) {
-          // 28,950 -> 28950 or European 0,46
-          var parts = qtyStr.split(",");
-          if (parts.length === 2 && parts[1].length <= 2) qtyStr = parts[0] + "." + parts[1];
-          else qtyStr = qtyStr.replace(/,/g, "");
-        }
-        var qty = parseFloat(qtyStr);
-        if (!(qty > 0)) continue;
-        var unit = normalizePickUnit(m[4] || "pcs");
-        var name = String(m[2] || "").replace(/\s+/g, " ").trim();
-        if (!map[code]) map[code] = { product_id: code, name: name, qty_request: 0, unit: unit };
-        map[code].qty_request += qty;
-        if (name && !map[code].name) map[code].name = name;
-        if (unit) map[code].unit = unit;
+      var codeRe = /\[([A-Za-z]{1,4}\d{2,8})\]/gi;
+      var codes = [];
+      var cm;
+      while ((cm = codeRe.exec(text)) !== null) {
+        codes.push({ code: String(cm[1]).toUpperCase(), index: cm.index, end: cm.index + cm[0].length });
       }
+      for (var i = 0; i < codes.length; i++) {
+        var code = codes[i].code;
+        var sliceStart = codes[i].end;
+        var sliceEnd = (i + 1 < codes.length) ? codes[i + 1].index : text.length;
+        var chunk = text.slice(sliceStart, sliceEnd);
+        // nama = teks sebelum qty pertama (angka + spasi + unit)
+        var qtyRe = /([\d]{1,3}(?:,\d{3})*(?:\.\d+)?|[\d]+(?:\.\d+)?)\s+(g|gr|gram|grams|kg|pcs|pc|Pcs|ml|l)\b/gi;
+        var pairs = [];
+        var qm;
+        while ((qm = qtyRe.exec(chunk)) !== null) {
+          pairs.push({
+            qty: parseOdooQtyNumber(qm[1]),
+            unit: normalizePickUnit(qm[2]),
+            index: qm.index,
+            raw: qm[0]
+          });
+        }
+        if (!pairs.length) continue;
+        // ORDERED = pasangan pertama yang qty > 0; jika semua 0, skip
+        // Format Odoo baru: ORDERED lalu DELIVERED → ambil first > 0, atau first jika hanya satu
+        var ordered = null;
+        for (var p = 0; p < pairs.length; p++) {
+          if (pairs[p].qty > 0) { ordered = pairs[p]; break; }
+        }
+        if (!ordered) continue;
+        var name = chunk.slice(0, ordered.index).replace(/\s+/g, " ").trim();
+        name = name.replace(/\s*(ORDERED|DELIVERED|QUANTITY|FROM|TO|PRODUCT BARCODE)\s*/gi, " ").trim();
+        if (!map[code]) map[code] = { product_id: code, name: name, qty_request: 0, unit: ordered.unit };
+        map[code].qty_request += ordered.qty;
+        if (name && !map[code].name) map[code].name = name;
+        if (ordered.unit) map[code].unit = ordered.unit;
+      }
+
       var lines = Object.keys(map).map(function(k) { return map[k]; });
       lines.sort(function(a, b) { return String(a.product_id).localeCompare(String(b.product_id)); });
       return { meta: meta, lines: lines };
