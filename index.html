@@ -4169,6 +4169,7 @@
         <button class="nav-item" data-page="absences" data-roles="admin,ppic,korlap,operator" data-tip="Cuti / Ijin"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-wiggle"><rect x="4" y="6" width="16" height="14" rx="2.5" fill="#14b8a6"/><path stroke="#fff" stroke-width="1.6" d="M4 10.5h16"/><circle cx="12" cy="15" r="1.5" fill="#fff"/></svg></span><span class="nav-txt"> Cuti / Ijin</span></button>
         <button class="nav-item" data-page="revisions" data-roles="admin,ppic,korlap,operator" data-tip="Revisi target"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-wiggle"><path fill="#f59e0b" d="M16 4.2 19.8 8 8 19.8 3.5 21l1.2-4.5z"/></svg></span><span class="nav-txt"> Revisi target</span><span class="nav-badge" id="navRevBadge" style="display:none">0</span></button>
         <button class="nav-item" data-page="ranking" data-roles="admin,ppic,korlap" data-tip="Ranking OP"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect class="anim-grow" x="5" y="12" width="3.5" height="8" rx="1" fill="#34d399"/><rect class="anim-grow" x="10.2" y="6" width="3.5" height="14" rx="1" fill="#059669"/><rect class="anim-grow" x="15.5" y="9" width="3.5" height="11" rx="1" fill="#6ee7b7"/></svg></span><span class="nav-txt"> Ranking OP</span></button>
+        <button class="nav-item" data-page="kendala" data-roles="admin,ppic,korlap" data-tip="Analisis Kendala"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 3 3 19h18L12 3z"/><rect x="11" y="9" width="2" height="5" rx="0.5" fill="#fff"/><circle cx="12" cy="16.5" r="1.1" fill="#fff"/></svg></span><span class="nav-txt"> Analisis Kendala</span></button>
         <div class="nav-label" data-nav-group="master">Master data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#059669" d="m4 8 8-4 8 4v8l-8 4-8-4z"/><path stroke="#fff" stroke-width="1.4" fill="none" d="m4 8 8 4 8-4"/></svg></span><span class="nav-txt"> Produk</span></button>
         <button class="nav-item" data-page="machines" data-roles="admin,ppic,korlap" data-tip="Proses"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle class="anim-spin" cx="12" cy="12" r="4" fill="#64748b"/><path class="anim-spin" fill="#94a3b8" d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M19.5 4.5l-2 2M6.5 17.5l-2 2"/></svg></span><span class="nav-txt"> Proses</span></button>
@@ -5349,7 +5350,67 @@
           <div id="rankCards" class="mobile-cards" style="display:none"></div>
         </section>
 
-      
+        <section id="page-kendala" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Analisis Kendala</h1>
+              <p>Agregasi kendala laporan operator — jam downtime &amp; qty material kurang.</p>
+            </div>
+            <div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="loadKendalaAnalysis()">Refresh</button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="exportKendalaAnalysis()">Export Excel</button>
+            </div>
+          </div>
+          <div class="toolbar" style="flex-wrap:wrap;gap:0.45rem">
+            <input type="date" id="kenFrom" onchange="loadKendalaAnalysis()" />
+            <span style="font-size:0.78rem;color:var(--text-muted)">s/d</span>
+            <input type="date" id="kenTo" onchange="loadKendalaAnalysis()" />
+            <select id="kenShift" onchange="renderKendalaAnalysis()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua shift</option>
+              <option value="1">Shift 1</option>
+              <option value="2">Shift 2</option>
+              <option value="3">Shift 3</option>
+            </select>
+            <select id="kenCat" onchange="renderKendalaAnalysis()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua kategori</option>
+              <option value="Material">Material</option>
+              <option value="Machine">Machine</option>
+              <option value="Man">Man Power</option>
+              <option value="Method">Method</option>
+              <option value="Plan">Plan</option>
+            </select>
+            <input type="search" id="kenSearch" placeholder="Cari produk / OP / proses / catatan…" oninput="renderKendalaAnalysis()" style="min-width:12rem" />
+          </div>
+          <div class="grid-kpi" id="kenKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.65rem;margin-bottom:0.85rem">
+            <div class="kpi"><div class="label">Kejadian</div><div class="value" id="kenKpiCount">0</div><div class="hint">laporan ber-kendala</div></div>
+            <div class="kpi"><div class="label">Jam hilang</div><div class="value" id="kenKpiHours">0</div><div class="hint">machine + man + method</div></div>
+            <div class="kpi"><div class="label">Qty material</div><div class="value" id="kenKpiMat">0</div><div class="hint">total kekurangan</div></div>
+            <div class="kpi"><div class="label">Revisi plan</div><div class="value" id="kenKpiPlan">0</div><div class="hint">kejadian kategori Plan</div></div>
+          </div>
+          <div id="kenCatCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.5rem;margin-bottom:0.85rem"></div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Shift</th>
+                    <th>Operator</th>
+                    <th>Produk</th>
+                    <th>Proses</th>
+                    <th>Kategori</th>
+                    <th style="text-align:right">Qty mat.</th>
+                    <th style="text-align:right">DT (mnt)</th>
+                    <th>Catatan</th>
+                  </tr>
+                </thead>
+                <tbody id="kenBody"><tr><td colspan="9" class="empty">Pilih rentang tanggal lalu Refresh</td></tr></tbody>
+              </table>
+            </div>
+            <div id="kenPager" class="pg-bar"></div>
+          </div>
+        </section>
+
         <section id="page-export-data" class="page" hidden>
           <div class="page-head">
             <div>
@@ -9984,6 +10045,7 @@ function fillOperatorList(selectedEmail) {
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "plans", label: "Plan produksi", ico: "ico-plan" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
+            { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
             { page: "reports", label: "Laporan OP", ico: "ico-report" },
             { page: "absences", label: "Cuti / absensi", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
@@ -10038,6 +10100,7 @@ function fillOperatorList(selectedEmail) {
           { page: "home", label: "Home", ico: "ico-home" },
           { page: "operasional", label: "Grid", ico: "ico-grid" },
           { page: "ranking", label: "Rank", ico: "ico-rank" },
+            { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
           { page: "reports", label: "Lapor", ico: "ico-report" }
         ],
         more: [
@@ -10045,6 +10108,7 @@ function fillOperatorList(selectedEmail) {
             { page: "operasional", label: "Grid", ico: "ico-grid" },
             { page: "plans", label: "Plan", ico: "ico-plan" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
+            { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
             { page: "reports", label: "Laporan OP", ico: "ico-report" },
             { page: "absences", label: "Cuti operator", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
@@ -10069,6 +10133,7 @@ function fillOperatorList(selectedEmail) {
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "plans", label: "Plan", ico: "ico-plan" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
+            { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
             { page: "reports", label: "Laporan", ico: "ico-report" },
             { page: "marketing", label: "Marketing", ico: "ico-mkt" }
           ]},
@@ -22485,6 +22550,231 @@ var id = await newPickId();
       closePickModal();
       await loadPicks();
     }
+
+    var kendalaRows = [];
+    function kenDefaultDates() {
+      var to = todayStr();
+      var d = new Date();
+      d.setDate(d.getDate() - 6);
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      var from = d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+      if ($("kenFrom") && !$("kenFrom").value) $("kenFrom").value = from;
+      if ($("kenTo") && !$("kenTo").value) $("kenTo").value = to;
+    }
+    function kenHasIssue(k) {
+      if (!k) return false;
+      if ((Number(k.material_qty) || 0) > 0) return true;
+      if ((Number(k.dt_machine) || 0) > 0) return true;
+      if ((Number(k.dt_man) || 0) > 0) return true;
+      if ((Number(k.dt_method) || 0) > 0) return true;
+      if (String(k.category || "").trim()) return true;
+      if (String(k.detail || "").trim()) return true;
+      return false;
+    }
+    function kenCategoryOf(k) {
+      var c = String((k && k.category) || "").trim();
+      if (c) {
+        var cl = c.toLowerCase();
+        if (cl.indexOf("material") >= 0) return "Material";
+        if (cl.indexOf("machine") >= 0 || cl.indexOf("mesin") >= 0) return "Machine";
+        if (cl.indexOf("man") >= 0 || cl.indexOf("operator") >= 0 || cl.indexOf("manpower") >= 0) return "Man";
+        if (cl.indexOf("method") >= 0 || cl.indexOf("metode") >= 0) return "Method";
+        if (cl.indexOf("plan") >= 0) return "Plan";
+        return c;
+      }
+      if ((Number(k.material_qty) || 0) > 0) return "Material";
+      if ((Number(k.dt_machine) || 0) > 0) return "Machine";
+      if ((Number(k.dt_man) || 0) > 0) return "Man";
+      if ((Number(k.dt_method) || 0) > 0) return "Method";
+      return "Lainnya";
+    }
+    function kenDtMin(k) {
+      return (Number(k.dt_machine) || 0) + (Number(k.dt_man) || 0) + (Number(k.dt_method) || 0);
+    }
+    async function loadKendalaAnalysis() {
+      if (!sb) return;
+      kenDefaultDates();
+      var from = ($("kenFrom") && $("kenFrom").value) || todayStr();
+      var to = ($("kenTo") && $("kenTo").value) || from;
+      if ($("kenBody")) $("kenBody").innerHTML = '<tr><td colspan="9" class="empty">Memuat…</td></tr>';
+      try {
+        // reports in range
+        var { data: reps, error } = await sb.from("reports")
+          .select("report_id,plan_id,actual_qty,ng_qty,downtime_min,downtime_reason,notes,report_date,created_at,operator_email,material_qty,material_unit,dt_machine,dt_man,dt_method")
+          .gte("report_date", from)
+          .lte("report_date", to)
+          .order("report_date", { ascending: false })
+          .limit(5000);
+        if (error) throw error;
+        reps = reps || [];
+        // plans meta
+        var planIds = [];
+        var seen = {};
+        reps.forEach(function(r) {
+          if (r.plan_id && !seen[r.plan_id]) { seen[r.plan_id] = true; planIds.push(r.plan_id); }
+        });
+        var planMap = {};
+        for (var i = 0; i < planIds.length; i += 100) {
+          var chunk = planIds.slice(i, i + 100);
+          var { data: pls } = await sb.from("plans")
+            .select("plan_id,product_id,machine_id,shift,no_so,order_id,assigned_operator,target_qty,plan_date")
+            .in("plan_id", chunk);
+          (pls || []).forEach(function(p) { planMap[p.plan_id] = p; });
+        }
+        kendalaRows = [];
+        reps.forEach(function(r) {
+          var k = parseKendalaFromReport(r);
+          // also use downtime_min if structured empty
+          if (!(kenDtMin(k) > 0) && (Number(r.downtime_min) || 0) > 0 && !k.category) {
+            k.dt_machine = Number(r.downtime_min) || 0;
+          }
+          if (!kenHasIssue(k) && !(Number(r.downtime_min) || 0)) return;
+          if (!kenHasIssue(k) && (Number(r.downtime_min) || 0) > 0) {
+            // old reports: count as Machine if no category
+            k.dt_machine = k.dt_machine || (Number(r.downtime_min) || 0);
+            k.detail = k.detail || String(r.downtime_reason || r.notes || "");
+          }
+          if (!kenHasIssue(k)) return;
+          var p = planMap[r.plan_id] || {};
+          var cat = kenCategoryOf(k);
+          kendalaRows.push({
+            report_id: r.report_id,
+            report_date: String(r.report_date || "").slice(0, 10),
+            shift: p.shift || "",
+            operator: r.operator_email || p.assigned_operator || "",
+            product_id: p.product_id || "",
+            machine_id: p.machine_id || "",
+            no_so: p.no_so || "",
+            category: cat,
+            material_qty: Number(k.material_qty) || 0,
+            material_unit: k.material_unit || "pcs",
+            dt_machine: Number(k.dt_machine) || 0,
+            dt_man: Number(k.dt_man) || 0,
+            dt_method: Number(k.dt_method) || 0,
+            dt_min: kenDtMin(k) || (Number(r.downtime_min) || 0),
+            detail: k.detail || "",
+            notes: r.notes || ""
+          });
+        });
+        renderKendalaAnalysis();
+      } catch (e) {
+        console.warn(e);
+        if ($("kenBody")) $("kenBody").innerHTML = '<tr><td colspan="9" class="empty">' + esc(e.message || e) + "</td></tr>";
+        toast(e.message || "Gagal muat analisis kendala", true);
+      }
+    }
+    function filterKendalaRows() {
+      var sh = ($("kenShift") && $("kenShift").value) || "";
+      var cat = ($("kenCat") && $("kenCat").value) || "";
+      var q = (($("kenSearch") && $("kenSearch").value) || "").toLowerCase().trim();
+      return (kendalaRows || []).filter(function(r) {
+        if (sh && String(r.shift) !== String(sh)) return false;
+        if (cat && r.category !== cat) return false;
+        if (q) {
+          var blob = [r.product_id, r.machine_id, r.operator, r.detail, r.notes, r.no_so, r.category].join(" ").toLowerCase();
+          if (blob.indexOf(q) < 0) return false;
+        }
+        return true;
+      });
+    }
+    function renderKendalaAnalysis() {
+      var list = filterKendalaRows();
+      var count = list.length;
+      var mins = 0, mat = 0, planN = 0;
+      var byCat = { Material: 0, Machine: 0, Man: 0, Method: 0, Plan: 0, Lainnya: 0 };
+      list.forEach(function(r) {
+        mins += Number(r.dt_min) || 0;
+        mat += Number(r.material_qty) || 0;
+        if (r.category === "Plan") planN++;
+        byCat[r.category] = (byCat[r.category] || 0) + 1;
+      });
+      if ($("kenKpiCount")) $("kenKpiCount").textContent = formatNum(count);
+      if ($("kenKpiHours")) $("kenKpiHours").textContent = (Math.round((mins / 60) * 10) / 10);
+      if ($("kenKpiMat")) $("kenKpiMat").textContent = formatNum(mat);
+      if ($("kenKpiPlan")) $("kenKpiPlan").textContent = formatNum(planN);
+      var cards = $("kenCatCards");
+      if (cards) {
+        var order = ["Material", "Machine", "Man", "Method", "Plan", "Lainnya"];
+        cards.innerHTML = order.filter(function(c) { return byCat[c]; }).map(function(c) {
+          return '<div class="kpi" style="padding:0.65rem 0.75rem"><div class="label">' + esc(c) + '</div><div class="value" style="font-size:1.35rem">' + formatNum(byCat[c]) + '</div></div>';
+        }).join("") || '<div class="empty" style="padding:0.5rem">Tidak ada kejadian di filter ini</div>';
+      }
+      var body = $("kenBody");
+      if (!body) return;
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada kendala di periode / filter ini</td></tr>';
+        pageOf("kendala", [], "kenPager");
+        return;
+      }
+      var pageList = pageOf("kendala", list, "kenPager");
+      body.innerHTML = pageList.map(function(r) {
+        var op = r.operator || "—";
+        if (op.indexOf("@") >= 0) op = op.split("@")[0];
+        var prod = "";
+        try { prod = productLabel(r.product_id); } catch (e) { prod = r.product_id || "—"; }
+        var mach = "";
+        try { mach = machineLabel(r.machine_id); } catch (e2) { mach = r.machine_id || "—"; }
+        return "<tr>" +
+          "<td>" + esc(r.report_date) + "</td>" +
+          "<td>" + esc(r.shift || "—") + "</td>" +
+          "<td>" + esc(op) + "</td>" +
+          "<td>" + esc(prod) + (r.no_so ? "<div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(r.no_so) + "</div>" : "") + "</td>" +
+          "<td>" + esc(mach) + "</td>" +
+          "<td><span class='badge'>" + esc(r.category) + "</span></td>" +
+          "<td style='text-align:right'>" + (r.material_qty > 0 ? formatNum(r.material_qty) + " " + esc(r.material_unit || "") : "—") + "</td>" +
+          "<td style='text-align:right'>" + (r.dt_min > 0 ? formatNum(r.dt_min) : "—") + "</td>" +
+          "<td style='font-size:0.78rem;max-width:16rem'>" + esc(r.detail || r.notes || "—") + "</td>" +
+          "</tr>";
+      }).join("");
+    }
+    function exportKendalaAnalysis() {
+      var list = filterKendalaRows();
+      if (!list.length) return toast("Tidak ada data untuk di-export", true);
+      if (typeof XLSX === "undefined") return toast("Library Excel belum termuat", true);
+      var rows = list.map(function(r) {
+        var op = r.operator || "";
+        if (op.indexOf("@") >= 0) op = op.split("@")[0];
+        var prod = r.product_id;
+        try { prod = productLabel(r.product_id); } catch (e) {}
+        var mach = r.machine_id;
+        try { mach = machineLabel(r.machine_id); } catch (e2) {}
+        return {
+          Tanggal: r.report_date,
+          Shift: r.shift || "",
+          Operator: op,
+          Produk: prod,
+          Proses: mach,
+          No_SO: r.no_so || "",
+          Kategori: r.category,
+          Qty_Material: r.material_qty || 0,
+          Satuan: r.material_unit || "",
+          DT_Machine_mnt: r.dt_machine || 0,
+          DT_Man_mnt: r.dt_man || 0,
+          DT_Method_mnt: r.dt_method || 0,
+          DT_Total_mnt: r.dt_min || 0,
+          Catatan: r.detail || r.notes || ""
+        };
+      });
+      var ws = XLSX.utils.json_to_sheet(rows);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Kendala");
+      // summary sheet
+      var mins = 0, mat = 0;
+      list.forEach(function(r) { mins += Number(r.dt_min) || 0; mat += Number(r.material_qty) || 0; });
+      var sum = [
+        { Metrik: "Periode", Nilai: (($("kenFrom") && $("kenFrom").value) || "") + " s/d " + (($("kenTo") && $("kenTo").value) || "") },
+        { Metrik: "Kejadian", Nilai: list.length },
+        { Metrik: "Jam hilang", Nilai: Math.round((mins / 60) * 10) / 10 },
+        { Metrik: "Qty material", Nilai: mat }
+      ];
+      var ws2 = XLSX.utils.json_to_sheet(sum);
+      XLSX.utils.book_append_sheet(wb, ws2, "Ringkasan");
+      var fname = "analisis-kendala-" + (($("kenFrom") && $("kenFrom").value) || "") + "-" + (($("kenTo") && $("kenTo").value) || "") + ".xlsx";
+      XLSX.writeFile(wb, fname);
+      toast("Export " + list.length + " baris");
+    }
+
+
     function goPage(page) {
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
@@ -22520,6 +22810,7 @@ var id = await newPickId();
       if (page === "order-trading") { try { loadOrderTrading(); } catch (e) {} }
       if (page === "absences") { try { loadAbsences(); } catch (e) {} }
       if (page === "revisions") { try { loadRevisionRequests(); } catch (eR) {} }
+      if (page === "kendala") { try { loadKendalaAnalysis(); } catch (eK) {} }
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
       if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
