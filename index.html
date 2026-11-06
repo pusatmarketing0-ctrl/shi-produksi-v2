@@ -7759,7 +7759,142 @@
       return await nextSeqId("SO", "orders", "order_id");
     }
 
+    /** Status SO efektif dari progress produksi (bukan hanya DB "confirmed") */
+    function soDbStatusNorm(st) {
+      st = String(st || "").toLowerCase().trim();
+      if (st === "locked") return "confirmed";
+      if (st === "canceled") return "cancelled";
+      if (st === "done" || st === "closed") return "completed";
+      return st || "draft";
+    }
+    function soEffectiveStatus(o) {
+      var db = soDbStatusNorm(o && o.status);
+      if (db === "cancelled" || db === "completed") return db;
+      if (o && o._eff_status) return o._eff_status;
+      return db;
+    }
+    async function enrichSoStatusesFromProduction(orders) {
+      if (!sb || !orders || !orders.length) return orders;
+      try {
+        // skip cancelled
+        var targets = orders.filter(function(o) {
+          var st = soDbStatusNorm(o.status);
+          return st !== "cancelled" && st !== "draft";
+        });
+        if (!targets.length) return orders;
+        var orderIds = targets.map(function(o) { return o.order_id; }).filter(Boolean);
+        var noSos = targets.map(function(o) { return o.no_so; }).filter(Boolean);
+        // ambil plan terkait SO
+        var plans = [];
+        var chunk = 80;
+        for (var i = 0; i < orderIds.length; i += chunk) {
+          var ids = orderIds.slice(i, i + chunk);
+          var { data: p1 } = await sb.from("plans").select("plan_id,order_id,no_so,product_id,machine_id,target_qty").in("order_id", ids).limit(3000);
+          if (p1) plans = plans.concat(p1);
+        }
+        // juga by no_so jika order_id kosong di plan
+        for (var j = 0; j < noSos.length; j += chunk) {
+          var ns = noSos.slice(j, j + chunk);
+          var { data: p2 } = await sb.from("plans").select("plan_id,order_id,no_so,product_id,machine_id,target_qty").in("no_so", ns).limit(3000);
+          if (p2) plans = plans.concat(p2);
+        }
+        // dedupe plans
+        var planMap = {};
+        plans.forEach(function(p) { if (p && p.plan_id) planMap[p.plan_id] = p; });
+        plans = Object.keys(planMap).map(function(k) { return planMap[k]; });
+        // actual per plan (FG only)
+        var actByPlan = {};
+        var planIds = plans.map(function(p) { return p.plan_id; });
+        for (var k = 0; k < planIds.length; k += 120) {
+          var chunkIds = planIds.slice(k, k + 120);
+          if (!chunkIds.length) break;
+          var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", chunkIds).limit(8000);
+          (reps || []).forEach(function(r) {
+            actByPlan[r.plan_id] = (actByPlan[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
+          });
+        }
+        // actual FG per order_id / no_so / product
+        var fgByOrder = {}; // order_id -> { product_id -> qty }
+        var fgBySo = {}; // no_so -> { product_id -> qty }
+        var hasPlanByOrder = {};
+        var hasPlanBySo = {};
+        plans.forEach(function(p) {
+          var isFg = false;
+          try { isFg = typeof isFgMachine === "function" ? isFgMachine(p.machine_id) : true; } catch (e) { isFg = true; }
+          var oid = p.order_id || "";
+          var nso = p.no_so || "";
+          if (oid) hasPlanByOrder[oid] = true;
+          if (nso) hasPlanBySo[nso] = true;
+          if (!isFg) return;
+          var a = Number(actByPlan[p.plan_id]) || 0;
+          if (!(a > 0)) return;
+          var pid = String(p.product_id || "");
+          if (oid) {
+            if (!fgByOrder[oid]) fgByOrder[oid] = {};
+            fgByOrder[oid][pid] = (fgByOrder[oid][pid] || 0) + a;
+          }
+          if (nso) {
+            if (!fgBySo[nso]) fgBySo[nso] = {};
+            fgBySo[nso][pid] = (fgBySo[nso][pid] || 0) + a;
+          }
+        });
+        var toPersist = [];
+        orders.forEach(function(o) {
+          var db = soDbStatusNorm(o.status);
+          if (db === "cancelled") { o._eff_status = "cancelled"; return; }
+          if (db === "completed") { o._eff_status = "completed"; return; }
+          var lines = o.order_lines || o.lines || [];
+          var poTotal = 0;
+          var actTotal = 0;
+          var lineActs = 0;
+          var lineDone = 0;
+          var byProd = fgByOrder[o.order_id] || fgBySo[o.no_so] || {};
+          lines.forEach(function(l) {
+            var q = Number(l.qty) || 0;
+            poTotal += q;
+            var a = Number(byProd[String(l.product_id)]) || 0;
+            actTotal += a;
+            if (a > 0) lineActs++;
+            if (q > 0 && a >= q * 0.98) lineDone++; // toleransi 2%
+          });
+          var hasPlan = !!(hasPlanByOrder[o.order_id] || hasPlanBySo[o.no_so]);
+          var eff = db;
+          if (poTotal > 0 && actTotal >= poTotal * 0.98) {
+            eff = "completed";
+          } else if (actTotal > 0) {
+            eff = lineDone > 0 && lineDone < lines.length ? "partial" : "in_production";
+            if (lineDone === lines.length && lines.length) eff = "completed";
+          } else if (hasPlan) {
+            eff = "in_production";
+          } else if (db === "confirmed" || db === "locked") {
+            eff = "confirmed"; // tampil Locked
+          }
+          o._eff_status = eff;
+          o._act_fg = actTotal;
+          o._po_qty = poTotal;
+          // persist jika beda signifikan (completed / in_production / partial)
+          if (eff !== db && (eff === "completed" || eff === "in_production" || eff === "partial")) {
+            toPersist.push({ order_id: o.order_id, status: eff });
+          }
+        });
+        // update DB di background (batch kecil)
+        if (toPersist.length) {
+          (async function() {
+            for (var i = 0; i < Math.min(toPersist.length, 40); i++) {
+              var row = toPersist[i];
+              try {
+                await sb.from("orders").update({ status: row.status, updated_at: new Date().toISOString() }).eq("order_id", row.order_id);
+              } catch (eU) {}
+            }
+          })();
+        }
+      } catch (e) {
+        console.warn("enrichSoStatuses", e);
+      }
+      return orders;
+    }
     async function loadOrdersPage() {
+
       if (!sb) return;
       const { data, error } = await sb.from("orders")
         .select("*, order_lines(id,product_id,qty,unit,notes,harga,unit_price,price)")
@@ -7792,6 +7927,19 @@
         status: o.status,
         lines: o.order_lines || []
       }));
+      try {
+        await enrichSoStatusesFromProduction(allOrdersFull);
+        // sinkron status efektif ke allOrders
+        allOrders = allOrdersFull.map(function(o) {
+          return {
+            order_id: o.order_id,
+            no_so: o.no_so,
+            customer_name: o.customer_name,
+            status: soEffectiveStatus(o),
+            lines: o.order_lines || []
+          };
+        });
+      } catch (eEn) { console.warn(eEn); }
       renderOrders();
       try { loadHomeStats(); } catch (e) {}
       try { applySoPageRoleUI(); } catch (e) {}
@@ -7909,7 +8057,12 @@
       const q = (($("soSearch") && $("soSearch").value) || "").toLowerCase().trim();
       const st = (($("soFilterStatus") && $("soFilterStatus").value) || "");
       let list = allOrdersFull.slice();
-      if (st) list = list.filter(o => o.status === st);
+      if (st) list = list.filter(function(o) {
+        var s = soEffectiveStatus(o);
+        if (st === "confirmed") return s === "confirmed" || s === "locked";
+        if (st === "completed") return s === "completed" || s === "closed" || s === "done";
+        return s === st;
+      });
       if (q) {
         list = list.filter(o =>
           String(o.no_so).toLowerCase().includes(q) ||
@@ -7918,9 +8071,15 @@
         );
       }
       const total = allOrdersFull.length;
-      const active = allOrdersFull.filter(o => ["confirmed","in_production","partial"].includes(o.status)).length;
-      const done = allOrdersFull.filter(o => ["completed","closed"].includes(o.status)).length;
-      const draft = allOrdersFull.filter(o => o.status === "draft").length;
+      const active = allOrdersFull.filter(function(o) {
+        var s = soEffectiveStatus(o);
+        return s === "confirmed" || s === "locked" || s === "in_production" || s === "partial";
+      }).length;
+      const done = allOrdersFull.filter(function(o) {
+        var s = soEffectiveStatus(o);
+        return s === "completed" || s === "closed" || s === "done";
+      }).length;
+      const draft = allOrdersFull.filter(function(o) { return soEffectiveStatus(o) === "draft"; }).length;
       if ($("soKpiTotal")) $("soKpiTotal").textContent = formatNum(total);
       if ($("soKpiActive")) $("soKpiActive").textContent = formatNum(active);
       if ($("soKpiDone")) $("soKpiDone").textContent = formatNum(done);
@@ -7946,7 +8105,7 @@
               '<td>' + odooPersonHtml(sp) + '</td>' +
               '<td style="text-align:right"><strong>' + formatNum(lineQty(o)) + '</strong>' +
                 (n ? '<div style="font-size:0.68rem;color:#94a3b8">' + formatNum(n) + ' line</div>' : '') + '</td>' +
-              '<td>' + odooSoStatusPill(o.status) + '</td>' +
+              '<td>' + odooSoStatusPill(soEffectiveStatus(o)) + '</td>' +
               '<td><button type="button" class="btn btn-ghost btn-sm" data-edit="' + encodeURIComponent(o.order_id) + '">Edit</button></td></tr>';
           }).join("");
           body.querySelectorAll("[data-oid]").forEach(tr => {
@@ -7971,7 +8130,7 @@
             return '<div class="m-card" data-oid="' + encodeURIComponent(o.order_id) + '">' +
               '<div class="m-title">' + esc(o.no_so) + '</div>' +
               '<div class="m-sub">' + esc(o.customer_name || "—") + ' · ' + esc(o.order_date || "") + '</div>' +
-              '<div class="m-row">' + statusPill(o.status) +
+              '<div class="m-row">' + (typeof statusPill === "function" ? statusPill(soEffectiveStatus(o)) : odooSoStatusPill(soEffectiveStatus(o))) +
               '<span>' + formatNum((o.order_lines||[]).length) + ' produk</span>' +
               '<span>Qty <strong>' + formatNum(lineQty(o)) + '</strong></span></div>' +
               '<div class="m-actions"><button type="button" class="btn btn-primary" data-edit="' + encodeURIComponent(o.order_id) + '">Edit / detail</button></div></div>';
