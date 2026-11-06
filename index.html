@@ -20795,31 +20795,39 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       if ($("homeSisaSoCard")) $("homeSisaSoCard").style.display = "";
-      var { data: orders, error: eSo } = await sb.from("orders")
-        .select("order_id,no_so,customer_name,status,notes,order_lines(product_id,qty,notes)")
-        .not("status", "in", "(cancelled,canceled)")
-        .order("created_at", { ascending: false })
-        .limit(400);
-      if (eSo) {
-        // fallback tanpa embed / filter sederhana
+      // Query aman: tanpa filter PostgREST "not.in" / embed yang rawan 400
+      var orders = [];
+      try {
         var rSo = await sb.from("orders")
           .select("order_id,no_so,customer_name,status,notes")
           .order("created_at", { ascending: false })
           .limit(400);
+        if (rSo.error) {
+          // tanpa order created_at
+          rSo = await sb.from("orders").select("order_id,no_so,customer_name,status,notes").limit(400);
+        }
         orders = (rSo.data || []).filter(function(o) {
           var st = String(o.status || "").toLowerCase();
-          return st !== "cancelled" && st !== "canceled";
+          return st !== "cancelled" && st !== "canceled" && st !== "closed";
         });
-        var ids = (orders || []).map(function(o) { return o.order_id; }).filter(Boolean);
+        var ids = orders.map(function(o) { return o.order_id; }).filter(Boolean);
         if (ids.length) {
-          var { data: lines } = await sb.from("order_lines").select("order_id,product_id,qty,notes").in("order_id", ids.slice(0, 200));
+          var allLines = [];
+          for (var li = 0; li < ids.length; li += 100) {
+            var idChunk = ids.slice(li, li + 100);
+            var { data: lines } = await sb.from("order_lines").select("order_id,product_id,qty,notes").in("order_id", idChunk);
+            if (lines) allLines = allLines.concat(lines);
+          }
           var by = {};
-          (lines || []).forEach(function(l) {
+          allLines.forEach(function(l) {
             if (!by[l.order_id]) by[l.order_id] = [];
             by[l.order_id].push(l);
           });
-          (orders || []).forEach(function(o) { o.order_lines = by[o.order_id] || []; });
+          orders.forEach(function(o) { o.order_lines = by[o.order_id] || []; });
         }
+      } catch (eSo) {
+        console.warn("loadSisaSo orders", eSo);
+        orders = [];
       }
       var productIds = {};
       (orders || []).forEach(function(o) {
