@@ -20513,10 +20513,17 @@ function fillOperatorList(selectedEmail) {
       var staff = role === "admin" || role === "ppic" || role === "korlap";
       try {
         if (staff) {
-          var { data: revs } = await sb.from("plan_revision_requests")
+          var { data: revs, error: eRev } = await sb.from("plan_revision_requests")
             .select("id")
-            .eq("revision_status", "requested")
+            .eq("status", "requested")
             .limit(100);
+          if (eRev) {
+            // coba tanpa filter kolom status
+            var rAlt = await sb.from("plan_revision_requests").select("id,status").limit(100);
+            revs = (rAlt.data || []).filter(function(x) {
+              return String(x.status || "").toLowerCase() === "requested";
+            });
+          }
           var nRev = (revs || []).length;
           var navB = $("navRevBadge");
           if (navB) {
@@ -20788,10 +20795,32 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       if ($("homeSisaSoCard")) $("homeSisaSoCard").style.display = "";
-      var { data: orders } = await sb.from("orders")
-        .select("order_id,no_so,customer_name,status,notes,order_lines(product_id,qty,status,notes)")
-        .not("status", "in", '("cancelled","canceled")')
+      var { data: orders, error: eSo } = await sb.from("orders")
+        .select("order_id,no_so,customer_name,status,notes,order_lines(product_id,qty,notes)")
+        .not("status", "in", "(cancelled,canceled)")
+        .order("created_at", { ascending: false })
         .limit(400);
+      if (eSo) {
+        // fallback tanpa embed / filter sederhana
+        var rSo = await sb.from("orders")
+          .select("order_id,no_so,customer_name,status,notes")
+          .order("created_at", { ascending: false })
+          .limit(400);
+        orders = (rSo.data || []).filter(function(o) {
+          var st = String(o.status || "").toLowerCase();
+          return st !== "cancelled" && st !== "canceled";
+        });
+        var ids = (orders || []).map(function(o) { return o.order_id; }).filter(Boolean);
+        if (ids.length) {
+          var { data: lines } = await sb.from("order_lines").select("order_id,product_id,qty,notes").in("order_id", ids.slice(0, 200));
+          var by = {};
+          (lines || []).forEach(function(l) {
+            if (!by[l.order_id]) by[l.order_id] = [];
+            by[l.order_id].push(l);
+          });
+          (orders || []).forEach(function(o) { o.order_lines = by[o.order_id] || []; });
+        }
+      }
       var productIds = {};
       (orders || []).forEach(function(o) {
         (o.order_lines || []).forEach(function(l) { if (l.product_id) productIds[l.product_id] = true; });
