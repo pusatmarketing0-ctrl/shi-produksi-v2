@@ -4643,59 +4643,77 @@
             <span style="font-size:0.78rem;color:var(--text-muted);align-self:center">s/d</span>
             <input type="date" id="reportFilterDateTo" onchange="loadReportsPage()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem" />
             <input type="hidden" id="reportFilterDate" />
-            <select id="reportFilterShift" onchange="renderReportTasks()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
+            <select id="reportFilterShift" onchange="renderReportsUnified()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
               <option value="">Semua shift</option>
               <option value="1">Shift 1</option>
               <option value="2">Shift 2</option>
               <option value="3">Shift 3</option>
             </select>
-            <input type="search" id="reportSearch" placeholder="Cari produk / proses..." oninput="renderReportTasks(); renderReportList()" />
+            <input type="search" id="reportSearch" placeholder="Cari produk / proses / OP / SO..." oninput="renderReportsUnified()" />
           </div>
 
-          <div class="rep-sec">
-            <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 0.65rem;color:var(--text-muted)">Perlu dilapor</h3>
-            <div id="reportTaskCards" class="mobile-cards mobile-only" style="margin-bottom:1rem"></div>
-            <div class="table-wrap desk-only-table" style="margin-bottom:1rem">
-              <table>
-                <thead>
-                  <tr>
-                    <th class="sort-th" onclick="reportTaskSort('shift')">Shift</th>
-                    <th class="sort-th" onclick="reportTaskSort('product')">Produk</th>
-                    <th class="sort-th" onclick="reportTaskSort('machine')">Proses</th>
-                    <th class="sort-th" onclick="reportTaskSort('so')">No SO</th>
-                    <th class="sort-th" onclick="reportTaskSort('target')">Target</th>
-                    <th class="sort-th" onclick="reportTaskSort('op')">Operator</th>
-                    <th class="sort-th" onclick="reportTaskSort('status')">Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="reportTaskBody"></tbody>
-              </table>
+          <div id="reportKpi" class="grid-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.55rem;margin-bottom:0.75rem">
+            <div class="kpi" style="padding:0.65rem 0.75rem;cursor:pointer" onclick="setReportViewFilter('all')">
+              <div class="label">Plan</div>
+              <div class="value" id="rpKpiPlan" style="font-size:1.35rem">0</div>
+              <div class="hint">semua di filter</div>
+            </div>
+            <div class="kpi" style="padding:0.65rem 0.75rem;cursor:pointer" onclick="setReportViewFilter('done')">
+              <div class="label">Sudah lapor</div>
+              <div class="value" id="rpKpiDone" style="font-size:1.35rem;color:#059669">0</div>
+              <div class="hint">klik filter</div>
+            </div>
+            <div class="kpi" style="padding:0.65rem 0.75rem;cursor:pointer" onclick="setReportViewFilter('pending')">
+              <div class="label">Belum lapor</div>
+              <div class="value" id="rpKpiPending" style="font-size:1.35rem;color:#b45309">0</div>
+              <div class="hint">klik filter</div>
+            </div>
+            <div class="kpi" style="padding:0.65rem 0.75rem">
+              <div class="label">Actual semua</div>
+              <div class="value" id="rpKpiActAll" style="font-size:1.35rem">0</div>
+              <div class="hint">seluruh proses</div>
+            </div>
+            <div class="kpi" style="padding:0.65rem 0.75rem">
+              <div class="label">Actual FG</div>
+              <div class="value" id="rpKpiActFg" style="font-size:1.35rem;color:#047857">0</div>
+              <div class="hint">packing masterbox</div>
+            </div>
+            <div class="kpi" style="padding:0.65rem 0.75rem;cursor:pointer" onclick="setReportViewFilter('kendala')">
+              <div class="label">Ada kendala</div>
+              <div class="value" id="rpKpiKen" style="font-size:1.35rem;color:#b91c1c">0</div>
+              <div class="hint">klik filter</div>
             </div>
           </div>
 
-          <div class="rep-sec">
-            <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 0.65rem;color:var(--text-muted)">Sudah dilapor</h3>
-            <div id="reportListCards" class="mobile-cards mobile-only" style="margin-bottom:1rem"></div>
+          <div id="reportViewChips" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem">
+            <button type="button" class="btn btn-sm btn-primary" data-rvf="all" onclick="setReportViewFilter('all')">Semua</button>
+            <button type="button" class="btn btn-sm btn-ghost" data-rvf="pending" onclick="setReportViewFilter('pending')">Belum lapor</button>
+            <button type="button" class="btn btn-sm btn-ghost" data-rvf="done" onclick="setReportViewFilter('done')">Sudah lapor</button>
+            <button type="button" class="btn btn-sm btn-ghost" data-rvf="kendala" onclick="setReportViewFilter('kendala')">Ada kendala</button>
+          </div>
+
+          <div id="reportUnifiedCards" class="mobile-cards mobile-only" style="margin-bottom:1rem"></div>
+          <div class="card" style="padding:0;overflow:hidden">
             <div class="table-wrap desk-only-table">
               <table>
                 <thead>
                   <tr>
-                    <th class="sort-th" onclick="reportListSort('time')">Waktu</th>
-                    <th class="sort-th" onclick="reportListSort('product')">Produk</th>
-                    <th class="sort-th" onclick="reportListSort('machine')">Proses</th>
-                    <th class="sort-th" onclick="reportListSort('so')">No SO</th>
-                    <th class="sort-th" onclick="reportListSort('op')">Operator</th>
-                    <th class="sort-th" onclick="reportListSort('actual')">Actual</th>
-                    <th class="sort-th" onclick="reportListSort('ng')">NG</th>
-                    <th class="sort-th" onclick="reportListSort('dt')">DT (m)</th>
-                    <th class="sort-th" onclick="reportListSort('target')">Target adj</th>
+                    <th>Shift</th>
+                    <th>Produk</th>
+                    <th>Proses</th>
+                    <th>No SO</th>
+                    <th style="text-align:right">Target</th>
+                    <th style="text-align:right">Actual</th>
+                    <th>Kendala</th>
+                    <th>Operator</th>
+                    <th>Status</th>
                     <th></th>
                   </tr>
                 </thead>
-                <tbody id="reportListBody"></tbody>
+                <tbody id="reportUnifiedBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
+            <div id="reportUnifiedPager" class="pg-bar"></div>
           </div>
         </section>
 
@@ -11079,8 +11097,7 @@ function fillOperatorList(selectedEmail) {
         reportRows = reportRows.filter(r => String(r.reported_by || "").toLowerCase() === email.toLowerCase()
           || (reportPlanMap[r.plan_id] && String(reportPlanMap[r.plan_id].assigned_operator || "").toLowerCase() === email.toLowerCase()));
       }
-      renderReportTasks();
-      renderReportList();
+      renderReportsUnified();
       if ($("kpiReports")) $("kpiReports").textContent = formatNum(reportRows.length);
     }
 
@@ -11104,97 +11121,170 @@ function fillOperatorList(selectedEmail) {
       else { reportListSortKey = key; reportListSortDir = (key === "time" ? -1 : 1); }
       renderReportList();
     }
-    function renderReportTasks() {
-      const body = $("reportTaskBody");
-      if (!body) return;
-      const shift = ($("reportFilterShift") && $("reportFilterShift").value) || "";
-      const q = (($("reportSearch") && $("reportSearch").value) || "").toLowerCase().trim();
-      const done = reportedPlanIds();
-      let list = reportPlans.filter(p => {
-        if (p.status === "cancelled") return false;
-        if (shift && String(p.shift) !== shift) return false;
-        if (done.has(p.plan_id) && p.status === "done") return false;
+    var reportViewFilter = "all"; // all | pending | done | kendala
+    function setReportViewFilter(f) {
+      reportViewFilter = f || "all";
+      document.querySelectorAll("#reportViewChips [data-rvf]").forEach(function(btn) {
+        var on = btn.getAttribute("data-rvf") === reportViewFilter;
+        btn.className = "btn btn-sm " + (on ? "btn-primary" : "btn-ghost");
+      });
+      renderReportsUnified();
+    }
+    function reportKendalaChips(r) {
+      if (!r) return { html: '<span style="color:#94a3b8">—</span>', has: false, text: "" };
+      var kk = parseKendalaFromReport(r);
+      var bits = [];
+      if ((Number(kk.material_qty) || 0) > 0) {
+        bits.push('<span class="pill" style="background:#fef3c7;color:#92400e">Mat ' + formatNum(kk.material_qty) + (kk.material_unit ? " " + esc(kk.material_unit) : "") + "</span>");
+      }
+      if ((Number(kk.dt_machine) || 0) > 0) bits.push('<span class="pill" style="background:#fee2e2;color:#991b1b">Mch ' + formatNum(kk.dt_machine) + "m</span>");
+      if ((Number(kk.dt_man) || 0) > 0) bits.push('<span class="pill" style="background:#e0e7ff;color:#3730a3">Man ' + formatNum(kk.dt_man) + "m</span>");
+      if ((Number(kk.dt_method) || 0) > 0) bits.push('<span class="pill" style="background:#f3e8ff;color:#6b21a8">Mtd ' + formatNum(kk.dt_method) + "m</span>");
+      var cat = String(kk.category || "").toLowerCase();
+      if (!bits.length && cat.indexOf("plan") >= 0) bits.push('<span class="pill" style="background:#dbeafe;color:#1e40af">Plan</span>');
+      if (!bits.length && (Number(r.downtime_min) || 0) > 0) {
+        bits.push('<span class="pill" style="background:#fee2e2;color:#991b1b">DT ' + formatNum(r.downtime_min) + "m</span>");
+      }
+      if (!bits.length && String(kk.detail || "").trim()) {
+        bits.push('<span class="pill" style="background:#f1f5f9;color:#475569" title="' + esc(kk.detail) + '">Catatan</span>');
+      }
+      return {
+        html: bits.length ? '<div style="display:flex;flex-wrap:wrap;gap:0.25rem">' + bits.join("") + "</div>" : '<span style="color:#94a3b8">—</span>',
+        has: bits.length > 0,
+        text: bits.length ? "kendala" : ""
+      };
+    }
+    function buildReportUnifiedRows() {
+      var shift = ($("reportFilterShift") && $("reportFilterShift").value) || "";
+      var q = (($("reportSearch") && $("reportSearch").value) || "").toLowerCase().trim();
+      var byPlan = {};
+      (reportRows || []).forEach(function(r) {
+        if (!r || !r.plan_id) return;
+        // ambil laporan terbaru per plan
+        if (!byPlan[r.plan_id]) byPlan[r.plan_id] = r;
+      });
+      var rows = [];
+      (reportPlans || []).forEach(function(p) {
+        if (shift && String(p.shift) !== String(shift)) return;
+        var rep = byPlan[p.plan_id] || null;
+        var ken = reportKendalaChips(rep);
+        var actual = rep ? (Number(rep.actual_qty) || 0) : 0;
+        var row = {
+          plan: p,
+          report: rep,
+          hasReport: !!rep,
+          actual: actual,
+          ken: ken,
+          isFg: false
+        };
+        try { row.isFg = typeof isFgMachine === "function" && isFgMachine(p.machine_id); } catch (e) {}
         if (q) {
-          const blob = [p.product_id, productLabel(p.product_id), p.machine_id, machineLabel(p.machine_id), p.assigned_operator, p.no_so, p.order_id].join(" ").toLowerCase();
-          if (!blob.includes(q)) return false;
+          var blob = [p.product_id, p.machine_id, p.no_so, p.order_id, p.assigned_operator, productLabel(p.product_id), machineLabel(p.machine_id)].join(" ").toLowerCase();
+          if (blob.indexOf(q) < 0) return;
         }
-        return true;
+        rows.push(row);
       });
-      // sort seperti beranda (+ default: belum lapor dulu)
-      list.sort(function(a, b) {
-        function val(p) {
-          if (reportTaskSortKey === "shift") return Number(p.shift) || 0;
-          if (reportTaskSortKey === "product") return productLabel(p.product_id) || p.product_id || "";
-          if (reportTaskSortKey === "machine") return machineLabel(p.machine_id) || "";
-          if (reportTaskSortKey === "so") return p.no_so || p.order_id || "";
-          if (reportTaskSortKey === "target") return Number(p.target_qty) || 0;
-          if (reportTaskSortKey === "op") return p.assigned_operator || "";
-          if (reportTaskSortKey === "status") return done.has(p.plan_id) ? 1 : 0;
-          return "";
-        }
-        // secondary: belum lapor dulu
-        var da = done.has(a.plan_id) ? 1 : 0;
-        var db = done.has(b.plan_id) ? 1 : 0;
-        if (reportTaskSortKey === "status") {
-          if (da !== db) return (da - db) * reportTaskSortDir;
-        } else if (da !== db) {
-          return da - db;
-        }
-        var va = val(a), vb = val(b);
-        if (typeof va === "number" && typeof vb === "number") return (va - vb) * reportTaskSortDir;
-        return String(va).localeCompare(String(vb), "id") * reportTaskSortDir;
+      // filter view
+      var f = reportViewFilter || "all";
+      if (f === "pending") rows = rows.filter(function(r) { return !r.hasReport; });
+      else if (f === "done") rows = rows.filter(function(r) { return r.hasReport; });
+      else if (f === "kendala") rows = rows.filter(function(r) { return r.ken && r.ken.has; });
+      // sort: pending first then shift/product
+      rows.sort(function(a, b) {
+        if (a.hasReport !== b.hasReport) return a.hasReport ? 1 : -1;
+        var sa = String(a.plan.shift || ""), sb = String(b.plan.shift || "");
+        if (sa !== sb) return sa < sb ? -1 : 1;
+        return String(a.plan.product_id || "").localeCompare(String(b.plan.product_id || ""));
       });
-      if (!list.length) {
-        body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada plan untuk dilapor di tanggal ini</td></tr>';
-        const cards0 = $("reportTaskCards");
-        if (cards0) cards0.innerHTML = '<div class="op-empty">Tidak ada plan untuk dilapor di tanggal ini</div>';
+      return rows;
+    }
+    function renderReportsUnified() {
+      var allForKpi = (function() {
+        var prev = reportViewFilter;
+        reportViewFilter = "all";
+        var r = buildReportUnifiedRows();
+        reportViewFilter = prev;
+        return r;
+      })();
+      // KPI dari semua (abaikan chip filter, tetap ikut shift/search)
+      var nPlan = allForKpi.length;
+      var nDone = allForKpi.filter(function(r) { return r.hasReport; }).length;
+      var nPending = nPlan - nDone;
+      var actAll = 0, actFg = 0, nKen = 0;
+      allForKpi.forEach(function(r) {
+        actAll += Number(r.actual) || 0;
+        if (r.isFg) actFg += Number(r.actual) || 0;
+        if (r.ken && r.ken.has) nKen++;
+      });
+      if ($("rpKpiPlan")) $("rpKpiPlan").textContent = formatNum(nPlan);
+      if ($("rpKpiDone")) $("rpKpiDone").textContent = formatNum(nDone);
+      if ($("rpKpiPending")) $("rpKpiPending").textContent = formatNum(nPending);
+      if ($("rpKpiActAll")) $("rpKpiActAll").textContent = formatNum(actAll);
+      if ($("rpKpiActFg")) $("rpKpiActFg").textContent = formatNum(actFg);
+      if ($("rpKpiKen")) $("rpKpiKen").textContent = formatNum(nKen);
+
+      var rows = buildReportUnifiedRows();
+      var body = $("reportUnifiedBody");
+      var cards = $("reportUnifiedCards");
+      if (!rows.length) {
+        if (body) body.innerHTML = '<tr><td colspan="10" class="empty">Tidak ada data di filter ini</td></tr>';
+        if (cards) cards.innerHTML = '<div class="m-card"><div class="m-sub">Tidak ada data</div></div>';
+        try { pageOf("reportsUnified", [], "reportUnifiedPager"); } catch (e) {}
         return;
       }
-      body.innerHTML = list.map(p => {
-        const has = done.has(p.plan_id);
-        const btn = has
-          ? '<button type="button" class="btn btn-ghost btn-sm" data-pid="' + encodeURIComponent(p.plan_id) + '">Edit lapor</button>'
-          : '<button type="button" class="btn btn-primary btn-sm" data-pid="' + encodeURIComponent(p.plan_id) + '">Isi laporan</button>';
-        return '<tr>' +
-          '<td>' + esc(p.shift) + '</td>' +
-          '<td>' + esc(productLabel(p.product_id)) + '</td>' +
-          '<td>' + esc(machineLabel(p.machine_id)) + '</td>' +
-          '<td class="mono" style="font-size:0.8rem">' + esc(p.no_so || p.order_id || "—") + '</td>' +
-          '<td><strong>' + formatNum(p.target_qty) + '</strong> <span style="color:var(--text-dim)">' + esc(p.unit || "") + '</span></td>' +
-          '<td style="font-size:0.8rem">' + esc(operatorDisplayName(p.assigned_operator || "")) + '</td>' +
-          '<td>' + statusPill(p.status) + (has ? ' <span class="pill">Sudah lapor</span>' : "") + '</td>' +
-          '<td>' + btn + '</td></tr>';
-      }).join("");
-      body.querySelectorAll("[data-pid]").forEach(btn => {
-        btn.onclick = () => openReportModal(decodeURIComponent(btn.getAttribute("data-pid")));
-      });
-      // mobile cards — layout rapi
-      const cards = $("reportTaskCards");
-      if (cards) {
-        cards.innerHTML = list.map(p => {
-          const has = done.has(p.plan_id);
-          return '<div class="op-plan-card' + (has ? ' opc-done' : '') + '" data-pid="' + encodeURIComponent(p.plan_id) + '">' +
-            '<div class="opc-top">' +
-              '<div><div class="opc-prod">' + esc(productLabel(p.product_id)) + '</div>' +
-              '<div class="opc-meta">' + esc(machineLabel(p.machine_id)) + (p.unit ? ' · ' + esc(p.unit) : '') + ((p.no_so || p.order_id) ? ' · SO ' + esc(p.no_so || p.order_id) : '') + '</div></div>' +
-              '<span class="opc-shift">Shift ' + esc(String(p.shift)) + '</span>' +
-            '</div>' +
-            '<div class="opc-row">' +
-              '<span>Target <strong>' + formatNum(p.target_qty) + '</strong></span>' +
-              '<span>' + (has ? '✓ Sudah lapor' : statusPill(p.status)) + '</span>' +
-            '</div>' +
-            '<button type="button" class="btn ' + (has ? 'btn-ghost' : 'btn-primary') + ' opc-btn" data-pid="' + encodeURIComponent(p.plan_id) + '">' +
-              (has ? 'Edit laporan' : 'Isi laporan') + '</button></div>';
+      var pageList = rows;
+      try { pageList = pageOf("reportsUnified", rows, "reportUnifiedPager"); } catch (e2) { pageList = rows; }
+      if (body) {
+        body.innerHTML = pageList.map(function(r) {
+          var p = r.plan;
+          var st = r.hasReport
+            ? '<span class="pill" style="background:#d1fae5;color:#065f46">Sudah</span>'
+            : '<span class="pill" style="background:#ffedd5;color:#9a3412">Belum</span>';
+          var btnLabel = r.hasReport ? "Edit" : "Lapor";
+          var btnCls = r.hasReport ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm";
+          return "<tr>" +
+            "<td>" + esc(p.shift || "—") + "</td>" +
+            "<td><strong>" + esc(productLabel(p.product_id)) + "</strong></td>" +
+            "<td>" + esc(machineLabel(p.machine_id)) + "</td>" +
+            "<td>" + esc(p.no_so || p.order_id || "—") + "</td>" +
+            '<td style="text-align:right">' + formatNum(p.target_qty) + (p.unit ? " " + esc(p.unit) : "") + "</td>" +
+            '<td style="text-align:right"><strong>' + (r.hasReport ? formatNum(r.actual) : "—") + "</strong></td>" +
+            "<td>" + r.ken.html + "</td>" +
+            "<td style='font-size:0.8rem'>" + esc(operatorDisplayName(p.assigned_operator || (r.report && r.report.reported_by) || "")) + "</td>" +
+            "<td>" + st + "</td>" +
+            "<td><button type='button' class='" + btnCls + "' data-upid='" + encodeURIComponent(p.plan_id) + "'>" + btnLabel + "</button></td>" +
+            "</tr>";
         }).join("");
-        cards.querySelectorAll("[data-pid]").forEach(btn => {
+        body.querySelectorAll("[data-upid]").forEach(function(btn) {
+          btn.onclick = function() {
+            openReportModal(decodeURIComponent(btn.getAttribute("data-upid")));
+          };
+        });
+      }
+      if (cards) {
+        cards.innerHTML = pageList.map(function(r) {
+          var p = r.plan;
+          return '<div class="op-plan-card' + (r.hasReport ? " opc-done" : "") + '">' +
+            '<div class="opc-top"><div><div class="opc-prod">' + esc(productLabel(p.product_id)) + "</div>" +
+            '<div class="opc-meta">' + esc(machineLabel(p.machine_id)) +
+            ((p.no_so || p.order_id) ? " · SO " + esc(p.no_so || p.order_id) : "") +
+            "</div></div><span class=\"opc-shift\">Shift " + esc(String(p.shift || "")) + "</span></div>" +
+            '<div class="opc-row"><span>Target <strong>' + formatNum(p.target_qty) + "</strong></span>" +
+            "<span>Actual <strong>" + (r.hasReport ? formatNum(r.actual) : "—") + "</strong></span></div>" +
+            '<div style="margin:0.35rem 0">' + r.ken.html + "</div>" +
+            '<button type="button" class="btn ' + (r.hasReport ? "btn-ghost" : "btn-primary") + ' opc-btn" data-upid="' + encodeURIComponent(p.plan_id) + '">' +
+            (r.hasReport ? "Edit laporan" : "Isi laporan") + "</button></div>";
+        }).join("");
+        cards.querySelectorAll("[data-upid]").forEach(function(btn) {
           btn.onclick = function(e) {
             e.stopPropagation();
-            openReportModal(decodeURIComponent(btn.getAttribute("data-pid")));
+            openReportModal(decodeURIComponent(btn.getAttribute("data-upid")));
           };
         });
       }
     }
-
+    function renderReportTasks() { renderReportsUnified(); }
+    function renderReportList() { renderReportsUnified(); }
     function operatorDisplayName(emailOrName) {
       var raw = String(emailOrName || "").trim();
       if (!raw) return "—";
@@ -11207,115 +11297,6 @@ function fillOperatorList(selectedEmail) {
         if (String(o.name || "").toLowerCase() === low) return o.name + (o.email ? " · " + o.email : "");
       }
       return raw;
-    }
-    function renderReportList() {
-      const body = $("reportListBody");
-      if (!body) return;
-      const q = (($("reportSearch") && $("reportSearch").value) || "").toLowerCase().trim();
-      let list = reportRows.slice();
-      if (q) {
-        list = list.filter(r => {
-          const pl = reportPlanMap[r.plan_id] || {};
-          const blob = [pl.product_id, productLabel(pl.product_id), pl.machine_id, machineLabel(pl.machine_id), pl.assigned_operator, r.reported_by, r.report_id, pl.no_so, pl.order_id].join(" ").toLowerCase();
-          return blob.includes(q);
-        });
-      }
-      list.sort(function(a, b) {
-        function val(r) {
-          var pl = reportPlanMap[r.plan_id] || {};
-          if (reportListSortKey === "time") return r.created_at ? new Date(r.created_at).getTime() : 0;
-          if (reportListSortKey === "product") return productLabel(pl.product_id || "") || pl.product_id || "";
-          if (reportListSortKey === "machine") return machineLabel(pl.machine_id || "") || "";
-          if (reportListSortKey === "so") return pl.no_so || pl.order_id || "";
-          if (reportListSortKey === "op") return pl.assigned_operator || r.reported_by || "";
-          if (reportListSortKey === "actual") return Number(r.actual_qty) || 0;
-          if (reportListSortKey === "ng") return Number(r.ng_qty) || 0;
-          if (reportListSortKey === "dt") return Number(r.downtime_min) || 0;
-          if (reportListSortKey === "target") return Number(reportEffectiveTarget(r, reportPlanMap)) || 0;
-          return "";
-        }
-        var va = val(a), vb = val(b);
-        if (typeof va === "number" && typeof vb === "number") return (va - vb) * reportListSortDir;
-        return String(va).localeCompare(String(vb), "id") * reportListSortDir;
-      });
-      if (!list.length) {
-        body.innerHTML = '<tr><td colspan="10" class="empty">Belum ada laporan</td></tr>';
-        return;
-      }
-      body.innerHTML = list.map(r => {
-        const pl = reportPlanMap[r.plan_id] || {};
-        const t = r.created_at ? formatDateTimeWib(r.created_at) : "—";
-        const opRaw = pl.assigned_operator || r.reported_by || "";
-        const opName = operatorDisplayName(opRaw);
-        return '<tr>' +
-          '<td class="mono">' + esc(t) + '</td>' +
-          '<td>' + esc(productLabel(pl.product_id || "")) + '</td>' +
-          '<td>' + esc(machineLabel(pl.machine_id || "")) + '</td>' +
-          '<td class="mono" style="font-size:0.8rem">' + esc(pl.no_so || pl.order_id || "—") + '</td>' +
-          '<td style="font-size:0.8rem">' + esc(opName) + '</td>' +
-          '<td><strong>' + formatNum(r.actual_qty) + '</strong></td>' +
-          '<td>' + formatNum(r.ng_qty || 0) + '</td>' +
-          (function() {
-            var kk = parseKendalaFromReport(r);
-            var bits = [];
-            if (kk.material_qty > 0) bits.push("Mat " + formatNum(kk.material_qty) + (kk.material_unit ? " " + kk.material_unit : ""));
-            if (kk.dt_machine > 0) bits.push("Mch " + formatNum(kk.dt_machine) + "m");
-            if (kk.dt_man > 0) bits.push("Man " + formatNum(kk.dt_man) + "m");
-            if (kk.dt_method > 0) bits.push("Mtd " + formatNum(kk.dt_method) + "m");
-            var dtSum = (kk.dt_machine || 0) + (kk.dt_man || 0) + (kk.dt_method || 0);
-            if (!bits.length && (Number(r.downtime_min) || 0) > 0) bits.push(formatNum(r.downtime_min) + "m");
-            return '<td title="' + esc(kk.detail || "") + '"><strong>' + formatNum(dtSum || r.downtime_min || 0) + '</strong>' +
-              (bits.length ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(bits.join(" · ")) + '</div>' : "") + '</td>';
-          })() +
-          '<td>' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</td>' +
-          '<td><button type="button" class="btn btn-ghost btn-sm" data-rid="' + encodeURIComponent(r.report_id) + '">Edit</button></td></tr>';
-      }).join("");
-      body.querySelectorAll("[data-rid]").forEach(btn => {
-        btn.onclick = () => {
-          const rid = decodeURIComponent(btn.getAttribute("data-rid"));
-          const row = reportRows.find(x => x.report_id === rid);
-          if (row) openReportModal(row.plan_id, row);
-        };
-      });
-      const cards = $("reportListCards");
-      if (cards) {
-        if (!list.length) {
-          cards.innerHTML = '<div class="m-card"><div class="m-sub">Belum ada laporan</div></div>';
-        } else {
-          cards.innerHTML = list.map(r => {
-            const pl = reportPlanMap[r.plan_id] || {};
-            const tm = r.created_at ? formatDateTimeWib(r.created_at) : "—";
-            const opN = operatorDisplayName(pl.assigned_operator || r.reported_by || "");
-            return '<div class="m-card">' +
-              '<div class="m-title">' + esc(productLabel(pl.product_id || "")) + '</div>' +
-              '<div class="m-sub">' + esc(machineLabel(pl.machine_id || "")) + ((pl.no_so || pl.order_id) ? ' · SO ' + esc(pl.no_so || pl.order_id) : '') + ' · ' + esc(opN) + ' · ' + esc(tm) + '</div>' +
-              (function() {
-                var kk = parseKendalaFromReport(r);
-                var bits = [];
-                if (kk.material_qty > 0) bits.push("Material " + formatNum(kk.material_qty) + (kk.material_unit ? " " + kk.material_unit : ""));
-                if (kk.dt_machine > 0) bits.push("Machine " + formatNum(kk.dt_machine) + "m");
-                if (kk.dt_man > 0) bits.push("Man " + formatNum(kk.dt_man) + "m");
-                if (kk.dt_method > 0) bits.push("Method " + formatNum(kk.dt_method) + "m");
-                if (!bits.length && (Number(r.downtime_min) || 0) > 0) bits.push("DT " + formatNum(r.downtime_min) + "m");
-                var kLine = bits.length ? bits.join(" · ") : "Tanpa kendala";
-                return '<div class="m-row"><span>Actual <strong>' + formatNum(r.actual_qty) + '</strong></span>' +
-                  '<span>NG ' + formatNum(r.ng_qty || 0) + '</span>' +
-                  '<span>Adj ' + formatNum(reportEffectiveTarget(r, reportPlanMap)) + '</span></div>' +
-                  '<div class="m-sub" style="margin-top:0.25rem">Kendala: ' + esc(kLine) +
-                  (kk.detail ? " — " + esc(kk.detail) : "") + "</div>";
-              })() +
-              '<div class="m-actions"><button type="button" class="btn btn-ghost" data-rid="' +
-              encodeURIComponent(r.report_id) + '">Edit</button></div></div>';
-          }).join("");
-          cards.querySelectorAll("[data-rid]").forEach(btn => {
-            btn.onclick = () => {
-              const rid = decodeURIComponent(btn.getAttribute("data-rid"));
-              const row = reportRows.find(x => x.report_id === rid);
-              if (row) openReportModal(row.plan_id, row);
-            };
-          });
-        }
-      }
     }
 
     function syncDtCategoryUi() {
