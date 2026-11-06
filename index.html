@@ -5382,10 +5382,10 @@
             <input type="search" id="kenSearch" placeholder="Cari produk / OP / proses / catatan…" oninput="renderKendalaAnalysis()" style="min-width:12rem" />
           </div>
           <div class="grid-kpi" id="kenKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.65rem;margin-bottom:0.85rem">
-            <div class="kpi"><div class="label">Kejadian</div><div class="value" id="kenKpiCount">0</div><div class="hint">laporan ber-kendala</div></div>
-            <div class="kpi"><div class="label">Jam hilang</div><div class="value" id="kenKpiHours">0</div><div class="hint">machine + man + method</div></div>
-            <div class="kpi"><div class="label">Qty material</div><div class="value" id="kenKpiMat">0</div><div class="hint">total kekurangan</div></div>
-            <div class="kpi"><div class="label">Revisi plan</div><div class="value" id="kenKpiPlan">0</div><div class="hint">kejadian kategori Plan</div></div>
+            <div class="kpi"><div class="label">Kejadian</div><div class="value" id="kenKpiCount">0</div><div class="hint" id="kenKpiCountHint">0 kejadian</div></div>
+            <div class="kpi"><div class="label">Jam hilang</div><div class="value" id="kenKpiHours">0</div><div class="hint" id="kenKpiHoursHint">0 jam · 0 menit</div></div>
+            <div class="kpi"><div class="label">Qty material</div><div class="value" id="kenKpiMat">0</div><div class="hint" id="kenKpiMatHint">kekurangan bahan</div></div>
+            <div class="kpi"><div class="label">Revisi plan</div><div class="value" id="kenKpiPlan">0</div><div class="hint" id="kenKpiPlanHint">0 permintaan</div></div>
           </div>
           <div id="kenCatCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.5rem;margin-bottom:0.85rem"></div>
           <div class="card" style="padding:0;overflow:hidden">
@@ -22736,15 +22736,42 @@ var id = await newPickId();
         if (r.category === "Plan") planN++;
         byCat[r.category] = (byCat[r.category] || 0) + 1;
       });
+      // satuan material per uom
+      var matByUnit = {};
+      list.forEach(function(r) {
+        if (!(Number(r.material_qty) > 0)) return;
+        var u = String(r.material_unit || "pcs").toLowerCase() || "pcs";
+        matByUnit[u] = (matByUnit[u] || 0) + (Number(r.material_qty) || 0);
+      });
+      var matUnits = Object.keys(matByUnit);
+      var matHint = matUnits.length
+        ? matUnits.map(function(u) { return formatNum(matByUnit[u]) + " " + u; }).join(" · ")
+        : "tidak ada kekurangan material";
+      var hours = Math.round((mins / 60) * 10) / 10;
       if ($("kenKpiCount")) $("kenKpiCount").textContent = formatNum(count);
-      if ($("kenKpiHours")) $("kenKpiHours").textContent = (Math.round((mins / 60) * 10) / 10);
-      if ($("kenKpiMat")) $("kenKpiMat").textContent = formatNum(mat);
+      if ($("kenKpiCountHint")) $("kenKpiCountHint").textContent = formatNum(count) + " kejadian";
+      if ($("kenKpiHours")) $("kenKpiHours").textContent = hours;
+      if ($("kenKpiHoursHint")) $("kenKpiHoursHint").textContent = hours + " jam · " + formatNum(mins) + " menit";
+      if ($("kenKpiMat")) {
+        if (matUnits.length === 1) {
+          $("kenKpiMat").textContent = formatNum(matByUnit[matUnits[0]]);
+        } else {
+          $("kenKpiMat").textContent = formatNum(mat);
+        }
+      }
+      if ($("kenKpiMatHint")) $("kenKpiMatHint").textContent = matHint;
       if ($("kenKpiPlan")) $("kenKpiPlan").textContent = formatNum(planN);
+      if ($("kenKpiPlanHint")) $("kenKpiPlanHint").textContent = formatNum(planN) + " permintaan";
       var cards = $("kenCatCards");
       if (cards) {
         var order = ["Material", "Machine", "Man", "Method", "Plan", "Lainnya"];
         cards.innerHTML = order.filter(function(c) { return byCat[c]; }).map(function(c) {
-          return '<div class="kpi" style="padding:0.65rem 0.75rem"><div class="label">' + esc(c) + '</div><div class="value" style="font-size:1.35rem">' + formatNum(byCat[c]) + '</div></div>';
+          var n = byCat[c] || 0;
+          return '<div class="kpi" style="padding:0.65rem 0.75rem">' +
+            '<div class="label">' + esc(c) + '</div>' +
+            '<div class="value" style="font-size:1.35rem">' + formatNum(n) + '</div>' +
+            '<div class="hint">' + formatNum(n) + ' kejadian</div>' +
+            '</div>';
         }).join("") || '<div class="empty" style="padding:0.5rem">Tidak ada kejadian di filter ini</div>';
       }
       var body = $("kenBody");
