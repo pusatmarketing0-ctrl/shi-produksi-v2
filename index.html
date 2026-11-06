@@ -11124,6 +11124,7 @@ function fillOperatorList(selectedEmail) {
     var reportViewFilter = "all"; // all | pending | done | kendala
     function setReportViewFilter(f) {
       reportViewFilter = f || "all";
+      try { pageState.reportsUnified = { page: 1 }; } catch (e) {}
       document.querySelectorAll("#reportViewChips [data-rvf]").forEach(function(btn) {
         var on = btn.getAttribute("data-rvf") === reportViewFilter;
         btn.className = "btn btn-sm " + (on ? "btn-primary" : "btn-ghost");
@@ -17578,9 +17579,14 @@ function fillOperatorList(selectedEmail) {
         do: function() { renderDeliveries(); },
         stock: function() { renderGudangStock(); },
         qc: function() { renderQcInbox(); },
-        pick: function() { renderPicks(); }
+        pick: function() { renderPicks(); },
+        reportsUnified: function() { renderReportsUnified(); },
+        kendala: function() { renderKendalaAnalysis(); },
+        customers: function() { try { renderCustomers(); } catch (e) {} },
+        vendors: function() { try { renderVendors(); } catch (e) {} }
       };
       if (map[key]) map[key]();
+      else console.warn("setListPage: no renderer for", key);
     }
     function buildPagerHtml(page, pages, from, to, total, setFn) {
       setFn = String(setFn || "");
