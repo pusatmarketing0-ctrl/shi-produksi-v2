@@ -22600,13 +22600,24 @@ var id = await newPickId();
       try {
         // reports in range
         var { data: reps, error } = await sb.from("reports")
-          .select("report_id,plan_id,actual_qty,ng_qty,downtime_min,downtime_reason,notes,report_date,created_at,operator_email,material_qty,material_unit,dt_machine,dt_man,dt_method")
+          .select("report_id,plan_id,actual_qty,ng_qty,downtime_min,downtime_reason,notes,report_date,created_at,reported_by,target_qty,target_adj")
           .gte("report_date", from)
           .lte("report_date", to)
           .order("report_date", { ascending: false })
           .limit(5000);
-        if (error) throw error;
-        reps = reps || [];
+        if (error) {
+          // fallback minimal columns
+          var r2 = await sb.from("reports")
+            .select("report_id,plan_id,actual_qty,ng_qty,downtime_min,downtime_reason,notes,report_date,created_at,reported_by")
+            .gte("report_date", from)
+            .lte("report_date", to)
+            .order("report_date", { ascending: false })
+            .limit(5000);
+          if (r2.error) throw r2.error;
+          reps = r2.data || [];
+        } else {
+          reps = reps || [];
+        }
         // plans meta
         var planIds = [];
         var seen = {};
@@ -22641,7 +22652,7 @@ var id = await newPickId();
             report_id: r.report_id,
             report_date: String(r.report_date || "").slice(0, 10),
             shift: p.shift || "",
-            operator: r.operator_email || p.assigned_operator || "",
+            operator: r.reported_by || p.assigned_operator || "",
             product_id: p.product_id || "",
             machine_id: p.machine_id || "",
             no_so: p.no_so || "",
