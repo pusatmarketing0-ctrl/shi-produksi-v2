@@ -3515,6 +3515,19 @@
     }
 
 
+
+    #korlapAssignModal.modal-bg .modal {
+      max-width: min(960px, 96vw) !important;
+      width: min(960px, 96vw);
+      max-height: 92vh !important;
+    }
+    #korlapAssignModal .sheet-body {
+      max-height: none;
+    }
+    #korlapAssignModal .table-wrap {
+      max-height: min(58vh, 560px) !important;
+    }
+
     .plan-form-modal.modal.modal-sheet {
       max-width: min(560px, 96vw) !important;
     }
@@ -6031,10 +6044,10 @@
   </div>
 
   <div id="korlapAssignModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:720px">
+    <div class="modal modal-sheet odoo-form-modal" style="max-width:min(960px,96vw);max-height:92vh;display:flex;flex-direction:column">
       <div class="sheet-handle"></div>
       <div class="sheet-head"><h2>Assign operator (Korlap)</h2></div>
-      <div class="sheet-body">
+      <div class="sheet-body" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column">
         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
           Pilih tanggal. Plan berstatus <strong>draft / open tanpa operator</strong> bisa diisi operator massal.
           Format tempel: <code>plan_id &#9; email_operator</code> atau ketik operator di kolom pencarian per baris.
@@ -6043,15 +6056,15 @@
           <input type="date" id="kaDate" />
           <button class="btn btn-ghost btn-sm" type="button" onclick="loadKorlapAssign()">Muat plan</button>
         </div>
-        <div class="table-wrap" style="max-height:360px;overflow:auto">
+        <div class="table-wrap" style="flex:1;min-height:320px;max-height:min(58vh,560px);overflow:auto">
           <table>
             <thead><tr><th>Plan</th><th>Produk</th><th>Proses</th><th>Shift</th><th>Target</th><th>Operator</th></tr></thead>
             <tbody id="kaBody"><tr><td colspan="6" class="empty">Pilih tanggal</td></tr></tbody>
           </table>
         </div>
-        <div class="field" style="margin-top:0.75rem">
+        <div class="field" style="margin-top:0.75rem;flex-shrink:0">
           <label>Atau tempel massal (plan_id TAB email)</label>
-          <textarea id="kaPaste" rows="4" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.65rem;font-family:monospace;font-size:0.8rem" placeholder="PLN-...&#9;operator@email.com"></textarea>
+          <textarea id="kaPaste" rows="3" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.65rem;font-family:monospace;font-size:0.8rem" placeholder="PLN-...&#9;operator@email.com"></textarea>
         </div>
       </div>
       <div class="sheet-foot">
