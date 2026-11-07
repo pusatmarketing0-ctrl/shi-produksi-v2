@@ -8505,17 +8505,40 @@
     async function loadOrdersForPlan() {
       if (!sb) return;
       try {
-        const { data, error } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit,harga,unit_price,price)").order("created_at", { ascending: false }).limit(400);
-        if (error) {
-          // fallback without embed
-          const r2 = await sb.from("orders").select("*").order("created_at", { ascending: false }).limit(100);
-          allOrders = r2.data || [];
-          return;
+        var data = null, error = null;
+        var emb = await sb.from("orders")
+          .select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit,harga,unit_price,price)")
+          .order("created_at", { ascending: false })
+          .limit(800);
+        data = emb.data; error = emb.error;
+        if (error || !(data || []).length) {
+          var r2 = await sb.from("orders").select("order_id,no_so,customer_name,status").order("created_at", { ascending: false }).limit(800);
+          data = r2.data || [];
         }
-        allOrders = (data || []).map(o => ({
-          ...o,
-          lines: o.order_lines || []
-        }));
+        allOrders = (data || []).map(function(o) {
+          return Object.assign({}, o, { lines: o.order_lines || o.lines || [] });
+        });
+        // pastikan order_lines terisi — embed sering gagal/kosong
+        var need = allOrders.filter(function(o) { return !(o.lines && o.lines.length); }).map(function(o) { return o.order_id; }).filter(Boolean);
+        if (need.length) {
+          var allLines = [];
+          for (var i = 0; i < need.length; i += 100) {
+            var chunk = need.slice(i, i + 100);
+            var { data: lines } = await sb.from("order_lines").select("order_id,product_id,qty,unit,harga,unit_price,price").in("order_id", chunk);
+            if (lines) allLines = allLines.concat(lines);
+          }
+          var by = {};
+          allLines.forEach(function(L) {
+            if (!by[L.order_id]) by[L.order_id] = [];
+            by[L.order_id].push(L);
+          });
+          allOrders.forEach(function(o) {
+            if (!(o.lines && o.lines.length) && by[o.order_id]) {
+              o.lines = by[o.order_id];
+              o.order_lines = by[o.order_id];
+            }
+          });
+        }
       } catch (e) {
         console.warn(e);
         allOrders = [];
@@ -8601,8 +8624,31 @@
     }
     async function ensureOrdersLoadedForSoCheck() {
       try {
-        if (!(allOrders && allOrders.length)) await loadOrdersForPlan();
+        await loadOrdersForPlan();
       } catch (e) {}
+    }
+    /** Ambil product_id di SO langsung dari DB jika cache kosong */
+    async function fetchOrderProductIds(order) {
+      if (!order) return [];
+      var ids = orderProductIds(order);
+      if (ids.length) return ids;
+      if (!sb || !order.order_id) return [];
+      try {
+        var { data: lines } = await sb.from("order_lines").select("product_id,qty,unit").eq("order_id", order.order_id);
+        order.lines = lines || [];
+        order.order_lines = lines || [];
+        // sync cache
+        (allOrders || []).forEach(function(o) {
+          if (o.order_id === order.order_id) {
+            o.lines = order.lines;
+            o.order_lines = order.lines;
+          }
+        });
+        return orderProductIds(order);
+      } catch (e) {
+        console.warn(e);
+        return [];
+      }
     }
 
     function bindPlanSoCombos() {
@@ -19759,6 +19805,29 @@ function fillOperatorList(selectedEmail) {
         var chkPid = String(r.for_product_id || product_id || "").trim();
         if (rowNoSo || rowOrderId) {
           var vc = validatePlanProductAgainstSo(chkPid, rowNoSo, rowOrderId);
+          // jika SO ketemu tapi lines kosong — tarik ulang dari DB
+          if (!vc.ok && vc.order && String(vc.message || "").indexOf("belum punya daftar produk") >= 0) {
+            var idsFix = await fetchOrderProductIds(vc.order);
+            if (idsFix.length) {
+              vc = validatePlanProductAgainstSo(chkPid, rowNoSo, rowOrderId);
+            }
+          }
+          // SO tidak di cache — coba query langsung
+          if (!vc.ok && !vc.order && (rowNoSo || rowOrderId)) {
+            try {
+              var qSo = rowNoSo
+                ? await sb.from("orders").select("order_id,no_so,customer_name,status").eq("no_so", rowNoSo).limit(1)
+                : await sb.from("orders").select("order_id,no_so,customer_name,status").eq("order_id", rowOrderId).limit(1);
+              var found = (qSo.data && qSo.data[0]) || null;
+              if (found) {
+                await fetchOrderProductIds(found);
+                if (!(allOrders || []).some(function(o) { return o.order_id === found.order_id; })) {
+                  allOrders = (allOrders || []).concat([found]);
+                }
+                vc = validatePlanProductAgainstSo(chkPid, rowNoSo, rowOrderId);
+              }
+            } catch (eSo) { console.warn(eSo); }
+          }
           if (!vc.ok) {
             reasons.push(vc.message.replace(/\n/g, " "));
           } else if (vc.order) {
