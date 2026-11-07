@@ -6037,7 +6037,7 @@
       <div class="sheet-body">
         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
           Pilih tanggal. Plan berstatus <strong>draft / open tanpa operator</strong> bisa diisi operator massal.
-          Format tempel: <code>plan_id &#9; email_operator</code> atau isi dropdown per baris.
+          Format tempel: <code>plan_id &#9; email_operator</code> atau ketik operator di kolom pencarian per baris.
         </p>
         <div class="toolbar">
           <input type="date" id="kaDate" />
@@ -19154,6 +19154,7 @@ function fillOperatorList(selectedEmail) {
     }
     async function loadKorlapAssign() {
       if (!sb) return;
+      try { if (!(operators && operators.length)) await loadOperators(); } catch (eOp) {}
       const d = ($("kaDate") && $("kaDate").value) || todayStr();
       const { data, error } = await sb.from("plans").select("*").eq("plan_date", d).order("shift").limit(500);
       if (error) return toast(error.message, true);
@@ -19168,28 +19169,45 @@ function fillOperatorList(selectedEmail) {
         body.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada plan yang perlu assign di tanggal ini</td></tr>';
         return;
       }
-      const opOpts = (operators || []).map(o =>
-        '<option value="' + esc(o.email) + '">' + esc(o.name || o.email) + '</option>'
-      ).join("");
-      body.innerHTML = rows.map(p =>
-        '<tr data-pid="' + esc(p.plan_id) + '">' +
-        '<td class="mono" style="font-size:0.72rem">' + esc(p.plan_id) + '</td>' +
-        '<td>' + esc(p.product_id) + '</td>' +
-        '<td>' + esc(p.machine_id) + '</td>' +
-        '<td>' + esc(p.shift) + '</td>' +
-        '<td>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</td>' +
-        '<td><select class="ka-op" style="min-width:140px;border:1px solid var(--border);border-radius:8px;padding:0.35rem">' +
-        '<option value="">— pilih —</option>' + opOpts +
-        '</select></td></tr>'
-      ).join("");
-      // preselect existing
-      body.querySelectorAll("tr[data-pid]").forEach(tr => {
-        const pid = tr.getAttribute("data-pid");
-        const p = rows.find(x => x.plan_id === pid);
-        if (p && p.assigned_operator) {
-          const sel = tr.querySelector(".ka-op");
-          if (sel) sel.value = p.assigned_operator;
+      body.innerHTML = rows.map(function(p) {
+        var pid = p.product_id || "";
+        var mid = p.machine_id || "";
+        var pName = productLabel(pid);
+        var mName = machineLabel(mid);
+        var opDisp = "";
+        if (p.assigned_operator) {
+          try { opDisp = operatorDisplayName(p.assigned_operator); } catch (e) { opDisp = p.assigned_operator; }
         }
+        return '<tr data-pid="' + esc(p.plan_id) + '">' +
+          '<td class="mono" style="font-size:0.72rem">' + esc(p.plan_id) + '</td>' +
+          '<td><strong>' + esc(pid) + '</strong>' +
+            (pName && pName !== pid ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(pName) + '</div>' : '') +
+          '</td>' +
+          '<td><strong>' + esc(mid) + '</strong>' +
+            (mName && mName !== mid ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(mName) + '</div>' : '') +
+          '</td>' +
+          '<td>' + esc(p.shift) + '</td>' +
+          '<td>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</td>' +
+          '<td style="min-width:180px">' +
+            '<input type="text" class="ka-op" autocomplete="off" placeholder="Ketik nama / email..." ' +
+            'value="' + esc(opDisp || "") + '" data-email="' + esc(p.assigned_operator || "") + '" ' +
+            'style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.5rem;font-size:0.85rem" />' +
+          '</td></tr>';
+      }).join("");
+      body.querySelectorAll(".ka-op").forEach(function(el) {
+        try {
+          el.dataset.scBound = "";
+          attachSearchCombo(el, scItemsOperator, {
+            valueMode: "id",
+            placeholder: "Ketik nama / email operator...",
+            onPick: function(id, label, input) {
+              if (input) {
+                input.dataset.email = id || "";
+                input.value = label || id || "";
+              }
+            }
+          });
+        } catch (eSc) { console.warn(eSc); }
       });
     }
     async function saveKorlapAssign() {
@@ -19198,8 +19216,14 @@ function fillOperatorList(selectedEmail) {
       // from table
       document.querySelectorAll("#kaBody tr[data-pid]").forEach(tr => {
         const pid = tr.getAttribute("data-pid");
-        const sel = tr.querySelector(".ka-op");
-        const email = sel ? sel.value.trim() : "";
+        const inp = tr.querySelector(".ka-op");
+        let email = "";
+        if (inp) {
+          email = (inp.dataset.email || inp.dataset.scId || "").trim();
+          if (!email) {
+            try { email = resolveOperatorEmail(inp.value || "") || ""; } catch (e) { email = (inp.value || "").trim(); }
+          }
+        }
         if (pid && email) updates.push({ plan_id: pid, assigned_operator: email, status: "open" });
       });
       // from paste
