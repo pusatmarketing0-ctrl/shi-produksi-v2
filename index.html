@@ -4161,6 +4161,7 @@
         <button class="nav-item" data-page="operasional" data-roles="admin,ppic,korlap,marketing,purchasing,gudang,qc,trading" data-tip="Grid operasional"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect class="anim-pulse" x="4" y="4" width="6.5" height="6.5" rx="1.6" fill="#2563eb"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" fill="#60a5fa"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" fill="#60a5fa"/><rect class="anim-pulse" x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" fill="#2563eb"/></svg></span><span class="nav-txt"> Grid operasional</span></button>
         <button class="nav-item" data-page="plans" data-roles="admin,ppic,korlap,marketing" data-tip="Plan"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-wiggle"><path fill="#d97706" d="M7 4h10v16l-5-2.8L7 20z"/><path stroke="#fff" stroke-width="1.6" fill="none" d="M10 9h4M10 13h4"/></svg></span><span class="nav-txt"> Plan</span></button>
         <button class="nav-item" data-page="reports" data-roles="admin,ppic,korlap,operator" data-tip="Laporan"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><rect x="5" y="3.5" width="14" height="17" rx="2.5" fill="#059669"/><path stroke="#fff" stroke-width="2" fill="none" d="m8.5 12.5 2.4 2.4 4.6-5"/></svg></span><span class="nav-txt"> Laporan</span></button>
+        <button class="nav-item" data-page="fg-korlap" data-roles="admin,ppic,korlap" data-tip="Laporan FG Korlap"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" fill="#0d9488"/><path stroke="#fff" stroke-width="2" fill="none" d="m8 12 2.5 2.5L16 9"/></svg></span><span class="nav-txt"> FG Korlap</span></button>
         <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap" data-tip="Sales Order"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><path stroke="#0ea5e9" stroke-width="1.6" fill="none" d="M6 7 5 4H2"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></svg></span><span class="nav-txt"> Sales Order</span></button>
         <button class="nav-item" data-page="order-trading" data-roles="admin,marketing,trading,ppic" data-tip="Order Trading"><span class="nav-ico"><svg viewBox="0 0 24 24"><path stroke="#7c3aed" stroke-width="2" fill="none" d="M4 8h16M4 12h16M4 16h8"/><circle class="anim-spin" cx="18" cy="16" r="3" fill="#c4b5fd" stroke="#7c3aed" stroke-width="1.5"/></svg></span><span class="nav-txt"> Order Trading</span></button>
         <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap" data-tip="Marketing"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-pulse"><path fill="#f43f5e" d="M4 12.5v-2l12-4v10z"/><path fill="#fb7185" d="M7 13v3.5a2 2 0 0 0 2 2h1V13z"/></svg></span><span class="nav-txt"> Marketing</span></button>
@@ -4605,15 +4606,26 @@
               <option value="cancelled">Cancelled</option>
             </select>
             <input type="search" id="planSearch" placeholder="Cari produk / proses / operator..." oninput="pageState.plans={page:1};renderPlans()" />
+            <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.8rem;white-space:nowrap">
+              <input type="checkbox" id="planFilterNoOp" onchange="pageState.plans={page:1};renderPlans()" /> Tanpa operator
+            </label>
             <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanImportPage()">Import Excel</button>
             <button class="btn btn-ghost btn-sm" type="button" onclick="openPlanPaste()">Tempel cepat</button>
             <button class="btn btn-ghost btn-sm" type="button" onclick="openKorlapAssign()" data-roles="admin,ppic,korlap">Assign OP (Korlap)</button>
+          </div>
+          <div id="planBulkBar" style="display:none;align-items:center;gap:0.5rem;flex-wrap:wrap;padding:0.55rem 0.75rem;margin-bottom:0.55rem;border-radius:12px;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1px solid #bbf7d0">
+            <span id="planBulkCount" style="font-size:0.85rem;font-weight:600;color:#065f46">0 terpilih</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="planSelectAllPage(true)">Pilih halaman</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="planSelectAllPage(false)">Batal pilih</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="bulkCancelPlans()">Batalkan (cancelled)</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="bulkDeletePlans()">Hapus permanen</button>
           </div>
           <div id="planCards" class="mobile-cards mobile-only"></div>
           <div class="table-wrap desk-only-table">
             <table>
               <thead>
                 <tr>
+                  <th style="width:2rem"><input type="checkbox" id="planCheckAll" onchange="planToggleAll(this.checked)" title="Pilih semua di halaman" /></th>
                   <th class="sort-th" onclick="planSort('date')">Tanggal</th>
                   <th class="sort-th" onclick="planSort('shift')">Shift</th>
                   <th class="sort-th" onclick="planSort('product')">Produk</th>
@@ -5347,6 +5359,50 @@
               </table>
             </div>
           </div>
+        </section>
+
+
+        <section id="page-fg-korlap" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Laporan FG Korlap</h1>
+              <p>Output packing masterbox per SO + produk — bandingkan dengan laporan operator.</p>
+            </div>
+            <div style="display:flex;gap:0.45rem;flex-wrap:wrap">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="loadFgKorlap()">Refresh</button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="saveFgKorlapAll()">Simpan semua</button>
+            </div>
+          </div>
+          <div class="toolbar" style="flex-wrap:wrap;gap:0.45rem">
+            <input type="date" id="fgkDate" onchange="loadFgKorlap()" />
+            <input type="search" id="fgkSearch" placeholder="Cari produk / SO..." oninput="renderFgKorlap()" style="min-width:12rem" />
+          </div>
+          <div class="grid-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.55rem;margin-bottom:0.75rem">
+            <div class="kpi" style="padding:0.65rem"><div class="label">SKU / SO</div><div class="value" id="fgkKpiRows" style="font-size:1.35rem">0</div></div>
+            <div class="kpi" style="padding:0.65rem"><div class="label">Actual OP</div><div class="value" id="fgkKpiOp" style="font-size:1.35rem">0</div><div class="hint">packing MB</div></div>
+            <div class="kpi" style="padding:0.65rem"><div class="label">Input Korlap</div><div class="value" id="fgkKpiKl" style="font-size:1.35rem;color:#0f766e">0</div></div>
+            <div class="kpi" style="padding:0.65rem"><div class="label">Selisih</div><div class="value" id="fgkKpiDiff" style="font-size:1.35rem">0</div><div class="hint">OP − Korlap</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produk</th>
+                    <th>No SO</th>
+                    <th style="text-align:right">Plan</th>
+                    <th style="text-align:right">Actual OP</th>
+                    <th style="text-align:right">Output Korlap</th>
+                    <th style="text-align:right">Selisih</th>
+                    <th>Kendala</th>
+                    <th>Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody id="fgkBody"><tr><td colspan="8" class="empty">Pilih tanggal</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem">Hanya produk yang ada plan packing masterbox di tanggal tersebut. Kosongkan output korlap = belum diverifikasi.</p>
         </section>
 
         <section id="page-ranking" class="page" hidden>
@@ -7736,6 +7792,9 @@
       let list = plans.slice();
       if (shift) list = list.filter(p => String(p.shift) === shift);
       if (status) list = list.filter(p => String(p.status).toLowerCase() === status);
+      if ($("planFilterNoOp") && $("planFilterNoOp").checked) {
+        list = list.filter(function(p) { return !String(p.assigned_operator || "").trim(); });
+      }
       if (q) {
         list = list.filter(p => {
           const blob = [
@@ -7765,14 +7824,19 @@
       const body = $("planBody");
       if (!body) return;
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="9" class="empty">Belum ada plan di filter ini</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" class="empty">Belum ada plan di filter ini</td></tr>';
         if ($("planCards")) $("planCards").innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada plan di filter ini</div></div>';
         pageOf("plans", [], "planPager");
         return;
       }
       var pageList = pageOf("plans", list, "planPager");
-      body.innerHTML = pageList.map(p => `
+      body.innerHTML = pageList.map(p => {
+        var canBulk = canBulkPlanAction();
+        var pid = String(p.plan_id || "");
+        var checked = planSelectedIds[pid] ? " checked" : "";
+        return `
         <tr>
+          <td>${canBulk ? `<input type="checkbox" class="plan-cb" data-pid="${esc(pid)}"${checked} onchange="planToggleOne(this.dataset.pid, this.checked)" />` : ""}</td>
           <td class="mono">${esc(p.plan_date)}</td>
           <td>${esc(p.shift)}</td>
           <td>${esc(productLabel(p.product_id))}</td>
@@ -7785,8 +7849,9 @@
             ${currentRole() === "operator" ? "" : `<button class="btn btn-ghost btn-sm" type="button" onclick='editPlan(${JSON.stringify(p.plan_id)})'>Edit</button>`}
             <button class="btn btn-danger btn-sm" type="button" onclick='deletePlan(${JSON.stringify(p.plan_id)})'>Hapus</button>
           </td>
-        </tr>
-      `).join("");
+        </tr>`;
+      }).join("");
+      updatePlanBulkBar();
       (function() {
         const cards = $("planCards");
         if (!cards) return;
@@ -8889,7 +8954,84 @@
       if (!(n >= 1 && n <= rows.length)) return toast("Nomor tidak valid", true);
       await editPlan(rows[n - 1].plan_id);
     }
-    async function deletePlan(id) {
+    
+    var planSelectedIds = {};
+    function canBulkPlanAction() {
+      var r = currentRole();
+      return r === "admin" || r === "ppic" || r === "korlap";
+    }
+    function planToggleOne(pid, on) {
+      pid = String(pid || "");
+      if (!pid) return;
+      if (on) planSelectedIds[pid] = true;
+      else delete planSelectedIds[pid];
+      updatePlanBulkBar();
+    }
+    function planToggleAll(on) {
+      document.querySelectorAll("#planBody .plan-cb").forEach(function(cb) {
+        cb.checked = !!on;
+        planToggleOne(cb.getAttribute("data-pid"), !!on);
+      });
+    }
+    function planSelectAllPage(on) {
+      planToggleAll(!!on);
+      var all = $("planCheckAll");
+      if (all) all.checked = !!on;
+    }
+    function updatePlanBulkBar() {
+      var n = Object.keys(planSelectedIds).length;
+      var bar = $("planBulkBar");
+      if (bar) bar.style.display = (canBulkPlanAction() && n > 0) ? "flex" : "none";
+      if ($("planBulkCount")) $("planBulkCount").textContent = n + " terpilih";
+    }
+    async function plansWithReports(ids) {
+      var has = {};
+      if (!ids.length || !sb) return has;
+      for (var i = 0; i < ids.length; i += 80) {
+        var chunk = ids.slice(i, i + 80);
+        var { data } = await sb.from("reports").select("plan_id").in("plan_id", chunk);
+        (data || []).forEach(function(r) { if (r.plan_id) has[r.plan_id] = true; });
+      }
+      return has;
+    }
+    async function bulkCancelPlans() {
+      if (!canBulkPlanAction()) return toast("Tidak diizinkan", true);
+      var ids = Object.keys(planSelectedIds);
+      if (!ids.length) return;
+      if (!(await appConfirm("Batalkan " + ids.length + " plan terpilih? Status jadi cancelled.", "Batalkan plan"))) return;
+      var ok = 0, fail = 0;
+      for (var i = 0; i < ids.length; i++) {
+        var { error } = await sb.from("plans").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("plan_id", ids[i]);
+        if (error) fail++; else ok++;
+      }
+      planSelectedIds = {};
+      toast("Dibatalkan: " + ok + (fail ? ", gagal " + fail : ""));
+      await loadPlans();
+    }
+    async function bulkDeletePlans() {
+      if (!canBulkPlanAction()) return toast("Tidak diizinkan", true);
+      var ids = Object.keys(planSelectedIds);
+      if (!ids.length) return;
+      var hasRep = await plansWithReports(ids);
+      var delIds = ids.filter(function(id) { return !hasRep[id]; });
+      var skip = ids.length - delIds.length;
+      if (!delIds.length) {
+        return toast("Semua terpilih sudah punya laporan — tidak dihapus permanen. Pakai Batalkan.", true);
+      }
+      var msg = "Hapus permanen " + delIds.length + " plan?";
+      if (skip) msg += " (" + skip + " dilewati karena sudah ada laporan)";
+      if (!(await appConfirm(msg, "Hapus permanen"))) return;
+      var ok = 0, fail = 0;
+      for (var i = 0; i < delIds.length; i++) {
+        var { error } = await sb.from("plans").delete().eq("plan_id", delIds[i]);
+        if (error) fail++; else ok++;
+      }
+      planSelectedIds = {};
+      toast("Dihapus: " + ok + (fail ? ", gagal " + fail : "") + (skip ? ", dilewati " + skip : ""));
+      await loadPlans();
+    }
+
+async function deletePlan(id) {
       if (currentRole() === "operator") {
         toast("Operator tidak bisa hapus plan", true);
         return;
@@ -10065,6 +10207,7 @@ function fillOperatorList(selectedEmail) {
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
             { page: "reports", label: "Laporan OP", ico: "ico-report" },
+            { page: "fg-korlap", label: "FG Korlap", ico: "ico-report" },
             { page: "absences", label: "Cuti / absensi", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
           ]},
@@ -10128,6 +10271,7 @@ function fillOperatorList(selectedEmail) {
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
             { page: "reports", label: "Laporan OP", ico: "ico-report" },
+            { page: "fg-korlap", label: "FG Korlap", ico: "ico-report" },
             { page: "absences", label: "Cuti operator", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
           ]},
@@ -22837,6 +22981,206 @@ var id = await newPickId();
     }
 
 
+
+    var fgkRows = [];
+    async function loadFgKorlap() {
+      if (!sb) return;
+      var d = ($("fgkDate") && $("fgkDate").value) || todayStr();
+      if ($("fgkDate") && !$("fgkDate").value) $("fgkDate").value = d;
+      if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="8" class="empty">Memuat…</td></tr>';
+      try {
+        var { data: pls, error } = await sb.from("plans")
+          .select("plan_id,product_id,machine_id,no_so,order_id,target_qty,unit,status,shift")
+          .eq("plan_date", d)
+          .neq("status", "cancelled")
+          .limit(3000);
+        if (error) throw error;
+        var fgPlans = (pls || []).filter(function(p) { return isFgMachine(p.machine_id); });
+        // group by product + SO
+        var groups = {};
+        fgPlans.forEach(function(p) {
+          var so = String(p.no_so || p.order_id || "").trim() || "-";
+          var key = String(p.product_id || "") + "||" + so;
+          if (!groups[key]) {
+            groups[key] = {
+              product_id: p.product_id,
+              no_so: so === "-" ? "" : so,
+              order_id: p.order_id || "",
+              plan_qty: 0,
+              unit: p.unit || "pcs",
+              plan_ids: []
+            };
+          }
+          groups[key].plan_qty += Number(p.target_qty) || 0;
+          groups[key].plan_ids.push(p.plan_id);
+        });
+        // OP actual
+        var allIds = [];
+        Object.keys(groups).forEach(function(k) { allIds = allIds.concat(groups[k].plan_ids); });
+        var actByPlan = {};
+        for (var i = 0; i < allIds.length; i += 100) {
+          var chunk = allIds.slice(i, i + 100);
+          if (!chunk.length) continue;
+          var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", chunk);
+          (reps || []).forEach(function(r) {
+            actByPlan[r.plan_id] = (actByPlan[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
+          });
+        }
+        Object.keys(groups).forEach(function(k) {
+          var g = groups[k];
+          g.op_qty = 0;
+          g.plan_ids.forEach(function(pid) { g.op_qty += actByPlan[pid] || 0; });
+        });
+        // saved korlap
+        var saved = {};
+        try {
+          var { data: fgRows, error: eFg } = await sb.from("fg_korlap_reports")
+            .select("*")
+            .eq("report_date", d)
+            .limit(2000);
+          if (eFg) {
+            console.warn("fg_korlap_reports", eFg);
+            if ($("fgkBody")) {
+              $("fgkBody").innerHTML = '<tr><td colspan="8" class="empty">Tabel <b>fg_korlap_reports</b> belum ada. Jalankan SQL di Supabase:<br/><code style="font-size:0.72rem">create table if not exists fg_korlap_reports (<br/>id bigserial primary key,<br/>report_date date, product_id text, no_so text, order_id text,<br/>output_qty numeric default 0, unit text, kendala text, notes text,<br/>reported_by text, created_at timestamptz default now(), updated_at timestamptz<br/>);<br/>create unique index if not exists fgk_uniq on fg_korlap_reports(report_date, product_id, no_so);</code></td></tr>';
+            }
+            fgkRows = [];
+            return;
+          }
+          (fgRows || []).forEach(function(r) {
+            var so = String(r.no_so || "").trim() || "-";
+            saved[String(r.product_id || "") + "||" + so] = r;
+          });
+        } catch (e2) {
+          console.warn(e2);
+        }
+        fgkRows = Object.keys(groups).map(function(k) {
+          var g = groups[k];
+          var s = saved[k] || {};
+          return {
+            key: k,
+            product_id: g.product_id,
+            no_so: g.no_so,
+            order_id: g.order_id,
+            plan_qty: g.plan_qty,
+            op_qty: g.op_qty,
+            unit: g.unit || s.unit || "pcs",
+            output_qty: s.output_qty != null ? Number(s.output_qty) : "",
+            kendala: s.kendala || "",
+            notes: s.notes || "",
+            saved_id: s.id || null
+          };
+        }).sort(function(a, b) {
+          return String(a.product_id).localeCompare(String(b.product_id)) || String(a.no_so).localeCompare(String(b.no_so));
+        });
+        renderFgKorlap();
+      } catch (e) {
+        console.warn(e);
+        if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="8" class="empty">' + esc(e.message || e) + "</td></tr>";
+        toast(e.message || "Gagal muat FG Korlap", true);
+      }
+    }
+    function renderFgKorlap() {
+      var q = (($("fgkSearch") && $("fgkSearch").value) || "").toLowerCase().trim();
+      var list = (fgkRows || []).filter(function(r) {
+        if (!q) return true;
+        var blob = [r.product_id, productLabel(r.product_id), r.no_so, r.order_id].join(" ").toLowerCase();
+        return blob.indexOf(q) >= 0;
+      });
+      var sumOp = 0, sumKl = 0, nKl = 0;
+      list.forEach(function(r) {
+        sumOp += Number(r.op_qty) || 0;
+        if (r.output_qty !== "" && r.output_qty != null) {
+          sumKl += Number(r.output_qty) || 0;
+          nKl++;
+        }
+      });
+      if ($("fgkKpiRows")) $("fgkKpiRows").textContent = formatNum(list.length);
+      if ($("fgkKpiOp")) $("fgkKpiOp").textContent = formatNum(sumOp);
+      if ($("fgkKpiKl")) $("fgkKpiKl").textContent = formatNum(sumKl);
+      if ($("fgkKpiDiff")) $("fgkKpiDiff").textContent = formatNum(sumOp - sumKl);
+      var body = $("fgkBody");
+      if (!body) return;
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada plan packing masterbox di tanggal ini</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(function(r, idx) {
+        var kl = r.output_qty === "" || r.output_qty == null ? null : Number(r.output_qty);
+        var diff = kl == null ? null : (Number(r.op_qty) || 0) - kl;
+        var diffHtml = diff == null ? "—" : ('<span style="font-weight:700;color:' + (Math.abs(diff) < 0.5 ? "#059669" : "#b91c1c") + '">' + formatNum(diff) + "</span>");
+        return "<tr data-fgk='" + esc(r.key) + "'>" +
+          "<td><strong>" + esc(productLabel(r.product_id)) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(r.product_id) + "</div></td>" +
+          "<td class='mono'>" + esc(r.no_so || "—") + "</td>" +
+          '<td style="text-align:right">' + formatNum(r.plan_qty) + "</td>" +
+          '<td style="text-align:right"><strong>' + formatNum(r.op_qty) + "</strong></td>" +
+          '<td style="text-align:right"><input type="number" step="any" class="fgk-out" data-key="' + esc(r.key) + '" value="' + (kl == null ? "" : kl) + '" style="width:5.5rem;text-align:right;border:1px solid var(--border);border-radius:8px;padding:0.35rem" /></td>' +
+          '<td style="text-align:right">' + diffHtml + "</td>" +
+          '<td><input type="text" class="fgk-ken" data-key="' + esc(r.key) + '" value="' + esc(r.kendala || "") + '" placeholder="opsional" style="width:8rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem" /></td>' +
+          '<td><input type="text" class="fgk-note" data-key="' + esc(r.key) + '" value="' + esc(r.notes || "") + '" placeholder="opsional" style="width:8rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem" /></td>' +
+          "</tr>";
+      }).join("");
+    }
+    async function saveFgKorlapAll() {
+      if (!sb) return;
+      var d = ($("fgkDate") && $("fgkDate").value) || todayStr();
+      var byKey = {};
+      (fgkRows || []).forEach(function(r) { byKey[r.key] = r; });
+      // read inputs
+      document.querySelectorAll(".fgk-out").forEach(function(inp) {
+        var k = inp.getAttribute("data-key");
+        if (byKey[k]) {
+          var v = inp.value.trim();
+          byKey[k].output_qty = v === "" ? "" : (parseFloat(v) || 0);
+        }
+      });
+      document.querySelectorAll(".fgk-ken").forEach(function(inp) {
+        var k = inp.getAttribute("data-key");
+        if (byKey[k]) byKey[k].kendala = inp.value.trim();
+      });
+      document.querySelectorAll(".fgk-note").forEach(function(inp) {
+        var k = inp.getAttribute("data-key");
+        if (byKey[k]) byKey[k].notes = inp.value.trim();
+      });
+      var rows = Object.keys(byKey).map(function(k) { return byKey[k]; }).filter(function(r) {
+        return r.output_qty !== "" && r.output_qty != null;
+      });
+      if (!rows.length) return toast("Isi minimal 1 output korlap", true);
+      var email = (currentUser && currentUser.email) || "";
+      var ok = 0, fail = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var payload = {
+          report_date: d,
+          product_id: r.product_id,
+          no_so: r.no_so || "",
+          order_id: r.order_id || "",
+          output_qty: Number(r.output_qty) || 0,
+          unit: r.unit || "pcs",
+          kendala: r.kendala || "",
+          notes: r.notes || "",
+          reported_by: email,
+          updated_at: new Date().toISOString()
+        };
+        var { error } = await sb.from("fg_korlap_reports").upsert(payload, { onConflict: "report_date,product_id,no_so" });
+        if (error) {
+          // fallback insert/update
+          var q = sb.from("fg_korlap_reports").select("id").eq("report_date", d).eq("product_id", r.product_id).eq("no_so", r.no_so || "").limit(1);
+          var { data: ex } = await q;
+          if (ex && ex[0]) {
+            var u = await sb.from("fg_korlap_reports").update(payload).eq("id", ex[0].id);
+            if (u.error) fail++; else ok++;
+          } else {
+            payload.created_at = new Date().toISOString();
+            var ins = await sb.from("fg_korlap_reports").insert(payload);
+            if (ins.error) fail++; else ok++;
+          }
+        } else ok++;
+      }
+      toast("Tersimpan: " + ok + (fail ? ", gagal " + fail : ""));
+      await loadFgKorlap();
+    }
+
+
     function goPage(page) {
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
@@ -22872,6 +23216,7 @@ var id = await newPickId();
       if (page === "order-trading") { try { loadOrderTrading(); } catch (e) {} }
       if (page === "absences") { try { loadAbsences(); } catch (e) {} }
       if (page === "revisions") { try { loadRevisionRequests(); } catch (eR) {} }
+      if (page === "fg-korlap") { try { loadFgKorlap(); } catch (eF) {} }
       if (page === "kendala") { try { loadKendalaAnalysis(); } catch (eK) {} }
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
       if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
