@@ -5342,13 +5342,17 @@
               <button class="btn btn-primary" type="button" onclick="openWipAdjust()">Sesuaikan stok</button>
             </div>
           </div>
+          <div class="toolbar" style="flex-wrap:wrap;gap:0.45rem;margin-bottom:0.65rem">
+            <input type="search" id="wipSearch" placeholder="Cari kode / nama produk / proses..." oninput="renderWipStock()" style="min-width:16rem;flex:1;border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.75rem;font-size:0.875rem" />
+          </div>
           <div class="card" style="padding:0;overflow:hidden">
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Produk</th><th>Proses</th><th>Qty</th><th>Satuan</th><th>Update</th><th></th></tr></thead>
+                <thead><tr><th>Produk</th><th>Proses</th><th style="text-align:right">Qty</th><th>Satuan</th><th>Update</th><th></th></tr></thead>
                 <tbody id="wipBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
+            <div id="wipPager" class="pg-bar"></div>
           </div>
           <div class="card" style="margin-top:1rem">
             <h3 style="font-size:0.9rem;margin:0 0 0.5rem">Riwayat pemakaian WIP (terbaru)</h3>
@@ -14974,46 +14978,80 @@ function fillOperatorList(selectedEmail) {
       await loadKorlapHourly();
     }
 
+    var wipStockRows = [];
     async function loadWipStock() {
       if (!sb) return;
       const body = $("wipBody");
-      const { data, error } = await sb.from("wip_stock").select("*").order("product_id").limit(500);
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      const { data, error } = await sb.from("wip_stock").select("*").order("product_id").limit(2000);
       if (error) {
+        wipStockRows = [];
         if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Jalankan batch2_hourly_wip.sql — ' + esc(error.message) + '</td></tr>';
       } else {
-        const rows = data || [];
-        if (!rows.length) {
-          if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada saldo WIP. Akan terisi otomatis saat laporan OP / penyesuaian manual.</td></tr>';
-        } else if (body) {
-          body.innerHTML = rows.map(r =>
-            '<tr style="cursor:pointer" data-wp="' + esc(r.product_id) + '" data-wm="' + esc(r.machine_id || "") + '">' +
-            '<td><strong>' + esc(r.product_id) + '</strong></td>' +
-            '<td>' + esc(r.machine_id || "—") + '</td>' +
-            '<td><strong>' + formatNum(r.qty) + '</strong></td>' +
-            '<td>' + esc(r.unit || "pcs") + '</td>' +
-            '<td style="font-size:0.75rem">' + esc(formatDateTimeWib(r.updated_at || "")) + '</td>' +
-            '<td><button type="button" class="btn btn-sm btn-ghost" data-adj="' + esc(r.product_id) + '|' + esc(r.machine_id || "") + '">Edit</button></td></tr>'
-          ).join("");
-          body.querySelectorAll("[data-adj]").forEach(btn => {
-            btn.onclick = function(e) {
-              e.stopPropagation();
-              const parts = (btn.getAttribute("data-adj") || "").split("|");
-              openWipAdjust(parts[0], parts[1]);
-            };
-          });
-        }
+        wipStockRows = data || [];
+        renderWipStock();
       }
-      const { data: usage } = await sb.from("wip_usage").select("*").order("created_at", { ascending: false }).limit(30);
+      const { data: usage } = await sb.from("wip_usage").select("*").order("created_at", { ascending: false }).limit(40);
       const ub = $("wipUsageBody");
       if (ub) {
         const u = usage || [];
         if (!u.length) ub.innerHTML = '<tr><td colspan="5" class="empty">Belum ada pemakaian</td></tr>';
-        else ub.innerHTML = u.map(r =>
-          '<tr><td style="font-size:0.75rem">' + esc(String(r.created_at || "").replace("T", " ").slice(0, 16)) +
-          '</td><td>' + esc(r.product_id) + '</td><td>' + esc(r.machine_id) +
-          '</td><td>' + formatNum(r.qty_used) + '</td><td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "") + '</td></tr>'
-        ).join("");
+        else ub.innerHTML = u.map(function(r) {
+          var prod = productLabel(r.product_id);
+          var mach = machineLabel(r.machine_id);
+          return '<tr><td style="font-size:0.75rem">' + esc(String(r.created_at || "").replace("T", " ").slice(0, 16)) +
+            '</td><td><strong>' + esc(r.product_id || "") + '</strong>' +
+            (prod && prod !== r.product_id ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(prod) + '</div>' : '') +
+            '</td><td><strong>' + esc(r.machine_id || "") + '</strong>' +
+            (mach && mach !== r.machine_id ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(mach) + '</div>' : '') +
+            '</td><td>' + formatNum(r.qty_used) + '</td><td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "") + '</td></tr>';
+        }).join("");
       }
+    }
+    function renderWipStock() {
+      var body = $("wipBody");
+      if (!body) return;
+      var q = (($("wipSearch") && $("wipSearch").value) || "").toLowerCase().trim();
+      var rows = (wipStockRows || []).filter(function(r) {
+        if (!q) return true;
+        var pid = String(r.product_id || "");
+        var mid = String(r.machine_id || "");
+        var blob = [pid, productLabel(pid), mid, machineLabel(mid), r.unit].join(" ").toLowerCase();
+        return blob.indexOf(q) >= 0;
+      });
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">' +
+          (q ? "Tidak ada hasil untuk \"" + esc(q) + "\"" : "Belum ada saldo WIP. Akan terisi otomatis saat laporan OP / penyesuaian manual.") +
+          "</td></tr>";
+        try { pageOf("wip", [], "wipPager"); } catch (e) {}
+        return;
+      }
+      var pageList = rows;
+      try { pageList = pageOf("wip", rows, "wipPager"); } catch (e2) { pageList = rows; }
+      body.innerHTML = pageList.map(function(r) {
+        var pid = r.product_id || "";
+        var mid = r.machine_id || "";
+        var pName = productLabel(pid);
+        var mName = machineLabel(mid);
+        return '<tr>' +
+          '<td><strong>' + esc(pid) + '</strong>' +
+            (pName && pName !== pid ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(pName) + '</div>' : '') +
+          '</td>' +
+          '<td><strong>' + esc(mid || "—") + '</strong>' +
+            (mName && mName !== mid ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(mName) + '</div>' : '') +
+          '</td>' +
+          '<td style="text-align:right"><strong>' + formatNum(r.qty) + '</strong></td>' +
+          '<td>' + esc(r.unit || "pcs") + '</td>' +
+          '<td style="font-size:0.75rem">' + esc(formatDateTimeWib(r.updated_at || "")) + '</td>' +
+          '<td><button type="button" class="btn btn-sm btn-ghost" data-adj="' + esc(pid) + '|' + esc(mid) + '">Edit</button></td></tr>';
+      }).join("");
+      body.querySelectorAll("[data-adj]").forEach(function(btn) {
+        btn.onclick = function(e) {
+          e.stopPropagation();
+          var parts = (btn.getAttribute("data-adj") || "").split("|");
+          openWipAdjust(parts[0], parts[1]);
+        };
+      });
     }
     function openWipAdjust(pid, mid) {
       if ($("waProduct")) $("waProduct").value = pid || "";
@@ -17726,6 +17764,7 @@ function fillOperatorList(selectedEmail) {
         pick: function() { renderPicks(); },
         reportsUnified: function() { renderReportsUnified(); },
         kendala: function() { renderKendalaAnalysis(); },
+        wip: function() { renderWipStock(); },
         customers: function() { try { renderCustomers(); } catch (e) {} },
         vendors: function() { try { renderVendors(); } catch (e) {} }
       };
