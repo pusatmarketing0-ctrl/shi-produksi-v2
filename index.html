@@ -12642,26 +12642,31 @@ function fillOperatorList(selectedEmail) {
       var detailHtml = "";
       if (details.length) {
         detailHtml = '<div style="margin-top:1rem"><div style="font-size:0.8rem;font-weight:600;margin-bottom:0.45rem">Detail plan</div>' +
-          '<div class="table-wrap" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:12px">' +
-          '<table style="font-size:0.8rem"><thead><tr>' +
-          '<th>Tgl</th><th>Produk</th><th>Proses</th><th>Shift</th><th style="text-align:right">Actual</th><th style="text-align:right">Target</th><th>Status</th>' +
-          '</tr></thead><tbody>' +
+          '<div style="max-height:300px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:0.45rem">' +
           details.map(function(d) {
             var st = d.kind === "missed"
-              ? '<span class="pill" style="background:#ffedd5;color:#9a3412">Belum lapor</span>'
-              : '<span class="pill" style="background:#d1fae5;color:#065f46">Sudah lapor</span>';
-            return "<tr>" +
-              "<td style='white-space:nowrap'>" + esc(String(d.report_date || "").slice(0, 10)) + "</td>" +
-              "<td>" + esc(productLabel(d.product_id) || d.product_id || "—") +
-                (d.no_so ? "<div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(d.no_so) + "</div>" : "") +
-              "</td>" +
-              "<td>" + esc(machineLabel(d.machine_id) || d.machine_id || "—") + "</td>" +
-              "<td>" + esc(d.shift || "—") + "</td>" +
-              '<td style="text-align:right"><strong>' + formatNum(d.actual) + "</strong></td>" +
-              '<td style="text-align:right">' + formatNum(d.target) + "</td>" +
-              "<td>" + st + "</td></tr>";
+              ? '<span class="pill" style="background:#ffedd5;color:#9a3412;font-size:0.68rem">Belum</span>'
+              : '<span class="pill" style="background:#d1fae5;color:#065f46;font-size:0.68rem">Sudah</span>';
+            var prod = productLabel(d.product_id) || d.product_id || "—";
+            var mach = machineLabel(d.machine_id) || d.machine_id || "—";
+            return '<div style="border:1px solid var(--border);border-radius:12px;padding:0.55rem 0.7rem;background:#fff">' +
+              '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">' +
+                '<div style="min-width:0;flex:1">' +
+                  '<div style="font-weight:600;font-size:0.82rem;line-height:1.25">' + esc(prod) + '</div>' +
+                  '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.15rem">' +
+                    esc(String(d.report_date || "").slice(0, 10)) +
+                    " · Shift " + esc(d.shift || "—") +
+                    " · " + esc(mach) +
+                    (d.no_so ? " · " + esc(d.no_so) : "") +
+                  '</div>' +
+                '</div>' + st +
+              '</div>' +
+              '<div style="display:flex;gap:1rem;margin-top:0.4rem;font-size:0.78rem">' +
+                '<span>Actual <strong>' + formatNum(d.actual) + '</strong></span>' +
+                '<span>Target <strong>' + formatNum(d.target) + '</strong></span>' +
+              '</div></div>';
           }).join("") +
-          "</tbody></table></div></div>";
+          '</div></div>';
       } else {
         detailHtml = '<p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.75rem">Belum ada detail plan di periode ini.</p>';
       }
