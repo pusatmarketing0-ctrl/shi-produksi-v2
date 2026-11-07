@@ -12493,11 +12493,24 @@ function fillOperatorList(selectedEmail) {
         const em = r.reported_by || "";
         if (!em) return;
         if (r.plan_id) reportedPlanIds[String(r.plan_id)] = true;
-        if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0, reported: 0, missed: 0 };
+        if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0, reported: 0, missed: 0, details: [] };
+        var tAdj = reportEffectiveTarget(r, planById);
         by[em].actual += Number(r.actual_qty) || 0;
-        by[em].target += reportEffectiveTarget(r, planById);
+        by[em].target += tAdj;
         by[em].n += 1;
         by[em].reported += 1;
+        by[em].details.push({
+          kind: "reported",
+          report_id: r.report_id,
+          plan_id: r.plan_id || "",
+          report_date: r.report_date || "",
+          actual: Number(r.actual_qty) || 0,
+          target: tAdj,
+          product_id: "",
+          machine_id: "",
+          shift: "",
+          no_so: ""
+        });
       });
       // Plan yang sudah lewat / sampai hari ini, ada operator, belum ada laporan
       // → actual 0, target = target plan (menurunkan rata-rata)
@@ -12511,15 +12524,52 @@ function fillOperatorList(selectedEmail) {
           if (reportedPlanIds[String(pl.plan_id)]) return;
           var em = String(pl.assigned_operator || "").trim();
           if (!em || em === "-" || em.toLowerCase() === "null") return;
-          // draft tanpa operator sudah di-skip; draft dengan operator ikut dihitung
           var tgt = getPlanEvalTarget(pl) || Number(pl.target_qty) || 0;
           if (tgt <= 0) return;
-          if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0, reported: 0, missed: 0 };
+          if (!by[em]) by[em] = { email: em, actual: 0, target: 0, n: 0, reported: 0, missed: 0, details: [] };
           by[em].target += tgt;
           by[em].n += 1;
           by[em].missed = (by[em].missed || 0) + 1;
-          // actual tidak ditambah (0)
+          by[em].details.push({
+            kind: "missed",
+            plan_id: pl.plan_id || "",
+            report_date: pl.plan_date || "",
+            actual: 0,
+            target: tgt,
+            product_id: pl.product_id || "",
+            machine_id: pl.machine_id || "",
+            shift: pl.shift || "",
+            no_so: pl.no_so || ""
+          });
         });
+        // enrich reported details with plan product/machine
+        try {
+          var needP = [];
+          Object.keys(by).forEach(function(em) {
+            (by[em].details || []).forEach(function(d) {
+              if (d.kind === "reported" && d.plan_id && !d.product_id) needP.push(d.plan_id);
+            });
+          });
+          needP = needP.filter(function(v, i, a) { return a.indexOf(v) === i; });
+          var meta = {};
+          for (var bi = 0; bi < needP.length; bi += 100) {
+            var chunk = needP.slice(bi, bi + 100);
+            var { data: pm } = await sb.from("plans").select("plan_id,product_id,machine_id,shift,no_so,plan_date").in("plan_id", chunk);
+            (pm || []).forEach(function(p) { meta[p.plan_id] = p; });
+          }
+          Object.keys(by).forEach(function(em) {
+            (by[em].details || []).forEach(function(d) {
+              if (d.plan_id && meta[d.plan_id]) {
+                var p = meta[d.plan_id];
+                d.product_id = p.product_id || d.product_id;
+                d.machine_id = p.machine_id || d.machine_id;
+                d.shift = p.shift || d.shift;
+                d.no_so = p.no_so || d.no_so;
+                if (!d.report_date) d.report_date = p.plan_date || "";
+              }
+            });
+          });
+        } catch (eMeta) { console.warn(eMeta); }
       } catch (eM) { console.warn("ranking miss plans", eM); }
       const list = Object.values(by).map(x => {
         const pct = x.target > 0 ? (x.actual / x.target) * 100 : 0;
@@ -12586,6 +12636,35 @@ function fillOperatorList(selectedEmail) {
     function openRankDetail(x) {
       if (!x) return;
       const range = window.__rankRange || {};
+      var details = (x.details || []).slice().sort(function(a, b) {
+        return String(b.report_date || "").localeCompare(String(a.report_date || ""));
+      });
+      var detailHtml = "";
+      if (details.length) {
+        detailHtml = '<div style="margin-top:1rem"><div style="font-size:0.8rem;font-weight:600;margin-bottom:0.45rem">Detail plan</div>' +
+          '<div class="table-wrap" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:12px">' +
+          '<table style="font-size:0.8rem"><thead><tr>' +
+          '<th>Tgl</th><th>Produk</th><th>Proses</th><th>Shift</th><th style="text-align:right">Actual</th><th style="text-align:right">Target</th><th>Status</th>' +
+          '</tr></thead><tbody>' +
+          details.map(function(d) {
+            var st = d.kind === "missed"
+              ? '<span class="pill" style="background:#ffedd5;color:#9a3412">Belum lapor</span>'
+              : '<span class="pill" style="background:#d1fae5;color:#065f46">Sudah lapor</span>';
+            return "<tr>" +
+              "<td style='white-space:nowrap'>" + esc(String(d.report_date || "").slice(0, 10)) + "</td>" +
+              "<td>" + esc(productLabel(d.product_id) || d.product_id || "—") +
+                (d.no_so ? "<div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(d.no_so) + "</div>" : "") +
+              "</td>" +
+              "<td>" + esc(machineLabel(d.machine_id) || d.machine_id || "—") + "</td>" +
+              "<td>" + esc(d.shift || "—") + "</td>" +
+              '<td style="text-align:right"><strong>' + formatNum(d.actual) + "</strong></td>" +
+              '<td style="text-align:right">' + formatNum(d.target) + "</td>" +
+              "<td>" + st + "</td></tr>";
+          }).join("") +
+          "</tbody></table></div></div>";
+      } else {
+        detailHtml = '<p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.75rem">Belum ada detail plan di periode ini.</p>';
+      }
       const html =
         '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">' +
         '<div style="font-size:2rem">' + (x.grade && x.grade.icon ? x.grade.icon : "⭐") + '</div>' +
@@ -12595,9 +12674,11 @@ function fillOperatorList(selectedEmail) {
         '<div class="kpi-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">' +
         '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Periode</div><strong>' + esc(range.from || "") + ' → ' + esc(range.to || "") + '</strong></div>' +
         '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Pencapaian</div><strong style="font-size:1.2rem">' + formatNum(x.pct, 1) + '%</strong></div>' +
-        '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Jumlah laporan</div><strong>' + formatNum(x.n) + '</strong></div>' +
+        '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Jumlah laporan</div><strong>' + formatNum(x.reported || x.n) + '</strong>' +
+          ((x.missed) ? '<div style="font-size:0.68rem;color:#b45309">Belum lapor: ' + formatNum(x.missed) + '</div>' : '') + '</div>' +
         '<div class="card" style="padding:0.75rem"><div style="font-size:0.7rem;color:var(--text-muted)">Actual / Target adj</div><strong>' + formatNum(x.actual) + ' / ' + formatNum(x.target) + '</strong></div>' +
         '</div>' +
+        detailHtml +
         '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem">Grade: 95%+ Pionir · 90–94% Penggerak · 80–89% Pejuang · &lt;80% Tunas</p>';
       if ($("rankDetailBody")) $("rankDetailBody").innerHTML = html;
       if ($("rankDetailModal")) {
@@ -19178,16 +19259,14 @@ function fillOperatorList(selectedEmail) {
         if (p.assigned_operator) {
           try { opDisp = operatorDisplayName(p.assigned_operator); } catch (e) { opDisp = p.assigned_operator; }
         }
+        var prodLine = pid + (pName && pName !== pid ? " · " + pName : "");
+        var machLine = mid + (mName && mName !== mid ? " · " + mName : "");
         return '<tr data-pid="' + esc(p.plan_id) + '">' +
-          '<td class="mono" style="font-size:0.72rem">' + esc(p.plan_id) + '</td>' +
-          '<td><strong>' + esc(pid) + '</strong>' +
-            (pName && pName !== pid ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(pName) + '</div>' : '') +
-          '</td>' +
-          '<td><strong>' + esc(mid) + '</strong>' +
-            (mName && mName !== mid ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(mName) + '</div>' : '') +
-          '</td>' +
+          '<td class="mono" style="font-size:0.72rem;white-space:nowrap">' + esc(p.plan_id) + '</td>' +
+          '<td style="white-space:nowrap;max-width:14rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(prodLine) + '">' + esc(prodLine) + '</td>' +
+          '<td style="white-space:nowrap;max-width:12rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(machLine) + '">' + esc(machLine) + '</td>' +
           '<td>' + esc(p.shift) + '</td>' +
-          '<td>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</td>' +
+          '<td style="white-space:nowrap">' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</td>' +
           '<td style="min-width:180px">' +
             '<input type="text" class="ka-op" autocomplete="off" placeholder="Ketik nama / email..." ' +
             'value="' + esc(opDisp || "") + '" data-email="' + esc(p.assigned_operator || "") + '" ' +
