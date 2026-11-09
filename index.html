@@ -4200,6 +4200,7 @@
         <button class="nav-item" data-page="routes" data-roles="admin,ppic" data-tip="Routes"><span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.2" fill="#0ea5e9"/><circle cx="18" cy="17" r="2.2" fill="#059669"/><path stroke="#64748b" stroke-width="1.8" fill="none" d="M7.5 8.5c3 0 4 3 5 5s3 4 5 4" class="anim-pulse"/></svg></span><span class="nav-txt"> Routes</span></button>
         <button class="nav-item" data-page="accounts" data-roles="admin,ppic" data-tip="Data Akun"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><circle cx="12" cy="8" r="3.2" fill="#059669"/><path fill="#34d399" d="M5.5 19c1.4-3 3.8-4.6 6.5-4.6s5.1 1.6 6.5 4.6z"/></svg></span><span class="nav-txt"> Data Akun</span></button>
         <button class="nav-item" data-page="improvements" data-roles="all" data-tip="Ide & Improvement"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-glow"><path fill="#fbbf24" d="M9 17h6v2H9zM10 20h4v1.5h-4z"/><path fill="#f59e0b" d="M12 3.5a5.5 5.5 0 0 1 3.2 10c-.6.6-1 1.3-1.1 2.1H9.9c-.1-.8-.5-1.5-1.1-2.1A5.5 5.5 0 0 1 12 3.5z"/></svg></span><span class="nav-txt"> Ide & Improvement</span><span class="nav-badge" id="navImpBadge" style="display:none">0</span></button>
+        <button class="nav-item" data-page="audit" data-roles="admin,ppic" data-tip="Riwayat perubahan"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5" fill="#64748b"/><path stroke="#fff" stroke-width="1.6" fill="none" d="M8 8h8M8 12h8M8 16h5"/><circle cx="17" cy="16.5" r="3.2" fill="#0d9488"/><path stroke="#fff" stroke-width="1.4" fill="none" d="M17 15.2v1.5l1.1.7"/></svg></span><span class="nav-txt"> Riwayat</span></button>
         <button class="nav-item" data-page="export-data" data-roles="admin,ppic,marketing" data-tip="Export Data" onclick="goPage('export-data')"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path stroke="#059669" stroke-width="2" fill="none" d="M12 4v10M8 10l4 4 4-4"/><path stroke="#059669" stroke-width="2" d="M5 18h14"/></svg></span><span class="nav-txt">Export Data</span></button>
 
 </aside>
@@ -5422,6 +5423,48 @@
           <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem">Hanya produk yang ada plan packing masterbox di tanggal tersebut. Klik baris atau tombol Lapor / Edit.</p>
         </section>
 
+
+        <section id="page-audit" class="page" hidden>
+          <div class="page-head">
+            <div>
+              <h1>Riwayat perubahan</h1>
+              <p>Jejak ubah plan, SO, laporan, assign — siapa & kapan.</p>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="loadAuditLogs()">Refresh</button>
+          </div>
+          <div class="toolbar" style="flex-wrap:wrap;gap:0.45rem">
+            <input type="date" id="auditFrom" onchange="loadAuditLogs()" />
+            <span style="color:var(--text-muted);font-size:0.8rem">s/d</span>
+            <input type="date" id="auditTo" onchange="loadAuditLogs()" />
+            <select id="auditModule" onchange="loadAuditLogs()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua modul</option>
+              <option value="plan">Plan</option>
+              <option value="assign">Assign</option>
+              <option value="so">Sales Order</option>
+              <option value="report">Laporan</option>
+              <option value="wip">WIP</option>
+              <option value="other">Lainnya</option>
+            </select>
+            <input type="search" id="auditSearch" placeholder="Cari user / ref / ringkasan..." oninput="renderAuditLogs()" style="min-width:12rem" />
+          </div>
+          <div class="grid-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.5rem;margin-bottom:0.75rem">
+            <div class="kpi" style="padding:0.6rem"><div class="label">Total</div><div class="value" id="auditKpiTotal" style="font-size:1.25rem">0</div></div>
+            <div class="kpi" style="padding:0.6rem"><div class="label">Plan</div><div class="value" id="auditKpiPlan" style="font-size:1.25rem">0</div></div>
+            <div class="kpi" style="padding:0.6rem"><div class="label">SO</div><div class="value" id="auditKpiSo" style="font-size:1.25rem">0</div></div>
+            <div class="kpi" style="padding:0.6rem"><div class="label">Assign</div><div class="value" id="auditKpiAssign" style="font-size:1.25rem">0</div></div>
+          </div>
+          <div id="auditCards" class="mobile-cards mobile-only"></div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap desk-only-table">
+              <table>
+                <thead><tr><th>Waktu</th><th>User</th><th>Modul</th><th>Aksi</th><th>Referensi</th><th>Ringkasan</th></tr></thead>
+                <tbody id="auditBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+            <div id="auditPager" class="pg-bar"></div>
+          </div>
+        </section>
+
         <section id="page-ranking" class="page" hidden>
           <div class="page-head">
             <div><h1>Ranking operator</h1><p>Berdasarkan actual vs target adj laporan.</p></div>
@@ -6084,6 +6127,17 @@
       </div>
     </div>
   </div>
+
+  <div id="auditDetailModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:480px">
+      <div class="sheet-head"><h2>Detail perubahan</h2></div>
+      <div class="sheet-body" id="auditDetailBody"></div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-primary" style="width:100%" onclick="closeAuditDetail()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <div id="rankDetailModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:440px">
       <div class="sheet-handle"></div>
@@ -9135,6 +9189,7 @@
         if (error) fail++; else ok++;
       }
       planSelectedIds = {};
+      try { await writeAudit({ module: "plan", action: "cancel", ref_id: ids.slice(0, 5).join(","), summary: "Batalkan " + ok + " plan" }); } catch (eA) {}
       toast("Dibatalkan: " + ok + (fail ? ", gagal " + fail : ""));
       await loadPlans();
     }
@@ -9157,6 +9212,7 @@
         if (error) fail++; else ok++;
       }
       planSelectedIds = {};
+      try { await writeAudit({ module: "plan", action: "delete", ref_id: delIds.slice(0, 5).join(","), summary: "Hapus permanen " + ok + " plan" }); } catch (eA) {}
       toast("Dihapus: " + ok + (fail ? ", gagal " + fail : "") + (skip ? ", dilewati " + skip : ""));
       await loadPlans();
     }
@@ -9169,6 +9225,7 @@ async function deletePlan(id) {
       if (!(await appConfirm("Hapus plan " + id + "?"))) return;
       const { error } = await sb.from("plans").delete().eq("plan_id", id);
       if (error) return toast(error.message, true);
+      try { await writeAudit({ module: "plan", action: "delete", ref_id: id, summary: "Hapus plan " + id }); } catch (eA) {}
       toast("Plan dihapus");
       await loadPlans();
     }
@@ -9324,6 +9381,7 @@ async function deletePlan(id) {
         ({ error } = await sb.from("plans").insert(payload));
       }
       if (error) return toast(error.message, true);
+      try { await writeAudit({ module: "plan", action: editingPlanId ? "update" : "create", ref_id: editingPlanId || product_id, summary: (editingPlanId ? "Update plan " + editingPlanId : "Buat plan") + " · " + product_id + " · target " + target_qty }); } catch (eA) {}
       toast("Plan disimpan");
       closePlanModal();
       setFilterDateRange("planFilterDateFrom", "planFilterDateTo", "planFilterDate", plan_date);
@@ -17994,6 +18052,7 @@ function fillOperatorList(selectedEmail) {
         reportsUnified: function() { renderReportsUnified(); },
         kendala: function() { renderKendalaAnalysis(); },
         wip: function() { renderWipStock(); },
+        audit: function() { renderAuditLogs(); },
         customers: function() { try { renderCustomers(); } catch (e) {} },
         vendors: function() { try { renderVendors(); } catch (e) {} }
       };
@@ -19390,6 +19449,7 @@ function fillOperatorList(selectedEmail) {
         }).eq("plan_id", u.plan_id);
         if (error) fail++; else ok++;
       }
+      try { await writeAudit({ module: "assign", action: "update", ref_id: String(ok) + " plan", summary: "Assign operator ke " + ok + " plan" }); } catch (eA) {}
       toast(ok + " plan di-assign" + (fail ? ", " + fail + " gagal" : ""));
       closeKorlapAssign();
       try { await loadPlans(); } catch (e) {}
@@ -23614,6 +23674,174 @@ var id = await newPickId();
       await loadFgKorlap();
     }
 
+
+    // ===== Audit log =====
+    var auditLogRows = [];
+    async function writeAudit(opts) {
+      opts = opts || {};
+      if (!sb) return;
+      try {
+        var email = (currentUser && currentUser.email) || "";
+        var name = "";
+        try {
+          if (currentProfile && (currentProfile.name || currentProfile.full_name)) name = currentProfile.name || currentProfile.full_name;
+        } catch (e) {}
+        if (!name) {
+          try { name = operatorDisplayName(email) || email; } catch (e2) { name = email; }
+        }
+        var payload = {
+          created_at: new Date().toISOString(),
+          user_email: email,
+          user_name: name || email,
+          user_role: currentRole() || "",
+          module: opts.module || "other",
+          action: opts.action || "update",
+          ref_id: String(opts.ref_id || "").slice(0, 120),
+          summary: String(opts.summary || "").slice(0, 500),
+          before_data: opts.before != null ? opts.before : null,
+          after_data: opts.after != null ? opts.after : null
+        };
+        var { error } = await sb.from("audit_logs").insert(payload);
+        if (error) console.warn("audit_logs", error.message || error);
+      } catch (e) {
+        console.warn("writeAudit", e);
+      }
+    }
+    function auditModulePill(mod) {
+      var m = String(mod || "other").toLowerCase();
+      var bg = "#e2e8f0", fg = "#334155";
+      if (m === "plan") { bg = "#d1fae5"; fg = "#065f46"; }
+      else if (m === "so") { bg = "#ede9fe"; fg = "#5b21b6"; }
+      else if (m === "assign") { bg = "#dbeafe"; fg = "#1e40af"; }
+      else if (m === "report") { bg = "#ccfbf1"; fg = "#0f766e"; }
+      else if (m === "wip") { bg = "#ffedd5"; fg = "#9a3412"; }
+      return '<span class="pill" style="background:' + bg + ';color:' + fg + '">' + esc(m) + "</span>";
+    }
+    async function loadAuditLogs() {
+      if (!sb) return;
+      var body = $("auditBody");
+      if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
+      if ($("auditFrom") && !$("auditFrom").value) {
+        var d = new Date();
+        d.setDate(d.getDate() - 7);
+        $("auditFrom").value = d.toISOString().slice(0, 10);
+      }
+      if ($("auditTo") && !$("auditTo").value) $("auditTo").value = todayStr();
+      var from = ($("auditFrom") && $("auditFrom").value) || "";
+      var to = ($("auditTo") && $("auditTo").value) || "";
+      try {
+        var q = sb.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500);
+        if (from) q = q.gte("created_at", from + "T00:00:00");
+        if (to) q = q.lte("created_at", to + "T23:59:59");
+        var mod = ($("auditModule") && $("auditModule").value) || "";
+        if (mod) q = q.eq("module", mod);
+        var { data, error } = await q;
+        if (error) {
+          auditLogRows = [];
+          var sql = "create table if not exists audit_logs (id bigserial primary key, created_at timestamptz default now(), user_email text, user_name text, user_role text, module text, action text, ref_id text, summary text, before_data jsonb, after_data jsonb); create index if not exists audit_logs_created on audit_logs(created_at desc); alter table audit_logs enable row level security; create policy audit_all on audit_logs for all using (true) with check (true);";
+          if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Tabel <b>audit_logs</b> belum ada / error: ' + esc(error.message) + '<br/><code style="font-size:0.68rem">' + esc(sql) + "</code></td></tr>";
+          return;
+        }
+        auditLogRows = data || [];
+        renderAuditLogs();
+      } catch (e) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(e.message || e) + "</td></tr>";
+      }
+    }
+    function renderAuditLogs() {
+      var q = (($("auditSearch") && $("auditSearch").value) || "").toLowerCase().trim();
+      var list = (auditLogRows || []).filter(function(r) {
+        if (!q) return true;
+        var blob = [r.user_email, r.user_name, r.module, r.action, r.ref_id, r.summary].join(" ").toLowerCase();
+        return blob.indexOf(q) >= 0;
+      });
+      var nPlan = 0, nSo = 0, nAs = 0;
+      list.forEach(function(r) {
+        var m = String(r.module || "");
+        if (m === "plan") nPlan++;
+        else if (m === "so") nSo++;
+        else if (m === "assign") nAs++;
+      });
+      if ($("auditKpiTotal")) $("auditKpiTotal").textContent = formatNum(list.length);
+      if ($("auditKpiPlan")) $("auditKpiPlan").textContent = formatNum(nPlan);
+      if ($("auditKpiSo")) $("auditKpiSo").textContent = formatNum(nSo);
+      if ($("auditKpiAssign")) $("auditKpiAssign").textContent = formatNum(nAs);
+      var body = $("auditBody");
+      var cards = $("auditCards");
+      if (!list.length) {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada perubahan di filter ini</td></tr>';
+        if (cards) cards.innerHTML = '<div class="m-card"><div class="m-sub">Belum ada data</div></div>';
+        try { pageOf("audit", [], "auditPager"); } catch (e) {}
+        return;
+      }
+      var pageList = list;
+      try { pageList = pageOf("audit", list, "auditPager"); } catch (e2) {}
+      if (body) {
+        body.innerHTML = pageList.map(function(r) {
+          return '<tr style="cursor:pointer" data-aid="' + esc(String(r.id)) + '">' +
+            '<td style="white-space:nowrap;font-size:0.78rem">' + esc(formatDateTimeWib(r.created_at || "")) + "</td>" +
+            "<td><strong>" + esc(r.user_name || r.user_email || "—") + "</strong>" +
+              '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(r.user_role || "") + " · " + esc(r.user_email || "") + "</div></td>" +
+            "<td>" + auditModulePill(r.module) + "</td>" +
+            "<td>" + esc(r.action || "") + "</td>" +
+            '<td class="mono" style="font-size:0.75rem">' + esc(r.ref_id || "—") + "</td>" +
+            "<td style='font-size:0.82rem'>" + esc(r.summary || "") + "</td></tr>";
+        }).join("");
+        body.querySelectorAll("tr[data-aid]").forEach(function(tr) {
+          tr.onclick = function() { openAuditDetail(tr.getAttribute("data-aid")); };
+        });
+      }
+      if (cards) {
+        cards.innerHTML = pageList.map(function(r) {
+          return '<div class="m-card" style="cursor:pointer" data-aid="' + esc(String(r.id)) + '">' +
+            '<div class="m-title">' + esc(r.summary || r.action || "Perubahan") + "</div>" +
+            '<div class="m-sub">' + esc(formatDateTimeWib(r.created_at || "")) + " · " + esc(r.user_name || r.user_email || "") + "</div>" +
+            '<div class="m-row">' + auditModulePill(r.module) + ' <span class="mono" style="font-size:0.72rem">' + esc(r.ref_id || "") + "</span></div></div>";
+        }).join("");
+        cards.querySelectorAll("[data-aid]").forEach(function(el) {
+          el.onclick = function() { openAuditDetail(el.getAttribute("data-aid")); };
+        });
+      }
+    }
+    function openAuditDetail(id) {
+      var r = (auditLogRows || []).find(function(x) { return String(x.id) === String(id); });
+      if (!r) return;
+      function fmtObj(o) {
+        if (o == null || o === "") return "—";
+        if (typeof o === "string") {
+          try { o = JSON.parse(o); } catch (e) { return esc(o); }
+        }
+        if (typeof o !== "object") return esc(String(o));
+        var keys = Object.keys(o);
+        if (!keys.length) return "—";
+        return keys.map(function(k) {
+          return "<div><span style='color:var(--text-muted)'>" + esc(k) + ":</span> <strong>" + esc(String(o[k])) + "</strong></div>";
+        }).join("");
+      }
+      var html =
+        '<div style="margin-bottom:0.75rem">' +
+          "<div style='font-size:0.78rem;color:var(--text-muted)'>" + esc(formatDateTimeWib(r.created_at || "")) + "</div>" +
+          "<strong style='font-size:1.05rem'>" + esc(r.user_name || r.user_email || "") + "</strong>" +
+          '<div style="font-size:0.78rem;color:var(--text-muted)">' + esc(r.user_role || "") + " · " + esc(r.user_email || "") + "</div>" +
+          '<div style="margin-top:0.35rem">' + auditModulePill(r.module) + " · " + esc(r.action || "") + "</div>" +
+          '<div class="mono" style="font-size:0.8rem;margin-top:0.25rem">' + esc(r.ref_id || "") + "</div>" +
+        "</div>" +
+        '<p style="font-size:0.9rem;margin:0 0 0.75rem">' + esc(r.summary || "") + "</p>" +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">' +
+          '<div class="card" style="padding:0.65rem"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.35rem">Sebelum</div>' + fmtObj(r.before_data) + "</div>" +
+          '<div class="card" style="padding:0.65rem"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.35rem">Sesudah</div>' + fmtObj(r.after_data) + "</div>" +
+        "</div>";
+      if ($("auditDetailBody")) $("auditDetailBody").innerHTML = html;
+      if ($("auditDetailModal")) {
+        $("auditDetailModal").classList.add("show");
+        document.body.classList.add("modal-open");
+      }
+    }
+    function closeAuditDetail() {
+      if ($("auditDetailModal")) $("auditDetailModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
     function goPage(page) {
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
@@ -23649,6 +23877,7 @@ var id = await newPickId();
       if (page === "order-trading") { try { loadOrderTrading(); } catch (e) {} }
       if (page === "absences") { try { loadAbsences(); } catch (e) {} }
       if (page === "revisions") { try { loadRevisionRequests(); } catch (eR) {} }
+      if (page === "audit") { try { loadAuditLogs(); } catch (eA) {} }
       if (page === "fg-korlap") { try { loadFgKorlap(); } catch (eF) {} }
       if (page === "kendala") { try { loadKendalaAnalysis(); } catch (eK) {} }
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
