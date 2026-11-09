@@ -7745,12 +7745,30 @@
       return partial ? partial.machine_id : "";
     }
     function productLabel(id) {
-      const p = products.find(x => x.product_id === id);
-      return p ? (p.product_id + " · " + p.name) : id;
+      if (id == null || id === "") return "";
+      const p = (products || []).find(x => String(x.product_id) === String(id));
+      if (!p) return String(id);
+      var name = String(p.name || "").trim();
+      // hindari "KODE · KODE" jika name kosong / sama kode
+      if (!name || name === String(p.product_id)) return String(p.product_id);
+      return p.product_id + " · " + name;
     }
     function machineLabel(id) {
-      const m = machines.find(x => x.machine_id === id);
-      return m ? (m.machine_id + " · " + m.name) : id;
+      if (id == null || id === "") return "";
+      const m = (machines || []).find(x => String(x.machine_id) === String(id));
+      if (!m) return String(id);
+      var name = String(m.name || m.process_name || m.label || "").trim();
+      if (!name || name === String(m.machine_id)) return String(m.machine_id);
+      return m.machine_id + " · " + name;
+    }
+    /** Nama saja tanpa kode */
+    function productNameOnly(id) {
+      const p = (products || []).find(x => String(x.product_id) === String(id));
+      return p ? String(p.name || "").trim() : "";
+    }
+    function machineNameOnly(id) {
+      const m = (machines || []).find(x => String(x.machine_id) === String(id));
+      return m ? String(m.name || m.process_name || m.label || "").trim() : "";
     }
     function statusPill(st) {
       const s = String(st || "open").toLowerCase();
@@ -12852,7 +12870,7 @@ function fillOperatorList(selectedEmail) {
         var st = stockMap[x.product_id];
         return "<tr>" +
           '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" data-noso="' + esc(nos0) + '" /></td>' +
-          "<td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(productLabel(x.product_id)) + "</div></td>" +
+          "<td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(productNameOnly(x.product_id) || "") + "</div></td>" +
           "<td><strong>" + formatNum(x.actual) + "</strong></td>" +
           "<td style='font-size:0.78rem'>" + esc(nos) + "</td>" +
           "<td>" + (st != null ? formatNum(st) : "—") + "</td>" +
@@ -15172,13 +15190,13 @@ function fillOperatorList(selectedEmail) {
         const u = usage || [];
         if (!u.length) ub.innerHTML = '<tr><td colspan="5" class="empty">Belum ada pemakaian</td></tr>';
         else ub.innerHTML = u.map(function(r) {
-          var prod = productLabel(r.product_id);
-          var mach = machineLabel(r.machine_id);
+          var pOnly = productNameOnly(r.product_id);
+          var mOnly = machineNameOnly(r.machine_id);
           return '<tr><td style="font-size:0.75rem">' + esc(String(r.created_at || "").replace("T", " ").slice(0, 16)) +
             '</td><td><strong>' + esc(r.product_id || "") + '</strong>' +
-            (prod && prod !== r.product_id ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(prod) + '</div>' : '') +
+            (pOnly && pOnly !== r.product_id ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(pOnly) + '</div>' : '') +
             '</td><td><strong>' + esc(r.machine_id || "") + '</strong>' +
-            (mach && mach !== r.machine_id ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(mach) + '</div>' : '') +
+            (mOnly && mOnly !== r.machine_id ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + esc(mOnly) + '</div>' : '') +
             '</td><td>' + formatNum(r.qty_used) + '</td><td class="mono" style="font-size:0.72rem">' + esc(r.plan_id || "") + '</td></tr>';
         }).join("");
       }
@@ -15206,14 +15224,16 @@ function fillOperatorList(selectedEmail) {
       body.innerHTML = pageList.map(function(r) {
         var pid = r.product_id || "";
         var mid = r.machine_id || "";
-        var pName = productLabel(pid);
-        var mName = machineLabel(mid);
+        var pLab = productLabel(pid) || pid;
+        var mLab = machineLabel(mid) || mid || "—";
+        var pOnly = productNameOnly(pid);
+        var mOnly = machineNameOnly(mid);
         return '<tr>' +
           '<td><strong>' + esc(pid) + '</strong>' +
-            (pName && pName !== pid ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(pName) + '</div>' : '') +
+            (pOnly && pOnly !== pid ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(pOnly) + '</div>' : '') +
           '</td>' +
           '<td><strong>' + esc(mid || "—") + '</strong>' +
-            (mName && mName !== mid ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(mName) + '</div>' : '') +
+            (mOnly && mOnly !== mid ? '<div style="font-size:0.72rem;color:var(--text-muted)">' + esc(mOnly) + '</div>' : '') +
           '</td>' +
           '<td style="text-align:right"><strong>' + formatNum(r.qty) + '</strong></td>' +
           '<td>' + esc(r.unit || "pcs") + '</td>' +
@@ -19271,18 +19291,16 @@ function fillOperatorList(selectedEmail) {
       body.innerHTML = rows.map(function(p) {
         var pid = p.product_id || "";
         var mid = p.machine_id || "";
-        var pName = productLabel(pid);
-        var mName = machineLabel(mid);
         var opDisp = "";
         if (p.assigned_operator) {
           try { opDisp = operatorDisplayName(p.assigned_operator); } catch (e) { opDisp = p.assigned_operator; }
         }
-        var prodLine = pid + (pName && pName !== pid ? " · " + pName : "");
-        var machLine = mid + (mName && mName !== mid ? " · " + mName : "");
+        var prodLine = productLabel(pid) || pid;
+        var machLine = machineLabel(mid) || mid;
         return '<tr data-pid="' + esc(p.plan_id) + '">' +
           '<td class="mono" style="font-size:0.72rem;white-space:nowrap">' + esc(p.plan_id) + '</td>' +
-          '<td style="white-space:nowrap;max-width:14rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(prodLine) + '">' + esc(prodLine) + '</td>' +
-          '<td style="white-space:nowrap;max-width:12rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(machLine) + '">' + esc(machLine) + '</td>' +
+          '<td style="white-space:nowrap;max-width:16rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(prodLine) + '">' + esc(prodLine) + '</td>' +
+          '<td style="white-space:nowrap;max-width:14rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(machLine) + '">' + esc(machLine) + '</td>' +
           '<td>' + esc(p.shift) + '</td>' +
           '<td style="white-space:nowrap">' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</td>' +
           '<td style="min-width:180px">' +
@@ -21789,7 +21807,7 @@ function fillOperatorList(selectedEmail) {
         return "<tr>" +
           "<td>" + esc(r.shift || "—") + "</td>" +
           "<td>" + esc(machineLabel(r.machine_id)) + "</td>" +
-          "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(productLabel(r.product_id)) + "</div></td>" +
+          "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(productNameOnly(r.product_id) || "") + "</div></td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
           "<td style='font-size:0.78rem'>" + esc(r.operator || "—") + "</td>" +
           "<td>" + formatNum(r.target) + " " + esc(r.unit) + "</td>" +
