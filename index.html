@@ -8965,9 +8965,13 @@
             $("plNoSo").value = soVal || oid || "";
           }
         }
-        // search combobox SO (reuse scItemsPickSo bila ada)
+        // search combobox SO — hanya SO yang memuat produk plan
         try {
-          if (typeof attachSearchCombo === "function" && typeof scItemsPickSo === "function") {
+          var pidSo = resolvePlanProductId() || (row && row.product_id) || "";
+          if (pidSo) {
+            try { await ensureSoProductIndex(pidSo); } catch (eIdx) { console.warn(eIdx); }
+          }
+          if (typeof attachSearchCombo === "function") {
             $("plNoSo").dataset.scBound = "";
             attachSearchCombo($("plNoSo"), scItemsPickSoForPlan, {
               valueMode: "id-name",
@@ -22368,15 +22372,19 @@ function fillOperatorList(selectedEmail) {
       });
     }
 
-    function rebindPlanSoCombo() {
+    async function rebindPlanSoCombo() {
       var inp = $("plNoSo");
       if (!inp) return;
       try {
+        var pid = resolvePlanProductId();
+        if (pid) {
+          try { await ensureSoProductIndex(pid); } catch (eI) {}
+        }
         inp.dataset.scBound = "";
         if (typeof attachSearchCombo === "function") {
           attachSearchCombo(inp, scItemsPickSoForPlan, {
             valueMode: "id-name",
-            placeholder: "SO yang memuat produk ini…",
+            placeholder: pid ? "SO yang memuat " + pid + "…" : "Ketik no SO / customer...",
             onPick: function(id, label, input) {
               if (input) {
                 input.dataset.scId = id || "";
@@ -22385,48 +22393,92 @@ function fillOperatorList(selectedEmail) {
             }
           });
         }
-        // jangan kosongkan SO otomatis — lines sering belum lengkap di cache
-        // user boleh tetap pakai SO yang dipilih
       } catch (e) {}
+    }
+    /** cache: product_id -> { order_id: { qty, unit } } dari order_lines */
+    var __soByProduct = {};
+    var __soByProductLoading = {};
+    async function ensureSoProductIndex(productId) {
+      productId = String(productId || "").trim();
+      if (!productId || !sb) return;
+      if (__soByProduct[productId]) return;
+      if (__soByProductLoading[productId]) {
+        try { await __soByProductLoading[productId]; } catch (e) {}
+        return;
+      }
+      __soByProductLoading[productId] = (async function() {
+        var map = {};
+        try {
+          var { data, error } = await sb.from("order_lines")
+            .select("order_id,product_id,qty,unit")
+            .eq("product_id", productId)
+            .limit(2000);
+          if (error) {
+            // fallback: scan from allOrders lines
+            (allOrders || []).forEach(function(o) {
+              (o.lines || o.order_lines || []).forEach(function(L) {
+                if (String(L.product_id) === productId) {
+                  map[o.order_id] = { qty: L.qty, unit: L.unit };
+                }
+              });
+            });
+          } else {
+            (data || []).forEach(function(L) {
+              if (L.order_id) map[L.order_id] = { qty: L.qty, unit: L.unit };
+            });
+          }
+        } catch (e) {
+          console.warn("ensureSoProductIndex", e);
+        }
+        __soByProduct[productId] = map;
+        // merge ke allOrders lines agar orderHasProduct ikut akurat
+        (allOrders || []).forEach(function(o) {
+          if (map[o.order_id]) {
+            var lines = o.lines || o.order_lines || [];
+            if (!lines.some(function(L) { return String(L.product_id) === productId; })) {
+              lines = lines.concat([{ product_id: productId, qty: map[o.order_id].qty, unit: map[o.order_id].unit }]);
+              o.lines = lines;
+              o.order_lines = lines;
+            }
+          }
+        });
+      })();
+      try { await __soByProductLoading[productId]; } catch (e2) {}
+      delete __soByProductLoading[productId];
     }
     function scItemsPickSoForPlan() {
       var productId = resolvePlanProductId();
       var base = (allOrders || []).filter(function(o) {
         var st = String(o.status || "").toLowerCase();
-        // locked / confirmed / done tetap boleh dipilih di plan (PO belum tentu selesai)
         if (st === "cancelled" || st === "canceled") return false;
         return true;
       });
       var list = base;
       if (productId) {
-        var matched = base.filter(function(o) { return orderHasProduct(o, productId); });
-        var anyLines = base.some(function(o) {
-          return ((o.lines || o.order_lines || []).length > 0);
-        });
-        if (matched.length) {
-          list = matched;
-        } else if (anyLines) {
-          // lines ada tapi produk tidak ketemu di SO — tampilkan semua (user bisa pilih manual)
-          list = base;
+        var idx = __soByProduct[productId];
+        if (idx) {
+          list = base.filter(function(o) { return !!idx[o.order_id]; });
         } else {
-          // order_lines belum ter-load — jangan kosongkan hasil
-          list = base;
+          // index belum siap — filter dari lines cache; jangan tampilkan semua
+          list = base.filter(function(o) { return orderHasProduct(o, productId); });
         }
       }
       return list.map(function(o) {
         var lines = o.lines || o.order_lines || [];
         var n = lines.length;
         var lineQty = "";
-        var hasProd = productId ? orderHasProduct(o, productId) : false;
-        if (productId && hasProd) {
+        var hasProd = productId ? orderHasProduct(o, productId) : true;
+        if (productId) {
+          var meta = (__soByProduct[productId] && __soByProduct[productId][o.order_id]) || null;
           var L = lines.find(function(x) { return String(x.product_id) === String(productId); });
           if (L) lineQty = " · qty " + (L.qty || 0) + " " + (L.unit || "");
+          else if (meta) lineQty = " · qty " + (meta.qty || 0) + " " + (meta.unit || "");
         }
         var label = (o.no_so || o.order_id) + " · " + (o.customer_name || "-") + (n ? " (" + n + " item)" : "");
         return {
           id: o.order_id,
           label: label,
-          sub: (o.status || "") + lineQty + (hasProd ? " · cocok produk" : "") + (o.order_date ? " · " + String(o.order_date).slice(0, 10) : ""),
+          sub: (o.status || "") + lineQty + (o.order_date ? " · " + String(o.order_date).slice(0, 10) : ""),
           search: [o.order_id, o.no_so, o.customer_name, o.status, productId].join(" ")
         };
       });
