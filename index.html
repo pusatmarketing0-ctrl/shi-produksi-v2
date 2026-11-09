@@ -8106,7 +8106,7 @@
 
       if (!sb) return;
       const { data, error } = await sb.from("orders")
-        .select("*, order_lines(id,product_id,qty,unit,notes,harga,unit_price,price)")
+        .select("*, order_lines(id,product_id,qty,unit,notes)")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) {
@@ -8568,7 +8568,7 @@
       try {
         var data = null, error = null;
         var emb = await sb.from("orders")
-          .select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit,harga,unit_price,price)")
+          .select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)")
           .order("created_at", { ascending: false })
           .limit(800);
         data = emb.data; error = emb.error;
@@ -8585,7 +8585,7 @@
           var allLines = [];
           for (var i = 0; i < need.length; i += 100) {
             var chunk = need.slice(i, i + 100);
-            var { data: lines } = await sb.from("order_lines").select("order_id,product_id,qty,unit,harga,unit_price,price").in("order_id", chunk);
+            var { data: lines } = await sb.from("order_lines").select("order_id,product_id,qty,unit").in("order_id", chunk);
             if (lines) allLines = allLines.concat(lines);
           }
           var by = {};
@@ -8689,18 +8689,21 @@
       } catch (e) {}
     }
     /** Ambil product_id di SO langsung dari DB jika cache kosong */
-    async function fetchOrderProductIds(order) {
+        async function fetchOrderProductIds(order) {
       if (!order) return [];
       var ids = orderProductIds(order);
       if (ids.length) return ids;
       if (!sb || !order.order_id) return [];
       try {
-        var { data: lines } = await sb.from("order_lines").select("product_id,qty,unit").eq("order_id", order.order_id);
-        order.lines = lines || [];
-        order.order_lines = lines || [];
-        // sync cache
+        var res = await sb.from("order_lines").select("order_id,product_id,qty,unit").eq("order_id", order.order_id);
+        if (res.error) {
+          console.warn("fetchOrderProductIds", res.error);
+          return [];
+        }
+        order.lines = res.data || [];
+        order.order_lines = order.lines;
         (allOrders || []).forEach(function(o) {
-          if (o.order_id === order.order_id) {
+          if (String(o.order_id) === String(order.order_id)) {
             o.lines = order.lines;
             o.order_lines = order.lines;
           }
@@ -9225,7 +9228,22 @@ async function deletePlan(id) {
       var chkFg = product_id;
       // untuk edit giling bahan: cek for_product (FG) jika ada
       if (defs.for_product_id) chkFg = defs.for_product_id;
+      // pastikan order_lines SO ter-load sebelum validasi
+      try {
+        if (order_id || no_so) {
+          var ordTmp = findOrderBySoRef(no_so, order_id);
+          if (ordTmp) await fetchOrderProductIds(ordTmp);
+          else if (chkFg) await ensureSoProductIndex(chkFg);
+        }
+      } catch (ePre) { console.warn(ePre); }
       var soCheck = validatePlanProductAgainstSo(chkFg, no_so, order_id);
+      // jika masih bilang belum punya lines — fetch sekali lagi by no_so
+      if (!soCheck.ok && soCheck.order && /belum punya daftar produk/i.test(soCheck.message || "")) {
+        try {
+          await fetchOrderProductIds(soCheck.order);
+          soCheck = validatePlanProductAgainstSo(chkFg, no_so, order_id);
+        } catch (e2) {}
+      }
       if (!soCheck.ok) {
         var fix = await appConfirm(soCheck.message + "\n\nTetap simpan tanpa menyesuaikan?", "Produk tidak sesuai SO");
         if (!fix) return toast("Sesuaikan produk / No SO dulu");
@@ -13802,7 +13820,7 @@ function fillOperatorList(selectedEmail) {
       var plansRes = await sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000);
       var e1 = plansRes.error;
       var plans = plansRes.data;
-      var ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes,harga,unit_price,price)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
+      var ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
       if (ordersRes.error && /harga|unit_price|price|column/i.test(String(ordersRes.error.message || ""))) {
         ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
       }
@@ -18392,7 +18410,7 @@ function fillOperatorList(selectedEmail) {
       if (!inp) return;
       let orders = [];
       try {
-        const { data } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit,harga,unit_price,price)").order("created_at", { ascending: false }).limit(300);
+        const { data } = await sb.from("orders").select("order_id,no_so,customer_name,status,order_lines(product_id,qty,unit)").order("created_at", { ascending: false }).limit(300);
         orders = data || [];
       } catch (e) {}
       poSoOrdersCache = orders.filter(function(o) {
