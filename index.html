@@ -5108,11 +5108,18 @@
             </select>
             <button class="btn btn-ghost btn-sm" type="button" onclick="loadPicks()">Refresh</button>
           </div>
+          <div id="pickUrgencyBar" style="display:none;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.55rem">
+            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="" onclick="setPickUrgency('')">Semua</button>
+            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="late" onclick="setPickUrgency('late')">Terlambat</button>
+            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="today" onclick="setPickUrgency('today')">Hari ini</button>
+            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="tomorrow" onclick="setPickUrgency('tomorrow')">Besok</button>
+            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="week" onclick="setPickUrgency('week')">Minggu ini</button>
+          </div>
           <div class="card" style="padding:0;overflow:hidden">
             <div class="table-wrap">
               <table>
                 <thead><tr>
-                  <th>No Pick</th><th>SO / FG</th><th>Status</th><th>Bahan</th><th>Lead time</th><th>Asal</th><th></th>
+                  <th>No Pick</th><th>SO / FG</th><th>Kebutuhan</th><th>Status</th><th>Bahan</th><th>Lead time</th><th></th>
                 </tr></thead>
                 <tbody id="pickBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
               </table>
@@ -21931,6 +21938,84 @@ function fillOperatorList(selectedEmail) {
 
     // ===== Pick komponen =====
     var pickMode = "prod"; // "prod" | "wh"
+
+    var pickUrgency = "";
+    function setPickUrgency(u) {
+      pickUrgency = u || "";
+      pageState.pick = { page: 1 };
+      document.querySelectorAll(".pick-urg").forEach(function(b) {
+        var on = (b.getAttribute("data-urg") || "") === pickUrgency;
+        b.className = on ? "btn btn-primary btn-sm pick-urg" : "btn btn-ghost btn-sm pick-urg";
+      });
+      renderPicks();
+    }
+    function pickNeedDateOf(p) {
+      if (!p) return "";
+      return String(p.shipping_date || p.need_date || "").slice(0, 10);
+    }
+    function pickUrgencyOf(p) {
+      var nd = pickNeedDateOf(p);
+      if (!nd) return "";
+      var today = todayStr();
+      if (nd < today) return "late";
+      if (nd === today) return "today";
+      try {
+        var t = new Date(today + "T12:00:00");
+        t.setDate(t.getDate() + 1);
+        var tom = t.toISOString().slice(0, 10);
+        if (nd === tom) return "tomorrow";
+        var w = new Date(today + "T12:00:00");
+        w.setDate(w.getDate() + 7);
+        if (nd <= w.toISOString().slice(0, 10)) return "week";
+      } catch (e) {}
+      return "";
+    }
+    function pickNeedBadge(p) {
+      var nd = pickNeedDateOf(p);
+      if (!nd) return "<span style='color:var(--text-muted)'>—</span>";
+      var u = pickUrgencyOf(p);
+      var bg = "#f1f5f9", fg = "#475569", lab = nd;
+      if (u === "late") { bg = "#fee2e2"; fg = "#991b1b"; lab = nd + " · Terlambat"; }
+      else if (u === "today") { bg = "#ffedd5"; fg = "#9a3412"; lab = nd + " · Hari ini"; }
+      else if (u === "tomorrow") { bg = "#fef9c3"; fg = "#854d0e"; lab = nd + " · Besok"; }
+      return '<span class="pill" style="background:' + bg + ';color:' + fg + ';font-size:0.72rem">' + esc(lab) + "</span>";
+    }
+    function pickIsLocked(p) {
+      if (!p) return false;
+      if (p.locked === true || p.locked === "true" || p.locked === 1) return true;
+      var st = String(p.status || "");
+      return st === "prepared" || st === "handover" || st === "picked";
+    }
+    function pickCanEdit(p) {
+      if (!p) return true;
+      if (!pickIsLocked(p)) return true;
+      return currentRole() === "admin";
+    }
+    async function unlockPick() {
+      if (currentRole() !== "admin") return toast("Hanya admin yang bisa buka kunci", true);
+      var id = ($("pickEditId") && $("pickEditId").value) || "";
+      if (!id) return;
+      var reason = window.prompt("Alasan buka kunci (wajib):");
+      if (reason == null || !String(reason).trim()) return toast("Alasan wajib", true);
+      var payload = {
+        locked: false,
+        status: "requested",
+        updated_at: new Date().toISOString()
+      };
+      var { error } = await sb.from("picks").update(payload).eq("pick_id", id);
+      if (error) {
+        delete payload.locked;
+        var u2 = await sb.from("picks").update(payload).eq("pick_id", id);
+        if (u2.error) return toast(u2.error.message, true);
+      }
+      try {
+        await writeAudit({ module: "other", action: "unlock", ref_id: id, summary: "Buka kunci pick " + id + " · " + String(reason).trim() });
+      } catch (eA) {}
+      toast("Pick dibuka — status kembali Diminta");
+      await loadPicks();
+      openPickModal(id);
+    }
+
     function applyPickMode(mode) {
       var prev = pickMode;
       pickMode = mode === "wh" ? "wh" : "prod";
@@ -21940,10 +22025,11 @@ function fillOperatorList(selectedEmail) {
       var st = $("pickStatusFilter");
       if (pickMode === "wh") {
         if (title) title.textContent = "Pick gudang";
-        if (sub) sub.textContent = "Antrean permintaan dari produksi · siapkan qty · serah terima";
+        if (sub) sub.textContent = "Antrian by tgl kebutuhan · validasi qty · kunci setelah validasi";
         if (btn) btn.style.display = "none";
         var bulkLab = $("btnPickBulkPdfLab");
         if (bulkLab) bulkLab.style.display = "none";
+        if ($("pickUrgencyBar")) $("pickUrgencyBar").style.display = "flex";
         // Jangan paksa filter "requested" — partial/prepared harus tetap terlihat
         if (st && prev !== "wh") {
           st.value = "";
@@ -21956,6 +22042,8 @@ function fillOperatorList(selectedEmail) {
           btn.style.display = "";
           btn.textContent = "+ Minta bahan";
         }
+        if ($("pickUrgencyBar")) $("pickUrgencyBar").style.display = "none";
+        pickUrgency = "";
         if (st && prev === "wh") {
           st.value = "";
           pageState.pick = { page: 1 };
@@ -21994,14 +22082,27 @@ function fillOperatorList(selectedEmail) {
         if (pickMode === "wh" && pst === "draft") return false;
         if (pickMode === "wh" && (pst === "picked" || pst === "cancelled") && !st) return false;
         if (st) {
-          // di gudang: filter "requested" ikut tampilkan partial agar tidak "hilang" saat stok kurang
           if (pickMode === "wh" && st === "requested" && (pst === "requested" || pst === "partial")) {
             /* ok */
           } else if (pst !== st) return false;
         }
+        if (pickMode === "wh" && pickUrgency) {
+          var u = pickUrgencyOf(p);
+          if (pickUrgency === "week") {
+            if (!(u === "today" || u === "tomorrow" || u === "week" || u === "late")) return false;
+          } else if (u !== pickUrgency) return false;
+        }
         if (!q) return true;
-        return (p.pick_id + " " + (p.no_pick_odoo || "") + " " + (p.no_so || "") + " " + (p.product_id || "")).toLowerCase().indexOf(q) >= 0;
+        return (p.pick_id + " " + (p.no_pick_odoo || "") + " " + (p.no_so || "") + " " + (p.product_id || "") + " " + pickNeedDateOf(p)).toLowerCase().indexOf(q) >= 0;
       });
+      if (pickMode === "wh") {
+        list.sort(function(a, b) {
+          var da = pickNeedDateOf(a) || "9999-99-99";
+          var db = pickNeedDateOf(b) || "9999-99-99";
+          if (da !== db) return da < db ? -1 : 1;
+          return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+        });
+      }
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada pick</td></tr>';
         pageOf("pick", [], "pickPager");
@@ -22012,8 +22113,9 @@ function fillOperatorList(selectedEmail) {
         var n = (p.pick_lines || []).length;
         var origin = p.parent_pick_id ? ("Back order · " + p.parent_pick_id) : "Awal";
         return "<tr>" +
-          "<td><strong>" + esc(p.no_pick_odoo || p.pick_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.pick_id) + "</div></td>" +
+          "<td><strong>" + esc(p.no_pick_odoo || p.pick_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.pick_id) + (p.parent_pick_id ? " · BO" : "") + "</div></td>" +
           "<td>" + esc(p.no_so || "—") + "<div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.product_id || "") + "</div></td>" +
+          "<td>" + pickNeedBadge(p) + "</td>" +
           "<td><span class='badge'>" + esc((function() {
             var st = p.status;
             if ((st === "prepared" || st === "partial" || st === "handover" || st === "picked") && (p.pick_lines || []).some(function(l) {
@@ -22027,7 +22129,6 @@ function fillOperatorList(selectedEmail) {
           })()) + "</span></td>" +
           "<td>" + n + "</td>" +
           "<td style='font-size:0.72rem;color:var(--text-muted);max-width:11rem'>" + esc(pickLeadSummary(p)) + "</td>" +
-          "<td style='font-size:0.75rem'>" + esc(origin) + "</td>" +
           "<td><button type='button' class='btn btn-sm btn-primary' onclick='openPickModal(" + JSON.stringify(p.pick_id) + ")'>Buka</button></td></tr>";
       }).join("");
     }
@@ -22122,13 +22223,26 @@ function fillOperatorList(selectedEmail) {
     }
     function parseOdooPickPdfText(text) {
       text = String(text || "").replace(/\r/g, "\n");
-      var meta = { pick_no: "", mo_no: "", order: "" };
+      var meta = { pick_no: "", mo_no: "", order: "", shipping_date: "", customer_ref: "" };
       var mPick = text.match(/\b(SHI\/PC\/\d+)\b/i)
         || text.match(/\b(SHI[_\-\s]?PC[_\-\s]?\d+)\b/i)
         || text.match(/\b(WH\/[A-Z]+\/\d+)\b/i)
         || text.match(/\b(PICK\/\d{4}\/\d+)\b/i);
       if (mPick) {
         meta.pick_no = String(mPick[1]).toUpperCase().replace(/[\s_]+/g, "/").replace(/PC\//, "PC/");
+        var mShip = text.match(/Shipping\s*Date\s*[:\s]*([0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{2,4})/i);
+        if (mShip) {
+          var ds = String(mShip[1]).replace(/[.\-]/g, "/");
+          var parts = ds.split("/");
+          if (parts.length === 3) {
+            var dd = parts[0].padStart(2, "0"), mm = parts[1].padStart(2, "0"), yy = parts[2];
+            if (yy.length === 2) yy = "20" + yy;
+            meta.shipping_date = yy + "-" + mm + "-" + dd;
+          }
+        }
+        var mRef = text.match(/Customer\s*Reference\s*[:\s]*#?([A-Za-z0-9\/\-]+)/i);
+        if (mRef) meta.customer_ref = mRef[1];
+
         meta.pick_no = meta.pick_no.replace(/^SHI\/?PC\/?/, "SHI/PC/");
       }
       var mMo = text.match(/\b(SHI\/MO\/\d+)\b/i)
@@ -22213,6 +22327,7 @@ function fillOperatorList(selectedEmail) {
           return toast("Tidak menemukan baris bahan di PDF. Pastikan PDF Picking Operations Odoo (bukan scan gambar).", true);
         }
         if (parsed.meta.pick_no && $("pickNoOdoo")) $("pickNoOdoo").value = parsed.meta.pick_no;
+        if (parsed.meta.shipping_date && $("pickNeedDate")) $("pickNeedDate").value = parsed.meta.shipping_date;
         var note = ($("pickNotes") && $("pickNotes").value) || "";
         if (parsed.meta.mo_no) {
           var tag = "MO: " + parsed.meta.mo_no;
@@ -22347,6 +22462,7 @@ function fillOperatorList(selectedEmail) {
               no_so: "",
               product_id: "",
               status: "requested",
+              shipping_date: parsed.meta.shipping_date || null,
               notes: notes.join(" · "),
               created_by: (currentUser && currentUser.email) || "",
               created_at: now,
@@ -22354,6 +22470,10 @@ function fillOperatorList(selectedEmail) {
               updated_at: now
             };
             var up = await sb.from("picks").insert(payload);
+            if (up.error && /shipping_date|column/i.test(String(up.error.message || ""))) {
+              delete payload.shipping_date;
+              up = await sb.from("picks").insert(payload);
+            }
             if (up.error && /requested_at|column/i.test(String(up.error.message || ""))) {
               delete payload.requested_at;
               up = await sb.from("picks").insert(payload);
@@ -22840,7 +22960,20 @@ function fillOperatorList(selectedEmail) {
       $("pickEditId").value = p ? p.pick_id : "";
       $("pickParentId").value = p ? (p.parent_pick_id || "") : "";
       $("pickNoOdoo").value = p ? (p.no_pick_odoo || "") : "";
+      if ($("pickNeedDate")) $("pickNeedDate").value = p ? pickNeedDateOf(p) : "";
       $("pickNotes").value = p ? (p.notes || "") : "";
+      // lock banner
+      (function() {
+        var locked = p ? pickIsLocked(p) && currentRole() !== "admin" : false;
+        var showBanner = p ? pickIsLocked(p) : false;
+        if ($("pickLockBanner")) $("pickLockBanner").style.display = showBanner ? "block" : "none";
+        if ($("btnPickUnlock")) $("btnPickUnlock").style.display = (showBanner && currentRole() === "admin") ? "inline-flex" : "none";
+        var disable = showBanner && currentRole() !== "admin";
+        ["pickNoOdoo", "pickNeedDate", "pickNoSo", "pickFg", "pickNotes", "pickPhotoFile"].forEach(function(id) {
+          var el = $(id);
+          if (el) el.disabled = !!disable;
+        });
+      })();
       var hoUrl = p ? (p.handover_photo_url || "") : "";
       if ($("pickHandoverPhoto")) $("pickHandoverPhoto").value = hoUrl;
       if ($("pickHandoverPhotoFile")) $("pickHandoverPhotoFile").value = "";
@@ -22978,6 +23111,14 @@ function fillOperatorList(selectedEmail) {
       box.innerHTML = html;
     }
     async function savePick(nextStatus) {
+      // kunci setelah validasi — non-admin tidak boleh ubah
+      try {
+        var curId0 = ($("pickEditId") && $("pickEditId").value) || "";
+        var curP0 = curId0 ? pickList.find(function(x) { return x.pick_id === curId0; }) : null;
+        if (curP0 && pickIsLocked(curP0) && currentRole() !== "admin") {
+          return toast("Pick terkunci setelah validasi. Minta admin buka kunci.", true);
+        }
+      } catch (eLock) {}
       if (!sb) return;
       var id = ($("pickEditId").value || "").trim() || (await newPickId());
       var lines = collectPickLines();
@@ -23020,6 +23161,7 @@ function fillOperatorList(selectedEmail) {
           pendingBackorder = (choice === true);
         }
       }
+      var needDate = ($("pickNeedDate") && $("pickNeedDate").value) || "";
       var payload = {
         pick_id: id,
         no_pick_odoo: noOdoo,
@@ -23040,11 +23182,17 @@ function fillOperatorList(selectedEmail) {
         })(),
         parent_pick_id: ($("pickParentId").value || "").trim() || null,
         status: status,
+        shipping_date: needDate || null,
         notes: ($("pickNotes").value || "").trim(),
         photo_url: ($("pickPhoto").value || "").trim(),
         handover_photo_url: ($("pickHandoverPhoto") && $("pickHandoverPhoto").value || "").trim(),
         updated_at: new Date().toISOString()
       };
+      if (status === "prepared" || status === "handover" || status === "picked") {
+        payload.locked = true;
+        payload.validated_at = payload.validated_at || new Date().toISOString();
+        payload.validated_by = (currentUser && currentUser.email) || "";
+      }
       if (!($("pickEditId").value || "").trim()) {
         payload.created_by = (currentUser && currentUser.email) || "";
         payload.created_at = payload.created_at || new Date().toISOString();
@@ -25797,8 +25945,13 @@ function closeOtModal() {
       <div class="sheet-body">
         <input type="hidden" id="pickEditId" />
         <input type="hidden" id="pickParentId" />
+        <div id="pickLockBanner" style="display:none;margin-bottom:0.55rem;padding:0.55rem 0.75rem;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;font-size:0.82rem;color:#065f46">
+          <strong>Terkunci</strong> setelah validasi gudang. Hanya admin yang bisa buka kunci.
+          <button type="button" class="btn btn-ghost btn-sm" id="btnPickUnlock" style="margin-left:0.5rem;display:none" onclick="unlockPick()">Buka kunci</button>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
           <div class="field"><label>No Pick Odoo</label><input id="pickNoOdoo" placeholder="PICK/2026/001" /></div>
+          <div class="field"><label>Tgl kebutuhan (Shipping)</label><input id="pickNeedDate" type="date" title="Shipping Date Odoo — kapan bahan dibutuhkan" /></div>
           <div class="field"><label>No SO</label>
             <div class="search-combo">
               <input id="pickNoSo" type="text" placeholder="Ketik no SO / customer…" autocomplete="off" />
