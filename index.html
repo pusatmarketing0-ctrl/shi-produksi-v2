@@ -5391,7 +5391,7 @@
           <div class="page-head">
             <div>
               <h1>Laporan FG Korlap</h1>
-              <p>Klik baris produk untuk isi output packing masterbox — bandingkan dengan laporan OP.</p>
+              <p>Per shift (korlap beda) · banyak bet · total otomatis · banding actual OP.</p>
             </div>
             <div style="display:flex;gap:0.45rem;flex-wrap:wrap">
               <button type="button" class="btn btn-ghost btn-sm" onclick="loadFgKorlap()">Refresh</button>
@@ -5399,6 +5399,12 @@
           </div>
           <div class="toolbar" style="flex-wrap:wrap;gap:0.45rem">
             <input type="date" id="fgkDate" onchange="loadFgKorlap()" />
+            <select id="fgkShift" onchange="loadFgKorlap()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua shift</option>
+              <option value="1">Shift 1</option>
+              <option value="2">Shift 2</option>
+              <option value="3">Shift 3</option>
+            </select>
             <input type="search" id="fgkSearch" placeholder="Cari produk / SO..." oninput="renderFgKorlap()" style="min-width:12rem" />
           </div>
           <div class="grid-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.55rem;margin-bottom:0.75rem">
@@ -5415,9 +5421,10 @@
                   <tr>
                     <th>Produk</th>
                     <th>No SO</th>
+                    <th>Shift</th>
                     <th style="text-align:right">Plan</th>
                     <th style="text-align:right">Actual OP</th>
-                    <th style="text-align:right">Output Korlap</th>
+                    <th style="text-align:right">Korlap (Σ bet)</th>
                     <th style="text-align:right">Selisih</th>
                     <th>Status</th>
                     <th></th>
@@ -6742,27 +6749,35 @@
 
 
   <div id="fgkModal" class="modal-bg">
-    <div class="modal sheet" style="max-width:440px">
+    <div class="modal modal-sheet" style="max-width:520px;max-height:92vh;display:flex;flex-direction:column">
       <div class="sheet-head">
         <h2 id="fgkModalTitle">Laporan FG Korlap</h2>
         <p id="fgkModalSub" style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0"></p>
       </div>
-      <input type="hidden" id="fgkModalKey" />
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-bottom:0.85rem">
-        <div class="kpi" style="padding:0.55rem"><div class="label">Plan</div><div class="value" id="fgkMPlan" style="font-size:1.15rem">0</div></div>
-        <div class="kpi" style="padding:0.55rem"><div class="label">Actual OP</div><div class="value" id="fgkMOp" style="font-size:1.15rem">0</div></div>
-        <div class="kpi" style="padding:0.55rem"><div class="label">Selisih</div><div class="value" id="fgkMDiff" style="font-size:1.15rem">—</div></div>
+      <div class="sheet-body" style="overflow:auto;flex:1">
+        <input type="hidden" id="fgkModalKey" />
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-bottom:0.75rem">
+          <div class="kpi" style="padding:0.55rem"><div class="label">Plan</div><div class="value" id="fgkMPlan" style="font-size:1.1rem">0</div></div>
+          <div class="kpi" style="padding:0.55rem"><div class="label">Actual OP</div><div class="value" id="fgkMOp" style="font-size:1.1rem">0</div></div>
+          <div class="kpi" style="padding:0.55rem"><div class="label">Selisih</div><div class="value" id="fgkMDiff" style="font-size:1.1rem">—</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+          <strong style="font-size:0.88rem">Bet (qty fisik)</strong>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="fgkAddBet()">+ Bet</button>
+        </div>
+        <div id="fgkBets" style="display:flex;flex-direction:column;gap:0.45rem"></div>
+        <div style="margin-top:0.65rem;padding:0.55rem 0.7rem;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.82rem;color:#065f46">Total Korlap (auto)</span>
+          <strong id="fgkMTotal" style="font-size:1.15rem;color:#047857">0</strong>
+        </div>
+        <div class="field" style="margin-top:0.65rem"><label>Kendala</label>
+          <input type="text" id="fgkMKen" placeholder="opsional" />
+        </div>
+        <div class="field"><label>Keterangan</label>
+          <input type="text" id="fgkMNote" placeholder="opsional" />
+        </div>
       </div>
-      <div class="field"><label>Output Korlap (packing masterbox) <span style="color:#b91c1c">*</span></label>
-        <input type="number" step="any" id="fgkMOut" placeholder="Qty fisik FG" style="font-size:1.1rem;font-weight:600" />
-      </div>
-      <div class="field"><label>Kendala</label>
-        <input type="text" id="fgkMKen" placeholder="opsional" />
-      </div>
-      <div class="field"><label>Keterangan</label>
-        <input type="text" id="fgkMNote" placeholder="opsional" />
-      </div>
-      <div class="modal-actions" style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+      <div class="sheet-foot" style="display:flex;gap:0.5rem;justify-content:flex-end">
         <button type="button" class="btn btn-ghost" onclick="closeFgkModal()">Batal</button>
         <button type="button" class="btn btn-primary" onclick="saveFgkModal()">Simpan</button>
       </div>
@@ -23563,7 +23578,8 @@ var id = await newPickId();
       if (!sb) return;
       var d = ($("fgkDate") && $("fgkDate").value) || todayStr();
       if ($("fgkDate") && !$("fgkDate").value) $("fgkDate").value = d;
-      if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="8" class="empty">Memuat…</td></tr>';
+      var shiftFilter = ($("fgkShift") && $("fgkShift").value) || "";
+      if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="9" class="empty">Memuat…</td></tr>';
       try {
         var { data: pls, error } = await sb.from("plans")
           .select("plan_id,product_id,machine_id,no_so,order_id,target_qty,unit,status,shift")
@@ -23572,16 +23588,22 @@ var id = await newPickId();
           .limit(3000);
         if (error) throw error;
         var fgPlans = (pls || []).filter(function(p) { return isFgMachine(p.machine_id); });
-        // group by product + SO
+        if (shiftFilter) {
+          fgPlans = fgPlans.filter(function(p) { return String(p.shift || "1") === String(shiftFilter); });
+        }
+        // group by product + SO + shift
         var groups = {};
         fgPlans.forEach(function(p) {
           var so = String(p.no_so || p.order_id || "").trim() || "-";
-          var key = String(p.product_id || "") + "||" + so;
+          var sh = String(p.shift || "1");
+          var key = String(p.product_id || "") + "||" + so + "||" + sh;
           if (!groups[key]) {
             groups[key] = {
+              key: key,
               product_id: p.product_id,
               no_so: so === "-" ? "" : so,
               order_id: p.order_id || "",
+              shift: sh,
               plan_qty: 0,
               unit: p.unit || "pcs",
               plan_ids: []
@@ -23590,7 +23612,6 @@ var id = await newPickId();
           groups[key].plan_qty += Number(p.target_qty) || 0;
           groups[key].plan_ids.push(p.plan_id);
         });
-        // OP actual
         var allIds = [];
         Object.keys(groups).forEach(function(k) { allIds = allIds.concat(groups[k].plan_ids); });
         var actByPlan = {};
@@ -23607,179 +23628,208 @@ var id = await newPickId();
           g.op_qty = 0;
           g.plan_ids.forEach(function(pid) { g.op_qty += actByPlan[pid] || 0; });
         });
-        // saved korlap
         var saved = {};
         try {
-          var { data: fgRows, error: eFg } = await sb.from("fg_korlap_reports")
-            .select("*")
-            .eq("report_date", d)
-            .limit(2000);
+          var q = sb.from("fg_korlap_reports").select("*").eq("report_date", d).limit(2000);
+          if (shiftFilter) q = q.eq("shift", shiftFilter);
+          var { data: fgRows, error: eFg } = await q;
           if (eFg) {
             console.warn("fg_korlap_reports", eFg);
             if ($("fgkBody")) {
-              $("fgkBody").innerHTML = '<tr><td colspan="8" class="empty">Tabel <b>fg_korlap_reports</b> belum ada. Jalankan SQL di Supabase:<br/><code style="font-size:0.72rem">create table if not exists fg_korlap_reports (<br/>id bigserial primary key,<br/>report_date date, product_id text, no_so text, order_id text,<br/>output_qty numeric default 0, unit text, kendala text, notes text,<br/>reported_by text, created_at timestamptz default now(), updated_at timestamptz<br/>);<br/>create unique index if not exists fgk_uniq on fg_korlap_reports(report_date, product_id, no_so);</code></td></tr>';
+              $("fgkBody").innerHTML = '<tr><td colspan="9" class="empty">Tabel <b>fg_korlap_reports</b> / kolom shift·bets perlu di-update. Lihat SQL di chat.</td></tr>';
             }
             fgkRows = [];
             return;
           }
           (fgRows || []).forEach(function(r) {
             var so = String(r.no_so || "").trim() || "-";
-            saved[String(r.product_id || "") + "||" + so] = r;
+            var sh = String(r.shift || "1");
+            var key = String(r.product_id || "") + "||" + so + "||" + sh;
+            saved[key] = r;
+            // juga key tanpa shift untuk data lama
+            var keyOld = String(r.product_id || "") + "||" + so + "||1";
+            if (!r.shift && !saved[keyOld]) saved[keyOld] = r;
           });
-        } catch (e2) {
-          console.warn(e2);
-        }
+        } catch (eS) { console.warn(eS); }
         fgkRows = Object.keys(groups).map(function(k) {
           var g = groups[k];
-          var s = saved[k] || {};
+          var s = saved[k] || null;
+          var bets = [];
+          if (s && s.bets) {
+            try { bets = typeof s.bets === "string" ? JSON.parse(s.bets) : (s.bets || []); } catch (e) { bets = []; }
+          }
+          var out = 0;
+          if (bets.length) {
+            bets.forEach(function(b) { out += Number(b.qty) || 0; });
+          } else if (s) {
+            out = Number(s.output_qty) || 0;
+            if (out > 0) bets = [{ bet_no: 1, qty: out, notes: "" }];
+          }
           return {
             key: k,
             product_id: g.product_id,
             no_so: g.no_so,
             order_id: g.order_id,
+            shift: g.shift,
             plan_qty: g.plan_qty,
             op_qty: g.op_qty,
-            unit: g.unit || s.unit || "pcs",
-            output_qty: s.output_qty != null ? Number(s.output_qty) : "",
-            kendala: s.kendala || "",
-            notes: s.notes || "",
-            saved_id: s.id || null
+            unit: g.unit,
+            korlap_qty: out,
+            bets: bets,
+            kendala: s ? (s.kendala || "") : "",
+            notes: s ? (s.notes || "") : "",
+            reported_by: s ? (s.reported_by || "") : "",
+            has_korlap: !!(s && (out > 0 || (s.output_qty != null && s.output_qty !== "")))
           };
         }).sort(function(a, b) {
-          return String(a.product_id).localeCompare(String(b.product_id)) || String(a.no_so).localeCompare(String(b.no_so));
+          return String(a.product_id).localeCompare(String(b.product_id)) || String(a.shift).localeCompare(String(b.shift));
         });
         renderFgKorlap();
       } catch (e) {
         console.warn(e);
-        if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="8" class="empty">' + esc(e.message || e) + "</td></tr>";
-        toast(e.message || "Gagal muat FG Korlap", true);
+        if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="9" class="empty">' + esc(e.message || e) + "</td></tr>";
       }
     }
     function renderFgKorlap() {
+      var body = $("fgkBody");
+      var cards = $("fgkCards");
       var q = (($("fgkSearch") && $("fgkSearch").value) || "").toLowerCase().trim();
       var list = (fgkRows || []).filter(function(r) {
         if (!q) return true;
-        var blob = [r.product_id, productLabel(r.product_id), r.no_so, r.order_id].join(" ").toLowerCase();
-        return blob.indexOf(q) >= 0;
+        return (r.product_id + " " + productLabel(r.product_id) + " " + (r.no_so || "") + " " + r.shift).toLowerCase().indexOf(q) >= 0;
       });
-      var sumOp = 0, sumKl = 0, nDone = 0, nPend = 0;
+      var nKl = 0, nPend = 0, sumOp = 0;
       list.forEach(function(r) {
         sumOp += Number(r.op_qty) || 0;
-        var filled = r.output_qty !== "" && r.output_qty != null;
-        if (filled) { sumKl += Number(r.output_qty) || 0; nDone++; }
-        else nPend++;
+        if (r.has_korlap) nKl++; else nPend++;
       });
       if ($("fgkKpiRows")) $("fgkKpiRows").textContent = formatNum(list.length);
       if ($("fgkKpiOp")) $("fgkKpiOp").textContent = formatNum(sumOp);
-      if ($("fgkKpiKl")) $("fgkKpiKl").textContent = formatNum(nDone);
+      if ($("fgkKpiKl")) $("fgkKpiKl").textContent = formatNum(nKl);
       if ($("fgkKpiPending")) $("fgkKpiPending").textContent = formatNum(nPend);
-      var body = $("fgkBody");
-      var cards = $("fgkCards");
       if (!list.length) {
-        if (body) body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada plan packing masterbox di tanggal ini</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada plan packing masterbox di filter ini</td></tr>';
         if (cards) cards.innerHTML = '<div class="m-card"><div class="m-sub">Tidak ada data</div></div>';
         return;
       }
-      function rowHtml(r) {
-        var filled = r.output_qty !== "" && r.output_qty != null;
-        var kl = filled ? Number(r.output_qty) : null;
-        var diff = kl == null ? null : (Number(r.op_qty) || 0) - kl;
-        var diffHtml = diff == null ? "—" : ('<span style="font-weight:700;color:' + (Math.abs(diff) < 0.5 ? "#059669" : "#b91c1c") + '">' + formatNum(diff) + "</span>");
-        var st = filled
-          ? '<span class="pill" style="background:#d1fae5;color:#065f46">Sudah</span>'
-          : '<span class="pill" style="background:#ffedd5;color:#9a3412">Belum</span>';
-        var btn = filled ? "Edit" : "Lapor";
-        var btnCls = filled ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm";
-        return {
-          tr: "<tr style='cursor:pointer' data-fgk='" + esc(r.key) + "'>" +
-            "<td><strong>" + esc(productLabel(r.product_id)) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(r.product_id) + "</div></td>" +
-            "<td class='mono'>" + esc(r.no_so || "—") + "</td>" +
-            '<td style="text-align:right">' + formatNum(r.plan_qty) + "</td>" +
-            '<td style="text-align:right"><strong>' + formatNum(r.op_qty) + "</strong></td>" +
-            '<td style="text-align:right"><strong>' + (filled ? formatNum(kl) : "—") + "</strong></td>" +
-            '<td style="text-align:right">' + diffHtml + "</td>" +
-            "<td>" + st + "</td>" +
-            "<td><button type='button' class='" + btnCls + "' data-fgk-btn='" + esc(r.key) + "'>" + btn + "</button></td>" +
-            "</tr>",
-          card: '<div class="op-plan-card' + (filled ? " opc-done" : "") + '" data-fgk="' + esc(r.key) + '">' +
-            '<div class="opc-top"><div><div class="opc-prod">' + esc(productLabel(r.product_id)) + "</div>" +
-            '<div class="opc-meta">' + esc(r.product_id) + (r.no_so ? " · SO " + esc(r.no_so) : "") + "</div></div>" + st + "</div>" +
-            '<div class="opc-row"><span>Plan <strong>' + formatNum(r.plan_qty) + "</strong></span>" +
-            "<span>OP <strong>" + formatNum(r.op_qty) + "</strong></span>" +
-            "<span>Korlap <strong>" + (filled ? formatNum(kl) : "—") + "</strong></span></div>" +
-            '<button type="button" class="btn ' + (filled ? "btn-ghost" : "btn-primary") + ' opc-btn" data-fgk-btn="' + esc(r.key) + '">' + btn + "</button></div>"
-        };
+      function statusHtml(r) {
+        if (!r.has_korlap) return '<span class="pill" style="background:#ffedd5;color:#9a3412">Belum</span>';
+        var diff = (Number(r.korlap_qty) || 0) - (Number(r.op_qty) || 0);
+        if (Math.abs(diff) < 0.0001) return '<span class="pill" style="background:#d1fae5;color:#065f46">Cocok</span>';
+        return '<span class="pill" style="background:#fee2e2;color:#991b1b">Selisih</span>';
       }
       if (body) {
-        body.innerHTML = list.map(function(r) { return rowHtml(r).tr; }).join("");
+        body.innerHTML = list.map(function(r) {
+          var diff = (Number(r.korlap_qty) || 0) - (Number(r.op_qty) || 0);
+          var nBet = (r.bets || []).length;
+          return '<tr style="cursor:pointer" data-fgk="' + esc(r.key) + '">' +
+            "<td><strong>" + esc(productLabel(r.product_id) || r.product_id) + "</strong></td>" +
+            "<td>" + esc(r.no_so || "—") + "</td>" +
+            "<td>Shift " + esc(r.shift) + "</td>" +
+            '<td style="text-align:right">' + formatNum(r.plan_qty) + "</td>" +
+            '<td style="text-align:right">' + formatNum(r.op_qty) + "</td>" +
+            '<td style="text-align:right"><strong>' + (r.has_korlap ? formatNum(r.korlap_qty) : "—") + "</strong>" +
+              (nBet > 1 ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + nBet + " bet</div>" : "") + "</td>" +
+            '<td style="text-align:right">' + (r.has_korlap ? formatNum(diff) : "—") + "</td>" +
+            "<td>" + statusHtml(r) + "</td>" +
+            '<td><button type="button" class="btn btn-sm btn-primary" data-fgk-btn="' + esc(r.key) + '">' + (r.has_korlap ? "Edit" : "Lapor") + "</button></td></tr>";
+        }).join("");
         body.querySelectorAll("tr[data-fgk]").forEach(function(tr) {
-          tr.onclick = function(e) {
-            if (e.target && e.target.closest && e.target.closest("button")) return;
+          tr.onclick = function(ev) {
+            if (ev.target && ev.target.closest && ev.target.closest("button")) return;
             openFgkModal(tr.getAttribute("data-fgk"));
           };
         });
         body.querySelectorAll("[data-fgk-btn]").forEach(function(btn) {
-          btn.onclick = function(e) {
-            e.stopPropagation();
+          btn.onclick = function(ev) {
+            ev.stopPropagation();
             openFgkModal(btn.getAttribute("data-fgk-btn"));
           };
         });
       }
       if (cards) {
-        cards.innerHTML = list.map(function(r) { return rowHtml(r).card; }).join("");
+        cards.innerHTML = list.map(function(r) {
+          return '<div class="m-card" style="cursor:pointer" data-fgk="' + esc(r.key) + '">' +
+            '<div class="m-title">' + esc(productLabel(r.product_id) || r.product_id) + "</div>" +
+            '<div class="m-sub">' + esc(r.no_so || "—") + " · Shift " + esc(r.shift) + "</div>" +
+            '<div class="m-row">OP <b>' + formatNum(r.op_qty) + "</b> · Korlap <b>" + (r.has_korlap ? formatNum(r.korlap_qty) : "—") + "</b></div>" +
+            statusHtml(r) + "</div>";
+        }).join("");
         cards.querySelectorAll("[data-fgk]").forEach(function(el) {
-          el.onclick = function(e) {
-            if (e.target && e.target.closest && e.target.closest("button")) return;
-            openFgkModal(el.getAttribute("data-fgk"));
-          };
-        });
-        cards.querySelectorAll("[data-fgk-btn]").forEach(function(btn) {
-          btn.onclick = function(e) {
-            e.stopPropagation();
-            openFgkModal(btn.getAttribute("data-fgk-btn"));
-          };
+          el.onclick = function() { openFgkModal(el.getAttribute("data-fgk")); };
         });
       }
+    }
+    function fgkSumBets() {
+      var total = 0;
+      document.querySelectorAll("#fgkBets .fgk-bet-qty").forEach(function(inp) {
+        total += parseFloat(inp.value) || 0;
+      });
+      if ($("fgkMTotal")) $("fgkMTotal").textContent = formatNum(total);
+      var op = parseFloat(($("fgkMOp") && $("fgkMOp").textContent.replace(/\./g, "").replace(",", ".")) || "0") || 0;
+      // better: from current row
+      var key = ($("fgkModalKey") && $("fgkModalKey").value) || "";
+      var r = (fgkRows || []).find(function(x) { return x.key === key; });
+      if (r && $("fgkMDiff")) {
+        var diff = total - (Number(r.op_qty) || 0);
+        $("fgkMDiff").textContent = formatNum(diff);
+        $("fgkMDiff").style.color = Math.abs(diff) < 0.0001 ? "#047857" : (diff < 0 ? "#b91c1c" : "#b45309");
+      }
+      return total;
+    }
+    function fgkAddBet(qty, notes) {
+      var box = $("fgkBets");
+      if (!box) return;
+      var n = box.querySelectorAll(".fgk-bet").length + 1;
+      var div = document.createElement("div");
+      div.className = "fgk-bet";
+      div.style.cssText = "display:grid;grid-template-columns:3.2rem 1fr auto;gap:0.4rem;align-items:center;padding:0.45rem 0.5rem;border:1px solid var(--border);border-radius:12px;background:#fff";
+      div.innerHTML =
+        '<div style="font-size:0.78rem;font-weight:600;color:var(--text-muted)">Bet ' + n + "</div>" +
+        '<input type="number" step="any" min="0" class="fgk-bet-qty" placeholder="Qty" value="' + (qty != null && qty !== "" ? qty : "") + '" style="font-weight:600" />' +
+        '<button type="button" class="btn btn-ghost btn-sm fgk-bet-del" title="Hapus">✕</button>' +
+        '<input type="text" class="fgk-bet-note" placeholder="Catatan bet (opsional)" value="' + esc(notes || "") + '" style="grid-column:1/-1;font-size:0.8rem" />';
+      box.appendChild(div);
+      var qtyInp = div.querySelector(".fgk-bet-qty");
+      if (qtyInp) qtyInp.addEventListener("input", fgkSumBets);
+      div.querySelector(".fgk-bet-del").onclick = function() {
+        if (box.querySelectorAll(".fgk-bet").length <= 1) {
+          qtyInp.value = "";
+          fgkSumBets();
+          return;
+        }
+        div.remove();
+        // renumber
+        box.querySelectorAll(".fgk-bet").forEach(function(el, i) {
+          var lab = el.querySelector("div");
+          if (lab) lab.textContent = "Bet " + (i + 1);
+        });
+        fgkSumBets();
+      };
+      fgkSumBets();
     }
     function openFgkModal(key) {
       var r = (fgkRows || []).find(function(x) { return x.key === key; });
       if (!r) return toast("Data tidak ditemukan", true);
       if ($("fgkModalKey")) $("fgkModalKey").value = key;
-      if ($("fgkModalTitle")) $("fgkModalTitle").textContent =
-        (r.output_qty !== "" && r.output_qty != null) ? "Edit laporan FG Korlap" : "Laporan FG Korlap";
-      if ($("fgkModalSub")) $("fgkModalSub").textContent =
-        productLabel(r.product_id) + " · " + (r.no_so ? ("SO " + r.no_so) : "Tanpa SO") +
-        " · " + (($("fgkDate") && $("fgkDate").value) || todayStr());
+      if ($("fgkModalTitle")) $("fgkModalTitle").textContent = "FG Korlap · Shift " + r.shift;
+      if ($("fgkModalSub")) $("fgkModalSub").textContent = (productLabel(r.product_id) || r.product_id) + (r.no_so ? " · " + r.no_so : "");
       if ($("fgkMPlan")) $("fgkMPlan").textContent = formatNum(r.plan_qty);
       if ($("fgkMOp")) $("fgkMOp").textContent = formatNum(r.op_qty);
-      var filled = r.output_qty !== "" && r.output_qty != null;
-      if ($("fgkMOut")) $("fgkMOut").value = filled ? r.output_qty : "";
       if ($("fgkMKen")) $("fgkMKen").value = r.kendala || "";
       if ($("fgkMNote")) $("fgkMNote").value = r.notes || "";
-      function updDiff() {
-        var v = parseFloat(($("fgkMOut") && $("fgkMOut").value) || "");
-        var el = $("fgkMDiff");
-        if (!el) return;
-        if (isNaN(v)) { el.textContent = "—"; el.style.color = ""; return; }
-        var d = (Number(r.op_qty) || 0) - v;
-        el.textContent = formatNum(d);
-        el.style.color = Math.abs(d) < 0.5 ? "#059669" : "#b91c1c";
-      }
-      if ($("fgkMOut")) {
-        $("fgkMOut").oninput = updDiff;
-        $("fgkMOut").onchange = updDiff;
-      }
-      updDiff();
-      var modal = $("fgkModal");
-      if (modal) {
-        modal.classList.add("show");
+      var box = $("fgkBets");
+      if (box) box.innerHTML = "";
+      var bets = (r.bets && r.bets.length) ? r.bets : [{ bet_no: 1, qty: r.korlap_qty || "", notes: "" }];
+      bets.forEach(function(b) { fgkAddBet(b.qty, b.notes); });
+      fgkSumBets();
+      if ($("fgkModal")) {
+        $("fgkModal").classList.add("show");
         document.body.classList.add("modal-open");
       }
-      setTimeout(function() { try { $("fgkMOut").focus(); } catch (e) {} }, 50);
     }
     function closeFgkModal() {
-      var modal = $("fgkModal");
-      if (modal) modal.classList.remove("show");
+      if ($("fgkModal")) $("fgkModal").classList.remove("show");
       document.body.classList.remove("modal-open");
     }
     async function saveFgkModal() {
@@ -23787,10 +23837,19 @@ var id = await newPickId();
       var key = ($("fgkModalKey") && $("fgkModalKey").value) || "";
       var r = (fgkRows || []).find(function(x) { return x.key === key; });
       if (!r) return toast("Data tidak ditemukan", true);
-      var raw = (($("fgkMOut") && $("fgkMOut").value) || "").trim();
-      if (raw === "") return toast("Isi output korlap", true);
-      var out = parseFloat(raw);
-      if (isNaN(out) || out < 0) return toast("Output tidak valid", true);
+      var bets = [];
+      document.querySelectorAll("#fgkBets .fgk-bet").forEach(function(el, i) {
+        var qty = parseFloat((el.querySelector(".fgk-bet-qty") && el.querySelector(".fgk-bet-qty").value) || "");
+        var note = (el.querySelector(".fgk-bet-note") && el.querySelector(".fgk-bet-note").value) || "";
+        if (!isNaN(qty) && qty >= 0) {
+          bets.push({ bet_no: i + 1, qty: qty, notes: note });
+        }
+      });
+      if (!bets.length) return toast("Isi minimal 1 bet", true);
+      var total = bets.reduce(function(s, b) { return s + (Number(b.qty) || 0); }, 0);
+      if (!(total > 0) && bets.every(function(b) { return !(Number(b.qty) > 0); })) {
+        return toast("Total bet masih 0", true);
+      }
       var d = ($("fgkDate") && $("fgkDate").value) || todayStr();
       var email = (currentUser && currentUser.email) || "";
       var payload = {
@@ -23798,30 +23857,74 @@ var id = await newPickId();
         product_id: r.product_id,
         no_so: r.no_so || "",
         order_id: r.order_id || "",
-        output_qty: out,
+        shift: String(r.shift || "1"),
+        output_qty: total,
+        bets: bets,
         unit: r.unit || "pcs",
         kendala: (($("fgkMKen") && $("fgkMKen").value) || "").trim(),
         notes: (($("fgkMNote") && $("fgkMNote").value) || "").trim(),
         reported_by: email,
         updated_at: new Date().toISOString()
       };
-      var { error } = await sb.from("fg_korlap_reports").upsert(payload, { onConflict: "report_date,product_id,no_so" });
+      // try upsert with shift
+      var { error } = await sb.from("fg_korlap_reports").upsert(payload, { onConflict: "report_date,product_id,no_so,shift" });
       if (error) {
-        var q = await sb.from("fg_korlap_reports").select("id").eq("report_date", d).eq("product_id", r.product_id).eq("no_so", r.no_so || "").limit(1);
-        if (q.data && q.data[0]) {
-          var u = await sb.from("fg_korlap_reports").update(payload).eq("id", q.data[0].id);
-          if (u.error) return toast(u.error.message, true);
+        // fallback: find existing by date+product+so+shift
+        var q = await sb.from("fg_korlap_reports").select("id")
+          .eq("report_date", d).eq("product_id", r.product_id).eq("no_so", r.no_so || "").eq("shift", String(r.shift || "1")).limit(1);
+        if (q.error && /shift|column/i.test(String(q.error.message || ""))) {
+          // old schema without shift/bets
+          var payloadOld = {
+            report_date: d,
+            product_id: r.product_id,
+            no_so: r.no_so || "",
+            order_id: r.order_id || "",
+            output_qty: total,
+            unit: r.unit || "pcs",
+            kendala: payload.kendala,
+            notes: payload.notes + (bets.length ? " · bets: " + bets.map(function(b) { return b.qty; }).join("+") : ""),
+            reported_by: email,
+            updated_at: payload.updated_at
+          };
+          var q2 = await sb.from("fg_korlap_reports").select("id").eq("report_date", d).eq("product_id", r.product_id).eq("no_so", r.no_so || "").limit(1);
+          if (q2.data && q2.data[0]) {
+            var u = await sb.from("fg_korlap_reports").update(payloadOld).eq("id", q2.data[0].id);
+            if (u.error) return toast(u.error.message, true);
+          } else {
+            payloadOld.created_at = new Date().toISOString();
+            var ins = await sb.from("fg_korlap_reports").insert(payloadOld);
+            if (ins.error) return toast(ins.error.message + " — jalankan SQL kolom shift & bets", true);
+          }
+        } else if (q.data && q.data[0]) {
+          var u2 = await sb.from("fg_korlap_reports").update(payload).eq("id", q.data[0].id);
+          if (u2.error) {
+            // try without bets jsonb
+            delete payload.bets;
+            u2 = await sb.from("fg_korlap_reports").update(payload).eq("id", q.data[0].id);
+            if (u2.error) return toast(u2.error.message, true);
+          }
         } else {
           payload.created_at = new Date().toISOString();
-          var ins = await sb.from("fg_korlap_reports").insert(payload);
-          if (ins.error) return toast(ins.error.message, true);
+          var ins2 = await sb.from("fg_korlap_reports").insert(payload);
+          if (ins2.error) {
+            delete payload.bets;
+            ins2 = await sb.from("fg_korlap_reports").insert(payload);
+            if (ins2.error) return toast(ins2.error.message, true);
+          }
         }
       }
-      toast("Laporan FG Korlap disimpan");
+      try {
+        await writeAudit({
+          module: "report",
+          action: "fg_korlap",
+          ref_id: r.product_id + " S" + r.shift,
+          summary: "FG Korlap " + r.product_id + " shift " + r.shift + " · " + bets.length + " bet · total " + total
+        });
+      } catch (eA) {}
+      toast("Disimpan · " + bets.length + " bet · total " + formatNum(total));
       closeFgkModal();
       await loadFgKorlap();
     }
-
 
     // ===== Audit log =====
     var auditLogRows = [];
