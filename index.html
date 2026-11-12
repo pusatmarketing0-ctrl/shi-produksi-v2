@@ -12977,19 +12977,68 @@ function fillOperatorList(selectedEmail) {
         if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada laporan FG kemarin</td></tr>';
         return;
       }
+      // Instruksi kirim aktif per produk
+      var shippedMap = {};
+      try {
+        var pids = list.map(function(x) { return x.product_id; });
+        var { data: ships } = await sb.from("ship_requests")
+          .select("ship_id,status,no_so,created_at")
+          .not("status", "in", '("cancelled","done","shipped","closed")')
+          .order("created_at", { ascending: false })
+          .limit(300);
+        var shipMeta = {};
+        (ships || []).forEach(function(s) { shipMeta[s.ship_id] = s; });
+        var shipIds = (ships || []).map(function(s) { return s.ship_id; });
+        if (shipIds.length) {
+          for (var si = 0; si < shipIds.length; si += 80) {
+            var sch = shipIds.slice(si, si + 80);
+            var { data: slines } = await sb.from("ship_request_lines")
+              .select("ship_id,product_id,qty")
+              .in("ship_id", sch);
+            (slines || []).forEach(function(L) {
+              if (pids.indexOf(L.product_id) < 0) return;
+              if (!shippedMap[L.product_id]) {
+                var meta = shipMeta[L.ship_id] || {};
+                shippedMap[L.product_id] = {
+                  ship_id: L.ship_id,
+                  status: meta.status || "requested",
+                  no_so: meta.no_so || "",
+                  qty: Number(L.qty) || 0
+                };
+              }
+            });
+          }
+        }
+      } catch (eSh) { console.warn("shippedMap", eSh); }
+      function shipStatusLabel(st) {
+        var m = { requested: "Diminta", picked: "Diambil gudang", partial: "Parsial", prepared: "Siap", handover: "Serah terima", done: "Selesai" };
+        return m[st] || st || "Instruksi";
+      }
       if (body) body.innerHTML = list.map(function(x) {
         var nosArr = Object.keys(x.nos || {});
         var nos = nosArr.join(", ") || "—";
         var nos0 = nosArr[0] || "";
         var st = stockMap[x.product_id];
+        var sh = shippedMap[x.product_id];
+        var actionHtml = "";
+        if (sh) {
+          actionHtml =
+            '<span class="pill" style="background:#d1fae5;color:#065f46">' + esc(shipStatusLabel(sh.status)) + "</span>" +
+            '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">' + esc(sh.ship_id) + "</div>" +
+            '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem" onclick="openShipDetail(' + JSON.stringify(sh.ship_id) + ')">Detail</button>';
+        } else {
+          actionHtml =
+            '<button type="button" class="btn btn-primary btn-sm" onclick=\'openShipRequestModal(' +
+            JSON.stringify(String(x.product_id)) + "," + Number(x.actual) + "," + JSON.stringify(nos0) + ")\'>Kirim</button>";
+        }
         return "<tr>" +
-          '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" data-noso="' + esc(nos0) + '" /></td>' +
+          '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" data-noso="' + esc(nos0) + '"' +
+            (sh ? " disabled" : "") + " /></td>" +
           "<td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(productNameOnly(x.product_id) || "") + "</div></td>" +
           "<td><strong>" + formatNum(x.actual) + "</strong></td>" +
           "<td style='font-size:0.78rem'>" + esc(nos) + "</td>" +
           "<td>" + (st != null ? formatNum(st) : "—") + "</td>" +
-          '<td><button type="button" class="btn btn-primary btn-sm" onclick=\'openShipRequestModal(' +
-            JSON.stringify(String(x.product_id)) + "," + Number(x.actual) + "," + JSON.stringify(nos0) + ")\'>Kirim</button></td></tr>";
+          "<td>" + actionHtml + "</td></tr>";
       }).join("");
     }
 
@@ -13533,6 +13582,8 @@ function fillOperatorList(selectedEmail) {
       toast("Instruksi kirim " + ship_id + " dikirim ke gudang");
       closeShipRequestModal();
       try { loadShipRequests(); } catch (e) {}
+      try { loadMktYesterdayFg(); } catch (eY) {}
+      try { loadMktFgStock(); } catch (eS2) {}
       try { setMktTab("kirim"); } catch (e3) {}
     }
 
