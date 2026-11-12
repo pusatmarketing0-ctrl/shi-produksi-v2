@@ -5046,10 +5046,11 @@
 
         
                 <section id="page-operasional" class="page" hidden>
-          <div class="page-head">
+          <div class="ops-dash" id="opsDash"></div>
+          <div class="page-head" style="margin-top:0.75rem">
             <div>
               <h1>Plan Operasional</h1>
-              <p>Ringkasan harian di atas tanggal · kolom kiri beku · klik sel Plan untuk edit.</p>
+              <p>Kontrol grid · kolom kiri beku · klik sel Plan untuk edit.</p>
             </div>
             <div class="ops-toolbar">
               <div class="ops-month-nav">
@@ -5069,7 +5070,6 @@
               <button class="btn btn-primary btn-sm" type="button" onclick="loadOperasional()">Refresh</button>
             </div>
           </div>
-          <div class="ops-dash" id="opsDash"></div>
           <p class="ops-hint">Actual = qty packing masterbox (FG). Primer = % proses sudah laporan. Drag sel Plan ke tanggal lain untuk pindah jadwal · Weekend merah muda · Hari ini hijau · Sel Plan bisa diklik untuk edit</p>
           <div class="ops-wrap" id="opsGridWrap">
             <div class="empty" id="opsEmpty">Memuat grid…</div>
