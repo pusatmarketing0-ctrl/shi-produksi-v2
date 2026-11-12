@@ -4729,14 +4729,16 @@
                     <th>Proses</th>
                     <th>No SO</th>
                     <th style="text-align:right">Target</th>
+                    <th style="text-align:right">Target adj</th>
                     <th style="text-align:right">Actual</th>
+                    <th style="text-align:right">%</th>
                     <th>Kendala</th>
                     <th>Operator</th>
                     <th>Status</th>
                     <th></th>
                   </tr>
                 </thead>
-                <tbody id="reportUnifiedBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
+                <tbody id="reportUnifiedBody"><tr><td colspan="12" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
             <div id="reportUnifiedPager" class="pg-bar"></div>
@@ -11576,11 +11578,16 @@ function fillOperatorList(selectedEmail) {
         var rep = byPlan[p.plan_id] || null;
         var ken = reportKendalaChips(rep);
         var actual = rep ? (Number(rep.actual_qty) || 0) : 0;
+        var targetAdj = 0;
+        if (rep) {
+          try { targetAdj = reportEffectiveTarget(rep, reportPlanMap); } catch (eA) { targetAdj = Number(rep.target_adj) || Number(p.target_qty) || 0; }
+        }
         var row = {
           plan: p,
           report: rep,
           hasReport: !!rep,
           actual: actual,
+          targetAdj: targetAdj,
           ken: ken,
           isFg: false
         };
@@ -11634,7 +11641,7 @@ function fillOperatorList(selectedEmail) {
       var body = $("reportUnifiedBody");
       var cards = $("reportUnifiedCards");
       if (!rows.length) {
-        if (body) body.innerHTML = '<tr><td colspan="10" class="empty">Tidak ada data di filter ini</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="12" class="empty">Tidak ada data di filter ini</td></tr>';
         if (cards) cards.innerHTML = '<div class="m-card"><div class="m-sub">Tidak ada data</div></div>';
         try { pageOf("reportsUnified", [], "reportUnifiedPager"); } catch (e) {}
         return;
@@ -11649,13 +11656,21 @@ function fillOperatorList(selectedEmail) {
             : '<span class="pill" style="background:#ffedd5;color:#9a3412">Belum</span>';
           var btnLabel = r.hasReport ? "Edit" : "Lapor";
           var btnCls = r.hasReport ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm";
+          var tgt = Number(p.target_qty) || 0;
+          var adj = r.hasReport ? (Number(r.targetAdj) || tgt) : tgt;
+          if (!(adj > 0)) adj = tgt;
+          var actN = r.hasReport ? (Number(r.actual) || 0) : 0;
+          var pct = (r.hasReport && adj > 0) ? Math.round((actN / adj) * 100) : null;
+          var pctColor = pct == null ? "var(--text-muted)" : (pct >= 100 ? "#047857" : (pct >= 80 ? "#b45309" : "#b91c1c"));
           return "<tr>" +
             "<td>" + esc(p.shift || "—") + "</td>" +
             "<td><strong>" + esc(productLabel(p.product_id)) + "</strong></td>" +
             "<td>" + esc(machineLabel(p.machine_id)) + "</td>" +
             "<td>" + esc(p.no_so || p.order_id || "—") + "</td>" +
-            '<td style="text-align:right">' + formatNum(p.target_qty) + (p.unit ? " " + esc(p.unit) : "") + "</td>" +
-            '<td style="text-align:right"><strong>' + (r.hasReport ? formatNum(r.actual) : "—") + "</strong></td>" +
+            '<td style="text-align:right">' + formatNum(tgt) + (p.unit ? " " + esc(p.unit) : "") + "</td>" +
+            '<td style="text-align:right">' + (r.hasReport ? ("<strong>" + formatNum(adj) + "</strong>") : "—") + "</td>" +
+            '<td style="text-align:right"><strong>' + (r.hasReport ? formatNum(actN) : "—") + "</strong></td>" +
+            '<td style="text-align:right;font-weight:700;color:' + pctColor + '">' + (pct != null ? (pct + "%") : "—") + "</td>" +
             "<td>" + r.ken.html + "</td>" +
             "<td style='font-size:0.8rem'>" + esc(operatorDisplayName(p.assigned_operator || (r.report && r.report.reported_by) || "")) + "</td>" +
             "<td>" + st + "</td>" +
@@ -11677,7 +11692,12 @@ function fillOperatorList(selectedEmail) {
             ((p.no_so || p.order_id) ? " · SO " + esc(p.no_so || p.order_id) : "") +
             "</div></div><span class=\"opc-shift\">Shift " + esc(String(p.shift || "")) + "</span></div>" +
             '<div class="opc-row"><span>Target <strong>' + formatNum(p.target_qty) + "</strong></span>" +
-            "<span>Actual <strong>" + (r.hasReport ? formatNum(r.actual) : "—") + "</strong></span></div>" +
+            (r.hasReport ? "<span>Adj <strong>" + formatNum(r.targetAdj || p.target_qty) + "</strong></span>" : "") +
+            "<span>Actual <strong>" + (r.hasReport ? formatNum(r.actual) : "—") + "</strong></span>" +
+            (r.hasReport && (Number(r.targetAdj) || Number(p.target_qty)) > 0
+              ? "<span>% <strong>" + Math.round((Number(r.actual)||0) / (Number(r.targetAdj) || Number(p.target_qty)) * 100) + "%</strong></span>"
+              : "") +
+            "</div>" +
             '<div style="margin:0.35rem 0">' + r.ken.html + "</div>" +
             '<button type="button" class="btn ' + (r.hasReport ? "btn-ghost" : "btn-primary") + ' opc-btn" data-upid="' + encodeURIComponent(p.plan_id) + '">' +
             (r.hasReport ? "Edit laporan" : "Isi laporan") + "</button></div>";
@@ -11891,6 +11911,32 @@ function fillOperatorList(selectedEmail) {
         actual_qty = convertQtyUnit(actual_qty, inputUnit, planUnitSave);
         ng_qty = convertQtyUnit(ng_qty, inputUnit, planUnitSave);
       }
+      // pastikan isi form material/waktu ikut meski belum klik "Simpan kendala"
+      try {
+        var catLive = (($("rpKendalaCat") && $("rpKendalaCat").value) || ($("rpDtCategory") && $("rpDtCategory").value) || "").trim();
+        if (catLive === "Material") {
+          var mq = parseInputNum(($("rpMatQty") && $("rpMatQty").value) || 0);
+          if (mq > 0) {
+            if ($("rpMatQtyStore")) $("rpMatQtyStore").value = String(mq);
+            if ($("rpMatUnitStore")) $("rpMatUnitStore").value = (($("rpMatUnit") && $("rpMatUnit").value) || "pcs");
+            if ($("rpDtCategory")) $("rpDtCategory").value = "Material";
+          }
+        } else if (catLive === "Machine" || catLive === "Man Power" || catLive === "Metode") {
+          var mn = parseInputNum(($("rpKendalaMin") && $("rpKendalaMin").value) || 0);
+          if (mn > 0) {
+            if (catLive === "Machine" && $("rpDtMachine")) $("rpDtMachine").value = String(mn);
+            if (catLive === "Man Power" && $("rpDtMan")) $("rpDtMan").value = String(mn);
+            if (catLive === "Metode" && $("rpDtMethod")) $("rpDtMethod").value = String(mn);
+            if ($("rpDtCategory")) $("rpDtCategory").value = catLive;
+            var sumDt = (parseInputNum(($("rpDtMachine")&&$("rpDtMachine").value)||0)
+              + parseInputNum(($("rpDtMan")&&$("rpDtMan").value)||0)
+              + parseInputNum(($("rpDtMethod")&&$("rpDtMethod").value)||0));
+            if ($("rpDt")) $("rpDt").value = String(sumDt);
+          }
+        } else if (catLive === "Plan") {
+          if ($("rpDtCategory")) $("rpDtCategory").value = "Plan";
+        }
+      } catch (eSync) {}
       const k = buildKendalaPayload();
       const downtime_min = k.downtime_min;
       const downtime_reason = k.downtime_reason;
@@ -11952,6 +11998,34 @@ function fillOperatorList(selectedEmail) {
         } catch (e) {}
       }
       toast(report_id ? "Laporan diperbarui" : "Laporan disimpan");
+      // Kendala Plan → auto minta revisi ke admin/PPIC
+      try {
+        var catKen = String((k && k.category) || "").toLowerCase();
+        if (catKen.indexOf("plan") >= 0 && plan_id) {
+          var noteAuto = "[dari laporan] " + ((k.detail || "").trim() || "Kendala Plan — minta revisi target");
+          if ($("revRequestPlanId")) $("revRequestPlanId").value = plan_id;
+          if ($("revRequestNote")) $("revRequestNote").value = noteAuto;
+          try {
+            await requestPlanRevision();
+          } catch (eRev) {
+            console.warn("auto revisi", eRev);
+            try {
+              await sb.from("plan_revision_requests").insert({
+                plan_id: plan_id,
+                product_id: (plan && plan.product_id) || "",
+                machine_id: (plan && plan.machine_id) || "",
+                plan_date: (plan && plan.plan_date) || null,
+                target_qty: planTarget,
+                note: noteAuto,
+                status: "requested",
+                requested_by: reported_by,
+                created_at: new Date().toISOString()
+              });
+              toast("Revisi plan otomatis diajukan");
+            } catch (e2) { console.warn(e2); }
+          }
+        }
+      } catch (eAuto) { console.warn(eAuto); }
       try { await applyWipFromReport(plan, report_id, actual_qty); } catch (eW) {}
       try {
         // pastikan master proses sudah ada (deteksi FG)
@@ -12638,11 +12712,22 @@ function fillOperatorList(selectedEmail) {
       var dt = Number(r && r.downtime_min) || 0;
       var storedAdj = Number(r && r.target_adj) || 0;
       var storedT = Number(r && r.target_qty) || 0;
-      // Basis = target plan asli (bukan kapasitas)
+      var matQty = 0;
+      try {
+        var ken = typeof parseKendalaFromReport === "function" ? parseKendalaFromReport(r) : null;
+        if (ken) matQty = Number(ken.material_qty) || 0;
+      } catch (eK) {}
+      if (!(matQty > 0) && r && r.material_qty != null) matQty = Number(r.material_qty) || 0;
       var base = pt > 0 ? pt : storedT;
       if (base > 0) {
-        // Hitung ulang dari plan + downtime agar data lama yang ter-cap kapasitas ikut benar
-        return typeof calcTargetAdj === "function" ? calcTargetAdj(base, dt) : base;
+        var calc = typeof calcTargetAdj === "function" ? calcTargetAdj(base, dt, matQty) : base;
+        // utamakan storedAdj jika sudah dihitung saat simpan
+        if (storedAdj > 0 && (matQty > 0 || dt > 0)) {
+          // pakai min agar material/downtime tidak diabaikan
+          return Math.min(storedAdj, calc);
+        }
+        if (storedAdj > 0 && !(matQty > 0) && !(dt > 0)) return storedAdj;
+        return calc;
       }
       if (storedAdj > 0) return storedAdj;
       if (storedT > 0) return storedT;
@@ -13679,6 +13764,23 @@ function fillOperatorList(selectedEmail) {
       }
       return false;
     }
+
+    function opsGroupKey(productId, noSo, orderId) {
+      var pid = String(productId || "").trim();
+      var so = opsNormSo(noSo);
+      if (!so && orderId) {
+        try {
+          // orderMap may not exist in all scopes — soft resolve via allOrders
+          var ord = null;
+          if (typeof orderMap !== "undefined" && orderMap && orderMap[orderId]) ord = orderMap[orderId];
+          if (!ord && typeof allOrders !== "undefined" && allOrders) {
+            ord = (allOrders || []).find(function(o) { return String(o.order_id) === String(orderId); });
+          }
+          if (ord) so = opsNormSo(ord.no_so);
+        } catch (e) {}
+      }
+      return pid + "||" + String(so || orderId || "");
+    }
     function opsNormSo(s) {
       s = String(s || "").trim();
       if (!s) return "";
@@ -14147,13 +14249,35 @@ function fillOperatorList(selectedEmail) {
       const groups = {};
       // pastikan BOM siap untuk reverse-map giling → FG
       try { if (!window.__bomRows) { /* sync best-effort */ } } catch (eB) {}
+      function opsPlanDayStr(p) {
+        var raw = p && p.plan_date;
+        if (!raw) return "";
+        var s = String(raw).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        try {
+          // pakai tanggal kalender WIB agar tidak geser -1 hari
+          return new Date(s).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+        } catch (e) {
+          return s.slice(0, 10);
+        }
+      }
+      function opsResolveSoKey(p) {
+        var so = opsNormSo(p.no_so);
+        if (so) return so;
+        if (p.order_id && orderMap[p.order_id]) return opsNormSo(orderMap[p.order_id].no_so) || p.order_id;
+        return p.order_id || "";
+      }
       planList.forEach(p => {
         // sistem lama: plan giling bahan TIDAK jadi baris BB — ikut baris FG
         const rowPid = resolveOpsRowProductId(p);
         if (!rowPid) return; // orphan giling bahan → skip baris
-        const key = rowPid + "||" + String(opsNormSo(p.no_so) || p.order_id || "");
+        const key = rowPid + "||" + String(opsResolveSoKey(p) || "");
         if (!groups[key]) {
-          const ord = p.order_id ? orderMap[p.order_id] : null;
+          const ord = p.order_id ? orderMap[p.order_id] : (function() {
+            var so = opsNormSo(p.no_so);
+            if (!so) return null;
+            return (orders || []).find(function(o) { return opsNormSo(o.no_so) === so; }) || null;
+          })();
           let poQty = 0;
           if (ord && ord.order_lines) {
             (ord.order_lines || []).forEach(l => {
@@ -14191,9 +14315,11 @@ function fillOperatorList(selectedEmail) {
           groups[key].unit_price = resolveUnitPrice(groups[key]);
         }
         const g = groups[key];
-        const day = String(p.plan_date).slice(0, 10);
+        const day = opsPlanDayStr(p);
+        if (!day) return;
         const tqty = Number(p.target_qty) || 0;
-        const fg = isFgMachine(p.machine_id);
+        var fg = isFgMachine(p.machine_id);
+        // qty plan di grid = packing masterbox saja; proses lain = PRIMER
         if (fg) {
           g.planDay[day] = (g.planDay[day] || 0) + tqty;
         } else {
@@ -14247,13 +14373,16 @@ function fillOperatorList(selectedEmail) {
       planList.forEach(p => {
         const rowPid = resolveOpsRowProductId(p);
         if (!rowPid) return;
-        const key = rowPid + "||" + String(opsNormSo(p.no_so) || p.order_id || "");
-        const day = String(p.plan_date).slice(0, 10);
+        const key = rowPid + "||" + String(opsResolveSoKey(p) || "");
+        const day = opsPlanDayStr(p);
+        if (!day) return;
         const k2 = key + "@@" + day;
-        if (!plansByGroupDay[k2]) plansByGroupDay[k2] = { fg: 0, all: 0, primer: false };
+        if (!plansByGroupDay[k2]) plansByGroupDay[k2] = { fg: 0, all: 0, primer: false, ids: [] };
         const tqty = Number(p.target_qty) || 0;
         plansByGroupDay[k2].all += tqty;
-        if (isFgMachine(p.machine_id)) plansByGroupDay[k2].fg += tqty;
+        plansByGroupDay[k2].ids.push(p.plan_id);
+        var isFg = isFgMachine(p.machine_id);
+        if (isFg) plansByGroupDay[k2].fg += tqty;
         else plansByGroupDay[k2].primer = true;
       });
       Object.keys(groups).forEach(k => {
@@ -14261,9 +14390,12 @@ function fillOperatorList(selectedEmail) {
         g.planDay = {};
         g.planDayFg = {};
         g.primerDay = {};
+        // re-isi planIdsByDay dari rebuild
+        if (!g.planIdsByDay) g.planIdsByDay = {};
         opsDays.forEach(day => {
           const cell = plansByGroupDay[k + "@@" + day];
           if (!cell) return;
+          if (cell.ids && cell.ids.length) g.planIdsByDay[day] = cell.ids.slice();
           if (cell.fg > 0) {
             g.planDay[day] = cell.fg;
             g.planDayFg[day] = cell.fg;
@@ -14271,7 +14403,6 @@ function fillOperatorList(selectedEmail) {
             g.primerDay[day] = true;
             g.planDay[day] = null; // tampil PRIMER, bukan qty proses non-FG
           }
-          // tidak pakai cell.all (target mixing/filling) sebagai qty plan
         });
         g.plan_total = 0;
         g.plan_total_fg = 0;
@@ -14485,6 +14616,53 @@ function fillOperatorList(selectedEmail) {
         var g = groups[k];
         if (!(Number(g.unit_price) > 0)) g.unit_price = resolveUnitPrice(g);
       });
+
+
+      // Merge group duplikat: product sama + (order_id sama ATAU no_so sama)
+      (function mergeOpsGroups() {
+        var list = Object.keys(groups);
+        var used = {};
+        list.forEach(function(k) {
+          if (used[k]) return;
+          var g = groups[k];
+          list.forEach(function(k2) {
+            if (k2 === k || used[k2]) return;
+            var h = groups[k2];
+            if (String(g.product_id) !== String(h.product_id)) return;
+            var sameOrd = g.order_id && h.order_id && String(g.order_id) === String(h.order_id);
+            var sameSo = g.no_so && h.no_so && opsNormSo(g.no_so) === opsNormSo(h.no_so);
+            if (!sameOrd && !sameSo) return;
+            // merge h into g
+            ["planDay","planDayFg","primerDay","opDay","actDay","procTotalDay","procDoneDay","opSetDay","planIdsByDay"].forEach(function(mapName) {
+              if (!h[mapName]) return;
+              if (!g[mapName]) g[mapName] = {};
+              Object.keys(h[mapName]).forEach(function(d) {
+                var hv = h[mapName][d];
+                if (mapName === "planIdsByDay") {
+                  g[mapName][d] = (g[mapName][d] || []).concat(hv || []);
+                } else if (mapName === "primerDay" || mapName === "opSetDay") {
+                  if (mapName === "opSetDay") {
+                    if (!g[mapName][d]) g[mapName][d] = {};
+                    Object.keys(hv || {}).forEach(function(em) { g[mapName][d][em] = true; });
+                  } else if (hv) g[mapName][d] = true;
+                } else {
+                  g[mapName][d] = (Number(g[mapName][d]) || 0) + (Number(hv) || 0);
+                }
+              });
+            });
+            g.po_qty = Math.max(Number(g.po_qty) || 0, Number(h.po_qty) || 0);
+            g.plan_total = (Number(g.plan_total) || 0) + (Number(h.plan_total) || 0);
+            g.plan_total_fg = (Number(g.plan_total_fg) || 0) + (Number(h.plan_total_fg) || 0);
+            g._planFg = (Number(g._planFg) || 0) + (Number(h._planFg) || 0);
+            g.act_total = (Number(g.act_total) || 0) + (Number(h.act_total) || 0);
+            if (!g.customer && h.customer) g.customer = h.customer;
+            if (!g.no_so && h.no_so) g.no_so = h.no_so;
+            if (!g.order_id && h.order_id) g.order_id = h.order_id;
+            used[k2] = true;
+            delete groups[k2];
+          });
+        });
+      })();
 
       opsRows = Object.values(groups).filter(function(g) {
         if (isMaterialProductId(g.product_id) && !(g._planFg > 0)) return false;
