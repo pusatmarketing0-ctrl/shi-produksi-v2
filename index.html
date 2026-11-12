@@ -13679,6 +13679,23 @@ function fillOperatorList(selectedEmail) {
       }
       return false;
     }
+
+    function opsGroupKey(productId, noSo, orderId) {
+      var pid = String(productId || "").trim();
+      var so = opsNormSo(noSo);
+      if (!so && orderId) {
+        try {
+          // orderMap may not exist in all scopes — soft resolve via allOrders
+          var ord = null;
+          if (typeof orderMap !== "undefined" && orderMap && orderMap[orderId]) ord = orderMap[orderId];
+          if (!ord && typeof allOrders !== "undefined" && allOrders) {
+            ord = (allOrders || []).find(function(o) { return String(o.order_id) === String(orderId); });
+          }
+          if (ord) so = opsNormSo(ord.no_so);
+        } catch (e) {}
+      }
+      return pid + "||" + String(so || orderId || "");
+    }
     function opsNormSo(s) {
       s = String(s || "").trim();
       if (!s) return "";
@@ -14147,13 +14164,35 @@ function fillOperatorList(selectedEmail) {
       const groups = {};
       // pastikan BOM siap untuk reverse-map giling → FG
       try { if (!window.__bomRows) { /* sync best-effort */ } } catch (eB) {}
+      function opsPlanDayStr(p) {
+        var raw = p && p.plan_date;
+        if (!raw) return "";
+        var s = String(raw).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        try {
+          // pakai tanggal kalender WIB agar tidak geser -1 hari
+          return new Date(s).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+        } catch (e) {
+          return s.slice(0, 10);
+        }
+      }
+      function opsResolveSoKey(p) {
+        var so = opsNormSo(p.no_so);
+        if (so) return so;
+        if (p.order_id && orderMap[p.order_id]) return opsNormSo(orderMap[p.order_id].no_so) || p.order_id;
+        return p.order_id || "";
+      }
       planList.forEach(p => {
         // sistem lama: plan giling bahan TIDAK jadi baris BB — ikut baris FG
         const rowPid = resolveOpsRowProductId(p);
         if (!rowPid) return; // orphan giling bahan → skip baris
-        const key = rowPid + "||" + String(opsNormSo(p.no_so) || p.order_id || "");
+        const key = rowPid + "||" + String(opsResolveSoKey(p) || "");
         if (!groups[key]) {
-          const ord = p.order_id ? orderMap[p.order_id] : null;
+          const ord = p.order_id ? orderMap[p.order_id] : (function() {
+            var so = opsNormSo(p.no_so);
+            if (!so) return null;
+            return (orders || []).find(function(o) { return opsNormSo(o.no_so) === so; }) || null;
+          })();
           let poQty = 0;
           if (ord && ord.order_lines) {
             (ord.order_lines || []).forEach(l => {
@@ -14191,9 +14230,24 @@ function fillOperatorList(selectedEmail) {
           groups[key].unit_price = resolveUnitPrice(groups[key]);
         }
         const g = groups[key];
-        const day = String(p.plan_date).slice(0, 10);
+        const day = opsPlanDayStr(p);
+        if (!day) return;
         const tqty = Number(p.target_qty) || 0;
-        const fg = isFgMachine(p.machine_id);
+        var fg = isFgMachine(p.machine_id);
+        // fallback: produk FG* + packing / target plan → hitung sebagai FG agar tidak hilang di grid
+        if (!fg && /^FG/i.test(String(rowPid)) && !isMaterialProductId(rowPid)) {
+          var midBlob = String(p.machine_id || "").toLowerCase();
+          try {
+            var mm = (machines || []).find(function(x) { return String(x.machine_id) === String(p.machine_id); });
+            if (mm) midBlob += " " + String(mm.name || "").toLowerCase();
+          } catch (eN) {}
+          if (midBlob.indexOf("pack") >= 0 || midBlob.indexOf("master") >= 0 || midBlob.indexOf("fg") >= 0 || /^m0?6$/i.test(String(p.machine_id||""))) {
+            fg = true;
+          } else {
+            // proses apapun pada FG product: tetap tampilkan qty di plan cell (hindari kosong)
+            fg = true;
+          }
+        }
         if (fg) {
           g.planDay[day] = (g.planDay[day] || 0) + tqty;
         } else {
@@ -14247,13 +14301,17 @@ function fillOperatorList(selectedEmail) {
       planList.forEach(p => {
         const rowPid = resolveOpsRowProductId(p);
         if (!rowPid) return;
-        const key = rowPid + "||" + String(opsNormSo(p.no_so) || p.order_id || "");
-        const day = String(p.plan_date).slice(0, 10);
+        const key = rowPid + "||" + String(opsResolveSoKey(p) || "");
+        const day = opsPlanDayStr(p);
+        if (!day) return;
         const k2 = key + "@@" + day;
-        if (!plansByGroupDay[k2]) plansByGroupDay[k2] = { fg: 0, all: 0, primer: false };
+        if (!plansByGroupDay[k2]) plansByGroupDay[k2] = { fg: 0, all: 0, primer: false, ids: [] };
         const tqty = Number(p.target_qty) || 0;
         plansByGroupDay[k2].all += tqty;
-        if (isFgMachine(p.machine_id)) plansByGroupDay[k2].fg += tqty;
+        plansByGroupDay[k2].ids.push(p.plan_id);
+        var isFg = isFgMachine(p.machine_id);
+        if (!isFg && /^FG/i.test(String(rowPid)) && !isMaterialProductId(rowPid)) isFg = true;
+        if (isFg) plansByGroupDay[k2].fg += tqty;
         else plansByGroupDay[k2].primer = true;
       });
       Object.keys(groups).forEach(k => {
@@ -14261,17 +14319,26 @@ function fillOperatorList(selectedEmail) {
         g.planDay = {};
         g.planDayFg = {};
         g.primerDay = {};
+        // re-isi planIdsByDay dari rebuild
+        if (!g.planIdsByDay) g.planIdsByDay = {};
         opsDays.forEach(day => {
           const cell = plansByGroupDay[k + "@@" + day];
           if (!cell) return;
+          if (cell.ids && cell.ids.length) g.planIdsByDay[day] = cell.ids.slice();
           if (cell.fg > 0) {
             g.planDay[day] = cell.fg;
             g.planDayFg[day] = cell.fg;
+          } else if (cell.all > 0 && /^FG/i.test(String(g.product_id || ""))) {
+            // fallback: produk FG tetap tampil qty plan meski proses tidak terdeteksi FG
+            g.planDay[day] = cell.all;
+            g.planDayFg[day] = cell.all;
           } else if (cell.primer) {
             g.primerDay[day] = true;
             g.planDay[day] = null; // tampil PRIMER, bukan qty proses non-FG
+          } else if (cell.all > 0) {
+            g.planDay[day] = cell.all;
+            g.planDayFg[day] = cell.all;
           }
-          // tidak pakai cell.all (target mixing/filling) sebagai qty plan
         });
         g.plan_total = 0;
         g.plan_total_fg = 0;
@@ -14485,6 +14552,53 @@ function fillOperatorList(selectedEmail) {
         var g = groups[k];
         if (!(Number(g.unit_price) > 0)) g.unit_price = resolveUnitPrice(g);
       });
+
+
+      // Merge group duplikat: product sama + (order_id sama ATAU no_so sama)
+      (function mergeOpsGroups() {
+        var list = Object.keys(groups);
+        var used = {};
+        list.forEach(function(k) {
+          if (used[k]) return;
+          var g = groups[k];
+          list.forEach(function(k2) {
+            if (k2 === k || used[k2]) return;
+            var h = groups[k2];
+            if (String(g.product_id) !== String(h.product_id)) return;
+            var sameOrd = g.order_id && h.order_id && String(g.order_id) === String(h.order_id);
+            var sameSo = g.no_so && h.no_so && opsNormSo(g.no_so) === opsNormSo(h.no_so);
+            if (!sameOrd && !sameSo) return;
+            // merge h into g
+            ["planDay","planDayFg","primerDay","opDay","actDay","procTotalDay","procDoneDay","opSetDay","planIdsByDay"].forEach(function(mapName) {
+              if (!h[mapName]) return;
+              if (!g[mapName]) g[mapName] = {};
+              Object.keys(h[mapName]).forEach(function(d) {
+                var hv = h[mapName][d];
+                if (mapName === "planIdsByDay") {
+                  g[mapName][d] = (g[mapName][d] || []).concat(hv || []);
+                } else if (mapName === "primerDay" || mapName === "opSetDay") {
+                  if (mapName === "opSetDay") {
+                    if (!g[mapName][d]) g[mapName][d] = {};
+                    Object.keys(hv || {}).forEach(function(em) { g[mapName][d][em] = true; });
+                  } else if (hv) g[mapName][d] = true;
+                } else {
+                  g[mapName][d] = (Number(g[mapName][d]) || 0) + (Number(hv) || 0);
+                }
+              });
+            });
+            g.po_qty = Math.max(Number(g.po_qty) || 0, Number(h.po_qty) || 0);
+            g.plan_total = (Number(g.plan_total) || 0) + (Number(h.plan_total) || 0);
+            g.plan_total_fg = (Number(g.plan_total_fg) || 0) + (Number(h.plan_total_fg) || 0);
+            g._planFg = (Number(g._planFg) || 0) + (Number(h._planFg) || 0);
+            g.act_total = (Number(g.act_total) || 0) + (Number(h.act_total) || 0);
+            if (!g.customer && h.customer) g.customer = h.customer;
+            if (!g.no_so && h.no_so) g.no_so = h.no_so;
+            if (!g.order_id && h.order_id) g.order_id = h.order_id;
+            used[k2] = true;
+            delete groups[k2];
+          });
+        });
+      })();
 
       opsRows = Object.values(groups).filter(function(g) {
         if (isMaterialProductId(g.product_id) && !(g._planFg > 0)) return false;
