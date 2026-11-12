@@ -12892,6 +12892,9 @@ function fillOperatorList(selectedEmail) {
       if (/\bfg\b/.test(name) || name.indexOf("finish good") >= 0 || name.indexOf("finisgood") >= 0) return true;
       // packing + (box|karton|master)
       if (name.indexOf("packing") >= 0 && (name.indexOf("box") >= 0 || name.indexOf("karton") >= 0 || name.indexOf("master") >= 0)) return true;
+      // fallback id umum SHI: M06 = packing masterbox
+      var mid = String(machineId || "").trim();
+      if (/^m0?6$/i.test(mid) || /masterbox/i.test(mid) || /^fg[-_]?pack/i.test(mid)) return true;
       return false;
     }
     async function loadMarketing() {
@@ -13676,6 +13679,12 @@ function fillOperatorList(selectedEmail) {
       }
       return false;
     }
+    function opsNormSo(s) {
+      s = String(s || "").trim();
+      if (!s) return "";
+      s = s.replace(/^S0\//i, "SO/");
+      return s;
+    }
     function opsStatusOf(g) {
       if (g.line_closed) return "DONE";
       var db = String(g.order_status || g.db_status || "").toLowerCase();
@@ -13972,6 +13981,8 @@ function fillOperatorList(selectedEmail) {
         }
       } catch (eBf2) {}
       try { await loadOperators(); } catch (eOp) { console.warn(eOp); }
+      try { if (typeof loadMachines === "function") await loadMachines(); } catch (eM) { console.warn(eM); }
+      try { if (typeof loadProducts === "function") await loadProducts(); } catch (eP) { console.warn(eP); }
       try { await loadBom(true); } catch (eBom) { console.warn(eBom); }
       const { start, end, daysInMonth } = opsMonthStartEnd();
       opsDays = [];
@@ -14002,7 +14013,11 @@ function fillOperatorList(selectedEmail) {
         if ($("opsEmpty")) $("opsEmpty").textContent = e1.message;
         return;
       }
-      const planList = plans || [];
+      const planList = (plans || []).filter(function(p) {
+        var st = String(p.status || "").toLowerCase();
+        if (st === "cancelled" || st === "canceled") return false;
+        return true;
+      });
       const orderMap = {};
       (orders || []).forEach(o => { orderMap[o.order_id] = o; });
       // peta harga jual: order_id|product → harga (SO), fallback OT
@@ -14136,7 +14151,7 @@ function fillOperatorList(selectedEmail) {
         // sistem lama: plan giling bahan TIDAK jadi baris BB — ikut baris FG
         const rowPid = resolveOpsRowProductId(p);
         if (!rowPid) return; // orphan giling bahan → skip baris
-        const key = rowPid + "||" + String(p.no_so || p.order_id || "");
+        const key = rowPid + "||" + String(opsNormSo(p.no_so) || p.order_id || "");
         if (!groups[key]) {
           const ord = p.order_id ? orderMap[p.order_id] : null;
           let poQty = 0;
@@ -14152,7 +14167,7 @@ function fillOperatorList(selectedEmail) {
           }
           groups[key] = {
             product_id: rowPid,
-            no_so: p.no_so || (ord && ord.no_so) || "",
+            no_so: opsNormSo(p.no_so) || (ord && opsNormSo(ord.no_so)) || "",
             order_id: p.order_id || "",
             order_date: (ord && ord.order_date) || "",
             so_mark_day: (ord && ord.order_date) ? String(ord.order_date).slice(0, 10) : "",
@@ -14232,7 +14247,7 @@ function fillOperatorList(selectedEmail) {
       planList.forEach(p => {
         const rowPid = resolveOpsRowProductId(p);
         if (!rowPid) return;
-        const key = rowPid + "||" + String(p.no_so || p.order_id || "");
+        const key = rowPid + "||" + String(opsNormSo(p.no_so) || p.order_id || "");
         const day = String(p.plan_date).slice(0, 10);
         const k2 = key + "@@" + day;
         if (!plansByGroupDay[k2]) plansByGroupDay[k2] = { fg: 0, all: 0, primer: false };
@@ -14281,7 +14296,7 @@ function fillOperatorList(selectedEmail) {
           var pid = l.product_id;
           if (!pid) return;
           if (opsLineClosed(l, o.notes, pid)) return;
-          var key = String(pid) + "||" + String(o.no_so || o.order_id || "");
+          var key = String(pid) + "||" + String(opsNormSo(o.no_so) || o.order_id || "");
           if (groups[key]) {
             if (!groups[key]._poFromOrder) {
               groups[key].po_qty = Number(l.qty) || 0;
