@@ -20327,7 +20327,7 @@ function fillOperatorList(selectedEmail) {
         if (error) fail++; else ok++;
       }
       try { await writeAudit({ module: "assign", action: "update", ref_id: String(ok) + " plan", summary: "Assign operator ke " + ok + " plan" }); } catch (eA) {}
-      toast(ok + " plan di-assign" + (fail ? ", " + fail + " gagal" : ""));
+      toast((created ? created + " plan baru dibuat. " : "") + ok + " tersimpan" + (fail ? ", " + fail + " gagal" : ""));
       closeKorlapAssign();
       try { await loadPlans(); } catch (e) {}
     }
