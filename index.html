@@ -199,6 +199,9 @@
     .btn-icon:hover { background: var(--green-light); color: var(--green); }
 
     .layout { display: grid; grid-template-columns: 1fr; flex: 1; min-height: 0; }
+    @media (max-width: 720px) {
+      #shipKpiBar { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    }
     @media (min-width: 900px) { .layout { grid-template-columns: var(--sidebar-w) 1fr; } }
     .sidebar {
       display: none; padding: 1rem 0.75rem 1.5rem;
@@ -4923,23 +4926,33 @@
             <div class="card">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem;flex-wrap:wrap;gap:0.5rem">
                 <h3 style="margin:0">Instruksi kirim ke gudang</h3>
-                <button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal()">+ Baru</button>
+                <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="exportShipRequests()">Export</button>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal()">+ Baru</button>
+                </div>
               </div>
-              <div class="toolbar" style="margin-bottom:0.5rem">
+              <div id="shipKpiBar" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
+              <div class="toolbar" style="margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="setShipDatePreset('today')">Hari ini</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="setShipDatePreset('yesterday')">Kemarin</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="setShipDatePreset('all')">Semua tanggal</button>
+                <input type="date" id="shipFrom" onchange="renderShipRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.35rem 0.5rem" />
+                <input type="date" id="shipTo" onchange="renderShipRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.35rem 0.5rem" />
                 <select id="shipReqStatusFilter" onchange="renderShipRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.6rem">
-                  <option value="">Semua</option>
-                  <option value="pending">pending</option>
-                  <option value="requested">requested</option>
-                  <option value="picked">picked</option>
-                  <option value="shipped">shipped</option>
-                  <option value="cancelled">cancelled</option>
+                  <option value="">Semua status</option>
+                  <option value="pending">Pending</option>
+                  <option value="requested">Kirim</option>
+                  <option value="picked">Diambil</option>
+                  <option value="shipped">Terkirim</option>
+                  <option value="cancelled">Batal</option>
                 </select>
+                <input type="search" id="shipSearch" placeholder="Cari customer / SO / produk / no SHIP…" oninput="renderShipRequests()" style="min-width:16rem;flex:1" />
                 <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
               </div>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th></th></tr></thead>
-                  <tbody id="shipReqBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                  <tbody id="shipReqBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
@@ -5650,8 +5663,8 @@
               <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Antrian sampai <strong>Picked</strong>. Untuk kirim keluar, klik <strong>Buat DO</strong> dan isi DO (status shipped) — wajib.</p>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th></th></tr></thead>
-                  <tbody id="gudangShipBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                  <tbody id="gudangShipBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
@@ -13182,7 +13195,7 @@ function fillOperatorList(selectedEmail) {
       if (error) {
         var msg = esc(error.message) + " — jalankan ship_requests.sql";
         if ($("shipReqBody")) $("shipReqBody").innerHTML = '<tr><td colspan="6" class="empty">' + msg + "</td></tr>";
-        if ($("gudangShipBody")) $("gudangShipBody").innerHTML = '<tr><td colspan="6" class="empty">' + msg + "</td></tr>";
+        if ($("gudangShipBody")) $("gudangShipBody").innerHTML = '<tr><td colspan="7" class="empty">' + msg + "</td></tr>";
         shipReqList = [];
         return;
       }
@@ -13201,58 +13214,168 @@ function fillOperatorList(selectedEmail) {
         }
       } catch (eL) { console.warn(eL); }
       shipReqList = list;
+      // isi customer kosong dari SO
+      try {
+        var need = list.filter(function(r) { return !r.customer_name && r.no_so; }).map(function(r) { return r.no_so; });
+        if (need.length) {
+          var { data: ords } = await sb.from("orders").select("no_so,customer_name").in("no_so", need.slice(0, 80));
+          var bySo = {};
+          (ords || []).forEach(function(o) { if (o.no_so) bySo[o.no_so] = o.customer_name || ""; });
+          list.forEach(function(r) {
+            if (!r.customer_name && r.no_so && bySo[r.no_so]) r.customer_name = bySo[r.no_so];
+          });
+        }
+      } catch (eC) {}
+      renderShipRequests();
+    }
+    var shipStatusRank = { pending: 0, requested: 1, picked: 2, shipped: 3, cancelled: 4 };
+    function shipStatusPill(st) {
+      if (st === "pending") return '<span class="pill" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">Pending</span>';
+      if (st === "requested") return '<span class="pill" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">Kirim</span>';
+      if (st === "picked") return '<span class="pill" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd">Diambil</span>';
+      if (st === "shipped") return '<span class="pill" style="background:#e0e7ff;color:#3730a3;border:1px solid #a5b4fc">Terkirim</span>';
+      if (st === "cancelled") return '<span class="pill" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0">Batal</span>';
+      return '<span class="pill">' + esc(st || "—") + "</span>";
+    }
+    function setShipDatePreset(p) {
+      var f = $("shipFrom"), t = $("shipTo");
+      var today = todayStr();
+      if (p === "all") { if (f) f.value = ""; if (t) t.value = ""; }
+      else if (p === "today") { if (f) f.value = today; if (t) t.value = today; }
+      else if (p === "yesterday") {
+        var d = new Date(); d.setDate(d.getDate() - 1);
+        var z = function(n) { return String(n).padStart(2, "0"); };
+        var y = d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+        if (f) f.value = y; if (t) t.value = y;
+      }
+      renderShipRequests();
+    }
+    function setShipStatusFilter(st) {
+      var sel = $("shipReqStatusFilter");
+      if (sel) sel.value = st || "";
       renderShipRequests();
     }
     function renderShipRequests() {
       var stf = ($("shipReqStatusFilter") && $("shipReqStatusFilter").value) || "";
+      var q = (($("shipSearch") && $("shipSearch").value) || "").toLowerCase().trim();
+      var from = ($("shipFrom") && $("shipFrom").value) || "";
+      var to = ($("shipTo") && $("shipTo").value) || "";
       var role = currentRole();
-      var list = shipReqList.filter(function(r) {
+      var yest = (function() {
+        var d = new Date(); d.setDate(d.getDate() - 1);
+        var z = function(n) { return String(n).padStart(2, "0"); };
+        return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+      })();
+      var all = shipReqList || [];
+      var kpi = { pending: 0, requested: 0, picked: 0, shipped: 0, cancelled: 0 };
+      all.forEach(function(r) { if (kpi[r.status] != null) kpi[r.status]++; });
+      var kpiBar = $("shipKpiBar");
+      if (kpiBar) {
+        var cards = [
+          { k: "pending", n: kpi.pending, l: "Pending", c: "#fef3c7", t: "#92400e" },
+          { k: "requested", n: kpi.requested, l: "Siap kirim", c: "#d1fae5", t: "#065f46" },
+          { k: "picked", n: kpi.picked, l: "Diambil gudang", c: "#dbeafe", t: "#1e40af" },
+          { k: "shipped", n: kpi.shipped, l: "Terkirim", c: "#e0e7ff", t: "#3730a3" },
+          { k: "cancelled", n: kpi.cancelled, l: "Batal", c: "#f1f5f9", t: "#64748b" }
+        ];
+        kpiBar.innerHTML = cards.map(function(c) {
+          var on = stf === c.k ? "outline:2px solid " + c.t + ";" : "";
+          return '<button type="button" onclick="setShipStatusFilter(\'' + c.k + '\')" style="text-align:left;border:1px solid var(--border);border-radius:12px;padding:0.5rem 0.65rem;background:' + c.c + ';color:' + c.t + ';cursor:pointer;' + on + '"><div style="font-size:1.15rem;font-weight:800">' + c.n + '</div><div style="font-size:0.68rem;font-weight:600">' + c.l + '</div></button>';
+        }).join("");
+      }
+      var list = all.filter(function(r) {
         if (stf && r.status !== stf) return false;
-        if (role === "gudang" && !stf && ["cancelled"].indexOf(r.status) >= 0) return false;
+        if (role === "gudang" && !stf && r.status === "cancelled") return false;
+        var d = String(r.request_date || "").slice(0, 10);
+        if (from && d && d < from) return false;
+        if (to && d && d > to) return false;
+        if (q) {
+          var prod = (r.ship_request_lines || []).map(function(l) {
+            return (l.product_id || "") + " " + (productNameOnly(l.product_id) || "") + " " + (productLabel(l.product_id) || "");
+          }).join(" ");
+          var blob = ((r.ship_id || "") + " " + (r.customer_name || "") + " " + (r.no_so || "") + " " + (r.notes || "") + " " + prod).toLowerCase();
+          if (blob.indexOf(q) < 0) return false;
+        }
         return true;
+      });
+      list.sort(function(a, b) {
+        var ra = shipStatusRank[a.status] != null ? shipStatusRank[a.status] : 9;
+        var rb = shipStatusRank[b.status] != null ? shipStatusRank[b.status] : 9;
+        if (ra !== rb) return ra - rb;
+        return String(b.request_date || b.created_at || "").localeCompare(String(a.request_date || a.created_at || ""));
       });
       function rowHtml(r, forGudang) {
         var n = (r.ship_request_lines || []).length;
         var acts = "";
         acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\')">Detail</button> ';
-        if (forGudang || role === "gudang" || role === "admin") {
-          if (r.status === "requested") {
-            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
-          } else if (r.status === "picked") {
-            acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buat DO</button>';
-          }
+        if (forGudang || role === "gudang") {
+          if (r.status === "requested") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
+          else if (r.status === "picked") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buat DO</button>';
         }
-        if ((role === "marketing" || role === "admin") && r.status === "requested") {
+        if ((role === "marketing" || role === "admin") && (r.status === "requested" || r.status === "pending")) {
           acts += ' <button type="button" class="btn btn-ghost btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'cancelled\')">Batal</button>';
         }
         var lines = (r.ship_request_lines || []).map(function(l) {
-          return esc(l.product_id) + " × " + formatNum(l.qty) + " " + esc(l.unit || "");
-        }).join("<br>");
+          var name = productNameOnly(l.product_id) || "";
+          if (name.indexOf(l.product_id) === 0) name = name.replace(l.product_id, "").replace(/^[\s·\-]+/, "");
+          var label = esc(l.product_id) + (name ? " - " + esc(name) : "");
+          return "<div style='display:flex;justify-content:space-between;gap:0.75rem'><span>" + label + "</span><strong style='white-space:nowrap'>" + formatNum(l.qty) + " " + esc(l.unit || "") + "</strong></div>";
+        }).join("");
+        var cust = r.customer_name || "";
+        var so = r.no_so || "";
+        var custHtml = cust
+          ? "<strong>" + esc(cust) + "</strong>" + (so ? "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(so) + "</div>" : "")
+          : (so ? "<strong>" + esc(so) + "</strong>" : "<span style='color:#94a3b8'>—</span>");
+        var fromYest = String(r.request_date || "").slice(0, 10) === yest || /output|kemarin|pending marketing/i.test(String(r.notes || ""));
+        var badge = fromYest ? ' <span class="pill" style="background:#ecfdf5;color:#047857;font-size:0.62rem">dari output kemarin</span>' : "";
+        var note = (r.notes || "").trim();
         return "<tr>" +
-          "<td><strong>" + esc(r.ship_id) + "</strong></td>" +
+          "<td><strong>" + esc(r.ship_id) + "</strong>" + badge + "</td>" +
           "<td>" + esc(String(r.request_date || "").slice(0, 10)) + "</td>" +
-          "<td>" + esc(r.customer_name || "—") + "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(r.no_so || "") + "</div></td>" +
-          "<td>" + (r.status === "pending"
-            ? '<span class="pill" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">Pending</span>'
-            : (r.status === "requested"
-              ? '<span class="pill" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">Kirim</span>'
-              : esc(r.status || ""))) + "</td>" +
-          "<td style='font-size:0.78rem'>" + (lines || (n ? n + " item" : "<span style='color:#b91c1c'>Belum ada baris produk</span>")) + "</td>" +
+          "<td>" + custHtml + "</td>" +
+          "<td>" + shipStatusPill(r.status) + "</td>" +
+          "<td style='font-size:0.78rem;min-width:14rem'>" + (lines || (n ? n + " item" : "<span style='color:#b91c1c'>Belum ada baris produk</span>")) + "</td>" +
+          "<td style='font-size:0.74rem;color:var(--text-muted);max-width:10rem'>" + (note ? esc(note) : "—") + "</td>" +
           "<td style='white-space:nowrap'>" + acts + "</td></tr>";
       }
       if ($("shipReqBody")) {
         $("shipReqBody").innerHTML = list.length
           ? list.map(function(r) { return rowHtml(r, false); }).join("")
-          : '<tr><td colspan="6" class="empty">Belum ada instruksi kirim</td></tr>';
+          : '<tr><td colspan="7" class="empty">Belum ada instruksi kirim</td></tr>';
       }
       if ($("gudangShipBody")) {
-        var gList = shipReqList.filter(function(r) {
-          return r.status === "requested" || r.status === "picked";
-        });
+        var gList = (shipReqList || []).filter(function(r) { return r.status === "requested" || r.status === "picked"; });
         $("gudangShipBody").innerHTML = gList.length
           ? gList.map(function(r) { return rowHtml(r, true); }).join("")
-          : '<tr><td colspan="6" class="empty">Tidak ada antrian kirim</td></tr>';
+          : '<tr><td colspan="7" class="empty">Tidak ada antrian kirim</td></tr>';
       }
+    }
+    function exportShipRequests() {
+      var stf = ($("shipReqStatusFilter") && $("shipReqStatusFilter").value) || "";
+      var q = (($("shipSearch") && $("shipSearch").value) || "").toLowerCase().trim();
+      var rows = (shipReqList || []).filter(function(r) {
+        if (stf && r.status !== stf) return false;
+        if (!q) return true;
+        var blob = ((r.ship_id || "") + " " + (r.customer_name || "") + " " + (r.no_so || "")).toLowerCase();
+        return blob.indexOf(q) >= 0;
+      });
+      var head = ["No SHIP", "Tanggal", "Customer", "No SO", "Status", "Produk", "Qty", "Satuan", "Catatan"];
+      var lines = [head.join(",")];
+      rows.forEach(function(r) {
+        var ls = r.ship_request_lines || [];
+        if (!ls.length) ls = [{ product_id: "", qty: "", unit: "" }];
+        ls.forEach(function(l) {
+          var name = productNameOnly(l.product_id) || "";
+          var prod = (l.product_id || "") + (name ? " - " + name : "");
+          var cells = [r.ship_id, String(r.request_date || "").slice(0, 10), r.customer_name || "", r.no_so || "", r.status || "", prod, l.qty || "", l.unit || "", r.notes || ""];
+          lines.push(cells.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(","));
+        });
+      });
+      var blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "instruksi-kirim.csv";
+      a.click();
     }
     async function updateShipStatus(shipId, status) {
       if (!sb || !shipId) return;
