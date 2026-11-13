@@ -15323,6 +15323,13 @@ function fillOperatorList(selectedEmail) {
         } catch (e) {}
       }, 60);
     }
+    var opsSortKey = "";
+    var opsSortDir = 1;
+    function opsSortBy(key) {
+      if (opsSortKey === key) opsSortDir = -opsSortDir;
+      else { opsSortKey = key; opsSortDir = -1; }
+      renderOperasional();
+    }
     function renderOperasional() {
       const table = $("opsTable");
       const empty = $("opsEmpty");
@@ -15350,6 +15357,26 @@ function fillOperatorList(selectedEmail) {
           var hasOp = Number((g.opDay && g.opDay[fd]) || 0) > 0;
           var hasIds = g.planIdsByDay && g.planIdsByDay[fd] && g.planIdsByDay[fd].length;
           return hasPlan || hasAct || hasOp || hasIds;
+        });
+      }
+      if (opsSortKey) {
+        list.sort(function(a, b) {
+          function val(g) {
+            if (opsSortKey === "product") return (g.product_id || "") + " " + productLabel(g.product_id || "");
+            if (opsSortKey === "customer") return g.customer || "";
+            if (opsSortKey === "so") return g.no_so || "";
+            if (opsSortKey === "tgl") return String(g.order_date || "");
+            if (opsSortKey === "po") return Number(g.po_qty) || 0;
+            if (opsSortKey === "plan") return Number(g.plan_total) || 0;
+            if (opsSortKey === "actual") return Number(g.act_total) || 0;
+            if (opsSortKey === "op") return Number(g.op_total) || 0;
+            if (opsSortKey === "status") return g.status || "";
+            if (opsSortKey === "jenis") return g.jenis || "";
+            return "";
+          }
+          var va = val(a), vb = val(b);
+          if (typeof va === "number" && typeof vb === "number") return (va - vb) * opsSortDir;
+          return String(va).localeCompare(String(vb)) * opsSortDir;
         });
       }
       if (!list.length) {
@@ -15408,17 +15435,24 @@ function fillOperatorList(selectedEmail) {
         dayCells(d => { const v = (opsDayMeta[d]||{}).op; return v ? formatNum(v) : ""; }, "") + '</tr>';
 
       head += '<tr class="ops-day-row">' +
-        '<th class="fz fz-prod">Produk</th>' +
-        '<th class="fz fz-cust">Customer</th>' +
-        '<th class="fz fz-so">No SO</th>' +
-        '<th class="sc-tgl">Tgl SO</th>' +
-        '<th class="sc-po">Qty PO</th>' +
-        '<th class="sc-pl">Qty Plan</th>' +
-        '<th class="sc-ac">Qty Actual</th>' +
-        '<th class="sc-op">Qty OP</th>' +
-        '<th class="sc-st">Status</th>' +
-        '<th class="sc-jp">Jenis</th>' +
-        '<th class="sc-ket">Ket</th>';
+        (function() {
+          function th(key, cls, label) {
+            var on = opsSortKey === key;
+            var arrow = on ? (opsSortDir < 0 ? " ▼" : " ▲") : "";
+            return '<th class="' + cls + '" style="cursor:pointer" title="Klik untuk sort" onclick="opsSortBy(\'' + key + '\')">' + label + arrow + '</th>';
+          }
+          return th("product", "fz fz-prod", "Produk") +
+            th("customer", "fz fz-cust", "Customer") +
+            th("so", "fz fz-so", "No SO") +
+            th("tgl", "sc-tgl", "Tgl SO") +
+            th("po", "sc-po", "Qty PO") +
+            th("plan", "sc-pl", "Qty Plan") +
+            th("actual", "sc-ac", "Qty Actual") +
+            th("op", "sc-op", "Qty OP") +
+            th("status", "sc-st", "Status") +
+            th("jenis", "sc-jp", "Jenis") +
+            '<th class="sc-ket">Ket</th>';
+        })();
       opsDays.forEach(d => {
         const day = Number(d.slice(8, 10));
         const wd = opsWeekday(d);
