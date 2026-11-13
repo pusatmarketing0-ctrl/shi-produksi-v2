@@ -6145,8 +6145,8 @@
         </div>
         <div class="table-wrap" style="flex:1;min-height:320px;max-height:min(58vh,560px);overflow:auto">
           <table>
-            <thead><tr><th>Plan</th><th>Produk</th><th>Proses</th><th>Shift</th><th>Target</th><th>Operator</th></tr></thead>
-            <tbody id="kaBody"><tr><td colspan="6" class="empty">Pilih tanggal</td></tr></tbody>
+            <thead><tr><th>Plan</th><th>No SO</th><th>Produk</th><th>Proses</th><th>Shift</th><th>Target</th><th>Operator</th></tr></thead>
+            <tbody id="kaBody"><tr><td colspan="7" class="empty">Pilih tanggal</td></tr></tbody>
           </table>
         </div>
         <div class="field" style="margin-top:0.75rem;flex-shrink:0">
@@ -20207,6 +20207,7 @@ function fillOperatorList(selectedEmail) {
         var machLine = machineLabel(mid) || mid;
         return '<tr data-pid="' + esc(p.plan_id) + '">' +
           '<td class="mono" style="font-size:0.72rem;white-space:nowrap">' + esc(p.plan_id) + '</td>' +
+          '<td class="mono" style="font-size:0.72rem;white-space:nowrap">' + esc(p.no_so || "—") + '</td>' +
           '<td style="white-space:nowrap;max-width:16rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(prodLine) + '">' + esc(prodLine) + '</td>' +
           '<td style="white-space:nowrap;max-width:14rem;overflow:hidden;text-overflow:ellipsis" title="' + esc(machLine) + '">' + esc(machLine) + '</td>' +
           '<td>' + esc(p.shift) + '</td>' +
@@ -20233,7 +20234,7 @@ function fillOperatorList(selectedEmail) {
         } catch (eSc) { console.warn(eSc); }
       });
     }
-    function addKorlapAssignRow() {
+    async function addKorlapAssignRow() {
       var body = $("kaBody");
       if (!body) return;
       var empty = body.querySelector(".empty");
@@ -20242,18 +20243,38 @@ function fillOperatorList(selectedEmail) {
       tr.setAttribute("data-new", "1");
       tr.innerHTML =
         '<td class="mono" style="font-size:0.72rem">BARU</td>' +
-        '<td style="min-width:160px"><input class="ka-prod" placeholder="Cari produk..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem" /></td>' +
-        '<td style="min-width:150px"><input class="ka-mach" placeholder="Cari proses..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem" /></td>' +
+        '<td style="min-width:150px"><input class="ka-so" placeholder="Cari No SO..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem" /></td>' +
+        '<td style="min-width:180px"><input class="ka-prod" placeholder="Cari produk..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem" /></td>' +
+        '<td style="min-width:160px"><input class="ka-mach" placeholder="Cari proses..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem" /></td>' +
         '<td><select class="ka-shift" style="border:1px solid var(--border);border-radius:8px;padding:0.3rem"><option>1</option><option>2</option><option>3</option></select></td>' +
         '<td style="min-width:130px"><input class="ka-qty thousand" inputmode="numeric" placeholder="Target" style="width:72px;border:1px solid var(--border);border-radius:8px;padding:0.3rem" /> <input class="ka-unit" value="pcs" style="width:48px;border:1px solid var(--border);border-radius:8px;padding:0.3rem" /></td>' +
         '<td style="min-width:180px"><input class="ka-op" placeholder="Ketik nama / email..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.5rem;font-size:0.85rem" /></td>';
       body.insertBefore(tr, body.firstChild);
       try {
+        try { if (!(allOrders && allOrders.length)) await loadOrdersForPlan(); } catch (eO) {}
+        var so = tr.querySelector(".ka-so");
         var p = tr.querySelector(".ka-prod");
         var m = tr.querySelector(".ka-mach");
         var op = tr.querySelector(".ka-op");
-        attachSearchCombo(p, scItemsProduct, { valueMode: "id", onPick: function(id, label, input) { input.dataset.scId = id; input.value = label || id; } });
-        attachSearchCombo(m, scItemsMachine, { valueMode: "id", onPick: function(id, label, input) { input.dataset.scId = id; input.value = label || id; } });
+        attachSearchCombo(so, scItemsOrders, {
+          valueMode: "id",
+          onPick: function(id, label, input) {
+            input.dataset.scId = id || "";
+            var ord = (allOrders || []).find(function(o) { return o.order_id === id; });
+            input.dataset.noSo = ord ? (ord.no_so || "") : "";
+            input.value = ord ? (ord.no_so || label || id) : (label || id);
+          }
+        });
+        attachSearchCombo(p, function() {
+          return (products || []).map(function(x) {
+            return { id: x.product_id, label: productLabel(x.product_id), sub: x.category || "", search: [x.product_id, x.name, x.category].join(" ") };
+          });
+        }, { valueMode: "id", onPick: function(id, label, input) { input.dataset.scId = id; input.value = productLabel(id) || label || id; } });
+        attachSearchCombo(m, function() {
+          return (machines || []).map(function(x) {
+            return { id: x.machine_id, label: machineLabel(x.machine_id), sub: "", search: [x.machine_id, x.name].join(" ") };
+          });
+        }, { valueMode: "id", onPick: function(id, label, input) { input.dataset.scId = id; input.value = machineLabel(id) || label || id; } });
         attachSearchCombo(op, scItemsOperator, { valueMode: "id", onPick: function(id, label, input) { input.dataset.email = id; input.value = label || id; } });
         try { bindAllThousandInputs(); } catch (eT) {}
       } catch (e) { console.warn(e); }
@@ -20278,6 +20299,8 @@ function fillOperatorList(selectedEmail) {
           if (!email) { try { email = resolveOperatorEmail(op.value || "") || ""; } catch (e) { email = (op.value || "").trim(); } }
         }
         if (!product_id || !machine_id) return;
+        var order_id = (so && so.dataset.scId) || "";
+        var no_so = (so && so.dataset.noSo) || (so && so.value ? String(so.value).split("·")[0].trim() : "");
         news.push({
           plan_date: d,
           product_id: product_id,
@@ -20287,6 +20310,8 @@ function fillOperatorList(selectedEmail) {
           unit: (unit && unit.value) || "pcs",
           assigned_operator: email,
           status: email ? "open" : "draft",
+          order_id: order_id,
+          no_so: no_so,
           created_by: (currentUser && currentUser.email) || ""
         });
       });
