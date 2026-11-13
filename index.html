@@ -13241,10 +13241,14 @@ function fillOperatorList(selectedEmail) {
         var sh = x.ship;
         var actionHtml = "";
         if (sh) {
+          var kirimBtn = (sh.status === "pending")
+            ? ' <button type="button" class="btn btn-primary btn-sm" style="margin-top:0.25rem" onclick="confirmShipNow(' + JSON.stringify(sh.ship_id) + ')">Kirim</button>'
+            : "";
           actionHtml =
             shipStatusPill(sh.status) +
             '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">' + esc(sh.ship_id) + "</div>" +
-            '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem" onclick="openShipDetail(' + JSON.stringify(sh.ship_id) + ')">Detail</button>';
+            '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem" onclick="openShipDetail(' + JSON.stringify(sh.ship_id) + ')">Detail</button>' +
+            kirimBtn;
         } else {
           actionHtml =
             '<span class="pill" style="background:#f1f5f9;color:#64748b">Belum</span> ' +
@@ -13391,6 +13395,9 @@ function fillOperatorList(selectedEmail) {
         var n = (r.ship_request_lines || []).length;
         var acts = "";
         acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\')">Detail</button> ';
+        if ((role === "marketing" || role === "admin") && r.status === "pending") {
+          acts += '<button type="button" class="btn btn-primary btn-sm" onclick="confirmShipNow(\'' + r.ship_id + '\')">Kirim</button> ';
+        }
         if (forGudang || role === "gudang") {
           if (r.status === "requested") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
           else if (r.status === "picked") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buat DO</button>';
@@ -13460,6 +13467,12 @@ function fillOperatorList(selectedEmail) {
       a.download = "instruksi-kirim.csv";
       a.click();
     }
+    async function confirmShipNow(shipId) {
+      if (!shipId) return;
+      if (!confirm("Kirim sekarang? Gudang akan melihat instruksi ini.")) return;
+      await updateShipStatus(shipId, "requested");
+      try { loadMktYesterdayFg(); } catch (e) {}
+    }
     async function updateShipStatus(shipId, status) {
       if (!sb || !shipId) return;
       // shipped hanya boleh lewat DO
@@ -13471,7 +13484,8 @@ function fillOperatorList(selectedEmail) {
         updated_at: new Date().toISOString()
       }).eq("ship_id", shipId);
       if (error) return toast(error.message, true);
-      toast("Status → " + status);
+      var label = { pending: "Pending", requested: "Kirim", picked: "Diambil", shipped: "Terkirim", cancelled: "Batal" };
+      toast("Status → " + (label[status] || status));
       loadShipRequests();
     }
 
