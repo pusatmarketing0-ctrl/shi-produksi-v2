@@ -20285,6 +20285,7 @@ function fillOperatorList(selectedEmail) {
       const news = [];
       const d = ($("kaDate") && $("kaDate").value) || todayStr();
       document.querySelectorAll("#kaBody tr[data-new='1']").forEach(function(tr) {
+        var so = tr.querySelector(".ka-so");
         var prod = tr.querySelector(".ka-prod");
         var mach = tr.querySelector(".ka-mach");
         var qty = tr.querySelector(".ka-qty");
