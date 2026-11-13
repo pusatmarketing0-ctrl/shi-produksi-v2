@@ -22422,10 +22422,13 @@ function fillOperatorList(selectedEmail) {
         var pid = String(r.plan_id || "").replace(/'/g, "");
         var acts = '<button type="button" class="btn btn-sm btn-ghost" onclick="homeOpenPlan(\'' + pid + '\')">Plan</button> ';
         acts += '<button type="button" class="btn btn-sm btn-primary" onclick="homeOpenReport(\'' + pid + '\')">Laporan</button>';
+        var name = productNameOnly(r.product_id) || "";
+        if (name.indexOf(r.product_id) === 0) name = name.replace(r.product_id, "").replace(/^[\s·\-]+/, "");
+        var prodTxt = esc(r.product_id) + (name ? " - " + esc(name) : "");
         return "<tr>" +
           "<td>" + esc(r.shift || "—") + "</td>" +
           "<td>" + esc(machineLabel(r.machine_id)) + "</td>" +
-          "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(productNameOnly(r.product_id) || "") + "</div></td>" +
+          "<td><strong>" + prodTxt + "</strong></td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
           "<td style='font-size:0.78rem'>" + esc(r.operator || "—") + "</td>" +
           "<td>" + formatNum(r.target) + " " + esc(r.unit) + "</td>" +
