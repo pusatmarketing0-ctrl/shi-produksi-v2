@@ -14370,6 +14370,21 @@ function fillOperatorList(selectedEmail) {
       try { await loadOperasional(); } catch (eL) {}
     }
 
+    async function fetchAllInRange_(table, dateCol, start, end, columns) {
+      var all = [];
+      var page = 1000;
+      var from = 0;
+      columns = columns || "*";
+      while (from < 20000) {
+        var res = await sb.from(table).select(columns).gte(dateCol, start).lte(dateCol, end).order(dateCol).range(from, from + page - 1);
+        if (res.error) return { data: all, error: res.error };
+        var chunk = res.data || [];
+        all = all.concat(chunk);
+        if (chunk.length < page) break;
+        from += page;
+      }
+      return { data: all, error: null };
+    }
     async function loadOperasional() {
       if (!sb) return;
       try {
@@ -14394,9 +14409,9 @@ function fillOperatorList(selectedEmail) {
       if ($("opsEmpty")) { $("opsEmpty").style.display = "block"; $("opsEmpty").textContent = "Memuat…"; }
       if ($("opsTable")) $("opsTable").style.display = "none";
 
-      var plansRes = await sb.from("plans").select("*").gte("plan_date", start).lte("plan_date", end).limit(8000);
-      var e1 = plansRes.error;
-      var plans = plansRes.data;
+      var plans = await fetchAllInRange_("plans", "plan_date", start, end);
+      var e1 = plans.error;
+      plans = plans.data;
       var ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
       if (ordersRes.error && /harga|unit_price|price|column/i.test(String(ordersRes.error.message || ""))) {
         ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
@@ -14531,7 +14546,7 @@ function fillOperatorList(selectedEmail) {
         const { data: r } = await sb.from("reports").select("plan_id,actual_qty,report_date").in("plan_id", chunk);
         if (r) reports = reports.concat(r);
       }
-      const { data: r2 } = await sb.from("reports").select("plan_id,actual_qty,report_date").gte("report_date", start).lte("report_date", end).limit(8000);
+      const { data: r2 } = await fetchAllInRange_("reports", "report_date", start, end, "plan_id,actual_qty,report_date");
       const seen = {};
       reports.concat(r2 || []).forEach(r => {
         seen[String(r.plan_id) + "|" + String(r.report_date) + "|" + String(r.actual_qty)] = r;
