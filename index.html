@@ -16989,33 +16989,70 @@ function fillOperatorList(selectedEmail) {
     }
 
 
+    var rtTimer = null;
+    var rtPoll = null;
+    function currentPageId() {
+      var pages = document.querySelectorAll(".page");
+      for (var i = 0; i < pages.length; i++) {
+        if (!pages[i].hidden) return pages[i].id || "";
+      }
+      return "";
+    }
+    function formBusy() {
+      if (document.body.classList.contains("modal-open")) return true;
+      var m = document.querySelector(".modal-bg.show, .modal-bg[style*='flex']");
+      if (m) return true;
+      var ae = document.activeElement;
+      if (!ae) return false;
+      var tag = (ae.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return true;
+      return false;
+    }
+    function refreshLive(reason) {
+      if (rtTimer) clearTimeout(rtTimer);
+      rtTimer = setTimeout(function() {
+        if (formBusy()) return;
+        try { loadSidebarBadges(); } catch (e1) {}
+        try { loadInboxNotifs(); } catch (e2) {}
+        var pid = currentPageId();
+        try {
+          if (pid === "page-operasional") loadOperasional();
+          else if (pid === "page-plans") loadPlans();
+          else if (pid === "page-reports") loadReportsPage();
+          else if (pid === "page-korlap") { if (typeof loadKorlapHourly === "function") loadKorlapHourly(); }
+          else if (pid === "page-purchasing") loadPurchaseOrders();
+          else if (pid === "page-gudang") { if (typeof loadGudang === "function") loadGudang(); else loadPurchaseOrders(); }
+          else if (pid === "page-home") loadHomeDaily();
+          else if (pid === "page-marketing") {
+            var tab = (document.querySelector("#mktTabs .mod-tab.active") || {}).getAttribute && document.querySelector("#mktTabs .mod-tab.active").getAttribute("data-mtab");
+            if (tab === "kirim") loadShipRequests();
+            else if (tab === "kemarin") loadMktYesterdayFg();
+            else if (tab === "stok") loadMktFgStock();
+            else loadMarketing();
+          }
+          else if (pid === "page-wip") loadWipStock();
+          else if (pid === "page-absences") loadAbsences();
+          else if (pid === "page-revisions") { if (typeof loadRevisions === "function") loadRevisions(); }
+        } catch (e3) { console.warn("refreshLive", reason, e3); }
+      }, 800);
+    }
     function setupRealtime() {
-      if (!sb || rtChannel) return;
+      if (!sb) return;
+      if (!rtPoll) {
+        rtPoll = setInterval(function() { refreshLive("poll"); }, 40000);
+      }
+      if (rtChannel) return;
       try {
-        rtChannel = sb.channel("shi-live")
-          .on("postgres_changes", { event: "*", schema: "public", table: "plans" }, function() {
-            try { loadPlans(); } catch (e) {}
-            try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e2) {}
-          })
-          .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, function() {
-            try { if (!$("page-reports").hidden) loadReportsPage(); } catch (e) {}
-            try { if (!$("page-operasional").hidden) loadOperasional(); } catch (e2) {}
-          })
-          .on("postgres_changes", { event: "*", schema: "public", table: "hourly_reports" }, function() {
-            try { if (!$("page-korlap").hidden) loadKorlapHourly(); } catch (e) {}
-          })
-          .on("postgres_changes", { event: "*", schema: "public", table: "purchase_orders" }, function() {
-            try { if (!$("page-purchasing").hidden) loadPurchaseOrders(); } catch (e) {}
-          })
-          .on("postgres_changes", { event: "*", schema: "public", table: "wip_stock" }, function() {
-            try { if (!$("page-wip").hidden) loadWipStock(); } catch (e) {}
-          })
-          .on("postgres_changes", { event: "*", schema: "public", table: "absences" }, function() {
-            try { if (!$("page-absences").hidden) loadAbsences(); } catch (e) {}
-          })
-          .subscribe(function(status) {
-            console.info("realtime", status);
+        var tables = ["plans", "reports", "hourly_reports", "purchase_orders", "purchase_lines", "wip_stock", "absences", "ship_requests", "ship_request_lines", "plan_revision_requests", "fg_korlap_reports", "orders"];
+        var ch = sb.channel("shi-live");
+        tables.forEach(function(t) {
+          ch = ch.on("postgres_changes", { event: "*", schema: "public", table: t }, function() {
+            refreshLive(t);
           });
+        });
+        rtChannel = ch.subscribe(function(status) {
+          console.info("realtime", status);
+        });
       } catch (e) {
         console.warn("realtime setup", e);
       }
@@ -21307,6 +21344,7 @@ function fillOperatorList(selectedEmail) {
         await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats(), loadBom(true)]);
         try { loadInboxNotifs(); } catch (eIn) {}
         try { loadSidebarBadges(); } catch (eSb) {}
+        try { setupRealtime(); } catch (eRt) {}
         try { fillRouteProductSelect(); } catch (e2) {}
         try { if (currentRole() === "admin") loadImprovements(); } catch (eImp0) {}
       } catch (e) {
