@@ -4243,8 +4243,8 @@
               </div>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Produk</th><th>Actual FG</th><th>No SO</th></tr></thead>
-                  <tbody id="hdFgYestBody"><tr><td colspan="3" class="empty">Memuat…</td></tr></tbody>
+                  <thead><tr><th>Produk</th><th>Actual FG</th><th>Korlap</th><th>Selisih</th><th>Status</th><th>No SO</th></tr></thead>
+                  <tbody id="hdFgYestBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
@@ -22234,7 +22234,7 @@ function fillOperatorList(selectedEmail) {
         if (!fgPlans.length) {
           if ($("hdFgYestQty")) $("hdFgYestQty").textContent = "0";
           if ($("hdFgYestSku")) $("hdFgYestSku").textContent = "0";
-          if (body) body.innerHTML = '<tr><td colspan="3" class="empty">Tidak ada plan FG kemarin</td></tr>';
+          if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada plan FG kemarin</td></tr>';
           return;
         }
         var actBy = {};
@@ -22258,28 +22258,61 @@ function fillOperatorList(selectedEmail) {
         fgPlans.forEach(function(p) {
           var act = Number(actBy[p.plan_id]) || 0;
           if (!(act > 0)) return;
-          if (!byProd[p.product_id]) byProd[p.product_id] = { product_id: p.product_id, actual: 0, nos: {} };
+          if (!byProd[p.product_id]) byProd[p.product_id] = { product_id: p.product_id, actual: 0, korlap: 0, nos: {} };
           byProd[p.product_id].actual += act;
           if (p.no_so) byProd[p.product_id].nos[p.no_so] = true;
         });
+        // output korlap hari yang sama
+        try {
+          var { data: kl } = await sb.from("fg_korlap_reports")
+            .select("product_id,no_so,output_qty,bets")
+            .eq("report_date", yest)
+            .limit(2000);
+          (kl || []).forEach(function(r) {
+            var pid = String(r.product_id || "");
+            if (!pid || !byProd[pid]) return;
+            var out = 0;
+            var bets = [];
+            if (r.bets) {
+              try { bets = typeof r.bets === "string" ? JSON.parse(r.bets) : (r.bets || []); } catch (eB) { bets = []; }
+            }
+            if (bets.length) bets.forEach(function(b) { out += Number(b.qty) || 0; });
+            else out = Number(r.output_qty) || 0;
+            byProd[pid].korlap += out;
+          });
+        } catch (eK) { console.warn("home korlap", eK); }
         var list = Object.values(byProd).sort(function(a, b) { return b.actual - a.actual; });
         var totalQty = list.reduce(function(s, x) { return s + (Number(x.actual) || 0); }, 0);
         if ($("hdFgYestQty")) $("hdFgYestQty").textContent = formatNum(totalQty);
         if ($("hdFgYestSku")) $("hdFgYestSku").textContent = String(list.length);
         if ($("hdFgYestHint")) $("hdFgYestHint").textContent = list.length ? (list.length + " SKU · " + yest) : ("Tidak ada output · " + yest);
         if (!list.length) {
-          if (body) body.innerHTML = '<tr><td colspan="3" class="empty">Belum ada laporan FG kemarin</td></tr>';
+          if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada laporan FG kemarin</td></tr>';
           return;
         }
         if (body) body.innerHTML = list.map(function(x) {
           var nos = Object.keys(x.nos || {}).join(", ") || "—";
+          var act = Number(x.actual) || 0;
+          var klq = Number(x.korlap) || 0;
+          var diff = klq - act;
+          var stHtml = "";
+          if (klq <= 0) {
+            stHtml = '<span class="pill" style="background:#f1f5f9;color:#64748b">Belum korlap</span>';
+          } else if (Math.abs(diff) < 0.5) {
+            stHtml = '<span class="pill" style="background:#d1fae5;color:#065f46">Cocok</span>';
+          } else {
+            stHtml = '<span class="pill" style="background:#fef3c7;color:#92400e">' + (diff > 0 ? "+" : "") + formatNum(diff) + "</span>";
+          }
           return "<tr><td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" +
-            esc(productLabel(x.product_id)) + "</div></td><td><strong>" + formatNum(x.actual) +
-            "</strong></td><td style='font-size:0.78rem'>" + esc(nos) + "</td></tr>";
+            esc(productLabel(x.product_id)) + "</div></td><td><strong>" + formatNum(act) +
+            "</strong></td><td>" + (klq > 0 ? formatNum(klq) : "—") +
+            "</td><td>" + (klq > 0 ? ((diff > 0 ? "+" : "") + formatNum(diff)) : "—") +
+            "</td><td>" + stHtml +
+            "</td><td style='font-size:0.78rem'>" + esc(nos) + "</td></tr>";
         }).join("");
       } catch (e) {
         console.warn("loadHomeFgYesterday", e);
-        if (body) body.innerHTML = '<tr><td colspan="3" class="empty">Gagal muat FG kemarin</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Gagal muat FG kemarin</td></tr>';
       }
     }
 
