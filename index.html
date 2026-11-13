@@ -6141,6 +6141,7 @@
         <div class="toolbar">
           <input type="date" id="kaDate" />
           <button class="btn btn-ghost btn-sm" type="button" onclick="loadKorlapAssign()">Muat plan</button>
+          <button class="btn btn-primary btn-sm" type="button" onclick="addKorlapAssignRow()">+ Plan / proses baru</button>
         </div>
         <div class="table-wrap" style="flex:1;min-height:320px;max-height:min(58vh,560px);overflow:auto">
           <table>
@@ -20232,10 +20233,63 @@ function fillOperatorList(selectedEmail) {
         } catch (eSc) { console.warn(eSc); }
       });
     }
+    function addKorlapAssignRow() {
+      var body = $("kaBody");
+      if (!body) return;
+      var empty = body.querySelector(".empty");
+      if (empty) body.innerHTML = "";
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-new", "1");
+      tr.innerHTML =
+        '<td class="mono" style="font-size:0.72rem">BARU</td>' +
+        '<td style="min-width:160px"><input class="ka-prod" placeholder="Cari produk..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem" /></td>' +
+        '<td style="min-width:150px"><input class="ka-mach" placeholder="Cari proses..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.45rem" /></td>' +
+        '<td><select class="ka-shift" style="border:1px solid var(--border);border-radius:8px;padding:0.3rem"><option>1</option><option>2</option><option>3</option></select></td>' +
+        '<td style="min-width:130px"><input class="ka-qty thousand" inputmode="numeric" placeholder="Target" style="width:72px;border:1px solid var(--border);border-radius:8px;padding:0.3rem" /> <input class="ka-unit" value="pcs" style="width:48px;border:1px solid var(--border);border-radius:8px;padding:0.3rem" /></td>' +
+        '<td style="min-width:180px"><input class="ka-op" placeholder="Ketik nama / email..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.5rem;font-size:0.85rem" /></td>';
+      body.insertBefore(tr, body.firstChild);
+      try {
+        var p = tr.querySelector(".ka-prod");
+        var m = tr.querySelector(".ka-mach");
+        var op = tr.querySelector(".ka-op");
+        attachSearchCombo(p, scItemsProduct, { valueMode: "id", onPick: function(id, label, input) { input.dataset.scId = id; input.value = label || id; } });
+        attachSearchCombo(m, scItemsMachine, { valueMode: "id", onPick: function(id, label, input) { input.dataset.scId = id; input.value = label || id; } });
+        attachSearchCombo(op, scItemsOperator, { valueMode: "id", onPick: function(id, label, input) { input.dataset.email = id; input.value = label || id; } });
+        try { bindAllThousandInputs(); } catch (eT) {}
+      } catch (e) { console.warn(e); }
+    }
     async function saveKorlapAssign() {
       if (!sb) return;
       const updates = [];
-      // from table
+      const news = [];
+      const d = ($("kaDate") && $("kaDate").value) || todayStr();
+      document.querySelectorAll("#kaBody tr[data-new='1']").forEach(function(tr) {
+        var prod = tr.querySelector(".ka-prod");
+        var mach = tr.querySelector(".ka-mach");
+        var qty = tr.querySelector(".ka-qty");
+        var unit = tr.querySelector(".ka-unit");
+        var shift = tr.querySelector(".ka-shift");
+        var op = tr.querySelector(".ka-op");
+        var product_id = (prod && (prod.dataset.scId || prod.value || "")).trim();
+        var machine_id = (mach && (mach.dataset.scId || mach.value || "")).trim();
+        var email = "";
+        if (op) {
+          email = (op.dataset.email || op.dataset.scId || "").trim();
+          if (!email) { try { email = resolveOperatorEmail(op.value || "") || ""; } catch (e) { email = (op.value || "").trim(); } }
+        }
+        if (!product_id || !machine_id) return;
+        news.push({
+          plan_date: d,
+          product_id: product_id,
+          machine_id: machine_id,
+          shift: (shift && shift.value) || "1",
+          target_qty: parseInputNum(qty && qty.value) || 0,
+          unit: (unit && unit.value) || "pcs",
+          assigned_operator: email,
+          status: email ? "open" : "draft",
+          created_by: (currentUser && currentUser.email) || ""
+        });
+      });
       document.querySelectorAll("#kaBody tr[data-pid]").forEach(tr => {
         const pid = tr.getAttribute("data-pid");
         const inp = tr.querySelector(".ka-op");
@@ -20254,8 +20308,17 @@ function fillOperatorList(selectedEmail) {
         const parts = line.split(/\t|;|,/).map(s => s.trim()).filter(Boolean);
         if (parts.length >= 2) updates.push({ plan_id: parts[0], assigned_operator: parts[1], status: "open" });
       });
-      if (!updates.length) return toast("Tidak ada perubahan", true);
-      let ok = 0, fail = 0;
+      if (!updates.length && !news.length) return toast("Tidak ada perubahan", true);
+      let ok = 0, fail = 0, created = 0;
+      for (const n of news) {
+        try {
+          var plan_id = await newPlanId();
+          var payload = Object.assign({ plan_id: plan_id }, n);
+          var ins = await sb.from("plans").insert(payload);
+          if (ins.error) fail++;
+          else { created++; ok++; }
+        } catch (eN) { fail++; }
+      }
       for (const u of updates) {
         const { error } = await sb.from("plans").update({
           assigned_operator: u.assigned_operator,
