@@ -5069,11 +5069,12 @@
         
                 <section id="page-operasional" class="page" hidden>
           <div class="ops-dash" id="opsDash"></div>
-          <div class="page-head" style="margin-top:0.75rem">
+          <div class="page-head" style="margin-top:0.75rem;align-items:center;gap:0.75rem">
             <div>
               <h1>Plan Operasional</h1>
               <p>Kontrol grid · kolom kiri beku · klik sel Plan untuk edit.</p>
             </div>
+            <div id="opsInfoCards" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.45rem;flex:1;min-width:280px"></div>
             <div class="ops-toolbar">
               <div class="ops-month-nav">
                 <button class="btn btn-ghost btn-sm" type="button" onclick="opsShiftMonth(-1)">‹</button>
@@ -5081,7 +5082,7 @@
                 <button class="btn btn-ghost btn-sm" type="button" onclick="opsShiftMonth(1)">›</button>
               </div>
               <button class="btn btn-ghost btn-sm" type="button" onclick="opsGoThisMonth()">Bulan ini</button>
-              <select id="opsStatusFilter" onchange="renderOperasional()">
+              <select id="opsStatusFilter" onchange="window.__opsOnlyClosed=false;renderOperasional()">
                 <option value="aktif">Aktif (hide done)</option>
                 <option value="all">Semua status</option>
                 <option value="done">Done saja</option>
@@ -15034,6 +15035,55 @@ function fillOperatorList(selectedEmail) {
         }));
 
       renderOpsDash(start, end);
+      renderOpsInfoCards();
+      renderOperasional();
+    }
+
+    function renderOpsInfoCards() {
+      var el = $("opsInfoCards");
+      if (!el) return;
+      var rows = opsRows || [];
+      var produksi = 0, sisa = 0, done = 0, closed = 0;
+      var seenProd = {}, seenSisa = {}, seenDone = {}, seenClosed = {};
+      rows.forEach(function(g) {
+        var pid = String(g.product_id || "");
+        if (!pid || /^BJ/i.test(pid)) return;
+        var hasPlan = (Number(g.plan_total) || 0) > 0 || (g.planDay && Object.keys(g.planDay).length) || (g.primerDay && Object.keys(g.primerDay).length);
+        var hasAct = (Number(g.act_total) || 0) > 0;
+        var st = String(g.status || "").toUpperCase();
+        if (hasPlan || hasAct) {
+          if (!seenProd[pid]) { seenProd[pid] = true; produksi++; }
+        }
+        if (st !== "DONE" && (hasPlan || hasAct || (Number(g.po_qty) || 0) > 0)) {
+          if (!seenSisa[pid]) { seenSisa[pid] = true; sisa++; }
+        }
+        if (st === "DONE") {
+          if (!seenDone[pid]) { seenDone[pid] = true; done++; }
+        }
+        if (g.line_closed) {
+          if (!seenClosed[pid]) { seenClosed[pid] = true; closed++; }
+        }
+      });
+      function card(n, label, bg, fg, filter) {
+        return '<button type="button" onclick="opsInfoFilter(\'' + filter + '\')" style="text-align:left;border:1px solid var(--border);border-radius:12px;padding:0.45rem 0.6rem;background:' + bg + ';color:' + fg + ';cursor:pointer">' +
+          '<div style="font-size:1.15rem;font-weight:800;line-height:1.1">' + formatNum(n) + '</div>' +
+          '<div style="font-size:0.66rem;font-weight:600;margin-top:0.15rem">' + label + '</div></button>';
+      }
+      el.innerHTML =
+        card(produksi, "Produk produksi bulan ini", "#ecfdf5", "#047857", "all") +
+        card(sisa, "Sisa masih diproduksi", "#fff7ed", "#c2410c", "aktif") +
+        card(done, "Sudah done", "#eef2ff", "#3730a3", "done") +
+        card(closed, "Close PO", "#f1f5f9", "#334155", "closed");
+    }
+    function opsInfoFilter(mode) {
+      var sel = $("opsStatusFilter");
+      if (mode === "closed") {
+        if (sel) sel.value = "all";
+        window.__opsOnlyClosed = true;
+      } else {
+        window.__opsOnlyClosed = false;
+        if (sel) sel.value = mode || "all";
+      }
       renderOperasional();
     }
 
@@ -15352,7 +15402,8 @@ function fillOperatorList(selectedEmail) {
       const q = (($("opsSearch") && $("opsSearch").value) || "").toLowerCase().trim();
       const stf = (($("opsStatusFilter") && $("opsStatusFilter").value) || "aktif");
       let list = opsRows.slice();
-      if (stf === "aktif") list = list.filter(g => g.status !== "DONE");
+      if (window.__opsOnlyClosed) list = list.filter(function(g) { return !!g.line_closed; });
+      else if (stf === "aktif") list = list.filter(g => g.status !== "DONE");
       else if (stf === "done") list = list.filter(g => g.status === "DONE");
       else if (stf === "partial") list = list.filter(g => g.status === "PARTIAL");
       if (q) {
