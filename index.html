@@ -4861,26 +4861,21 @@
             </div>
           </div>
           <div class="mod-tabs" id="mktTabs">
-            <button type="button" class="mod-tab active" data-mtab="hari" onclick="setMktTab('hari')">Hari ini</button>
-            <button type="button" class="mod-tab" data-mtab="stok" onclick="setMktTab('stok')">Stok FG</button>
-            <button type="button" class="mod-tab" data-mtab="kemarin" onclick="setMktTab('kemarin')">Output FG kemarin</button>
+            <button type="button" class="mod-tab active" data-mtab="kemarin" onclick="setMktTab('kemarin')">Output FG kemarin</button>
             <button type="button" class="mod-tab" data-mtab="kirim" onclick="setMktTab('kirim')">Instruksi kirim</button>
+            <button type="button" class="mod-tab" data-mtab="stok" onclick="setMktTab('stok')">Stok FG</button>
+            <button type="button" class="mod-tab" data-mtab="hari" onclick="setMktTab('hari')">Hari ini</button>
           </div>
-          <div id="mktPaneHari" class="mod-pane">
-            <div class="grid-kpi">
-              <div class="kpi"><div class="label">FG plan</div><div class="value" id="mktFgPlan">—</div></div>
-              <div class="kpi"><div class="label">FG actual</div><div class="value" id="mktFgAct">—</div></div>
-              <div class="kpi"><div class="label">Ruahan plan</div><div class="value" id="mktRuPlan">—</div></div>
-              <div class="kpi"><div class="label">Ruahan actual</div><div class="value" id="mktRuAct">—</div></div>
-            </div>
+          <div id="mktPaneHari" class="mod-pane" hidden>
+            <div id="mktHariKpi" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
             <div class="card" style="margin-bottom:1rem">
               <h3>Finish Good (packing masterbox)</h3>
-              <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktFgBody"></tbody></table></div>
+              <div class="table-wrap"><table><thead><tr><th>Produk</th><th>SO</th><th style="text-align:right">Target</th><th style="text-align:right">Actual</th><th style="text-align:right">%</th><th>Status</th></tr></thead><tbody id="mktFgBody"></tbody></table></div>
             </div>
-            <div class="card">
-              <h3>Ruahan (proses lain)</h3>
-              <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Proses</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead><tbody id="mktRuBody"></tbody></table></div>
-            </div>
+            <details class="card">
+              <summary style="cursor:pointer;font-weight:700">Ruahan (proses lain) — klik untuk buka</summary>
+              <div class="table-wrap" style="margin-top:0.65rem"><table><thead><tr><th>Produk</th><th>Proses</th><th style="text-align:right">Target</th><th style="text-align:right">Actual</th><th>Status</th></tr></thead><tbody id="mktRuBody"></tbody></table></div>
+            </details>
           </div>
           <div id="mktPaneStok" class="mod-pane" hidden>
             <div class="card">
@@ -4891,6 +4886,7 @@
                 </div>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktFgStock()">Refresh</button>
               </div>
+              <div id="mktStokKpi" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
               <div class="toolbar" style="margin-bottom:0.5rem">
                 <input type="search" id="mktStokSearch" placeholder="Cari kode / nama FG…" oninput="renderMktFgStock()" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.75rem;font-family:inherit" />
                 <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.82rem;color:var(--text-muted)">
@@ -4899,27 +4895,37 @@
               </div>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Produk FG</th><th>Stok</th><th>Satuan</th><th></th></tr></thead>
-                  <tbody id="mktStokBody"><tr><td colspan="4" class="empty">Memuat…</td></tr></tbody>
+                  <thead><tr><th>Produk FG</th><th style="text-align:right">Stok</th><th></th></tr></thead>
+                  <tbody id="mktStokBody"><tr><td colspan="3" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
               <p style="font-size:0.7rem;color:var(--text-muted);margin:0.5rem 0 0">Sumber: warehouse_movements (masuk − keluar). Sama dengan stok di menu Gudang.</p>
             </div>
           </div>
-          <div id="mktPaneKemarin" class="mod-pane" hidden>
+          <div id="mktPaneKemarin" class="mod-pane">
             <div class="card">
               <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.65rem">
                 <h3 style="margin:0">Output FG kemarin <span id="mktYestLabel" style="font-weight:500;color:var(--text-muted);font-size:0.85rem"></span></h3>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktYesterdayFg()">Refresh</button>
               </div>
+              <div id="mktYestKpi" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
+              <div class="toolbar" style="margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
+                <select id="mktYestFilter" onchange="renderMktYesterdayFg()" style="border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.6rem">
+                  <option value="belum">Belum diinstruksikan</option>
+                  <option value="">Semua</option>
+                  <option value="pending">Pending</option>
+                  <option value="requested">Kirim</option>
+                  <option value="picked">Diambil</option>
+                </select>
+                <input type="search" id="mktYestSearch" placeholder="Cari produk / SO / customer…" oninput="renderMktYesterdayFg()" style="flex:1;min-width:14rem" />
+              </div>
               <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Hanya packing masterbox. Klik <strong>Aksi</strong> → Pending (kuning) atau Kirim (hijau).</p>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th></th><th>Produk</th><th>Actual FG</th><th>No SO (plan)</th><th>Stok FG*</th><th></th></tr></thead>
+                  <thead><tr><th></th><th>Produk</th><th style="text-align:right">Actual FG</th><th>Customer / SO</th><th style="text-align:right">Stok FG</th><th>Status instruksi</th></tr></thead>
                   <tbody id="mktYestBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
-              <p style="font-size:0.7rem;color:var(--text-muted);margin:0.5rem 0 0">*Stok FG dari warehouse_movements jika ada. Qty usulan kirim = min(stok, sisa SO) saat buat instruksi.</p>
             </div>
           </div>
           <div id="mktPaneKirim" class="mod-pane" hidden>
@@ -13015,9 +13021,10 @@ function fillOperatorList(selectedEmail) {
       plansD.forEach(p => {
         const act = actBy[p.plan_id] || 0;
         if (isFgMachine(p.machine_id)) {
-          if (!fg[p.product_id]) fg[p.product_id] = { product_id: p.product_id, target: 0, actual: 0, status: p.status };
+          if (!fg[p.product_id]) fg[p.product_id] = { product_id: p.product_id, target: 0, actual: 0, status: p.status, nos: {} };
           fg[p.product_id].target += Number(p.target_qty) || 0;
           fg[p.product_id].actual += act;
+          if (p.no_so) fg[p.product_id].nos[p.no_so] = true;
         } else {
           const k = p.product_id + "|" + p.machine_id;
           if (!ru[k]) ru[k] = { product_id: p.product_id, machine_id: p.machine_id, target: 0, actual: 0, status: p.status };
@@ -13025,22 +13032,41 @@ function fillOperatorList(selectedEmail) {
           ru[k].actual += act;
         }
       });
-      const fgList = Object.values(fg);
-      const ruList = Object.values(ru);
+      const fgList = Object.values(fg).sort(function(a, b) { return (b.actual || 0) - (a.actual || 0); });
+      const ruList = Object.values(ru).sort(function(a, b) { return (b.actual || 0) - (a.actual || 0); });
       const sum = (arr, f) => arr.reduce((s, x) => s + (Number(x[f]) || 0), 0);
-      if ($("mktFgPlan")) $("mktFgPlan").textContent = formatNum(sum(fgList, "target"));
-      if ($("mktFgAct")) $("mktFgAct").textContent = formatNum(sum(fgList, "actual"));
-      if ($("mktRuPlan")) $("mktRuPlan").textContent = formatNum(sum(ruList, "target"));
-      if ($("mktRuAct")) $("mktRuAct").textContent = formatNum(sum(ruList, "actual"));
+      var fgPlan = sum(fgList, "target"), fgAct = sum(fgList, "actual");
+      var pct = fgPlan ? Math.round((fgAct / fgPlan) * 100) : 0;
+      var kpi = $("mktHariKpi");
+      if (kpi) {
+        kpi.innerHTML =
+          '<div class="kpi"><div class="label">FG plan</div><div class="value">' + formatNum(fgPlan) + '</div></div>' +
+          '<div class="kpi"><div class="label">FG actual</div><div class="value">' + formatNum(fgAct) + '</div></div>' +
+          '<div class="kpi"><div class="label">% tercapai</div><div class="value">' + pct + '%</div></div>' +
+          '<div class="kpi"><div class="label">SKU FG</div><div class="value">' + formatNum(fgList.length) + '</div></div>';
+      }
       const fgB = $("mktFgBody");
       const ruB = $("mktRuBody");
-      if (fgB) fgB.innerHTML = !fgList.length ? '<tr><td colspan="4" class="empty">Tidak ada FG hari ini</td></tr>' :
-        fgList.map(x => '<tr><td>' + esc(productLabel(x.product_id)) + '</td><td>' + formatNum(x.target) +
-          '</td><td><strong>' + formatNum(x.actual) + '</strong></td><td>' + statusPill(x.status) + '</td></tr>').join("");
+      function kodeNama(pid) {
+        var name = productNameOnly(pid) || "";
+        if (name.indexOf(pid) === 0) name = name.replace(pid, "").replace(/^[\s·\-]+/, "");
+        return esc(pid) + (name ? " - " + esc(name) : "");
+      }
+      if (fgB) fgB.innerHTML = !fgList.length ? '<tr><td colspan="6" class="empty">Tidak ada FG hari ini</td></tr>' :
+        fgList.map(function(x) {
+          var p = x.target ? Math.round((x.actual / x.target) * 100) : 0;
+          var nos = Object.keys(x.nos || {}).join(", ") || "—";
+          var dim = x.actual <= 0 ? ' style="opacity:0.55"' : "";
+          return '<tr' + dim + '><td><strong>' + kodeNama(x.product_id) + '</strong></td><td style="font-size:0.78rem">' + esc(nos) +
+            '</td><td style="text-align:right">' + formatNum(x.target) + '</td><td style="text-align:right"><strong>' + formatNum(x.actual) +
+            '</strong></td><td style="text-align:right">' + p + '%</td><td>' + statusPill(x.status) + '</td></tr>';
+        }).join("");
       if (ruB) ruB.innerHTML = !ruList.length ? '<tr><td colspan="5" class="empty">Tidak ada ruahan hari ini</td></tr>' :
-        ruList.map(x => '<tr><td>' + esc(productLabel(x.product_id)) + '</td><td>' + esc(machineLabel(x.machine_id)) +
-          '</td><td>' + formatNum(x.target) + '</td><td><strong>' + formatNum(x.actual) + '</strong></td><td>' +
-          statusPill(x.status) + '</td></tr>').join("");
+        ruList.map(function(x) {
+          return '<tr><td>' + kodeNama(x.product_id) + '</td><td>' + esc(machineLabel(x.machine_id)) +
+            '</td><td style="text-align:right">' + formatNum(x.target) + '</td><td style="text-align:right"><strong>' + formatNum(x.actual) +
+            '</strong></td><td>' + statusPill(x.status) + '</td></tr>';
+        }).join("");
     }
 
     function setMktTab(tab) {
@@ -13114,9 +13140,25 @@ function fillOperatorList(selectedEmail) {
       var list = Object.values(byProd).sort(function(a, b) { return b.actual - a.actual; });
       if (!list.length) {
         if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada laporan FG kemarin</td></tr>';
+        mktYestRows = [];
+        renderMktYesterdayFg();
         return;
       }
-      // Instruksi kirim aktif per produk
+      // customer dari SO
+      try {
+        var sos = [];
+        list.forEach(function(x) { Object.keys(x.nos || {}).forEach(function(s) { if (sos.indexOf(s) < 0) sos.push(s); }); });
+        if (sos.length) {
+          var { data: ords } = await sb.from("orders").select("no_so,customer_name").in("no_so", sos.slice(0, 80));
+          var bySo = {};
+          (ords || []).forEach(function(o) { if (o.no_so) bySo[o.no_so] = o.customer_name || ""; });
+          list.forEach(function(x) {
+            var names = {};
+            Object.keys(x.nos || {}).forEach(function(s) { if (bySo[s]) names[bySo[s]] = true; });
+            x.customer = Object.keys(names).join(", ");
+          });
+        }
+      } catch (eC) {}
       var shippedMap = {};
       try {
         var pids = list.map(function(x) { return x.product_id; });
@@ -13149,38 +13191,79 @@ function fillOperatorList(selectedEmail) {
           }
         }
       } catch (eSh) { console.warn("shippedMap", eSh); }
-      function shipStatusLabel(st) {
-        var m = { pending: "Pending", requested: "Kirim", picked: "Diambil gudang", partial: "Parsial", prepared: "Siap", handover: "Serah terima", done: "Selesai" };
-        return m[st] || st || "Instruksi";
+      list.forEach(function(x) { x.stock = stockMap[x.product_id]; x.ship = shippedMap[x.product_id] || null; });
+      mktYestRows = list;
+      renderMktYesterdayFg();
+    }
+    var mktYestRows = [];
+    function renderMktYesterdayFg() {
+      var body = $("mktYestBody");
+      if (!body) return;
+      var f = ($("mktYestFilter") && $("mktYestFilter").value) || "";
+      var q = (($("mktYestSearch") && $("mktYestSearch").value) || "").toLowerCase().trim();
+      var all = mktYestRows || [];
+      var kpi = { total: all.length, qty: 0, belum: 0, pending: 0, kirim: 0 };
+      all.forEach(function(x) {
+        kpi.qty += Number(x.actual) || 0;
+        var st = x.ship ? x.ship.status : "";
+        if (!x.ship) kpi.belum++;
+        else if (st === "pending") kpi.pending++;
+        else if (st === "requested") kpi.kirim++;
+      });
+      var bar = $("mktYestKpi");
+      if (bar) {
+        bar.innerHTML =
+          '<div class="kpi"><div class="label">Total qty</div><div class="value">' + formatNum(kpi.qty) + '</div></div>' +
+          '<div class="kpi"><div class="label">SKU</div><div class="value">' + formatNum(kpi.total) + '</div></div>' +
+          '<div class="kpi"><div class="label">Belum</div><div class="value">' + formatNum(kpi.belum) + '</div></div>' +
+          '<div class="kpi"><div class="label">Pending</div><div class="value">' + formatNum(kpi.pending) + '</div></div>' +
+          '<div class="kpi"><div class="label">Kirim</div><div class="value">' + formatNum(kpi.kirim) + '</div></div>';
       }
-      function shipStatusStyle(st) {
-        if (st === "pending") return "background:#fef3c7;color:#92400e;border:1px solid #fcd34d";
-        return "background:#d1fae5;color:#065f46;border:1px solid #6ee7b7";
+      var list = all.filter(function(x) {
+        var st = x.ship ? x.ship.status : "";
+        if (f === "belum" && x.ship) return false;
+        if (f && f !== "belum" && st !== f) return false;
+        if (q) {
+          var blob = (x.product_id + " " + (productNameOnly(x.product_id) || "") + " " + Object.keys(x.nos || {}).join(" ") + " " + (x.customer || "")).toLowerCase();
+          if (blob.indexOf(q) < 0) return false;
+        }
+        return true;
+      });
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada data untuk filter ini</td></tr>';
+        return;
       }
-      if (body) body.innerHTML = list.map(function(x) {
+      body.innerHTML = list.map(function(x) {
         var nosArr = Object.keys(x.nos || {});
         var nos = nosArr.join(", ") || "—";
         var nos0 = nosArr[0] || "";
-        var st = stockMap[x.product_id];
-        var sh = shippedMap[x.product_id];
+        var st = x.stock;
+        var sh = x.ship;
         var actionHtml = "";
         if (sh) {
           actionHtml =
-            '<span class="pill" style="' + shipStatusStyle(sh.status) + '">' + esc(shipStatusLabel(sh.status)) + "</span>" +
+            shipStatusPill(sh.status) +
             '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">' + esc(sh.ship_id) + "</div>" +
             '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem" onclick="openShipDetail(' + JSON.stringify(sh.ship_id) + ')">Detail</button>';
         } else {
           actionHtml =
+            '<span class="pill" style="background:#f1f5f9;color:#64748b">Belum</span> ' +
             '<button type="button" class="btn btn-ghost btn-sm" onclick=\'openMktAksiModal(' +
             JSON.stringify(String(x.product_id)) + "," + Number(x.actual) + "," + JSON.stringify(nos0) + ")\'>Aksi</button>";
         }
+        var name = productNameOnly(x.product_id) || "";
+        if (name.indexOf(x.product_id) === 0) name = name.replace(x.product_id, "").replace(/^[\s·\-]+/, "");
+        var prod = esc(x.product_id) + (name ? " - " + esc(name) : "");
+        var cust = x.customer
+          ? "<strong>" + esc(x.customer) + "</strong><div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(nos) + "</div>"
+          : "<strong>" + esc(nos) + "</strong>";
         return "<tr>" +
           '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" data-noso="' + esc(nos0) + '"' +
             (sh ? " disabled" : "") + " /></td>" +
-          "<td><strong>" + esc(x.product_id) + "</strong><div style='font-size:0.68rem;color:var(--text-muted)'>" + esc(productNameOnly(x.product_id) || "") + "</div></td>" +
-          "<td><strong>" + formatNum(x.actual) + "</strong></td>" +
-          "<td style='font-size:0.78rem'>" + esc(nos) + "</td>" +
-          "<td>" + (st != null ? formatNum(st) : "—") + "</td>" +
+          "<td><strong>" + prod + "</strong></td>" +
+          "<td style='text-align:right'><strong>" + formatNum(x.actual) + "</strong></td>" +
+          "<td style='font-size:0.78rem'>" + cust + "</td>" +
+          "<td style='text-align:right'>" + (st != null ? formatNum(st) : "—") + "</td>" +
           "<td>" + actionHtml + "</td></tr>";
       }).join("");
     }
@@ -13613,21 +13696,31 @@ function fillOperatorList(selectedEmail) {
         if (!q) return true;
         return (r.product_id + " " + (r.name || "")).toLowerCase().indexOf(q) >= 0;
       });
+      var sku = list.length;
+      var qty = list.reduce(function(s, r) { return s + (Number(r.saldo) || 0); }, 0);
+      var low = list.filter(function(r) { return r.saldo > 0 && r.saldo < 50; }).length;
+      var kpi = $("mktStokKpi");
+      if (kpi) {
+        kpi.innerHTML =
+          '<div class="kpi"><div class="label">SKU ada stok</div><div class="value">' + formatNum(sku) + '</div></div>' +
+          '<div class="kpi"><div class="label">Total qty</div><div class="value">' + formatNum(qty) + '</div></div>' +
+          '<div class="kpi"><div class="label">Stok < 50</div><div class="value">' + formatNum(low) + '</div></div>';
+      }
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="4" class="empty">' +
-          (onlyPos ? "Tidak ada FG dengan stok &gt; 0" : "Belum ada data stok FG") +
+        body.innerHTML = '<tr><td colspan="3" class="empty">' +
+          (onlyPos ? "Tidak ada FG dengan stok > 0" : "Belum ada data stok FG") +
           "</td></tr>";
         return;
       }
-      body.innerHTML = list.map(function(r, idx) {
+      body.innerHTML = list.map(function(r) {
         var canShip = r.saldo > 0;
+        var name = r.name || productNameOnly(r.product_id) || "";
+        if (name.indexOf(r.product_id) === 0) name = name.replace(r.product_id, "").replace(/^[\s·\-]+/, "");
+        var prod = esc(r.product_id) + (name ? " - " + esc(name) : "");
         return "<tr>" +
-          "<td><strong>" + esc(r.product_id) + "</strong>" +
-            (r.name ? "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(r.name) + "</div>" : "") +
-          "</td>" +
-          "<td style='font-weight:700;color:" + (r.saldo > 0 ? "#059669" : (r.saldo < 0 ? "#b91c1c" : "inherit")) + "'>" +
-            formatNum(r.saldo) + "</td>" +
-          "<td>" + esc(r.unit || "pcs") + "</td>" +
+          "<td><strong>" + prod + "</strong></td>" +
+          "<td style='text-align:right;font-weight:700;color:" + (r.saldo > 0 ? "#059669" : (r.saldo < 0 ? "#b91c1c" : "inherit")) + "'>" +
+            formatNum(r.saldo) + " <span style='font-weight:500;color:var(--text-muted)'>" + esc(r.unit || "pcs") + "</span></td>" +
           "<td>" +
             (canShip
               ? '<button type="button" class="btn btn-primary btn-sm mkt-ship-btn" data-pid="' + esc(r.product_id) + '" data-qty="' + esc(String(r.saldo)) + '">Instruksi kirim</button>'
@@ -24760,7 +24853,7 @@ var id = await newPickId();
       if (page === "fg-korlap") { try { loadFgKorlap(); } catch (eF) {} }
       if (page === "kendala") { try { loadKendalaAnalysis(); } catch (eK) {} }
       if (page === "ranking") { try { loadRanking(); } catch (e) {} }
-      if (page === "marketing") { try { loadMarketing(); } catch (e) {} }
+      if (page === "marketing") { try { setMktTab("kemarin"); } catch (e) {} }
       if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
       if (page === "improvements") { try { loadImprovements(); } catch (eImp) {} }
       if (page === "home") {
