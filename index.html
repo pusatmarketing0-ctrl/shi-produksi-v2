@@ -8031,15 +8031,33 @@
         pageOf("plans", [], "planPager");
         return;
       }
+      var dupCount = {};
+      (plans || []).forEach(function(p) {
+        if (String(p.status || "").toLowerCase() === "cancelled") return;
+        var k = planDupKey(p);
+        dupCount[k] = (dupCount[k] || 0) + 1;
+      });
       var pageList = pageOf("plans", list, "planPager");
       body.innerHTML = pageList.map(p => {
         var canBulk = canBulkPlanAction();
         var pid = String(p.plan_id || "");
         var checked = planSelectedIds[pid] ? " checked" : "";
+        var dk = planDupKey(p);
+        var nDup = dupCount[dk] || 0;
+        var isDup = nDup > 1;
+        var hard = isDup && !!String(p.assigned_operator || "").trim();
+        var dupBadge = "";
+        if (isDup) {
+          dupBadge = '<span class="pill" style="margin-left:0.35rem;font-size:0.65rem;background:' +
+            (hard ? "#fef2f2;color:#b91c1c;border:1px solid #fecaca" : "#fff7ed;color:#c2410c;border:1px solid #fed7aa") +
+            '" title="Kembar: tgl+shift+produk+proses+operator+SO (' + nDup + ' baris)">' +
+            (hard ? "DOBEL ×" : "Sama ×") + nDup + "</span>";
+        }
+        var rowBg = isDup ? (' style="background:' + (hard ? "rgba(254,226,226,0.55)" : "rgba(255,247,237,0.65)") + '"') : "";
         return `
-        <tr>
+        <tr${rowBg}>
           <td>${canBulk ? `<input type="checkbox" class="plan-cb" data-pid="${esc(pid)}"${checked} onchange="planToggleOne(this.dataset.pid, this.checked)" />` : ""}</td>
-          <td class="mono">${esc(p.plan_date)}</td>
+          <td class="mono">${esc(String(p.plan_date || "").slice(0,10))}${dupBadge}</td>
           <td>${esc(p.shift)}</td>
           <td>${esc(productLabel(p.product_id))}</td>
           <td>${esc(machineLabel(p.machine_id))}</td>
@@ -8063,8 +8081,15 @@
         }
         const canEdit = currentRole() !== "operator";
         cards.innerHTML = pageList.map(function(p) {
-          return '<div class="m-card">' +
-            '<div class="m-title">' + esc(productLabel(p.product_id)) + '</div>' +
+          var dk = planDupKey(p);
+          var nDup = dupCount[dk] || 0;
+          var isDup = nDup > 1;
+          var hard = isDup && !!String(p.assigned_operator || "").trim();
+          var dupBadge = isDup
+            ? ('<span class="pill" style="font-size:0.65rem;background:' + (hard ? "#fef2f2;color:#b91c1c" : "#fff7ed;color:#c2410c") + '">' + (hard ? "DOBEL ×" : "Sama ×") + nDup + "</span>")
+            : "";
+          return '<div class="m-card"' + (isDup ? ' style="border:1px solid ' + (hard ? "#fca5a5" : "#fdba74") + '"' : "") + '>' +
+            '<div class="m-title">' + esc(productLabel(p.product_id)) + " " + dupBadge + '</div>' +
             '<div class="m-sub">' + esc(p.plan_date) + ' · Shift ' + esc(p.shift) + ' · ' + esc(machineLabel(p.machine_id)) + '</div>' +
             ((p.no_so || p.order_id) ? '<div class="m-sub">SO ' + esc(p.no_so || p.order_id) + '</div>' : '') +
             '<div class="m-row"><span>Target <strong>' + formatNum(p.target_qty) + ' ' + esc(p.unit || "") + '</strong></span> ' +
@@ -20941,13 +20966,15 @@ function fillOperatorList(selectedEmail) {
     }
     
     function planDupKey(r) {
+      var so = String(r.no_so || r.order_id || "").trim().toLowerCase().replace(/^s0\//, "so/");
+      var op = String(r.assigned_operator || "").trim().toLowerCase();
       return [
         String(r.plan_date || "").slice(0, 10),
         String(r.shift || "1").trim(),
-        String(r.product_id || "").trim(),
-        String(r.machine_id || "").trim(),
-        String(r.assigned_operator || "").trim().toLowerCase(),
-        String(r.no_so || "").trim()
+        String(r.product_id || "").trim().toUpperCase(),
+        String(r.machine_id || "").trim().toUpperCase(),
+        op,
+        so
       ].join("|");
     }
     async function fetchExistingPlanKeys(dates) {
