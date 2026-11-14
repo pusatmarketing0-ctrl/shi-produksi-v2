@@ -20956,7 +20956,7 @@ function fillOperatorList(selectedEmail) {
       const uniq = Array.from(new Set(dates.filter(Boolean)));
       for (let i = 0; i < uniq.length; i += 10) {
         const chunk = uniq.slice(i, i + 10);
-        const { data } = await sb.from("plans").select("plan_date,shift,product_id,machine_id,assigned_operator,no_so,status")
+        const { data } = await sb.from("plans").select("plan_date,shift,product_id,machine_id,assigned_operator,no_so,order_id,status")
           .in("plan_date", chunk)
           .not("status", "eq", "cancelled")
           .limit(3000);
@@ -24652,6 +24652,7 @@ var id = await newPickId();
             shift: g.shift,
             plan_qty: g.plan_qty,
             op_qty: g.op_qty,
+            op_breakdown: g.op_breakdown || [],
             unit: g.unit,
             korlap_qty: out,
             bets: bets,
@@ -24706,7 +24707,17 @@ var id = await newPickId();
             "<td>" + esc(r.no_so || "—") + "</td>" +
             "<td>Shift " + esc(r.shift) + "</td>" +
             '<td style="text-align:right">' + formatNum(r.plan_qty) + "</td>" +
-            '<td style="text-align:right">' + formatNum(r.op_qty) + "</td>" +
+            '<td style="text-align:right">' + formatNum(r.op_qty) +
+              (function() {
+                var bd = r.op_breakdown || [];
+                if (bd.length <= 1) return "";
+                return '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:0.15rem;line-height:1.35;text-align:left">' +
+                  bd.map(function(b) {
+                    var nm = (typeof operatorDisplayName === "function" ? operatorDisplayName(b.operator) : b.operator);
+                    if (String(b.operator).indexOf("belum") >= 0) nm = b.operator;
+                    return esc(nm) + ": <b>" + formatNum(b.actual) + "</b>/" + formatNum(b.target);
+                  }).join("<br/>") + "</div>";
+              })() + "</td>" +
             '<td style="text-align:right"><strong>' + (r.has_korlap ? formatNum(r.korlap_qty) : "—") + "</strong>" +
               (nBet > 1 ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + nBet + " bet</div>" : "") + "</td>" +
             '<td style="text-align:right">' + (r.has_korlap ? formatNum(diff) : "—") + "</td>" +
@@ -24795,6 +24806,26 @@ var id = await newPickId();
       if ($("fgkModalSub")) $("fgkModalSub").textContent = (productLabel(r.product_id) || r.product_id) + (r.no_so ? " · " + r.no_so : "");
       if ($("fgkMPlan")) $("fgkMPlan").textContent = formatNum(r.plan_qty);
       if ($("fgkMOp")) $("fgkMOp").textContent = formatNum(r.op_qty);
+      // breakdown OP
+      var bdHost = $("fgkOpBreakdown");
+      if (!bdHost && $("fgkMOp") && $("fgkMOp").parentElement) {
+        bdHost = document.createElement("div");
+        bdHost.id = "fgkOpBreakdown";
+        bdHost.style.cssText = "font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;line-height:1.45";
+        $("fgkMOp").parentElement.appendChild(bdHost);
+      }
+      if (bdHost) {
+        var bd = r.op_breakdown || [];
+        if (bd.length) {
+          bdHost.innerHTML = bd.map(function(b) {
+            var nm = (typeof operatorDisplayName === "function" ? operatorDisplayName(b.operator) : b.operator);
+            if (String(b.operator).indexOf("belum") >= 0) nm = b.operator;
+            return "• " + esc(nm) + " — actual <b>" + formatNum(b.actual) + "</b> / target " + formatNum(b.target);
+          }).join("<br/>");
+        } else {
+          bdHost.innerHTML = "";
+        }
+      }
       if ($("fgkMKen")) $("fgkMKen").value = r.kendala || "";
       if ($("fgkMNote")) $("fgkMNote").value = r.notes || "";
       var box = $("fgkBets");
