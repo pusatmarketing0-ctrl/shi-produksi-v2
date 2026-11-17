@@ -3777,6 +3777,267 @@
       gap: 0.15rem;
       max-width: 180px;
     }
+
+    /* ===== Odoo Inventory Redesign (#page-gudang) ===== */
+    .odoo-inv-top {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.9rem 1.15rem 0;
+      margin-bottom: 0.9rem;
+    }
+    .odoo-inv-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding-bottom: 0.75rem;
+    }
+    .odoo-inv-bc {
+      font-size: 0.74rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-bottom: 0.15rem;
+    }
+    .odoo-inv-bc strong {
+      color: #714b67;
+      font-weight: 700;
+    }
+    .odoo-inv-title {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+    .odoo-inv-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+    .btn-odoo {
+      background: #714b67;
+      color: #ffffff;
+      border: 1px solid #714b67;
+      border-radius: 8px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-odoo:hover { background: #5c3c54; border-color: #5c3c54; }
+    .btn-odoo-teal {
+      background: #017e84;
+      color: #ffffff;
+      border: 1px solid #017e84;
+      border-radius: 8px;
+      padding: 0.38rem 0.75rem;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-odoo-teal:hover { background: #01666b; border-color: #01666b; }
+    .odoo-inv-tabs {
+      display: flex;
+      gap: 0.25rem;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 0.2rem;
+      overflow-x: auto;
+    }
+    .odoo-inv-tabs .mod-tab {
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      border-bottom: 2px solid transparent !important;
+      color: #64748b !important;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.65rem 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: none !important;
+    }
+    .odoo-inv-tabs .mod-tab:hover { color: #0f172a !important; }
+    .odoo-inv-tabs .mod-tab.active {
+      color: #714b67 !important;
+      border-bottom-color: #714b67 !important;
+    }
+    .odoo-inv-overview {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+    @media (max-width: 1024px) {
+      .odoo-inv-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      .odoo-inv-overview { grid-template-columns: 1fr; }
+    }
+    .odoo-op-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-top-width: 3px;
+      border-radius: 10px;
+      padding: 0.85rem 0.95rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.75rem;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .odoo-op-card:hover { box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
+    .odoo-op-card.op-plum { border-top-color: #714b67; }
+    .odoo-op-card.op-teal { border-top-color: #017e84; }
+    .odoo-op-card.op-blue { border-top-color: #2563eb; }
+    .odoo-op-card.op-amber { border-top-color: #d97706; }
+    .odoo-op-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .odoo-op-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #017e84;
+      margin: 0;
+    }
+    .odoo-op-sub {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 0.12rem;
+    }
+    .odoo-op-body {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .odoo-op-stats {
+      text-align: right;
+      font-size: 0.74rem;
+      color: #475569;
+      line-height: 1.45;
+    }
+    .odoo-op-stats strong {
+      font-variant-numeric: tabular-nums;
+      color: #0f172a;
+    }
+    .odoo-ctrl-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      padding: 0.75rem 1rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .odoo-facet-group {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+    }
+    .odoo-facet {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .odoo-facet:hover { border-color: #94a3b8; color: #0f172a; }
+    .odoo-facet.active {
+      background: #714b67;
+      border-color: #714b67;
+      color: #ffffff;
+    }
+    .odoo-ctrl-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .odoo-search-inp {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 0.38rem 0.7rem;
+      font-size: 0.8rem;
+      min-width: 220px;
+      font-family: inherit;
+    }
+    .odoo-search-inp:focus {
+      outline: none;
+      border-color: #714b67;
+    }
+    .odoo-sheet {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .odoo-sheet-form {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      max-width: 820px;
+      overflow: hidden;
+    }
+    .odoo-sheet-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.15rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .odoo-sheet-body {
+      padding: 1.25rem;
+    }
+    .odoo-num-col {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .odoo-cat-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #475569;
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 0.08rem 0.38rem;
+      margin-left: 0.35rem;
+    }
+    .odoo-move-link {
+      color: #017e84;
+      font-size: 0.76rem;
+      font-weight: 600;
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 0.22rem 0.55rem;
+      cursor: pointer;
+    }
+    .odoo-move-link:hover {
+      background: #f0fdfa;
+      border-color: #017e84;
+    }
+
     .odoo-person span {
       overflow: hidden;
       text-overflow: ellipsis;
@@ -5625,90 +5886,225 @@
 
       
         <section id="page-gudang" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1>Gudang</h1>
-              <p>Stok · terima setelah QC · mutasi FG / sisa.</p>
+          <div class="odoo-inv-top">
+            <div class="odoo-inv-head">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Inventory</span>
+                  <span>/</span>
+                  <span>Warehouse</span>
+                  <span>/</span>
+                  <strong id="gdBreadcrumbSub">On Hand Stock</strong>
+                </div>
+                <h1 class="odoo-inv-title">Inventory Overview &amp; Gudang</h1>
+              </div>
+              <div class="odoo-inv-actions">
+                <button type="button" class="btn-odoo" onclick="setGudangTab('mutasi')">+ Inventory Adjustment</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="refreshGudangTab()">Refresh</button>
+              </div>
             </div>
-            <button class="btn btn-ghost" type="button" onclick="refreshGudangTab()">Refresh</button>
+            <div class="mod-tabs odoo-inv-tabs" id="gudangTabs" role="tablist">
+              <button type="button" class="mod-tab active" data-gtab="stok" onclick="setGudangTab('stok')">On Hand (Stok)</button>
+              <button type="button" class="mod-tab" data-gtab="terima" onclick="setGudangTab('terima')">Receipts (Terima PO)</button>
+              <button type="button" class="mod-tab" data-gtab="kirim" onclick="setGudangTab('kirim')">Delivery Orders (Kirim)</button>
+              <button type="button" class="mod-tab" data-gtab="mutasi" onclick="setGudangTab('mutasi')">Adjustments (Mutasi)</button>
+            </div>
           </div>
-          <div class="mod-tabs" id="gudangTabs" role="tablist">
-            <button type="button" class="mod-tab active" data-gtab="stok" onclick="setGudangTab('stok')">Stok</button>
-            <button type="button" class="mod-tab" data-gtab="terima" onclick="setGudangTab('terima')">Terima</button>
-            <button type="button" class="mod-tab" data-gtab="kirim" onclick="setGudangTab('kirim')">Kirim</button>
-            <button type="button" class="mod-tab" data-gtab="mutasi" onclick="setGudangTab('mutasi')">Mutasi</button>
+
+          <div class="odoo-inv-overview" id="gudangOverviewGrid">
+            <div class="odoo-op-card op-teal">
+              <div class="odoo-op-head">
+                <div>
+                  <h3 class="odoo-op-title">On Hand Stock</h3>
+                  <div class="odoo-op-sub">WH/Stock · Saldo Aktif</div>
+                </div>
+                <span class="odoo-pill locked" id="gdOvSkuCount">0 SKU</span>
+              </div>
+              <div class="odoo-op-body">
+                <button type="button" class="btn-odoo-teal" onclick="setGudangTab('stok')">Lihat Saldo</button>
+                <div class="odoo-op-stats">
+                  <div>Stok &gt; 0: <strong id="gdOvInStock">—</strong></div>
+                  <div>Kosong / Minus: <strong id="gdOvEmptyStock">—</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="odoo-op-card op-plum">
+              <div class="odoo-op-head">
+                <div>
+                  <h3 class="odoo-op-title">Receipts</h3>
+                  <div class="odoo-op-sub">WH/IN · Terima Vendor &amp; QC</div>
+                </div>
+                <span class="odoo-pill progress" id="gdOvWaitRecv">0 Open</span>
+              </div>
+              <div class="odoo-op-body">
+                <button type="button" class="btn-odoo-teal" onclick="setGudangTab('terima')">Buka Receipts</button>
+                <div class="odoo-op-stats">
+                  <div>Siap Validasi Stok: <strong id="gdOvReadyStock">—</strong></div>
+                  <div>Menunggu QC: <strong id="gdOvWaitQc">—</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="odoo-op-card op-blue">
+              <div class="odoo-op-head">
+                <div>
+                  <h3 class="odoo-op-title">Delivery Orders</h3>
+                  <div class="odoo-op-sub">WH/OUT · Antrian Marketing</div>
+                </div>
+                <span class="odoo-pill quotation" id="gdOvShipCount">0 Queue</span>
+              </div>
+              <div class="odoo-op-body">
+                <button type="button" class="btn-odoo-teal" onclick="setGudangTab('kirim')">Buka Delivery</button>
+                <div class="odoo-op-stats">
+                  <div>Perlu Picked: <strong id="gdOvShipReq">—</strong></div>
+                  <div>Siap Buat DO: <strong id="gdOvShipPicked">—</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="odoo-op-card op-amber">
+              <div class="odoo-op-head">
+                <div>
+                  <h3 class="odoo-op-title">Internal &amp; Adjustments</h3>
+                  <div class="odoo-op-sub">WH/INT · Pick &amp; Koreksi Stok</div>
+                </div>
+                <span class="odoo-pill done">Operasional</span>
+              </div>
+              <div class="odoo-op-body">
+                <button type="button" class="btn-odoo-teal" onclick="goPage('pick-wh')">Pick Gudang</button>
+                <div class="odoo-op-stats">
+                  <div>Mutasi FG / Sisa</div>
+                  <div><a href="javascript:void(0)" onclick="setGudangTab('mutasi')" style="color:#017e84;font-weight:600;text-decoration:none">Input Koreksi →</a></div>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div id="gudang-pane-stok" class="gudang-pane">
-            <div class="card" style="padding:0.85rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem">
-                <div style="font-weight:700">Saldo stok</div>
-                <input type="search" id="whStockSearch" placeholder="Cari kode / nama..." oninput="renderGudangStock()" style="max-width:220px;border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.65rem;font-size:0.85rem" />
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <div class="odoo-facet-group" id="whStockCatGroup">
+                  <button type="button" class="odoo-facet active" data-cat="" onclick="setWhStockFilter('cat','')">Semua</button>
+                  <button type="button" class="odoo-facet" data-cat="fg" onclick="setWhStockFilter('cat','fg')">Finish Good</button>
+                  <button type="button" class="odoo-facet" data-cat="bahan_baku" onclick="setWhStockFilter('cat','bahan_baku')">Bahan Baku</button>
+                  <button type="button" class="odoo-facet" data-cat="bahan_kemas" onclick="setWhStockFilter('cat','bahan_kemas')">Bahan Kemas</button>
+                  <button type="button" class="odoo-facet" data-cat="bahan_penunjang" onclick="setWhStockFilter('cat','bahan_penunjang')">Penunjang</button>
+                  <span style="color:#cbd5e1;margin:0 0.15rem">|</span>
+                  <button type="button" class="odoo-facet" data-qty="pos" onclick="setWhStockFilter('qty','pos')">Tersedia (&gt;0)</button>
+                  <button type="button" class="odoo-facet" data-qty="low" onclick="setWhStockFilter('qty','low')">Kosong / Minus</button>
+                </div>
+                <div class="odoo-ctrl-right">
+                  <span id="whStockCount" style="font-size:0.75rem;color:#64748b;font-variant-numeric:tabular-nums">0 produk</span>
+                  <input type="search" id="whStockSearch" class="odoo-search-inp" placeholder="Search code, product name…" oninput="pageState.stock={page:1};renderGudangStock()" />
+                </div>
               </div>
               <div class="table-wrap">
-                <table>
-                  <thead><tr><th>Kode</th><th>Nama</th><th>Masuk</th><th>Keluar</th><th>Saldo</th><th>Unit</th></tr></thead>
-                  <tbody id="whStockBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                <table class="odoo-list">
+                  <thead>
+                    <tr>
+                      <th>Internal Ref</th>
+                      <th>Product</th>
+                      <th class="odoo-num-col">Total In</th>
+                      <th class="odoo-num-col">Total Out</th>
+                      <th class="odoo-num-col">On Hand</th>
+                      <th>UoM</th>
+                      <th>State</th>
+                      <th style="text-align:right">Moves</th>
+                    </tr>
+                  </thead>
+                  <tbody id="whStockBody"><tr><td colspan="8" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
               <div id="stockPager" class="pg-bar"></div>
-              <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Masuk = vendor + FG + sisa · Keluar = pengiriman · Saldo = masuk − keluar</p>
             </div>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Klik baris produk atau tombol History untuk melihat Stock Moves (kartu stok masuk/keluar).</p>
           </div>
+
           <div id="gudang-pane-terima" class="gudang-pane" hidden>
-            <div class="toolbar">
-              <input type="search" id="gudangSearch" placeholder="Cari PO / PO Odoo / vendor / bahan..." oninput="renderGudangInbox()" />
-              <select id="gudangFilter" onchange="renderGudangInbox()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
-                <option value="open">Belum lengkap</option>
-                <option value="eta">Ada ETA</option>
-                <option value="all">Semua</option>
-              </select>
-            </div>
-            <div class="card" style="overflow:auto">
-              <table class="data-table">
-                <thead><tr>
-                  <th>PO / Odoo</th><th>SO</th><th>Bahan</th><th>Vendor</th><th>ETA</th>
-                  <th>Qty PO</th><th>Datang</th><th>QC lulus</th><th>Stok</th><th>Status</th><th></th>
-                </tr></thead>
-                <tbody id="gudangBody"><tr><td colspan="10" class="empty">Memuat…</td></tr></tbody>
-              </table>
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <div class="odoo-facet-group">
+                  <select id="gudangFilter" onchange="renderGudangInbox()" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.38rem 0.65rem;font-size:0.8rem;background:#fff">
+                    <option value="open">To Process (Belum lengkap)</option>
+                    <option value="eta">Scheduled (Ada ETA)</option>
+                    <option value="all">All Receipts (Semua)</option>
+                  </select>
+                </div>
+                <div class="odoo-ctrl-right">
+                  <input type="search" id="gudangSearch" class="odoo-search-inp" placeholder="Search PO, PO Odoo, vendor, product…" oninput="renderGudangInbox()" />
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="odoo-list">
+                  <thead><tr>
+                    <th>Reference</th><th>Source (SO)</th><th>Product</th><th>Vendor</th><th>Scheduled ETA</th>
+                    <th class="odoo-num-col">Demand</th><th class="odoo-num-col">Arrived</th><th class="odoo-num-col">QC Passed</th><th class="odoo-num-col">Done (Stok)</th><th>State</th><th>Action</th>
+                  </tr></thead>
+                  <tbody id="gudangBody"><tr><td colspan="11" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
+
           <div id="gudang-pane-kirim" class="gudang-pane" hidden>
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem">
-                <h3 style="margin:0">Antrian kirim (dari Marketing)</h3>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <div>
+                  <strong style="font-size:0.88rem;color:#0f172a">Delivery Queue (WH/OUT)</strong>
+                  <span style="font-size:0.76rem;color:#64748b;margin-left:0.5rem">Antrian dari Marketing sampai Picked, lalu klik Buat DO &amp; isi No DO Odoo.</span>
+                </div>
+                <div class="odoo-ctrl-right">
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
+                </div>
               </div>
-              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Antrian sampai <strong>Picked</strong>. Untuk kirim keluar, klik <strong>Buat DO</strong> dan isi DO (status shipped) — wajib.</p>
               <div class="table-wrap">
-                <table>
-                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                <table class="odoo-list">
+                  <thead><tr><th>Reference</th><th>Scheduled Date</th><th>Partner / SO</th><th>Status</th><th>Operations</th><th>Notes</th><th></th></tr></thead>
                   <tbody id="gudangShipBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
           </div>
+
           <div id="gudang-pane-mutasi" class="gudang-pane" hidden>
-            <div class="card" style="padding:0.85rem">
-              <div style="font-weight:700;margin-bottom:0.5rem">Input mutasi (FG / sisa bahan)</div>
-              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">FG packing biasanya auto dari laporan operator. Form ini untuk koreksi / sisa manual.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;align-items:end;max-width:560px">
-                <div class="field" style="margin:0"><label style="font-size:0.72rem">Jenis</label>
-                  <select id="whProdType"><option value="in_fg">Finisgood (FG)</option><option value="in_sisa">Sisa bahan produksi</option></select>
+            <div class="odoo-sheet-form">
+              <div class="odoo-sheet-bar">
+                <div style="display:flex;align-items:center;gap:0.5rem">
+                  <strong style="font-size:0.95rem;color:#0f172a">Inventory Adjustment / Mutasi Manual</strong>
+                  <span class="odoo-pill quotation">Draft</span>
                 </div>
-                <div class="field" style="margin:0"><label style="font-size:0.72rem">Produk / bahan</label>
-                  <input id="whProdProduct" placeholder="Kode produk" list="whProdList" />
-                  <datalist id="whProdList"></datalist>
+                <button type="button" class="btn-odoo" onclick="saveWhFromProduction()">Apply Mutation</button>
+              </div>
+              <div class="odoo-sheet-body">
+                <p style="font-size:0.78rem;color:#64748b;margin:0 0 1rem">FG packing masuk otomatis dari laporan operator. Gunakan form ini untuk koreksi stok atau input sisa bahan produksi.</p>
+                <div class="odoo-form-grid">
+                  <div>
+                    <div class="odoo-form-row">
+                      <label>Operation Type</label>
+                      <select id="whProdType">
+                        <option value="in_fg">Finisgood (FG) — Masuk</option>
+                        <option value="in_sisa">Sisa Bahan Produksi — Masuk</option>
+                      </select>
+                    </div>
+                    <div class="odoo-form-row">
+                      <label>Product</label>
+                      <input id="whProdProduct" placeholder="Ketik kode / pilih produk…" list="whProdList" oninput="updateWhMutasiPreview()" />
+                      <datalist id="whProdList"></datalist>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="odoo-form-row">
+                      <label>Quantity</label>
+                      <input id="whProdQty" class="num-input" inputmode="decimal" placeholder="0" />
+                    </div>
+                    <div class="odoo-form-row">
+                      <label>Source Document (SO)</label>
+                      <input id="whProdSo" placeholder="SO/... (opsional)" />
+                    </div>
+                  </div>
                 </div>
-                <div class="field" style="margin:0"><label style="font-size:0.72rem">Qty</label>
-                  <input id="whProdQty" class="num-input" inputmode="decimal" placeholder="0" />
-                </div>
-                <div class="field" style="margin:0"><label style="font-size:0.72rem">No SO (opsional)</label>
-                  <input id="whProdSo" placeholder="SO/..." />
-                </div>
-                <div style="grid-column:1/-1">
-                  <button type="button" class="btn btn-primary" onclick="saveWhFromProduction()">Simpan mutasi</button>
-                </div>
+                <div id="whMutasiPreview" style="margin-top:0.9rem;padding:0.65rem 0.85rem;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:0.78rem;color:#475569;display:none"></div>
               </div>
             </div>
           </div>
@@ -13479,6 +13875,7 @@ function fillOperatorList(selectedEmail) {
           ? gList.map(function(r) { return rowHtml(r, true); }).join("")
           : '<tr><td colspan="7" class="empty">Tidak ada antrian kirim</td></tr>';
       }
+      try { updateGudangOverviewCards(); } catch (eOv) {}
     }
     function exportShipRequests() {
       var stf = ($("shipReqStatusFilter") && $("shipReqStatusFilter").value) || "";
@@ -17700,8 +18097,82 @@ function fillOperatorList(selectedEmail) {
       // antrian = pending + partial: handle in renderQcInbox
       try { loadQcInbox(); } catch (e) {}
     }
+    var whStockCatFilter = "";
+    var whStockQtyFilter = "";
+    function setWhStockFilter(kind, val) {
+      if (kind === "cat") whStockCatFilter = val || "";
+      if (kind === "qty") whStockQtyFilter = (whStockQtyFilter === val) ? "" : (val || "");
+      var grp = $("whStockCatGroup");
+      if (grp) {
+        grp.querySelectorAll("[data-cat]").forEach(function(b) {
+          b.classList.toggle("active", (b.getAttribute("data-cat") || "") === whStockCatFilter);
+        });
+        grp.querySelectorAll("[data-qty]").forEach(function(b) {
+          b.classList.toggle("active", (b.getAttribute("data-qty") || "") === whStockQtyFilter);
+        });
+      }
+      if (pageState.stock) pageState.stock.page = 1;
+      renderGudangStock();
+    }
+    function updateWhMutasiPreview() {
+      var box = $("whMutasiPreview");
+      if (!box) return;
+      var pid = (($("whProdProduct") && $("whProdProduct").value) || "").trim();
+      if (!pid) { box.style.display = "none"; return; }
+      var prod = (products || []).find(function(x) { return String(x.product_id) === pid; });
+      var st = (gudangStockRows || []).find(function(x) { return String(x.product_id) === pid; });
+      var saldo = st ? st.saldo : 0;
+      var unit = (st && st.unit) || (prod && prod.unit) || "pcs";
+      box.style.display = "block";
+      box.innerHTML = "<strong>" + esc(pid) + "</strong>" + (prod && prod.name ? " — " + esc(prod.name) : "") +
+        " &nbsp;·&nbsp; Saldo saat ini: <strong style=\"color:" + (saldo > 0 ? "#059669" : (saldo < 0 ? "#b91c1c" : "#475569")) + "\">" +
+        formatNum(saldo) + " " + esc(unit) + "</strong>";
+    }
+    function updateGudangOverviewCards() {
+      var rows = gudangStockRows || [];
+      var pos = 0, low = 0;
+      rows.forEach(function(r) {
+        if ((Number(r.saldo) || 0) > 0) pos++;
+        else low++;
+      });
+      if ($("gdOvSkuCount")) $("gdOvSkuCount").textContent = formatNum(rows.length) + " SKU";
+      if ($("gdOvInStock")) $("gdOvInStock").textContent = formatNum(pos);
+      if ($("gdOvEmptyStock")) $("gdOvEmptyStock").textContent = formatNum(low);
+
+      var gRows = gudangRows || [];
+      var openRecv = 0, readyStk = 0, waitQc = 0;
+      gRows.forEach(function(r) {
+        var qty = Number(r.qty) || 0;
+        var arr = Number(r.qty_arrived) || 0;
+        var pas = Number(r.qty_qc_passed) || 0;
+        var rec = Number(r.qty_received) || 0;
+        if (arr < qty || rec < pas) openRecv++;
+        if (pas > rec) readyStk++;
+        if (arr > 0 && r.qc_form_at && (r.qc_status === "pending" || r.qc_status === "partial")) waitQc++;
+      });
+      if ($("gdOvWaitRecv")) $("gdOvWaitRecv").textContent = formatNum(openRecv) + " Open";
+      if ($("gdOvReadyStock")) $("gdOvReadyStock").textContent = formatNum(readyStk);
+      if ($("gdOvWaitQc")) $("gdOvWaitQc").textContent = formatNum(waitQc);
+
+      var ships = shipReqList || [];
+      var sReq = 0, sPick = 0;
+      ships.forEach(function(s) {
+        if (s.status === "requested") sReq++;
+        else if (s.status === "picked") sPick++;
+      });
+      if ($("gdOvShipCount")) $("gdOvShipCount").textContent = formatNum(sReq + sPick) + " Queue";
+      if ($("gdOvShipReq")) $("gdOvShipReq").textContent = formatNum(sReq);
+      if ($("gdOvShipPicked")) $("gdOvShipPicked").textContent = formatNum(sPick);
+    }
     function setGudangTab(tab) {
       gudangActiveTab = tab || "stok";
+      var bcMap = {
+        stok: "On Hand Stock",
+        terima: "Receipts (Vendor Inbound)",
+        kirim: "Delivery Orders Queue",
+        mutasi: "Inventory Adjustment"
+      };
+      if ($("gdBreadcrumbSub")) $("gdBreadcrumbSub").textContent = bcMap[gudangActiveTab] || "Warehouse";
       document.querySelectorAll("#gudangTabs .mod-tab").forEach(function(btn) {
         btn.classList.toggle("active", btn.getAttribute("data-gtab") === gudangActiveTab);
       });
@@ -17764,39 +18235,53 @@ function fillOperatorList(selectedEmail) {
       renderGudangStock();
     }
     function renderGudangStock() {
+      try { updateGudangOverviewCards(); } catch (eOv) {}
       var body = $("whStockBody");
       if (!body) return;
       var q = (($("whStockSearch") && $("whStockSearch").value) || "").toLowerCase().trim();
+      var prodById = {};
+      try {
+        (products || []).forEach(function(p) { if (p && p.product_id) prodById[String(p.product_id)] = p; });
+      } catch (eP) {}
       var list = gudangStockRows.filter(function(r) {
+        var p = prodById[String(r.product_id)];
+        var cat = p ? String(p.category || "") : "";
+        var name = p ? String(p.name || "") : "";
+        if (whStockCatFilter && cat !== whStockCatFilter) return false;
+        if (whStockQtyFilter === "pos" && !(Number(r.saldo) > 0)) return false;
+        if (whStockQtyFilter === "low" && (Number(r.saldo) > 0)) return false;
         if (!q) return true;
-        var name = "";
-        try {
-          var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
-          if (p) name = p.name || "";
-        } catch (e) {}
-        return (r.product_id + " " + name).toLowerCase().indexOf(q) >= 0;
+        return (r.product_id + " " + name + " " + cat).toLowerCase().indexOf(q) >= 0;
       });
+      if ($("whStockCount")) $("whStockCount").textContent = formatNum(list.length) + " produk";
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada mutasi gudang</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada data stok sesuai filter</td></tr>';
         pageOf("stock", [], "stockPager");
         return;
       }
       var pageList = pageOf("stock", list, "stockPager");
       body.innerHTML = pageList.map(function(r) {
-        var name = "";
-        try {
-          var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
-          if (p) name = p.name || "";
-        } catch (e) {}
-        var saldoColor = r.saldo < 0 ? "#b91c1c" : (r.saldo > 0 ? "#059669" : "inherit");
+        var p = prodById[String(r.product_id)];
+        var name = p ? (p.name || "") : "";
+        var cat = p ? (p.category || "") : "";
+        var catTxt = cat ? (typeof catLabel === "function" ? catLabel(cat) : cat) : "";
+        var saldo = Number(r.saldo) || 0;
+        var saldoColor = saldo < 0 ? "#b91c1c" : (saldo > 0 ? "#059669" : "#64748b");
+        var pillCls = saldo < 0 ? "cancel" : (saldo > 0 ? "locked" : "done");
+        var pillTxt = saldo < 0 ? "Negative" : (saldo > 0 ? "In Stock" : "Zero");
         var pidSafe = String(r.product_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        return "<tr style=\"cursor:pointer\" onclick=\"openProductMove('" + pidSafe + "')\" title=\"History pergerakan\">" +
-          "<td><strong>" + esc(r.product_id) + "</strong></td>" +
-          "<td style=\"font-size:0.8rem\">" + esc(name || "—") + "</td>" +
-          "<td>" + formatNum(r.in) + "</td>" +
-          "<td>" + formatNum(r.out) + "</td>" +
-          "<td style=\"font-weight:700;color:" + saldoColor + "\">" + formatNum(r.saldo) + "</td>" +
-          "<td>" + esc(r.unit) + "</td></tr>";
+        return "<tr style=\"cursor:pointer\" onclick=\"openProductMove('" + pidSafe + "')\" title=\"Klik untuk lihat Stock Moves\">" +
+          "<td><span class=\"odoo-num\" style=\"font-family:monospace;font-size:0.8rem\">" + esc(r.product_id) + "</span></td>" +
+          "<td><span style=\"font-weight:500;color:#0f172a\">" + esc(name || "—") + "</span>" +
+            (catTxt ? "<span class=\"odoo-cat-tag\">" + esc(catTxt) + "</span>" : "") +
+          "</td>" +
+          "<td class=\"odoo-num-col\" style=\"color:#475569\">" + formatNum(r.in) + "</td>" +
+          "<td class=\"odoo-num-col\" style=\"color:#475569\">" + formatNum(r.out) + "</td>" +
+          "<td class=\"odoo-num-col\" style=\"font-weight:700;color:" + saldoColor + "\">" + formatNum(saldo) + "</td>" +
+          "<td style=\"color:#64748b;font-size:0.78rem\">" + esc(r.unit) + "</td>" +
+          "<td><span class=\"odoo-pill " + pillCls + "\">" + pillTxt + "</span></td>" +
+          "<td style=\"text-align:right\"><button type=\"button\" class=\"odoo-move-link\" onclick=\"event.stopPropagation();openProductMove('" + pidSafe + "')\">History</button></td>" +
+        "</tr>";
       }).join("");
     }
     function whMoveLabel(type, ref) {
@@ -17937,6 +18422,7 @@ function fillOperatorList(selectedEmail) {
         });
       });
       renderGudangInbox();
+      try { updateGudangOverviewCards(); } catch (eOv) {}
     }
     var gudangEtaExpanded = {}; // eta key -> bool
 
@@ -18011,7 +18497,7 @@ function fillOperatorList(selectedEmail) {
               "</div>"
             : "") +
         "</td>" +
-        "<td style='font-weight:700;font-size:0.75rem;color:" + st.stColor + "'>" + st.stLabel + "</td>" +
+        "<td><span class='odoo-pill " + (st.stColor === "#059669" ? "locked" : (st.stColor === "#2563eb" || st.stColor === "#7c3aed" ? "quotation" : "progress")) + "'>" + esc(st.stLabel) + "</span></td>" +
         "<td>" + gudangActionHtml(r) + "</td></tr>";
     }
 
