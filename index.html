@@ -3289,9 +3289,9 @@
     .odoo-form-row select:focus,
     .odoo-form-row textarea:focus {
       outline: none;
-      border-color: #714B67;
+      border-color: #0d9f6e;
       background: #fff;
-      box-shadow: 0 0 0 1px #714B67;
+      box-shadow: 0 0 0 1px #0d9f6e;
     }
     .odoo-tabs {
       display: flex;
@@ -3311,8 +3311,8 @@
       margin-bottom: -1px;
     }
     .odoo-tab.active {
-      color: #714B67;
-      border-bottom-color: #714B67;
+      color: #065f46;
+      border-bottom-color: #0d9f6e;
     }
     .odoo-lines-table {
       width: 100%;
@@ -3346,7 +3346,7 @@
     }
     .odoo-lines-table input:focus {
       outline: none;
-      border-color: #714B67;
+      border-color: #0d9f6e;
       background: #fff;
     }
     .odoo-lines-table .ol-del {
@@ -3740,8 +3740,8 @@
       background: #f0fdf4;
     }
     .odoo-list .odoo-num {
-      color: #714B67;
-      font-weight: 600;
+      color: #065f46;
+      font-weight: 700;
     }
     .odoo-list .odoo-num:hover { text-decoration: underline; }
     .odoo-pill {
@@ -3803,7 +3803,7 @@
       margin-bottom: 0.15rem;
     }
     .odoo-inv-bc strong {
-      color: #714b67;
+      color: #065f46;
       font-weight: 700;
     }
     .odoo-inv-title {
@@ -3813,6 +3813,11 @@
       color: #0f172a;
       letter-spacing: -0.01em;
     }
+    .odoo-inv-sub {
+      margin: 0.15rem 0 0;
+      font-size: 0.78rem;
+      color: #64748b;
+    }
     .odoo-inv-actions {
       display: flex;
       align-items: center;
@@ -3820,29 +3825,29 @@
       flex-wrap: wrap;
     }
     .btn-odoo {
-      background: #714b67;
+      background: #0d9f6e;
       color: #ffffff;
-      border: 1px solid #714b67;
+      border: 1px solid #0d9f6e;
       border-radius: 8px;
       padding: 0.45rem 0.85rem;
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, border-color 0.15s;
     }
-    .btn-odoo:hover { background: #5c3c54; border-color: #5c3c54; }
+    .btn-odoo:hover { background: #047857; border-color: #047857; }
     .btn-odoo-teal {
-      background: #017e84;
+      background: #0f766e;
       color: #ffffff;
-      border: 1px solid #017e84;
+      border: 1px solid #0f766e;
       border-radius: 8px;
       padding: 0.38rem 0.75rem;
       font-size: 0.76rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, border-color 0.15s;
     }
-    .btn-odoo-teal:hover { background: #01666b; border-color: #01666b; }
+    .btn-odoo-teal:hover { background: #115e59; border-color: #115e59; }
     .odoo-inv-tabs {
       display: flex;
       gap: 0.25rem;
@@ -3865,8 +3870,8 @@
     }
     .odoo-inv-tabs .mod-tab:hover { color: #0f172a !important; }
     .odoo-inv-tabs .mod-tab.active {
-      color: #714b67 !important;
-      border-bottom-color: #714b67 !important;
+      color: #065f46 !important;
+      border-bottom-color: #0d9f6e !important;
     }
     .odoo-inv-overview {
       display: grid;
@@ -3874,11 +3879,14 @@
       gap: 0.75rem;
       margin-bottom: 0.9rem;
     }
-    @media (max-width: 1024px) {
-      .odoo-inv-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .odoo-inv-overview.cols-5 {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    @media (max-width: 1100px) {
+      .odoo-inv-overview, .odoo-inv-overview.cols-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 600px) {
-      .odoo-inv-overview { grid-template-columns: 1fr; }
+      .odoo-inv-overview, .odoo-inv-overview.cols-5 { grid-template-columns: 1fr; }
     }
     .odoo-op-card {
       background: #ffffff;
@@ -3889,14 +3897,29 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 0.75rem;
-      transition: box-shadow 0.15s, border-color 0.15s;
+      gap: 0.65rem;
+      transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
     }
     .odoo-op-card:hover { box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
-    .odoo-op-card.op-plum { border-top-color: #714b67; }
-    .odoo-op-card.op-teal { border-top-color: #017e84; }
-    .odoo-op-card.op-blue { border-top-color: #2563eb; }
+    .odoo-op-card.is-click { cursor: pointer; }
+    .odoo-op-card.is-click:hover { transform: translateY(-1px); }
+    .odoo-op-card.is-click.active {
+      box-shadow: 0 0 0 2px #0d9f6e, 0 8px 20px rgba(13, 159, 110, 0.12);
+      background: #f0fdf4;
+    }
+    .odoo-op-card.op-plum, .odoo-op-card.op-emerald { border-top-color: #0d9f6e; }
+    .odoo-op-card.op-teal { border-top-color: #0d9488; }
+    .odoo-op-card.op-blue { border-top-color: #0284c7; }
     .odoo-op-card.op-amber { border-top-color: #d97706; }
+    .odoo-op-card.op-rose { border-top-color: #e11d48; }
+    .odoo-op-card.op-slate { border-top-color: #64748b; }
+    .odoo-op-val {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #0f172a;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
+    }
     .odoo-op-head {
       display: flex;
       justify-content: space-between;
@@ -3906,7 +3929,7 @@
     .odoo-op-title {
       font-size: 0.92rem;
       font-weight: 700;
-      color: #017e84;
+      color: #065f46;
       margin: 0;
     }
     .odoo-op-sub {
@@ -3959,8 +3982,8 @@
     }
     .odoo-facet:hover { border-color: #94a3b8; color: #0f172a; }
     .odoo-facet.active {
-      background: #714b67;
-      border-color: #714b67;
+      background: #0d9f6e;
+      border-color: #0d9f6e;
       color: #ffffff;
     }
     .odoo-ctrl-right {
@@ -3980,7 +4003,21 @@
     }
     .odoo-search-inp:focus {
       outline: none;
-      border-color: #714b67;
+      border-color: #0d9f6e;
+      box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.12);
+    }
+    .odoo-select-inp {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 0.36rem 0.65rem;
+      font-size: 0.8rem;
+      font-family: inherit;
+      color: #0f172a;
+    }
+    .odoo-select-inp:focus {
+      outline: none;
+      border-color: #0d9f6e;
     }
     .odoo-sheet {
       background: #ffffff;
@@ -4024,7 +4061,7 @@
       margin-left: 0.35rem;
     }
     .odoo-move-link {
-      color: #017e84;
+      color: #065f46;
       font-size: 0.76rem;
       font-weight: 600;
       background: transparent;
@@ -4034,8 +4071,8 @@
       cursor: pointer;
     }
     .odoo-move-link:hover {
-      background: #f0fdfa;
-      border-color: #017e84;
+      background: #ecfdf5;
+      border-color: #0d9f6e;
     }
 
     .odoo-person span {
@@ -4120,7 +4157,7 @@
     .ot-kpi-card.ot-kpi-omset { border-top: 3px solid #0d9f6e; }
     .ot-kpi-card.ot-kpi-qty { border-top: 3px solid #2563eb; }
     .ot-kpi-card.ot-kpi-open { border-top: 3px solid #d97706; }
-    .ot-kpi-card.ot-kpi-done { border-top: 3px solid #7c3aed; }
+    .ot-kpi-card.ot-kpi-done { border-top: 3px solid #0d9488; }
     .po-kpi-card { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
     .po-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,40,30,0.1); }
     .po-kpi-card.active {
@@ -4452,7 +4489,7 @@
         <button class="nav-item" data-page="kendala" data-roles="admin,ppic,korlap" data-tip="Analisis Kendala"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 3 3 19h18L12 3z"/><rect x="11" y="9" width="2" height="5" rx="0.5" fill="#fff"/><circle cx="12" cy="16.5" r="1.1" fill="#fff"/></svg></span><span class="nav-txt">Analisis Kendala</span></button>
 
         <div class="nav-label" data-nav-group="sales">Penjualan &amp; Pengiriman</div>
-        <button class="nav-item" data-page="order-trading" data-roles="admin,marketing,trading,ppic" data-tip="Order Trading"><span class="nav-ico"><svg viewBox="0 0 24 24"><path stroke="#7c3aed" stroke-width="2" fill="none" d="M4 8h16M4 12h16M4 16h8"/><circle class="anim-spin" cx="18" cy="16" r="3" fill="#c4b5fd" stroke="#7c3aed" stroke-width="1.5"/></svg></span><span class="nav-txt">Order Trading</span></button>
+        <button class="nav-item" data-page="order-trading" data-roles="admin,marketing,trading,ppic" data-tip="Order Trading"><span class="nav-ico"><svg viewBox="0 0 24 24"><path stroke="#0d9f6e" stroke-width="2" fill="none" d="M4 8h16M4 12h16M4 16h8"/><circle class="anim-spin" cx="18" cy="16" r="3" fill="#a7f3d0" stroke="#0d9f6e" stroke-width="1.5"/></svg></span><span class="nav-txt">Order Trading</span></button>
         <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap" data-tip="Sales Order (Odoo)"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><path stroke="#0ea5e9" stroke-width="1.6" fill="none" d="M6 7 5 4H2"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></svg></span><span class="nav-txt">Sales Order (Odoo)</span></button>
         <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap" data-tip="Instruksi Kirim (FG)"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-pulse"><path fill="#f43f5e" d="M4 12.5v-2l12-4v10z"/><path fill="#fb7185" d="M7 13v3.5a2 2 0 0 0 2 2h1V13z"/></svg></span><span class="nav-txt">Instruksi Kirim (FG)</span></button>
         <button class="nav-item" data-page="delivery" data-roles="admin,ppic,gudang,marketing" data-tip="Delivery Order (DO)" onclick="goPage('delivery')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#e11d48" d="M2 9h12v7H2z"/><path fill="#fb7185" d="M14 12h4l3 2.5V16h-7z"/><circle cx="6.5" cy="18.2" r="1.5" fill="#9f1239"/><circle cx="17.5" cy="18.2" r="1.5" fill="#9f1239"/><rect class="anim-load" x="5" y="11" width="5" height="3.5" rx="0.6" fill="#fde68a"/></svg></span><span class="nav-txt">Delivery Order (DO)</span></button>
@@ -4460,10 +4497,10 @@
         <div class="nav-label" data-nav-group="inventory">Pengadaan &amp; Gudang</div>
         <button class="nav-item" data-page="pr-ppic" data-roles="admin,ppic" data-tip="Permintaan Beli (PR)"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-pulse"><path fill="#059669" d="M7 4h10v16l-5-2.8L7 20z"/><path stroke="#fff" stroke-width="1.8" d="M12 8.5v5M9.5 11h5"/></svg></span><span class="nav-txt">Permintaan Beli (PR)</span></button>
         <button class="nav-item" data-page="purchasing" data-roles="admin,purchasing" data-tip="Purchasing (PO)"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></svg></span><span class="nav-txt">Purchasing (PO)</span><span id="purchasingNavBadge" class="nav-badge" style="display:none">0</span></button>
-        <button class="nav-item" data-page="qc" data-roles="admin,ppic,qc" data-tip="Quality Control (QC)" onclick="goPage('qc')"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-pulse"><path fill="#7c3aed" d="M12 3.2 20 7.2v5.2c0 4.2-3.2 7.2-8 8.6-4.8-1.4-8-4.4-8-8.6V7.2z"/><path stroke="#fff" stroke-width="2" fill="none" d="m8.5 12 2.2 2.2 4.4-4.6"/></svg></span><span class="nav-txt">Quality Control (QC)</span></button>
+        <button class="nav-item" data-page="qc" data-roles="admin,ppic,qc" data-tip="Quality Control (QC)" onclick="goPage('qc')"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-pulse"><path fill="#0d9488" d="M12 3.2 20 7.2v5.2c0 4.2-3.2 7.2-8 8.6-4.8-1.4-8-4.4-8-8.6V7.2z"/><path stroke="#fff" stroke-width="2" fill="none" d="m8.5 12 2.2 2.2 4.4-4.6"/></svg></span><span class="nav-txt">Quality Control (QC)</span></button>
         <button class="nav-item" data-page="gudang" data-roles="admin,ppic,gudang" data-tip="Stok &amp; Terima Gudang" onclick="goPage('gudang')"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#059669" d="M3 10 12 4l9 6v10H3z"/><rect x="9" y="13" width="6" height="7" fill="#fff" rx="0.5"/></svg></span><span class="nav-txt">Stok &amp; Terima Gudang</span></button>
-        <button class="nav-item" data-page="pick-prod" data-roles="admin,ppic,korlap" data-tip="Minta Bahan (Produksi)" onclick="goPage('pick-prod')"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#8b5cf6" d="M4 8h16v10H4z"/><path fill="#c4b5fd" d="M4 8 12 4l8 4"/><path class="anim-load" stroke="#fff" stroke-width="1.6" d="M8 13h8"/></svg></span><span class="nav-txt">Minta Bahan (Produksi)</span></button>
-        <button class="nav-item" data-page="pick-wh" data-roles="admin,gudang" data-tip="Pick Bahan (Gudang)" onclick="goPage('pick-wh')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#7c3aed" d="M4 8h16v10H4z"/><path fill="#ddd6fe" d="M4 8 12 4l8 4"/><path class="anim-load" stroke="#fff" stroke-width="1.8" fill="none" d="m9 13 2 2 4-4"/></svg></span><span class="nav-txt">Pick Bahan (Gudang)</span></button>
+        <button class="nav-item" data-page="pick-prod" data-roles="admin,ppic,korlap" data-tip="Minta Bahan (Produksi)" onclick="goPage('pick-prod')"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#0284c7" d="M4 8h16v10H4z"/><path fill="#bae6fd" d="M4 8 12 4l8 4"/><path class="anim-load" stroke="#fff" stroke-width="1.6" d="M8 13h8"/></svg></span><span class="nav-txt">Minta Bahan (Produksi)</span></button>
+        <button class="nav-item" data-page="pick-wh" data-roles="admin,gudang" data-tip="Pick Bahan (Gudang)" onclick="goPage('pick-wh')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#0f766e" d="M4 8h16v10H4z"/><path fill="#99f6e4" d="M4 8 12 4l8 4"/><path class="anim-load" stroke="#fff" stroke-width="1.8" fill="none" d="m9 13 2 2 4-4"/></svg></span><span class="nav-txt">Pick Bahan (Gudang)</span></button>
 
         <div class="nav-label" data-nav-group="master">Master Data</div>
         <button class="nav-item" data-page="products" data-roles="admin,ppic,korlap" data-tip="Produk"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#059669" d="m4 8 8-4 8 4v8l-8 4-8-4z"/><path stroke="#fff" stroke-width="1.4" fill="none" d="m4 8 8 4 8-4"/></svg></span><span class="nav-txt">Produk</span></button>
@@ -5023,20 +5060,28 @@
 
                 
         <section id="page-order-trading" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1>Order Trading</h1>
-              <p>Marketing → CV Trading → DP → Odoo → produksi. Semua referensi saling terhubung.</p>
+          <div class="odoo-inv-top" style="padding-bottom:0.85rem">
+            <div class="odoo-inv-head" style="padding-bottom:0">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Sales</span><span>/</span><span>Trading</span><span>/</span><strong>Quotations &amp; Orders</strong>
+                </div>
+                <h1 class="odoo-inv-title">Order Trading</h1>
+                <p class="odoo-inv-sub">Marketing → CV Trading → DP → Odoo → Produksi · seluruh referensi terhubung.</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadOrderTrading()">Refresh</button>
+                <button class="btn-odoo" type="button" id="btnOtNew" onclick="openOtModal()">+ Order Trading</button>
+              </div>
             </div>
-            <button class="btn btn-primary" type="button" id="btnOtNew" onclick="openOtModal()">+ Order Trading</button>
           </div>
-          <div class="ot-kpi-wrap">
-            <div class="ot-kpi-range">
-              <span>Periode</span>
+          <div class="ot-kpi-wrap" style="margin-bottom:0.9rem">
+            <div class="ot-kpi-range" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:0.55rem 0.9rem;margin-bottom:0.75rem">
+              <strong style="font-size:0.76rem;color:#065f46">Periode KPI</strong>
               <input type="date" id="otKpiFrom" onchange="renderOtKpi()" />
               <span>s/d</span>
               <input type="date" id="otKpiTo" onchange="renderOtKpi()" />
-              <button type="button" class="btn btn-ghost btn-sm" onclick="otKpiSetMonth()">Bulan ini</button>
+              <button type="button" class="odoo-facet" onclick="otKpiSetMonth()">Bulan ini</button>
             </div>
             <div class="ot-kpi-grid">
               <div class="ot-kpi-card ot-kpi-omset">
@@ -5061,175 +5106,253 @@
               </div>
             </div>
           </div>
-          <div class="toolbar" style="margin-bottom:0.85rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
-            <input type="search" id="otSearch" placeholder="Cari OT / customer / no SO..." oninput="renderOrderTrading()" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit" />
-            <select id="otFilterStatus" onchange="renderOrderTrading()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit">
-              <option value="">Semua status</option>
-              <option value="draft">draft</option>
-              <option value="menunggu_so_trading">menunggu SO trading</option>
-              <option value="so_siap">SO siap</option>
-              <option value="so_dibagikan">SO dibagikan</option>
-              <option value="dp_diterima">DP diterima</option>
-              <option value="terbit_produksi">terbit produksi</option>
-              <option value="cancelled">dibatalkan</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="loadOrderTrading()">Refresh</button>
+          <div class="odoo-sheet">
+            <div class="odoo-ctrl-bar">
+              <div class="odoo-facet-group" id="otFacetGroup">
+                <button type="button" class="odoo-facet active" data-otst="" onclick="setOtFacet('')">Semua</button>
+                <button type="button" class="odoo-facet" data-otst="menunggu_so_trading" onclick="setOtFacet('menunggu_so_trading')">Menunggu SO</button>
+                <button type="button" class="odoo-facet" data-otst="dp_diterima" onclick="setOtFacet('dp_diterima')">DP Diterima</button>
+                <button type="button" class="odoo-facet" data-otst="terbit_produksi" onclick="setOtFacet('terbit_produksi')">Terbit Produksi</button>
+              </div>
+              <div class="odoo-ctrl-right">
+                <select id="otFilterStatus" class="odoo-select-inp" onchange="setOtFacet(this.value, true)">
+                  <option value="">Semua status</option>
+                  <option value="draft">draft</option>
+                  <option value="menunggu_so_trading">menunggu SO trading</option>
+                  <option value="so_siap">SO siap</option>
+                  <option value="so_dibagikan">SO dibagikan</option>
+                  <option value="dp_diterima">DP diterima</option>
+                  <option value="terbit_produksi">terbit produksi</option>
+                  <option value="cancelled">dibatalkan</option>
+                </select>
+                <input type="search" id="otSearch" class="odoo-search-inp" placeholder="Cari OT / customer / no SO..." oninput="renderOrderTrading()" />
+              </div>
+            </div>
+            <div id="otList" style="overflow:auto"></div>
           </div>
-          <div id="otList" class="card" style="padding:0;overflow:auto"></div>
         </section>
 
         <section id="page-orders" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1>Sales Order</h1>
-              <p>Input SO customer, baris produk, dan status produksi.</p>
+          <div class="odoo-inv-top" style="padding-bottom:0.85rem">
+            <div class="odoo-inv-head" style="padding-bottom:0">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Sales</span><span>/</span><span>Orders</span><span>/</span><strong>Sales Orders</strong>
+                </div>
+                <h1 class="odoo-inv-title">Sales Order</h1>
+                <p class="odoo-inv-sub">Kelola SO customer, detail line produk, serta progres produksi.</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadOrdersPage()">Refresh</button>
+                <button class="btn-odoo" type="button" onclick="openOrderModal()">+ Input SO</button>
+              </div>
             </div>
-            <button class="btn btn-primary" type="button" onclick="openOrderModal()">+ Input SO</button>
           </div>
-          <div class="grid-kpi" style="margin-bottom:1rem">
-            <div class="kpi"><div class="label">Total SO</div><div class="value" id="soKpiTotal">—</div></div>
-            <div class="kpi"><div class="label">Aktif</div><div class="value" id="soKpiActive">—</div></div>
-            <div class="kpi"><div class="label">Selesai</div><div class="value" id="soKpiDone">—</div></div>
-            <div class="kpi"><div class="label">Draft</div><div class="value" id="soKpiDraft">—</div></div>
+          <div class="odoo-inv-overview">
+            <div class="odoo-op-card op-emerald is-click" onclick="setSoFacet('')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title">Total Sales Order</h3><div class="odoo-op-sub">Seluruh dokumen SO</div></div>
+                <span class="odoo-pill invoice-full">All</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="soKpiTotal">—</div>
+                <div class="odoo-op-stats">Klik tampilkan semua</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-blue is-click" onclick="setSoFacet('in_production')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#0369a1">SO Aktif / Produksi</h3><div class="odoo-op-sub">Confirmed &amp; in progress</div></div>
+                <span class="odoo-pill quotation">Running</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="soKpiActive">—</div>
+                <div class="odoo-op-stats">Filter SO produksi</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-teal is-click" onclick="setSoFacet('completed')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#0f766e">SO Selesai</h3><div class="odoo-op-sub">Completed &amp; closed</div></div>
+                <span class="odoo-pill locked">Done</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="soKpiDone">—</div>
+                <div class="odoo-op-stats">Filter SO selesai</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-amber is-click" onclick="setSoFacet('draft')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#b45309">Quotation / Draft</h3><div class="odoo-op-sub">Belum konfirmasi</div></div>
+                <span class="odoo-pill progress">Draft</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="soKpiDraft">—</div>
+                <div class="odoo-op-stats">Filter draft SO</div>
+              </div>
+            </div>
           </div>
-          <div class="toolbar">
-            <input type="search" id="soSearch" placeholder="Cari no SO / customer..." oninput="renderOrders()" />
-            <select id="soFilterStatus" onchange="renderOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-family:inherit;font-size:0.875rem">
-              <option value="">Semua status</option>
-              <option value="draft">Draft</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="in_production">In production</option>
-              <option value="partial">Partial</option>
-              <option value="completed">Completed</option>
-              <option value="closed">Closed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-          <div id="orderCards" class="mobile-cards mobile-only"></div>
-          <div class="table-wrap desk-only-table">
-            <table class="odoo-list">
-              <thead>
-                <tr>
-                  <th>Number</th>
-                  <th>Creation Date</th>
-                  <th>Customer</th>
-                  <th>Salesperson</th>
-                  <th style="text-align:right">Total Qty</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="orderBody"></tbody>
-            </table>
+          <div class="odoo-sheet">
+            <div class="odoo-ctrl-bar">
+              <div class="odoo-facet-group" id="soFacetGroup">
+                <button type="button" class="odoo-facet active" data-sost="" onclick="setSoFacet('')">Semua</button>
+                <button type="button" class="odoo-facet" data-sost="confirmed" onclick="setSoFacet('confirmed')">Confirmed</button>
+                <button type="button" class="odoo-facet" data-sost="in_production" onclick="setSoFacet('in_production')">In Production</button>
+                <button type="button" class="odoo-facet" data-sost="completed" onclick="setSoFacet('completed')">Completed</button>
+                <button type="button" class="odoo-facet" data-sost="draft" onclick="setSoFacet('draft')">Draft</button>
+              </div>
+              <div class="odoo-ctrl-right">
+                <select id="soFilterStatus" class="odoo-select-inp" onchange="setSoFacet(this.value, true)">
+                  <option value="">Semua status</option>
+                  <option value="draft">Draft</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="in_production">In production</option>
+                  <option value="partial">Partial</option>
+                  <option value="completed">Completed</option>
+                  <option value="closed">Closed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <input type="search" id="soSearch" class="odoo-search-inp" placeholder="Cari no SO / customer..." oninput="renderOrders()" />
+              </div>
+            </div>
+            <div id="orderCards" class="mobile-cards mobile-only" style="padding:0.75rem"></div>
+            <div class="table-wrap desk-only-table">
+              <table class="odoo-list">
+                <thead>
+                  <tr>
+                    <th>Number</th>
+                    <th>Creation Date</th>
+                    <th>Customer</th>
+                    <th>Salesperson</th>
+                    <th style="text-align:right">Total Qty</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="orderBody"></tbody>
+              </table>
+            </div>
           </div>
           <div id="orderPager" class="pg-bar"></div>
         </section>
-      
+
         <section id="page-marketing" class="page" hidden>
-          <div class="page-head">
-            <div><h1>Marketing</h1><p>Output FG · Siap kirim · Instruksi ke gudang</p></div>
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-              <input type="date" id="mktDate" onchange="loadMarketing()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem" />
-              <button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal()">+ Instruksi kirim</button>
+          <div class="odoo-inv-top">
+            <div class="odoo-inv-head">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Sales</span><span>/</span><span>Shipping &amp; FG</span><span>/</span><strong id="mktBreadcrumbSub">Output FG Kemarin</strong>
+                </div>
+                <h1 class="odoo-inv-title">Instruksi Kirim (FG)</h1>
+                <p class="odoo-inv-sub">Output FG packing, saldo stok siap kirim, dan antrean instruksi ke gudang.</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <input type="date" id="mktDate" class="odoo-select-inp" onchange="loadMarketing()" />
+                <button type="button" class="btn-odoo" onclick="openShipRequestModal()">+ Instruksi Kirim</button>
+              </div>
             </div>
-          </div>
-          <div class="mod-tabs" id="mktTabs">
-            <button type="button" class="mod-tab active" data-mtab="kemarin" onclick="setMktTab('kemarin')">Output FG kemarin</button>
-            <button type="button" class="mod-tab" data-mtab="kirim" onclick="setMktTab('kirim')">Instruksi kirim</button>
-            <button type="button" class="mod-tab" data-mtab="stok" onclick="setMktTab('stok')">Stok FG</button>
-            <button type="button" class="mod-tab" data-mtab="hari" onclick="setMktTab('hari')">Hari ini</button>
+            <div class="mod-tabs odoo-inv-tabs" id="mktTabs" role="tablist">
+              <button type="button" class="mod-tab active" data-mtab="kemarin" onclick="setMktTab('kemarin')">Output FG Kemarin</button>
+              <button type="button" class="mod-tab" data-mtab="kirim" onclick="setMktTab('kirim')">Instruksi Kirim</button>
+              <button type="button" class="mod-tab" data-mtab="stok" onclick="setMktTab('stok')">Stok FG</button>
+              <button type="button" class="mod-tab" data-mtab="hari" onclick="setMktTab('hari')">Produksi Hari Ini</button>
+            </div>
           </div>
           <div id="mktPaneHari" class="mod-pane" hidden>
-            <div id="mktHariKpi" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
-            <div class="card" style="margin-bottom:1rem">
-              <h3>Finish Good (packing masterbox)</h3>
-              <div class="table-wrap"><table><thead><tr><th>Produk</th><th>SO</th><th style="text-align:right">Target</th><th style="text-align:right">Actual</th><th style="text-align:right">%</th><th>Status</th></tr></thead><tbody id="mktFgBody"></tbody></table></div>
+            <div id="mktHariKpi" class="odoo-inv-overview"></div>
+            <div class="odoo-sheet" style="margin-bottom:0.9rem">
+              <div class="odoo-ctrl-bar">
+                <strong style="font-size:0.86rem;color:#065f46">Finish Good (Packing Masterbox)</strong>
+              </div>
+              <div class="table-wrap"><table class="odoo-list"><thead><tr><th>Produk</th><th>SO</th><th style="text-align:right">Target</th><th style="text-align:right">Actual</th><th style="text-align:right">%</th><th>Status</th></tr></thead><tbody id="mktFgBody"></tbody></table></div>
             </div>
-            <details class="card">
-              <summary style="cursor:pointer;font-weight:700">Ruahan (proses lain) — klik untuk buka</summary>
-              <div class="table-wrap" style="margin-top:0.65rem"><table><thead><tr><th>Produk</th><th>Proses</th><th style="text-align:right">Target</th><th style="text-align:right">Actual</th><th>Status</th></tr></thead><tbody id="mktRuBody"></tbody></table></div>
+            <details class="odoo-sheet">
+              <summary style="cursor:pointer;font-weight:700;padding:0.8rem 1rem;background:#f8fafc;color:#0f172a">Ruahan (Proses Lain) — klik untuk buka</summary>
+              <div class="table-wrap"><table class="odoo-list"><thead><tr><th>Produk</th><th>Proses</th><th style="text-align:right">Target</th><th style="text-align:right">Actual</th><th>Status</th></tr></thead><tbody id="mktRuBody"></tbody></table></div>
             </details>
           </div>
           <div id="mktPaneStok" class="mod-pane" hidden>
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.65rem">
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
                 <div>
-                  <h3 style="margin:0">Stok Finish Good di gudang</h3>
-                  <p style="font-size:0.78rem;color:var(--text-muted);margin:0.25rem 0 0">Saldo dari mutasi gudang. Jika stok &gt; 0, buat instruksi kirim ke gudang.</p>
+                  <strong style="font-size:0.88rem;color:#065f46">Stok Finish Good di Gudang</strong>
+                  <div style="font-size:0.74rem;color:#64748b">Sumber: warehouse_movements (masuk − keluar).</div>
                 </div>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktFgStock()">Refresh</button>
+                <div class="odoo-ctrl-right">
+                  <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.78rem;color:#475569;font-weight:600">
+                    <input type="checkbox" id="mktStokOnlyPos" checked onchange="renderMktFgStock()" /> Hanya stok &gt; 0
+                  </label>
+                  <input type="search" id="mktStokSearch" class="odoo-search-inp" placeholder="Cari kode / nama FG…" oninput="renderMktFgStock()" />
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktFgStock()">Refresh</button>
+                </div>
               </div>
-              <div id="mktStokKpi" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
-              <div class="toolbar" style="margin-bottom:0.5rem">
-                <input type="search" id="mktStokSearch" placeholder="Cari kode / nama FG…" oninput="renderMktFgStock()" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.75rem;font-family:inherit" />
-                <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.82rem;color:var(--text-muted)">
-                  <input type="checkbox" id="mktStokOnlyPos" checked onchange="renderMktFgStock()" /> Hanya stok &gt; 0
-                </label>
+              <div style="padding:0.75rem 1rem 0.25rem">
+                <div id="mktStokKpi" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.65rem"></div>
               </div>
               <div class="table-wrap">
-                <table>
-                  <thead><tr><th>Produk FG</th><th style="text-align:right">Stok</th><th></th></tr></thead>
+                <table class="odoo-list">
+                  <thead><tr><th>Produk FG</th><th style="text-align:right">Stok On Hand</th><th style="text-align:right">Aksi</th></tr></thead>
                   <tbody id="mktStokBody"><tr><td colspan="3" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
-              <p style="font-size:0.7rem;color:var(--text-muted);margin:0.5rem 0 0">Sumber: warehouse_movements (masuk − keluar). Sama dengan stok di menu Gudang.</p>
             </div>
           </div>
           <div id="mktPaneKemarin" class="mod-pane">
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.65rem">
-                <h3 style="margin:0">Output FG kemarin <span id="mktYestLabel" style="font-weight:500;color:var(--text-muted);font-size:0.85rem"></span></h3>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktYesterdayFg()">Refresh</button>
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <div>
+                  <strong style="font-size:0.88rem;color:#065f46">Output FG Kemarin <span id="mktYestLabel" style="font-weight:500;color:#64748b"></span></strong>
+                  <div style="font-size:0.74rem;color:#64748b">Packing masterbox · klik Aksi → Pending atau Kirim.</div>
+                </div>
+                <div class="odoo-ctrl-right">
+                  <select id="mktYestFilter" class="odoo-select-inp" onchange="renderMktYesterdayFg()">
+                    <option value="belum">Belum diinstruksikan</option>
+                    <option value="">Semua</option>
+                    <option value="pending">Pending</option>
+                    <option value="requested">Kirim</option>
+                    <option value="picked">Diambil</option>
+                  </select>
+                  <input type="search" id="mktYestSearch" class="odoo-search-inp" placeholder="Cari produk / SO / customer…" oninput="renderMktYesterdayFg()" />
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktYesterdayFg()">Refresh</button>
+                </div>
               </div>
-              <div id="mktYestKpi" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
-              <div class="toolbar" style="margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
-                <select id="mktYestFilter" onchange="renderMktYesterdayFg()" style="border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.6rem">
-                  <option value="belum">Belum diinstruksikan</option>
-                  <option value="">Semua</option>
-                  <option value="pending">Pending</option>
-                  <option value="requested">Kirim</option>
-                  <option value="picked">Diambil</option>
-                </select>
-                <input type="search" id="mktYestSearch" placeholder="Cari produk / SO / customer…" oninput="renderMktYesterdayFg()" style="flex:1;min-width:14rem" />
+              <div style="padding:0.75rem 1rem 0.25rem">
+                <div id="mktYestKpi" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.55rem"></div>
               </div>
-              <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Hanya packing masterbox. Klik <strong>Aksi</strong> → Pending (kuning) atau Kirim (hijau).</p>
               <div class="table-wrap">
-                <table>
-                  <thead><tr><th></th><th>Produk</th><th style="text-align:right">Actual FG</th><th>Customer / SO</th><th style="text-align:right">Stok FG</th><th>Status instruksi</th></tr></thead>
+                <table class="odoo-list">
+                  <thead><tr><th>Aksi</th><th>Produk</th><th style="text-align:right">Actual FG</th><th>Customer / SO</th><th style="text-align:right">Stok FG</th><th>Status Instruksi</th></tr></thead>
                   <tbody id="mktYestBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
           </div>
           <div id="mktPaneKirim" class="mod-pane" hidden>
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem;flex-wrap:wrap;gap:0.5rem">
-                <h3 style="margin:0">Instruksi kirim ke gudang</h3>
-                <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            <div id="shipKpiBar" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.55rem;margin-bottom:0.85rem"></div>
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <div class="odoo-facet-group">
+                  <button type="button" class="odoo-facet" onclick="setShipDatePreset('today')">Hari ini</button>
+                  <button type="button" class="odoo-facet" onclick="setShipDatePreset('yesterday')">Kemarin</button>
+                  <button type="button" class="odoo-facet" onclick="setShipDatePreset('all')">Semua tanggal</button>
+                  <input type="date" id="shipFrom" class="odoo-select-inp" onchange="renderShipRequests()" />
+                  <input type="date" id="shipTo" class="odoo-select-inp" onchange="renderShipRequests()" />
+                </div>
+                <div class="odoo-ctrl-right">
+                  <select id="shipReqStatusFilter" class="odoo-select-inp" onchange="renderShipRequests()">
+                    <option value="">Semua status</option>
+                    <option value="pending">Pending</option>
+                    <option value="requested">Kirim</option>
+                    <option value="picked">Diambil</option>
+                    <option value="shipped">Terkirim</option>
+                    <option value="cancelled">Batal</option>
+                  </select>
+                  <input type="search" id="shipSearch" class="odoo-search-inp" placeholder="Cari customer / SO / produk / SHIP…" oninput="renderShipRequests()" />
                   <button type="button" class="btn btn-ghost btn-sm" onclick="exportShipRequests()">Export</button>
-                  <button type="button" class="btn btn-primary btn-sm" onclick="openShipRequestModal()">+ Baru</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
+                  <button type="button" class="btn-odoo" onclick="openShipRequestModal()">+ Baru</button>
                 </div>
               </div>
-              <div id="shipKpiBar" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.45rem;margin-bottom:0.65rem"></div>
-              <div class="toolbar" style="margin-bottom:0.5rem;flex-wrap:wrap;gap:0.4rem">
-                <button type="button" class="btn btn-ghost btn-sm" onclick="setShipDatePreset('today')">Hari ini</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="setShipDatePreset('yesterday')">Kemarin</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="setShipDatePreset('all')">Semua tanggal</button>
-                <input type="date" id="shipFrom" onchange="renderShipRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.35rem 0.5rem" />
-                <input type="date" id="shipTo" onchange="renderShipRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.35rem 0.5rem" />
-                <select id="shipReqStatusFilter" onchange="renderShipRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.6rem">
-                  <option value="">Semua status</option>
-                  <option value="pending">Pending</option>
-                  <option value="requested">Kirim</option>
-                  <option value="picked">Diambil</option>
-                  <option value="shipped">Terkirim</option>
-                  <option value="cancelled">Batal</option>
-                </select>
-                <input type="search" id="shipSearch" placeholder="Cari customer / SO / produk / no SHIP…" oninput="renderShipRequests()" style="min-width:16rem;flex:1" />
-                <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
-              </div>
               <div class="table-wrap">
-                <table>
+                <table class="odoo-list">
                   <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
                   <tbody id="shipReqBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
@@ -5376,154 +5499,271 @@
         
         
         <section id="page-pick" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1 id="pickPageTitle">Minta bahan</h1>
-              <p id="pickPageSub">Produksi kirim permintaan bahan ke gudang</p>
+          <div class="odoo-inv-top" style="padding-bottom:0.85rem">
+            <div class="odoo-inv-head" style="padding-bottom:0">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Inventory</span><span>/</span><span>Transfers</span><span>/</span><strong id="pickBreadcrumbSub">Material Picking</strong>
+                </div>
+                <h1 class="odoo-inv-title" id="pickPageTitle">Minta bahan</h1>
+                <p class="odoo-inv-sub" id="pickPageSub">Produksi kirim permintaan bahan ke gudang</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadPicks()">Refresh</button>
+                <label class="btn btn-ghost btn-sm" style="margin:0;cursor:pointer" id="btnPickBulkPdfLab">
+                  📄 Import massal PDF
+                  <input type="file" id="pickBulkPdfFiles" accept="application/pdf,.pdf" multiple hidden onchange="importPickBulkFromOdooPdfs(this)" />
+                </label>
+                <button class="btn-odoo" type="button" id="btnPickNew" onclick="openPickModal()">+ Minta bahan</button>
+              </div>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">
-              <label class="btn btn-ghost" style="margin:0;cursor:pointer" id="btnPickBulkPdfLab">
-                📄 Import massal PDF
-                <input type="file" id="pickBulkPdfFiles" accept="application/pdf,.pdf" multiple hidden onchange="importPickBulkFromOdooPdfs(this)" />
-              </label>
-              <button class="btn btn-primary" type="button" id="btnPickNew" onclick="openPickModal()">+ Minta bahan</button>
+          </div>
+          <div class="odoo-inv-overview">
+            <div class="odoo-op-card op-emerald">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title">Total Transfer Pick</h3><div class="odoo-op-sub">Dokumen permintaan bahan</div></div>
+                <span class="odoo-pill invoice-full">All</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="pkOvTotal">—</div>
+                <div class="odoo-op-stats">Semua status</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-amber">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#b45309">Menunggu Gudang</h3><div class="odoo-op-sub">Requested &amp; parsial</div></div>
+                <span class="odoo-pill progress">Waiting</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="pkOvReq">—</div>
+                <div class="odoo-op-stats">Perlu disiapkan</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-blue">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#0369a1">Siap / Serah Terima</h3><div class="odoo-op-sub">Prepared &amp; handover</div></div>
+                <span class="odoo-pill quotation">Ready</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="pkOvPrep">—</div>
+                <div class="odoo-op-stats">Siap diambil produksi</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-teal">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#0f766e">Selesai (Picked)</h3><div class="odoo-op-sub">Sudah diserahkan</div></div>
+                <span class="odoo-pill locked">Done</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="pkOvDone">—</div>
+                <div class="odoo-op-stats">Transfer selesai</div>
+              </div>
             </div>
           </div>
-          <div class="toolbar">
-            <input type="search" id="pickSearch" placeholder="Cari no pick / SO / produk..." oninput="pageState.pick={page:1};renderPicks()" />
-            <select id="pickStatusFilter" onchange="pageState.pick={page:1};renderPicks()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
-              <option value="">Semua status</option>
-              <option value="draft">draft</option>
-              <option value="requested">requested</option>
-              <option value="partial">partial</option>
-              <option value="prepared">prepared</option>
-              <option value="handover">handover</option>
-              <option value="picked">picked</option>
-              <option value="cancelled">cancelled</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="loadPicks()">Refresh</button>
-          </div>
-          <div id="pickUrgencyBar" style="display:none;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.55rem">
-            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="" onclick="setPickUrgency('')">Semua</button>
-            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="late" onclick="setPickUrgency('late')">Terlambat</button>
-            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="today" onclick="setPickUrgency('today')">Hari ini</button>
-            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="tomorrow" onclick="setPickUrgency('tomorrow')">Besok</button>
-            <button type="button" class="btn btn-ghost btn-sm pick-urg" data-urg="week" onclick="setPickUrgency('week')">Minggu ini</button>
-          </div>
-          <div class="card" style="padding:0;overflow:hidden">
+          <div class="odoo-sheet">
+            <div class="odoo-ctrl-bar">
+              <div id="pickUrgencyBar" class="odoo-facet-group" style="display:none">
+                <button type="button" class="odoo-facet pick-urg active" data-urg="" onclick="setPickUrgency('')">Semua</button>
+                <button type="button" class="odoo-facet pick-urg" data-urg="late" onclick="setPickUrgency('late')">Terlambat</button>
+                <button type="button" class="odoo-facet pick-urg" data-urg="today" onclick="setPickUrgency('today')">Hari ini</button>
+                <button type="button" class="odoo-facet pick-urg" data-urg="tomorrow" onclick="setPickUrgency('tomorrow')">Besok</button>
+                <button type="button" class="odoo-facet pick-urg" data-urg="week" onclick="setPickUrgency('week')">Minggu ini</button>
+              </div>
+              <div class="odoo-ctrl-right" style="margin-left:auto">
+                <select id="pickStatusFilter" class="odoo-select-inp" onchange="pageState.pick={page:1};renderPicks()">
+                  <option value="">Semua status</option>
+                  <option value="draft">draft</option>
+                  <option value="requested">requested</option>
+                  <option value="partial">partial</option>
+                  <option value="prepared">prepared</option>
+                  <option value="handover">handover</option>
+                  <option value="picked">picked</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+                <input type="search" id="pickSearch" class="odoo-search-inp" placeholder="Cari no pick / SO / produk..." oninput="pageState.pick={page:1};renderPicks()" />
+              </div>
+            </div>
             <div class="table-wrap">
-              <table>
+              <table class="odoo-list">
                 <thead><tr>
-                  <th>No Pick</th><th>SO / FG</th><th>Kebutuhan</th><th>Status</th><th>Bahan</th><th>Lead time</th><th></th>
+                  <th>No Pick</th><th>SO / FG</th><th>Kebutuhan</th><th>Status</th><th style="text-align:right">Bahan</th><th>Lead time</th><th></th>
                 </tr></thead>
                 <tbody id="pickBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
               </table>
             </div>
-            <div id="pickPager" class="pg-bar"></div>
           </div>
+          <div id="pickPager" class="pg-bar"></div>
         </section>
+
         <section id="page-pr-ppic" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1>Permintaan beli</h1>
-              <p>Menu <strong>PPIC</strong> — cek komponen atau PR manual → Purchase proses PO.</p>
+          <div class="odoo-inv-top">
+            <div class="odoo-inv-head">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Purchase</span><span>/</span><span>Requisitions</span><span>/</span><strong id="prBreadcrumbSub">Daftar PR (PPIC)</strong>
+                </div>
+                <h1 class="odoo-inv-title">Permintaan Beli (PR)</h1>
+                <p class="odoo-inv-sub">Cek kebutuhan komponen SO atau buat PR manual untuk diproses Purchasing menjadi PO.</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadPurchaseRequests()">Refresh</button>
+                <button class="btn-odoo" type="button" onclick="openPrManualModal()">+ PR Manual</button>
+              </div>
             </div>
-            <button class="btn btn-ghost" type="button" onclick="loadPurchaseRequests()">Refresh</button>
-          </div>
-          <div class="mod-tabs" role="tablist">
-            <button type="button" class="mod-tab active" data-mod="pr-ppic" data-tab="daftar" onclick="setModTab('pr-ppic','daftar')">Daftar PR</button>
-            <button type="button" class="mod-tab" data-mod="pr-ppic" data-tab="buat" onclick="setModTab('pr-ppic','buat')">Buat PR</button>
+            <div class="mod-tabs odoo-inv-tabs" role="tablist">
+              <button type="button" class="mod-tab active" data-mod="pr-ppic" data-tab="daftar" onclick="setModTab('pr-ppic','daftar')">Daftar PR</button>
+              <button type="button" class="mod-tab" data-mod="pr-ppic" data-tab="buat" onclick="setModTab('pr-ppic','buat')">Buat PR Baru</button>
+            </div>
           </div>
           <div id="pr-ppic-pane-daftar" class="mod-pane">
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <strong style="font-size:0.86rem;color:#065f46">Purchase Requisitions</strong>
+                <span style="font-size:0.75rem;color:#64748b">Daftar permintaan bahan ke Purchasing</span>
+              </div>
               <div class="table-wrap">
-                <table>
-                  <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                <table class="odoo-list">
+                  <thead><tr><th>PR Reference</th><th>SO Reference</th><th>Status</th><th>Item Ringkas</th><th>Catatan</th><th></th></tr></thead>
                   <tbody id="prPpicBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
           </div>
           <div id="pr-ppic-pane-buat" class="mod-pane" hidden>
-            <div class="card" style="padding:1rem;max-width:480px">
-              <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem">Pilih cara membuat permintaan ke Purchase.</p>
-              <div style="display:flex;flex-direction:column;gap:0.65rem">
-                <button class="btn btn-primary" type="button" onclick="openPrManualModal()">+ PR manual (isi bahan sendiri)</button>
-                <button class="btn btn-ghost" type="button" onclick="openCekKomponen()">Dari cek komponen SO</button>
+            <div class="odoo-sheet-form">
+              <div class="odoo-sheet-bar">
+                <strong style="font-size:0.88rem;color:#065f46">Buat Purchase Requisition Baru</strong>
+                <span class="odoo-pill quotation">PPIC Request</span>
+              </div>
+              <div class="odoo-sheet-body">
+                <p style="font-size:0.84rem;color:#64748b;margin:0 0 1rem">Pilih sumber pembuatan permintaan pembelian bahan ke tim Purchasing:</p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0.85rem">
+                  <div class="odoo-op-card op-emerald">
+                    <div>
+                      <h3 class="odoo-op-title">PR Manual</h3>
+                      <div class="odoo-op-sub">Input daftar bahan &amp; qty kebutuhan secara manual.</div>
+                    </div>
+                    <button class="btn-odoo" type="button" onclick="openPrManualModal()">+ Buat PR Manual</button>
+                  </div>
+                  <div class="odoo-op-card op-teal">
+                    <div>
+                      <h3 class="odoo-op-title" style="color:#0f766e">Dari Cek Komponen SO</h3>
+                      <div class="odoo-op-sub">Hitung otomatis kekurangan bahan berdasarkan BOM &amp; SO.</div>
+                    </div>
+                    <button class="btn-odoo-teal" type="button" onclick="openCekKomponen()">Cek Komponen SO</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
+
         <section id="page-purchasing" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1>Purchasing</h1>
-              <p>Inbox PR → buat PO · set ETA kekurangan.</p>
+          <div class="odoo-inv-top">
+            <div class="odoo-inv-head">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Purchase</span><span>/</span><span>Orders</span><span>/</span><strong id="poBreadcrumbSub">Inbox PR</strong>
+                </div>
+                <h1 class="odoo-inv-title">Purchasing (PO)</h1>
+                <p class="odoo-inv-sub">Konversi PR menjadi Purchase Order serta pantau ETA pengiriman vendor.</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="openPoImportModal()">Import Excel / ETA</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="refreshPurchasingTab()">Refresh</button>
+                <button class="btn-odoo" type="button" onclick="openPoModal()">+ PO Baru</button>
+              </div>
             </div>
-            <button class="btn btn-ghost" type="button" onclick="refreshPurchasingTab()">Refresh</button>
-          </div>
-          <div class="mod-tabs" role="tablist">
-            <button type="button" class="mod-tab active" data-mod="purchasing" data-tab="inbox" onclick="setModTab('purchasing','inbox')">Inbox PR</button>
-            <button type="button" class="mod-tab" data-mod="purchasing" data-tab="po" onclick="setModTab('purchasing','po')">Daftar PO <span id="poEtaBadge" class="nav-badge" style="display:none;margin-left:0.25rem">0</span></button>
+            <div class="mod-tabs odoo-inv-tabs" role="tablist">
+              <button type="button" class="mod-tab active" data-mod="purchasing" data-tab="inbox" onclick="setModTab('purchasing','inbox')">Inbox PR</button>
+              <button type="button" class="mod-tab" data-mod="purchasing" data-tab="po" onclick="setModTab('purchasing','po')">Daftar PO <span id="poEtaBadge" class="nav-badge" style="display:none;margin-left:0.25rem">0</span></button>
+            </div>
           </div>
           <div id="purchasing-pane-inbox" class="mod-pane">
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <strong style="font-size:0.86rem;color:#065f46">Inbox Permintaan Beli (PR)</strong>
+                <span style="font-size:0.75rem;color:#64748b">Klik Buat PO untuk menerbitkan Purchase Order</span>
+              </div>
               <div class="table-wrap">
-                <table>
-                  <thead><tr><th>PR</th><th>SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                <table class="odoo-list">
+                  <thead><tr><th>PR Reference</th><th>SO Reference</th><th>Status</th><th>Item Ringkas</th><th>Catatan</th><th></th></tr></thead>
                   <tbody id="prBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
           </div>
           <div id="purchasing-pane-po" class="mod-pane" hidden>
-            <div class="ot-kpi-wrap" id="poKpiWrap" style="margin-bottom:0.75rem">
-              <div class="ot-kpi-grid">
-                <div class="ot-kpi-card po-kpi-card po-kpi-eta" id="poKpiEta" onclick="poKpiFilter('need_eta')" title="Klik untuk filter Perlu ETA">
-                  <div class="ot-kpi-label">Perlu ETA sisa</div>
-                  <div class="ot-kpi-val" id="poKpiEtaVal" style="color:#c2410c">—</div>
-                  <div class="ot-kpi-sub">Datang sebagian · isi ETA vendor</div>
+            <div class="ot-kpi-wrap" id="poKpiWrap" style="margin-bottom:0.9rem">
+              <div class="odoo-inv-overview cols-5" style="margin-bottom:0">
+                <div class="odoo-op-card op-amber po-kpi-card po-kpi-eta" id="poKpiEta" onclick="poKpiFilter('need_eta')" title="Klik untuk filter Perlu ETA">
+                  <div class="odoo-op-head">
+                    <div><h3 class="odoo-op-title" style="color:#c2410c">Perlu ETA Sisa</h3><div class="odoo-op-sub">Datang sebagian</div></div>
+                  </div>
+                  <div class="odoo-op-body">
+                    <div class="odoo-op-val" id="poKpiEtaVal" style="color:#c2410c">—</div>
+                    <div class="odoo-op-stats">Isi ETA vendor</div>
+                  </div>
                 </div>
-                <div class="ot-kpi-card po-kpi-card" id="poKpiOverdue" onclick="poKpiFilter('need_overdue')" title="Klik filter ETA terlambat" style="border-top:3px solid #b91c1c">
-                  <div class="ot-kpi-label">ETA terlambat</div>
-                  <div class="ot-kpi-val" id="poKpiOverdueVal" style="color:#b91c1c">—</div>
-                  <div class="ot-kpi-sub">Lewat tanggal · belum datang penuh</div>
+                <div class="odoo-op-card op-rose po-kpi-card" id="poKpiOverdue" onclick="poKpiFilter('need_overdue')" title="Klik filter ETA terlambat">
+                  <div class="odoo-op-head">
+                    <div><h3 class="odoo-op-title" style="color:#b91c1c">ETA Terlambat</h3><div class="odoo-op-sub">Lewat tanggal</div></div>
+                  </div>
+                  <div class="odoo-op-body">
+                    <div class="odoo-op-val" id="poKpiOverdueVal" style="color:#b91c1c">—</div>
+                    <div class="odoo-op-stats">Belum datang penuh</div>
+                  </div>
                 </div>
-                <div class="ot-kpi-card po-kpi-card po-kpi-draft" id="poKpiDraft" onclick="poKpiFilter('draft')" title="Filter draft">
-                  <div class="ot-kpi-label">PO draft</div>
-                  <div class="ot-kpi-val" id="poKpiDraftVal">—</div>
-                  <div class="ot-kpi-sub">Belum dipesan</div>
+                <div class="odoo-op-card op-slate po-kpi-card po-kpi-draft" id="poKpiDraft" onclick="poKpiFilter('draft')" title="Filter draft">
+                  <div class="odoo-op-head">
+                    <div><h3 class="odoo-op-title" style="color:#475569">PO Draft</h3><div class="odoo-op-sub">Belum dipesan</div></div>
+                  </div>
+                  <div class="odoo-op-body">
+                    <div class="odoo-op-val" id="poKpiDraftVal">—</div>
+                    <div class="odoo-op-stats">Klik filter draft</div>
+                  </div>
                 </div>
-                <div class="ot-kpi-card po-kpi-card po-kpi-ordered" id="poKpiOrdered" onclick="poKpiFilter('ordered')" title="Filter ordered">
-                  <div class="ot-kpi-label">PO ordered</div>
-                  <div class="ot-kpi-val" id="poKpiOrderedVal">—</div>
-                  <div class="ot-kpi-sub">Sedang berjalan</div>
+                <div class="odoo-op-card op-blue po-kpi-card po-kpi-ordered" id="poKpiOrdered" onclick="poKpiFilter('ordered')" title="Filter ordered">
+                  <div class="odoo-op-head">
+                    <div><h3 class="odoo-op-title" style="color:#0369a1">PO Ordered</h3><div class="odoo-op-sub">Sedang berjalan</div></div>
+                  </div>
+                  <div class="odoo-op-body">
+                    <div class="odoo-op-val" id="poKpiOrderedVal">—</div>
+                    <div class="odoo-op-stats">Dalam pengiriman</div>
+                  </div>
                 </div>
-                <div class="ot-kpi-card po-kpi-card po-kpi-all" id="poKpiAll" onclick="poKpiFilter('')" title="Tampilkan semua">
-                  <div class="ot-kpi-label">Semua PO</div>
-                  <div class="ot-kpi-val" id="poKpiAllVal">—</div>
-                  <div class="ot-kpi-sub">Klik untuk reset filter</div>
+                <div class="odoo-op-card op-emerald po-kpi-card po-kpi-all" id="poKpiAll" onclick="poKpiFilter('')" title="Tampilkan semua">
+                  <div class="odoo-op-head">
+                    <div><h3 class="odoo-op-title">Semua PO</h3><div class="odoo-op-sub">Total dokumen</div></div>
+                  </div>
+                  <div class="odoo-op-body">
+                    <div class="odoo-op-val" id="poKpiAllVal">—</div>
+                    <div class="odoo-op-stats">Reset filter</div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="toolbar">
-              <input type="search" id="poSearch" placeholder="Cari PO / SO / supplier / produk..." oninput="poPage=1;renderPurchaseOrders()" />
-              <select id="poStatusFilter" onchange="poPage=1;renderPurchaseOrders()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
-                <option value="">Semua status</option>
-                <option value="need_eta">⚠ Perlu ETA sisa</option>
-                <option value="need_overdue">⚠ ETA terlambat</option>
-                <option value="draft">draft</option>
-                <option value="ordered">ordered</option>
-                <option value="partial">partial</option>
-                <option value="received">received</option>
-                <option value="cancelled">cancelled</option>
-              </select>
-              <button class="btn btn-ghost btn-sm" type="button" onclick="openPoImportModal()">Import Excel / ETA</button>
-              <button class="btn btn-primary btn-sm" type="button" onclick="openPoModal()">+ PO baru</button>
-            </div>
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <strong style="font-size:0.86rem;color:#065f46">Purchase Orders</strong>
+                <div class="odoo-ctrl-right">
+                  <select id="poStatusFilter" class="odoo-select-inp" onchange="poPage=1;renderPurchaseOrders()">
+                    <option value="">Semua status</option>
+                    <option value="need_eta">⚠ Perlu ETA sisa</option>
+                    <option value="need_overdue">⚠ ETA terlambat</option>
+                    <option value="draft">draft</option>
+                    <option value="ordered">ordered</option>
+                    <option value="partial">partial</option>
+                    <option value="received">received</option>
+                    <option value="cancelled">cancelled</option>
+                  </select>
+                  <input type="search" id="poSearch" class="odoo-search-inp" placeholder="Cari PO / SO / supplier / produk..." oninput="poPage=1;renderPurchaseOrders()" />
+                  <button class="btn btn-ghost btn-sm" type="button" onclick="openPoImportModal()">Import Excel / ETA</button>
+                  <button class="btn-odoo" type="button" onclick="openPoModal()">+ PO Baru</button>
+                </div>
+              </div>
               <div class="table-wrap">
-                <table>
+                <table class="odoo-list">
                   <thead><tr>
                     <th class="sort-th" onclick="poSort('po')">PO</th>
                     <th class="sort-th" onclick="poSort('so')">No SO</th>
@@ -5536,8 +5776,8 @@
                   <tbody id="poBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
-              <div id="poPager" class="pg-bar"></div>
             </div>
+            <div id="poPager" class="pg-bar"></div>
           </div>
         </section>
 
@@ -6111,73 +6351,188 @@
         </section>
 
       <section id="page-qc" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1>Quality Control</h1>
-              <p>Gudang catat barang sampai → QC cek kualitas → Gudang validasi stok lulus QC. Jika qty datang kurang, Purchase update ETA sisa.</p>
+          <div class="odoo-inv-top">
+            <div class="odoo-inv-head">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Purchase</span><span>/</span><span>Quality Control</span><span>/</span><strong id="qcBreadcrumbSub">Antrian Inspeksi</strong>
+                </div>
+                <h1 class="odoo-inv-title">Quality Control (QC)</h1>
+                <p class="odoo-inv-sub">Barang sampai dari vendor → QC inspeksi kualitas → Gudang validasi masuk stok.</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadQcInbox()">Refresh</button>
+              </div>
             </div>
-            <button class="btn btn-ghost" type="button" onclick="loadQcInbox()">Refresh</button>
+            <div class="mod-tabs odoo-inv-tabs" role="tablist">
+              <button type="button" class="mod-tab active" data-mod="qc" data-tab="antrian" onclick="setQcTab('antrian')">Antrian</button>
+              <button type="button" class="mod-tab" data-mod="qc" data-tab="lulus" onclick="setQcTab('lulus')">Lulus</button>
+              <button type="button" class="mod-tab" data-mod="qc" data-tab="tolak" onclick="setQcTab('tolak')">Tolak</button>
+              <button type="button" class="mod-tab" data-mod="qc" data-tab="all" onclick="setQcTab('all')">Semua</button>
+            </div>
           </div>
-          <div class="mod-tabs" role="tablist">
-            <button type="button" class="mod-tab active" data-mod="qc" data-tab="antrian" onclick="setQcTab('antrian')">Antrian</button>
-            <button type="button" class="mod-tab" data-mod="qc" data-tab="lulus" onclick="setQcTab('lulus')">Lulus</button>
-            <button type="button" class="mod-tab" data-mod="qc" data-tab="tolak" onclick="setQcTab('tolak')">Tolak</button>
-            <button type="button" class="mod-tab" data-mod="qc" data-tab="all" onclick="setQcTab('all')">Semua</button>
+          <div class="odoo-inv-overview">
+            <div class="odoo-op-card op-amber is-click" onclick="setQcTab('antrian')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#b45309">Antrian QC</h3><div class="odoo-op-sub">Menunggu ACC inspeksi</div></div>
+                <span class="odoo-pill progress">Pending</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="qcOvWait">—</div>
+                <div class="odoo-op-stats">Klik buka antrian</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-emerald is-click" onclick="setQcTab('lulus')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title">Lulus QC</h3><div class="odoo-op-sub">Siap masuk gudang</div></div>
+                <span class="odoo-pill locked">Passed</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="qcOvPass">—</div>
+                <div class="odoo-op-stats">Klik lihat lulus</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-rose is-click" onclick="setQcTab('tolak')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#be123c">Ditolak / Reject</h3><div class="odoo-op-sub">Retur / klaim vendor</div></div>
+                <span class="odoo-pill cancel">Failed</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="qcOvFail">—</div>
+                <div class="odoo-op-stats">Klik lihat ditolak</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-teal is-click" onclick="setQcTab('all')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#0f766e">Total Form QC</h3><div class="odoo-op-sub">Semua catatan datang</div></div>
+                <span class="odoo-pill quotation">All</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="qcOvAll">—</div>
+                <div class="odoo-op-stats">Klik lihat semua</div>
+              </div>
+            </div>
           </div>
-          <div class="toolbar">
-            <input type="search" id="qcSearch" placeholder="Cari PO / SO / bahan..." oninput="renderQcInbox()" />
-            <select id="qcFilter" hidden>
-              <option value="pending">pending</option>
-              <option value="partial">partial</option>
-              <option value="passed">passed</option>
-              <option value="failed">failed</option>
-              <option value="all">all</option>
-            </select>
-          </div>
-          <div class="card" style="overflow:auto">
-            <table class="data-table">
-              <thead><tr>
-                <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th>
-                <th style="text-align:right">Form</th>
-                <th style="text-align:right">Lulus</th>
-                <th style="text-align:right">Tolak</th>
-                <th>Catatan</th>
-                <th>Status</th>
-                <th>Gudang</th>
-                <th></th>
-              </tr></thead>
-              <tbody id="qcBody"><tr><td colspan="11" class="empty">Memuat…</td></tr></tbody>
-            </table>
+          <div class="odoo-sheet">
+            <div class="odoo-ctrl-bar">
+              <strong style="font-size:0.86rem;color:#065f46">Inspeksi Kedatangan Vendor</strong>
+              <div class="odoo-ctrl-right">
+                <input type="search" id="qcSearch" class="odoo-search-inp" placeholder="Cari PO / SO / bahan / vendor..." oninput="renderQcInbox()" />
+                <select id="qcFilter" hidden>
+                  <option value="pending">pending</option>
+                  <option value="partial">partial</option>
+                  <option value="passed">passed</option>
+                  <option value="failed">failed</option>
+                  <option value="all">all</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="odoo-list">
+                <thead><tr>
+                  <th>PO</th><th>SO</th><th>Bahan</th><th>Vendor</th>
+                  <th style="text-align:right">Form</th>
+                  <th style="text-align:right">Lulus</th>
+                  <th style="text-align:right">Tolak</th>
+                  <th>Catatan</th>
+                  <th>Status</th>
+                  <th>Gudang</th>
+                  <th></th>
+                </tr></thead>
+                <tbody id="qcBody"><tr><td colspan="11" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
           </div>
           <div id="qcPager" class="pg-bar"></div>
         </section>
+
         <section id="page-delivery" class="page" hidden>
-          <div class="page-head">
-            <div>
-              <h1>Pengiriman</h1>
-              <p>DO ke customer akhir — menutup alur dari produksi & gudang FG.</p>
+          <div class="odoo-inv-top" style="padding-bottom:0.85rem">
+            <div class="odoo-inv-head" style="padding-bottom:0">
+              <div>
+                <div class="odoo-inv-bc">
+                  <span>Sales</span><span>/</span><span>Logistics</span><span>/</span><strong>Delivery Orders (DO)</strong>
+                </div>
+                <h1 class="odoo-inv-title">Delivery Order (DO)</h1>
+                <p class="odoo-inv-sub">Pengiriman finish good ke customer akhir — menutup alur produksi &amp; gudang.</p>
+              </div>
+              <div class="odoo-inv-actions">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="loadDeliveries()">Refresh</button>
+                <button class="btn-odoo" type="button" onclick="openDeliveryModal()">+ DO Baru</button>
+              </div>
             </div>
-            <button class="btn btn-primary" type="button" onclick="openDeliveryModal()">+ DO baru</button>
           </div>
-          <div class="toolbar">
-            <input type="search" id="doSearch" placeholder="Cari DO / SO / customer..." oninput="renderDeliveries()" />
-            <select id="doStatusFilter" onchange="renderDeliveries()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
-              <option value="">Semua status</option>
-              <option value="draft">draft</option>
-              <option value="ready">ready</option>
-              <option value="shipped">shipped</option>
-              <option value="delivered">delivered</option>
-              <option value="cancelled">cancelled</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="loadDeliveries()">Refresh</button>
+          <div class="odoo-inv-overview">
+            <div class="odoo-op-card op-emerald is-click" onclick="setDoFacet('')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title">Total DO</h3><div class="odoo-op-sub">Seluruh dokumen pengiriman</div></div>
+                <span class="odoo-pill invoice-full">All</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="doOvTotal">—</div>
+                <div class="odoo-op-stats">Tampilkan semua</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-amber is-click" onclick="setDoFacet('ready')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#b45309">Siap Kirim (Ready)</h3><div class="odoo-op-sub">Draft &amp; menunggu kirim</div></div>
+                <span class="odoo-pill progress">Ready</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="doOvReady">—</div>
+                <div class="odoo-op-stats">Filter siap kirim</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-blue is-click" onclick="setDoFacet('shipped')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#0369a1">Dalam Pengiriman</h3><div class="odoo-op-sub">Status shipped</div></div>
+                <span class="odoo-pill quotation">Shipped</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="doOvShipped">—</div>
+                <div class="odoo-op-stats">Filter shipped</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-teal is-click" onclick="setDoFacet('delivered')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title" style="color:#0f766e">Terkirim (Delivered)</h3><div class="odoo-op-sub">Diterima customer</div></div>
+                <span class="odoo-pill locked">Done</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="doOvDone">—</div>
+                <div class="odoo-op-stats">Filter delivered</div>
+              </div>
+            </div>
           </div>
-          <div class="card" style="overflow:auto">
-            <table class="data-table">
-              <thead><tr>
-                <th>DO</th><th>Tanggal</th><th>SO</th><th>Customer</th><th>Status</th><th></th>
-              </tr></thead>
-              <tbody id="doBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
-            </table>
+          <div class="odoo-sheet">
+            <div class="odoo-ctrl-bar">
+              <div class="odoo-facet-group" id="doFacetGroup">
+                <button type="button" class="odoo-facet active" data-dost="" onclick="setDoFacet('')">Semua</button>
+                <button type="button" class="odoo-facet" data-dost="draft" onclick="setDoFacet('draft')">Draft</button>
+                <button type="button" class="odoo-facet" data-dost="ready" onclick="setDoFacet('ready')">Ready</button>
+                <button type="button" class="odoo-facet" data-dost="shipped" onclick="setDoFacet('shipped')">Shipped</button>
+                <button type="button" class="odoo-facet" data-dost="delivered" onclick="setDoFacet('delivered')">Delivered</button>
+              </div>
+              <div class="odoo-ctrl-right">
+                <select id="doStatusFilter" class="odoo-select-inp" onchange="setDoFacet(this.value, true)">
+                  <option value="">Semua status</option>
+                  <option value="draft">draft</option>
+                  <option value="ready">ready</option>
+                  <option value="shipped">shipped</option>
+                  <option value="delivered">delivered</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+                <input type="search" id="doSearch" class="odoo-search-inp" placeholder="Cari DO / SO / customer..." oninput="renderDeliveries()" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="odoo-list">
+                <thead><tr>
+                  <th>DO Reference</th><th>Tanggal</th><th>SO Reference</th><th>Customer</th><th>Status</th><th></th>
+                </tr></thead>
+                <tbody id="doBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+              </table>
+            </div>
           </div>
           <div id="doPager" class="pg-bar"></div>
         </section>
@@ -6197,7 +6552,7 @@
 
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
     <symbol id="ico-home" viewBox="0 0 24 24"><path fill="#059669" d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><rect x="10" y="14" width="4" height="6" fill="#fff" rx="0.6"/></symbol>
-    <symbol id="ico-inbox" viewBox="0 0 24 24"><path fill="#8b5cf6" d="M4 8h16v10H4z"/><path fill="#c4b5fd" d="M4 8 12 4l8 4"/></symbol>
+    <symbol id="ico-inbox" viewBox="0 0 24 24"><path fill="#0284c7" d="M4 8h16v10H4z"/><path fill="#bae6fd" d="M4 8 12 4l8 4"/></symbol>
     <symbol id="ico-out" viewBox="0 0 24 24"><path stroke="#059669" stroke-width="2" fill="none" d="M12 4v10M8 10l4 4 4-4"/><path stroke="#059669" stroke-width="2" d="M5 18h14"/></symbol>
     <symbol id="ico-truck" viewBox="0 0 24 24"><path fill="#e11d48" d="M2 9h12v7H2z"/><path fill="#fb7185" d="M14 12h4l3 2.5V16h-7z"/><circle cx="6.5" cy="18.2" r="1.5" fill="#9f1239"/><circle cx="17.5" cy="18.2" r="1.5" fill="#9f1239"/><rect x="5" y="11" width="5" height="3.5" rx="0.6" fill="#fde68a"/></symbol>
     <symbol id="ico-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.7" fill="#64748b"/><circle cx="12" cy="12" r="1.7" fill="#64748b"/><circle cx="18" cy="12" r="1.7" fill="#64748b"/></symbol>
@@ -6207,11 +6562,11 @@
     <symbol id="ico-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6" fill="#2563eb"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" fill="#60a5fa"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" fill="#60a5fa"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" fill="#2563eb"/></symbol>
     <symbol id="ico-plan" viewBox="0 0 24 24"><path fill="#d97706" d="M7 4h10v16l-5-2.8L7 20z"/><path stroke="#fff" stroke-width="1.6" fill="none" d="M10 9h4M10 13h4"/></symbol>
     <symbol id="ico-so" viewBox="0 0 24 24"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></symbol>
-    <symbol id="ico-ot" viewBox="0 0 24 24"><path stroke="#7c3aed" stroke-width="2" fill="none" d="M4 8h16M4 12h16M4 16h8"/><circle cx="18" cy="16" r="3" fill="#c4b5fd"/></symbol>
+    <symbol id="ico-ot" viewBox="0 0 24 24"><path stroke="#0d9f6e" stroke-width="2" fill="none" d="M4 8h16M4 12h16M4 16h8"/><circle cx="18" cy="16" r="3" fill="#a7f3d0"/></symbol>
     <symbol id="ico-mkt" viewBox="0 0 24 24"><path fill="#f43f5e" d="M4 12.5v-2l12-4v10z"/></symbol>
     <symbol id="ico-box" viewBox="0 0 24 24"><path fill="#059669" d="m4 8 8-4 8 4v8l-8 4-8-4z"/><path stroke="#fff" stroke-width="1.4" fill="none" d="m4 8 8 4 8-4"/></symbol>
     <symbol id="ico-cart" viewBox="0 0 24 24"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></symbol>
-    <symbol id="ico-qc" viewBox="0 0 24 24"><path fill="#7c3aed" d="M12 3.2 20 7.2v5.2c0 4.2-3.2 7.2-8 8.6-4.8-1.4-8-4.4-8-8.6V7.2z"/><path stroke="#fff" stroke-width="2" fill="none" d="m8.5 12 2.2 2.2 4.4-4.6"/></symbol>
+    <symbol id="ico-qc" viewBox="0 0 24 24"><path fill="#0d9488" d="M12 3.2 20 7.2v5.2c0 4.2-3.2 7.2-8 8.6-4.8-1.4-8-4.4-8-8.6V7.2z"/><path stroke="#fff" stroke-width="2" fill="none" d="m8.5 12 2.2 2.2 4.4-4.6"/></symbol>
     <symbol id="ico-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2" fill="#059669"/><path fill="#34d399" d="M5.5 19c1.4-3 3.8-4.6 6.5-4.6s5.1 1.6 6.5 4.6z"/></symbol>
     <symbol id="ico-pr" viewBox="0 0 24 24"><path fill="#059669" d="M7 4h10v16l-5-2.8L7 20z"/><path stroke="#fff" stroke-width="1.8" d="M12 8.5v5M9.5 11h5"/></symbol>
     <symbol id="ico-rank" viewBox="0 0 24 24"><rect x="5" y="12" width="3.5" height="8" rx="1" fill="#34d399"/><rect x="10.2" y="6" width="3.5" height="14" rx="1" fill="#059669"/><rect x="15.5" y="9" width="3.5" height="11" rx="1" fill="#6ee7b7"/></symbol>
@@ -13507,6 +13862,13 @@ function fillOperatorList(selectedEmail) {
 
     function setMktTab(tab) {
       tab = tab || "hari";
+      var mktBc = {
+        kemarin: "Output FG Kemarin",
+        kirim: "Instruksi Kirim Gudang",
+        stok: "Stok Finish Good",
+        hari: "Produksi Hari Ini"
+      };
+      if ($("mktBreadcrumbSub")) $("mktBreadcrumbSub").textContent = mktBc[tab] || "Shipping";
       document.querySelectorAll("#mktTabs .mod-tab").forEach(function(btn) {
         btn.classList.toggle("active", btn.getAttribute("data-mtab") === tab);
       });
@@ -17739,12 +18101,49 @@ function fillOperatorList(selectedEmail) {
       deliveryList = data || [];
       renderDeliveries();
     }
+    function setOtFacet(val, fromSelect) {
+      val = val || "";
+      if (!fromSelect && $("otFilterStatus")) $("otFilterStatus").value = val;
+      document.querySelectorAll("#otFacetGroup .odoo-facet").forEach(function(b) {
+        b.classList.toggle("active", (b.getAttribute("data-otst") || "") === val);
+      });
+      renderOrderTrading();
+    }
+    function setSoFacet(val, fromSelect) {
+      val = val || "";
+      if (!fromSelect && $("soFilterStatus")) $("soFilterStatus").value = val;
+      document.querySelectorAll("#soFacetGroup .odoo-facet").forEach(function(b) {
+        b.classList.toggle("active", (b.getAttribute("data-sost") || "") === val);
+      });
+      renderOrders();
+    }
+    function setDoFacet(val, fromSelect) {
+      val = val || "";
+      if (!fromSelect && $("doStatusFilter")) $("doStatusFilter").value = val;
+      document.querySelectorAll("#doFacetGroup .odoo-facet").forEach(function(b) {
+        b.classList.toggle("active", (b.getAttribute("data-dost") || "") === val);
+      });
+      renderDeliveries();
+    }
     function renderDeliveries() {
       var body = $("doBody");
       if (!body) return;
+      var allDo = deliveryList || [];
+      var dReady = 0, dShip = 0, dDone = 0;
+      allDo.forEach(function(d) {
+        var s = String(d.status || "").toLowerCase();
+        if (s === "ready" || s === "draft") dReady++;
+        else if (s === "shipped") dShip++;
+        else if (s === "delivered") dDone++;
+      });
+      if ($("doOvTotal")) $("doOvTotal").textContent = formatNum(allDo.length);
+      if ($("doOvReady")) $("doOvReady").textContent = formatNum(dReady);
+      if ($("doOvShipped")) $("doOvShipped").textContent = formatNum(dShip);
+      if ($("doOvDone")) $("doOvDone").textContent = formatNum(dDone);
+
       var q = (($("doSearch") && $("doSearch").value) || "").toLowerCase().trim();
       var st = ($("doStatusFilter") && $("doStatusFilter").value) || "";
-      var list = deliveryList.filter(function(d) {
+      var list = allDo.filter(function(d) {
         if (st && d.status !== st) return false;
         if (!q) return true;
         return (d.delivery_id + " " + (d.no_so || "") + " " + (d.customer_name || "")).toLowerCase().indexOf(q) >= 0;
@@ -17758,16 +18157,18 @@ function fillOperatorList(selectedEmail) {
       body.innerHTML = pageList.map(function(d) {
         var acts = "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
         if (d.status === "ready" || d.status === "draft") {
-          acts += " <button type='button' class='btn btn-primary btn-sm' onclick='openShipDoModal(" + JSON.stringify(d.delivery_id) + ")'>Kirim</button>";
+          acts += " <button type='button' class='btn-odoo-teal' style='padding:0.25rem 0.6rem;font-size:0.75rem' onclick='openShipDoModal(" + JSON.stringify(d.delivery_id) + ")'>Kirim</button>";
         }
         var odoo = d.no_do_odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(d.no_do_odoo) + "</div>" : "";
+        var stLo = String(d.status || "").toLowerCase();
+        var pillCls = stLo === "delivered" ? "locked" : (stLo === "shipped" ? "quotation" : (stLo === "cancelled" ? "cancel" : (stLo === "ready" ? "progress" : "done")));
         return "<tr>" +
-          "<td><strong>" + esc(d.delivery_id) + "</strong>" + odoo + "</td>" +
+          "<td><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + odoo + "</td>" +
           "<td>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
           "<td>" + esc(d.no_so || "—") + "</td>" +
           "<td>" + esc(d.customer_name || "—") + "</td>" +
-          "<td>" + esc(d.status || "") + "</td>" +
-          "<td style='white-space:nowrap'>" + acts + "</td>" +
+          "<td><span class='odoo-pill " + pillCls + "'>" + esc(d.status || "—") + "</span></td>" +
+          "<td style='white-space:nowrap;text-align:right'>" + acts + "</td>" +
           "</tr>";
       }).join("");
     }
@@ -18077,8 +18478,14 @@ function fillOperatorList(selectedEmail) {
         var suffix = id.replace(mod + "-pane-", "");
         pane.hidden = suffix !== tab;
       });
-      if (mod === "purchasing") refreshPurchasingTab();
-      if (mod === "pr-ppic") { try { loadPurchaseRequests(); } catch (e) {} }
+      if (mod === "purchasing") {
+        if ($("poBreadcrumbSub")) $("poBreadcrumbSub").textContent = (tab === "po") ? "Daftar Purchase Orders" : "Inbox PR";
+        refreshPurchasingTab();
+      }
+      if (mod === "pr-ppic") {
+        if ($("prBreadcrumbSub")) $("prBreadcrumbSub").textContent = (tab === "buat") ? "Buat PR Baru" : "Daftar PR (PPIC)";
+        try { loadPurchaseRequests(); } catch (e) {}
+      }
       if (mod === "qc") setQcTab(tab);
     }
     function refreshPurchasingTab() {
@@ -18088,6 +18495,8 @@ function fillOperatorList(selectedEmail) {
     }
     function setQcTab(tab) {
       modTabState.qc = tab;
+      var qcBc = { antrian: "Antrian Inspeksi", lulus: "Lulus QC", tolak: "Ditolak / Reject", all: "Semua Data QC" };
+      if ($("qcBreadcrumbSub")) $("qcBreadcrumbSub").textContent = qcBc[tab] || "Quality Control";
       document.querySelectorAll('.mod-tab[data-mod="qc"]').forEach(function(btn) {
         btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
       });
@@ -18436,10 +18845,10 @@ function fillOperatorList(selectedEmail) {
       if (arrived <= 0) { stLabel = "Menunggu datang"; stColor = "#a16207"; }
       else if (!formAt) { stLabel = "Menunggu form QC"; stColor = "#b45309"; }
       else if ((r.qc_status || "pending") === "pending" || ((r.qc_status || "pending") === "partial" && received < passed)) {
-        if ((r.qc_status || "pending") === "partial" && passed > received) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
+        if ((r.qc_status || "pending") === "partial" && passed > received) { stLabel = "Validasi stok"; stColor = "#0f766e"; }
         else if ((r.qc_status || "pending") === "partial") { stLabel = "QC sebagian"; stColor = "#c2410c"; }
         else { stLabel = "Menunggu ACC QC"; stColor = "#2563eb"; }
-      } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#7c3aed"; }
+      } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#0f766e"; }
       else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
       else if (arrived > qty) { stLabel = "Datang lebih (+" + formatNum(arrived - qty) + ")"; stColor = "#0369a1"; }
       else { stLabel = "Selesai"; stColor = "#059669"; }
@@ -18487,7 +18896,7 @@ function fillOperatorList(selectedEmail) {
             ? "<div style='font-size:0.68rem;color:#0369a1;margin-top:0.15rem;line-height:1.25' title='" + esc(r.qc_form_notes) + "'>📝 " + esc(r.qc_form_notes) + "</div>"
             : "") +
           (r.qc_notes
-            ? "<div style='font-size:0.68rem;color:#6d28d9;margin-top:0.1rem;line-height:1.25' title='" + esc(r.qc_notes) + "'>QC: " + esc(r.qc_notes) + "</div>"
+            ? "<div style='font-size:0.68rem;color:#0f766e;margin-top:0.1rem;line-height:1.25' title='" + esc(r.qc_notes) + "'>QC: " + esc(r.qc_notes) + "</div>"
             : "") +
         "</td>" +
         "<td>" + formatNum(st.received) +
@@ -18497,7 +18906,7 @@ function fillOperatorList(selectedEmail) {
               "</div>"
             : "") +
         "</td>" +
-        "<td><span class='odoo-pill " + (st.stColor === "#059669" ? "locked" : (st.stColor === "#2563eb" || st.stColor === "#7c3aed" ? "quotation" : "progress")) + "'>" + esc(st.stLabel) + "</span></td>" +
+        "<td><span class='odoo-pill " + (st.stColor === "#059669" ? "locked" : (st.stColor === "#2563eb" || st.stColor === "#0f766e" ? "quotation" : "progress")) + "'>" + esc(st.stLabel) + "</span></td>" +
         "<td>" + gudangActionHtml(r) + "</td></tr>";
     }
 
@@ -18938,6 +19347,20 @@ function fillOperatorList(selectedEmail) {
     function renderQcInbox() {
       var body = $("qcBody");
       if (!body) return;
+      var qcW = 0, qcP = 0, qcF = 0;
+      (qcRows || []).forEach(function(r) {
+        var st0 = r.qc_status || "pending";
+        var fq0 = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
+        var dn0 = (Number(r.qty_qc_passed) || 0) + (Number(r.qty_qc_failed) || 0);
+        var rem0 = Math.max(0, fq0 - dn0);
+        if (rem0 > 1e-9 && st0 !== "passed" && st0 !== "failed") qcW++;
+        else if (st0 === "passed" || (st0 === "partial" && (Number(r.qty_qc_passed) || 0) > 0 && !(rem0 > 1e-9))) qcP++;
+        else if (st0 === "failed" || (st0 === "partial" && (Number(r.qty_qc_failed) || 0) > 0 && (Number(r.qty_qc_passed) || 0) <= 0 && !(rem0 > 1e-9))) qcF++;
+      });
+      if ($("qcOvWait")) $("qcOvWait").textContent = formatNum(qcW);
+      if ($("qcOvPass")) $("qcOvPass").textContent = formatNum(qcP);
+      if ($("qcOvFail")) $("qcOvFail").textContent = formatNum(qcF);
+      if ($("qcOvAll")) $("qcOvAll").textContent = formatNum((qcRows || []).length);
       var q = (($("qcSearch") && $("qcSearch").value) || "").toLowerCase().trim();
       var f = ($("qcFilter") && $("qcFilter").value) || "pending";
       var list = qcRows.filter(function(r) {
@@ -19009,7 +19432,7 @@ function fillOperatorList(selectedEmail) {
           detail += '<div style="font-size:0.72rem;color:#0369a1;margin-top:0.25rem;line-height:1.3">📝 Gudang: ' + esc(r.qc_form_notes) + "</div>";
         }
         if (r.qc_notes) {
-          detail += '<div style="font-size:0.72rem;color:#6d28d9;margin-top:0.15rem;line-height:1.3">QC: ' + esc(r.qc_notes) + "</div>";
+          detail += '<div style="font-size:0.72rem;color:#0f766e;margin-top:0.15rem;line-height:1.3">QC: ' + esc(r.qc_notes) + "</div>";
         }
         var timeBits = [];
         if (r.arrived_at) timeBits.push("Datang " + qcShortTime(r.arrived_at));
@@ -19043,11 +19466,12 @@ function fillOperatorList(selectedEmail) {
         var gudangInfo = formatNum(r.qty_received || 0) + " / " + formatNum(r.qty_qc_passed || 0);
         var noteHtml = "";
         if (r.qc_form_notes) noteHtml += "<div style='font-size:0.72rem;color:#0369a1;line-height:1.3' title='" + esc(r.qc_form_notes) + "'>📝 " + esc(r.qc_form_notes) + "</div>";
-        if (r.qc_notes) noteHtml += "<div style='font-size:0.72rem;color:#6d28d9;line-height:1.3;margin-top:0.1rem' title='" + esc(r.qc_notes) + "'>QC: " + esc(r.qc_notes) + "</div>";
+        if (r.qc_notes) noteHtml += "<div style='font-size:0.72rem;color:#0f766e;line-height:1.3;margin-top:0.1rem' title='" + esc(r.qc_notes) + "'>QC: " + esc(r.qc_notes) + "</div>";
         if (!noteHtml) noteHtml = "<span style='color:var(--text-muted)'>—</span>";
         var timeTip = timeBits.join(" · ");
+        var qcPillCls = st === "passed" ? "locked" : (st === "failed" ? "cancel" : (st === "partial" ? (remainL > 1e-9 ? "progress" : "quotation") : "progress"));
         return "<tr>" +
-          "<td>" + esc(r.po_id) + "</td>" +
+          "<td><span class='odoo-num'>" + esc(r.po_id) + "</span></td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
           "<td><strong>" + esc(r.product_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(pname) + "</div></td>" +
           "<td style='font-size:0.8rem'>" + esc(r.vendor_name || "—") + "</td>" +
@@ -19058,7 +19482,7 @@ function fillOperatorList(selectedEmail) {
           '<td style="text-align:right;color:#065f46;font-weight:600">' + (passN > 0 ? formatNum(passN) : "—") + "</td>" +
           '<td style="text-align:right;color:#991b1b;font-weight:600">' + (failN > 0 ? formatNum(failN) : "—") + "</td>" +
           "<td style='max-width:12rem'>" + noteHtml + "</td>" +
-          "<td style='font-weight:700;color:" + color + "' title='" + esc(timeTip) + "'>" + label +
+          "<td title='" + esc(timeTip) + "'><span class='odoo-pill " + qcPillCls + "'>" + esc(label) + "</span>" +
             (timeBits.length ? "<div style='font-size:0.62rem;font-weight:500;color:var(--text-dim);margin-top:0.15rem'>" + esc(timeBits[timeBits.length - 1]) + "</div>" : "") +
           "</td>" +
           "<td style='font-size:0.8rem' title='Diterima gudang / lulus QC'>" + gudangInfo + "</td>" +
@@ -19351,13 +19775,14 @@ function fillOperatorList(selectedEmail) {
           } else {
             btn = '<span style="font-size:0.75rem;color:var(--text-muted)">' + esc(pr.status) + '</span>';
           }
+          var prPillCls = (st === "ordered" || st === "done" || st === "closed") ? "locked" : (st === "partial" ? "progress" : (st === "cancelled" ? "cancel" : "quotation"));
           return "<tr>" +
-            "<td><strong>" + esc(pr.pr_id) + "</strong></td>" +
+            "<td><span class='odoo-num'>" + esc(pr.pr_id) + "</span></td>" +
             "<td>" + esc(pr.no_so || pr.order_id || "—") + "</td>" +
-            "<td>" + esc(pr.status) + "</td>" +
+            "<td><span class='odoo-pill " + prPillCls + "'>" + esc(pr.status || "open") + "</span></td>" +
             "<td style=\"font-size:0.78rem\">" + esc(items || (n + " item")) + "</td>" +
             "<td style=\"font-size:0.78rem\">" + esc(pr.notes || "") + "</td>" +
-            "<td>" + btn + "</td></tr>";
+            "<td style='text-align:right;white-space:nowrap'>" + btn + "</td></tr>";
         }).join("");
       }
       if (body) body.innerHTML = prRowsHtml(true);
@@ -19565,19 +19990,20 @@ function fillOperatorList(selectedEmail) {
         const needEta = lines.some(function(l) { return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty)); });
         const overdue = lines.some(poLineOverdue);
         const odoo = p.no_po_odoo || "";
+        var poSt = String(p.status || "").toLowerCase();
+        var poPillCls = poSt === "received" ? "locked" : (poSt === "ordered" ? "quotation" : (poSt === "partial" ? "progress" : (poSt === "cancelled" ? "cancel" : "done")));
         return '<tr class="' + (needEta || overdue ? "po-need-eta" : "") + '">' +
-          '<td class="mono"><strong>' + esc(p.po_id) + '</strong>' +
+          '<td class="mono"><span class="odoo-num">' + esc(p.po_id) + '</span>' +
           (odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(odoo) + '</div>' : '') +
           (needEta ? '<div style="font-size:0.7rem;color:#c2410c;font-weight:700">Perlu ETA sisa</div>' : '') +
-          (overdue && !needEta ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:700">ETA terlambat</div>' : '') +
-          (overdue && needEta ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:700">ETA terlambat</div>' : '') +
+          (overdue ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:700">ETA terlambat</div>' : '') +
           '</td>' +
           '<td>' + esc(p.no_so || p.order_id || "—") + '</td>' +
           '<td>' + esc(p.po_date) + '</td>' +
           '<td>' + esc(p.supplier_name || "—") + '</td>' +
-          '<td><span class="badge">' + esc(p.status) + '</span></td>' +
+          '<td><span class="odoo-pill ' + poPillCls + '">' + esc(p.status) + '</span></td>' +
           '<td>' + n + '</td>' +
-          '<td><button type="button" class="btn btn-sm btn-primary" data-poid="' + esc(p.po_id) + '">Edit</button></td></tr>';
+          '<td style="text-align:right"><button type="button" class="btn btn-sm btn-primary" data-poid="' + esc(p.po_id) + '">Edit</button></td></tr>';
       }).join("");
       body.querySelectorAll("[data-poid]").forEach(btn => {
         btn.onclick = function() { openPoModal(btn.getAttribute("data-poid")); };
@@ -23564,7 +23990,7 @@ function fillOperatorList(selectedEmail) {
       pageState.pick = { page: 1 };
       document.querySelectorAll(".pick-urg").forEach(function(b) {
         var on = (b.getAttribute("data-urg") || "") === pickUrgency;
-        b.className = on ? "btn btn-primary btn-sm pick-urg" : "btn btn-ghost btn-sm pick-urg";
+        b.className = "odoo-facet pick-urg" + (on ? " active" : "");
       });
       renderPicks();
     }
@@ -23645,6 +24071,7 @@ function fillOperatorList(selectedEmail) {
       if (pickMode === "wh") {
         if (title) title.textContent = "Pick gudang";
         if (sub) sub.textContent = "Antrian by tgl kebutuhan · validasi qty · kunci setelah validasi";
+        if ($("pickBreadcrumbSub")) $("pickBreadcrumbSub").textContent = "Pick Bahan (Gudang)";
         if (btn) btn.style.display = "none";
         var bulkLab = $("btnPickBulkPdfLab");
         if (bulkLab) bulkLab.style.display = "none";
@@ -23657,6 +24084,7 @@ function fillOperatorList(selectedEmail) {
       } else {
         if (title) title.textContent = "Minta bahan";
         if (sub) sub.textContent = "Produksi kirim permintaan bahan ke gudang · lacak status";
+        if ($("pickBreadcrumbSub")) $("pickBreadcrumbSub").textContent = "Minta Bahan (Produksi)";
         if (btn) {
           btn.style.display = "";
           btn.textContent = "+ Minta bahan";
@@ -23693,6 +24121,18 @@ function fillOperatorList(selectedEmail) {
     function renderPicks() {
       var body = $("pickBody");
       if (!body) return;
+      var pkAll = pickList || [];
+      var pkReq = 0, pkPrep = 0, pkDone = 0;
+      pkAll.forEach(function(p) {
+        var s = String(p.status || "draft");
+        if (s === "requested" || s === "partial") pkReq++;
+        else if (s === "prepared" || s === "handover") pkPrep++;
+        else if (s === "picked") pkDone++;
+      });
+      if ($("pkOvTotal")) $("pkOvTotal").textContent = formatNum(pkAll.length);
+      if ($("pkOvReq")) $("pkOvReq").textContent = formatNum(pkReq);
+      if ($("pkOvPrep")) $("pkOvPrep").textContent = formatNum(pkPrep);
+      if ($("pkOvDone")) $("pkOvDone").textContent = formatNum(pkDone);
       var q = (($("pickSearch") && $("pickSearch").value) || "").toLowerCase().trim();
       var st = ($("pickStatusFilter") && $("pickStatusFilter").value) || "";
       var list = pickList.filter(function(p) {
@@ -23729,25 +24169,27 @@ function fillOperatorList(selectedEmail) {
       var pageList = pageOf("pick", list, "pickPager");
       body.innerHTML = pageList.map(function(p) {
         var n = (p.pick_lines || []).length;
-        var origin = p.parent_pick_id ? ("Back order · " + p.parent_pick_id) : "Awal";
+        var pst = String(p.status || "draft");
+        var pkPill = pst === "picked" ? "locked" : (pst === "prepared" || pst === "handover" ? "quotation" : (pst === "cancelled" ? "cancel" : (pst === "requested" || pst === "partial" ? "progress" : "done")));
+        var pkLabel = (function() {
+          var st = p.status;
+          if ((st === "prepared" || st === "partial" || st === "handover" || st === "picked") && (p.pick_lines || []).some(function(l) {
+            return Number(l.qty_request) > 0 && Number(l.qty_prepared) < Number(l.qty_request);
+          })) {
+            if (st === "prepared") return "Siap (parsial)";
+            if (st === "handover") return "Serah terima (parsial)";
+            if (st === "picked") return "Selesai (parsial)";
+          }
+          return pickStatusLabel(st);
+        })();
         return "<tr>" +
-          "<td><strong>" + esc(p.no_pick_odoo || p.pick_id) + "</strong><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.pick_id) + (p.parent_pick_id ? " · BO" : "") + "</div></td>" +
+          "<td><span class='odoo-num'>" + esc(p.no_pick_odoo || p.pick_id) + "</span><div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.pick_id) + (p.parent_pick_id ? " · BO" : "") + "</div></td>" +
           "<td>" + esc(p.no_so || "—") + "<div style='font-size:0.7rem;color:var(--text-muted)'>" + esc(p.product_id || "") + "</div></td>" +
           "<td>" + pickNeedBadge(p) + "</td>" +
-          "<td><span class='badge'>" + esc((function() {
-            var st = p.status;
-            if ((st === "prepared" || st === "partial" || st === "handover" || st === "picked") && (p.pick_lines || []).some(function(l) {
-              return Number(l.qty_request) > 0 && Number(l.qty_prepared) < Number(l.qty_request);
-            })) {
-              if (st === "prepared") return "Siap (parsial)";
-              if (st === "handover") return "Serah terima (parsial)";
-              if (st === "picked") return "Selesai (parsial)";
-            }
-            return pickStatusLabel(st);
-          })()) + "</span></td>" +
-          "<td>" + n + "</td>" +
+          "<td><span class='odoo-pill " + pkPill + "'>" + esc(pkLabel) + "</span></td>" +
+          "<td class='odoo-num-col'><strong>" + formatNum(n) + "</strong> item</td>" +
           "<td style='font-size:0.72rem;color:var(--text-muted);max-width:11rem'>" + esc(pickLeadSummary(p)) + "</td>" +
-          "<td><button type='button' class='btn btn-sm btn-primary' onclick='openPickModal(" + JSON.stringify(p.pick_id) + ")'>Buka</button></td></tr>";
+          "<td style='text-align:right'><button type='button' class='btn-odoo-teal' style='padding:0.25rem 0.65rem;font-size:0.75rem' onclick='openPickModal(" + JSON.stringify(p.pick_id) + ")'>Buka</button></td></tr>";
       }).join("");
     }
     function pickLineHtml(line) {
