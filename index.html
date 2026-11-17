@@ -4054,7 +4054,7 @@
     }
     .pg-btn:disabled { opacity: 0.35; cursor: default; }
     </style>
-</head>
+<script src="/_aistudio-iframe.js?v=1f94f900"></script></head>
 <body>
   <div id="pwaBar" class="pwa-bar" role="dialog" aria-label="Pasang aplikasi">
     <div class="pwa-txt">📥 Pasang aplikasi di HP<small>Jadi shortcut seperti app biasa — gratis</small></div>
@@ -4157,7 +4157,7 @@
           <div id="notifPanel" class="notif-panel" hidden>
             <div class="notif-panel-head">
               <strong>Antrian</strong>
-              <button type="button" class="btn btn-ghost btn-sm" onclick="loadInboxNotifs()">↻</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="loadInboxNotifs(true)">↻</button>
             </div>
             <div id="notifList" class="notif-tree">
               <div class="empty" style="padding:0.75rem;font-size:0.8rem">Memuat…</div>
@@ -8315,14 +8315,7 @@
       try { loadHomeStats(); } catch (e) {}
       try { applySoPageRoleUI(); } catch (e) {}
       try { loadSoOtQueue(); } catch (e) {}
-      try {
-        backfillSoHargaFromOt().then(function(r) {
-          if (r && r.updated > 0) {
-            toast("Harga jual " + r.updated + " baris SO diisi otomatis dari Order Trading");
-            try { loadOrdersPage(); } catch (e2) {}
-          }
-        });
-      } catch (eBf) {}
+      // Auto-backfill dinonaktifkan agar tidak memicu loop request tiap buka Sales Order (jalankan manual backfillSoHargaFromOt() bila perlu)
     }
 
     function applySoPageRoleUI() {
@@ -14412,18 +14405,12 @@ function fillOperatorList(selectedEmail) {
       }
       return { data: all, error: null };
     }
-    async function loadOperasional() {
+    async function loadOperasional(forceMaster) {
       if (!sb) return;
-      try {
-        if (!window._soHargaBackfillOps) {
-          window._soHargaBackfillOps = true;
-          backfillSoHargaFromOt().then(function() {});
-        }
-      } catch (eBf2) {}
-      try { await loadOperators(); } catch (eOp) { console.warn(eOp); }
-      try { if (typeof loadMachines === "function") await loadMachines(); } catch (eM) { console.warn(eM); }
-      try { if (typeof loadProducts === "function") await loadProducts(); } catch (eP) { console.warn(eP); }
-      try { await loadBom(true); } catch (eBom) { console.warn(eBom); }
+      try { if (forceMaster || !(operators && operators.length)) await loadOperators(); } catch (eOp) { console.warn(eOp); }
+      try { if (typeof loadMachines === "function" && (forceMaster || !(machines && machines.length))) await loadMachines(); } catch (eM) { console.warn(eM); }
+      try { if (typeof loadProducts === "function" && (forceMaster || !(products && products.length))) await loadProducts(); } catch (eP) { console.warn(eP); }
+      try { if (forceMaster || !(bomRows && bomRows.length)) await loadBom(true); } catch (eBom) { console.warn(eBom); }
       const { start, end, daysInMonth } = opsMonthStartEnd();
       opsDays = [];
       for (let d = 1; d <= daysInMonth; d++) {
@@ -14440,9 +14427,6 @@ function fillOperatorList(selectedEmail) {
       var e1 = plans.error;
       plans = plans.data;
       var ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
-      if (ordersRes.error && /harga|unit_price|price|column/i.test(String(ordersRes.error.message || ""))) {
-        ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes,order_lines(product_id,qty,status,notes)").neq("status","cancelled").order("order_date",{ascending:false}).limit(2000);
-      }
       if (ordersRes.error) {
         ordersRes = await sb.from("orders").select("order_id,no_so,customer_name,status,order_date,ot_id,notes").order("order_date",{ascending:false}).limit(2000);
       }
@@ -17075,6 +17059,36 @@ function fillOperatorList(selectedEmail) {
 
     var rtTimer = null;
     var rtPoll = null;
+    var rtChannel = null;
+    var rtStatus = "";
+    var rtLastPollAt = 0;
+    var rtLastHiddenAt = 0;
+    var rtPendingTables = {};
+    var _pageLoadAt = {};
+    var RT_PAGE_TABLES = {
+      "page-home": ["plans", "reports", "hourly_reports", "purchase_orders", "purchase_lines", "ship_requests", "orders"],
+      "page-operasional": ["plans", "reports", "orders", "purchase_orders", "purchase_lines"],
+      "page-plans": ["plans", "orders"],
+      "page-reports": ["reports", "plans"],
+      "page-korlap": ["hourly_reports", "plans", "reports"],
+      "page-purchasing": ["purchase_orders", "purchase_lines"],
+      "page-gudang": ["purchase_orders", "purchase_lines", "ship_requests", "ship_request_lines"],
+      "page-qc": ["purchase_lines"],
+      "page-delivery": ["ship_requests"],
+      "page-marketing": ["ship_requests", "ship_request_lines", "fg_korlap_reports", "reports", "orders"],
+      "page-wip": ["wip_stock"],
+      "page-absences": ["absences"],
+      "page-revisions": ["plan_revision_requests", "plans"]
+    };
+    function invalidatePagesByTable(table) {
+      if (!table) return;
+      Object.keys(RT_PAGE_TABLES).forEach(function(pid) {
+        if (RT_PAGE_TABLES[pid].indexOf(table) >= 0) {
+          var key = pid.replace(/^page-/, "");
+          delete _pageLoadAt[key];
+        }
+      });
+    }
     function currentPageId() {
       var pages = document.querySelectorAll(".page");
       for (var i = 0; i < pages.length; i++) {
@@ -17093,12 +17107,26 @@ function fillOperatorList(selectedEmail) {
       return false;
     }
     function refreshLive(reason) {
+      if (document.hidden) return;
+      if (reason && reason !== "poll" && reason !== "visible" && reason !== "manual") {
+        rtPendingTables[reason] = true;
+        invalidatePagesByTable(reason);
+      }
       if (rtTimer) clearTimeout(rtTimer);
       rtTimer = setTimeout(function() {
-        if (formBusy()) return;
-        try { loadSidebarBadges(); } catch (e1) {}
-        try { loadInboxNotifs(); } catch (e2) {}
+        if (document.hidden || formBusy()) return;
+        var pending = Object.keys(rtPendingTables);
+        rtPendingTables = {};
+        var isFullTick = (reason === "poll" || reason === "visible" || reason === "manual");
+        var forceSub = (reason === "visible" || reason === "manual");
+        try { loadSidebarBadges(forceSub); } catch (e1) {}
+        try { loadInboxNotifs(forceSub); } catch (e2) {}
         var pid = currentPageId();
+        var relevant = RT_PAGE_TABLES[pid];
+        if (!isFullTick && relevant && pending.length) {
+          var hit = pending.some(function(t) { return relevant.indexOf(t) >= 0; });
+          if (!hit) return;
+        }
         try {
           if (pid === "page-operasional") loadOperasional();
           else if (pid === "page-plans") loadPlans();
@@ -17106,7 +17134,13 @@ function fillOperatorList(selectedEmail) {
           else if (pid === "page-korlap") { if (typeof loadKorlapHourly === "function") loadKorlapHourly(); }
           else if (pid === "page-purchasing") loadPurchaseOrders();
           else if (pid === "page-gudang") { if (typeof loadGudang === "function") loadGudang(); else loadPurchaseOrders(); }
-          else if (pid === "page-home") loadHomeDaily();
+          else if (pid === "page-qc") { if (typeof loadQcInbox === "function") loadQcInbox(); }
+          else if (pid === "page-pick") { if (typeof loadPicks === "function") loadPicks(); }
+          else if (pid === "page-delivery") { if (typeof loadDeliveries === "function") loadDeliveries(); }
+          else if (pid === "page-home") {
+            if (currentRole() === "operator") { if (typeof loadOperatorHome === "function") loadOperatorHome(); }
+            else loadHomeDaily();
+          }
           else if (pid === "page-marketing") {
             var tab = (document.querySelector("#mktTabs .mod-tab.active") || {}).getAttribute && document.querySelector("#mktTabs .mod-tab.active").getAttribute("data-mtab");
             if (tab === "kirim") loadShipRequests();
@@ -17118,12 +17152,30 @@ function fillOperatorList(selectedEmail) {
           else if (pid === "page-absences") loadAbsences();
           else if (pid === "page-revisions") { if (typeof loadRevisions === "function") loadRevisions(); }
         } catch (e3) { console.warn("refreshLive", reason, e3); }
-      }, 800);
+      }, 1500);
     }
     function setupRealtime() {
       if (!sb) return;
+      if (!window.__rtVisBound) {
+        window.__rtVisBound = true;
+        document.addEventListener("visibilitychange", function() {
+          if (document.hidden) {
+            rtLastHiddenAt = Date.now();
+          } else if (rtLastHiddenAt && (Date.now() - rtLastHiddenAt >= 60000)) {
+            rtLastPollAt = Date.now();
+            refreshLive("visible");
+          }
+        });
+      }
       if (!rtPoll) {
-        rtPoll = setInterval(function() { refreshLive("poll"); }, 40000);
+        rtLastPollAt = Date.now();
+        rtPoll = setInterval(function() {
+          if (document.hidden) return;
+          var intervalMs = (rtStatus === "SUBSCRIBED") ? 300000 : 90000;
+          if (Date.now() - rtLastPollAt < intervalMs) return;
+          rtLastPollAt = Date.now();
+          refreshLive("poll");
+        }, 30000);
       }
       if (rtChannel) return;
       try {
@@ -17135,6 +17187,7 @@ function fillOperatorList(selectedEmail) {
           });
         });
         rtChannel = ch.subscribe(function(status) {
+          rtStatus = status || "";
           console.info("realtime", status);
         });
       } catch (e) {
@@ -21589,6 +21642,12 @@ function fillOperatorList(selectedEmail) {
     };
     $("btnLogout").onclick = async () => {
       try { closeProfileModal(); } catch (eC) {}
+      try {
+        if (rtPoll) { clearInterval(rtPoll); rtPoll = null; }
+        if (rtTimer) { clearTimeout(rtTimer); rtTimer = null; }
+        if (rtChannel && sb && sb.removeChannel) { sb.removeChannel(rtChannel); }
+        rtChannel = null; rtStatus = "";
+      } catch (eRtOut) {}
       if (sb) await sb.auth.signOut();
       $("app").classList.remove("show");
       $("authScreen").style.display = "flex";
@@ -21828,7 +21887,7 @@ function fillOperatorList(selectedEmail) {
       var open = p.hasAttribute("hidden");
       if (open) {
         p.removeAttribute("hidden");
-        try { loadInboxNotifs(); } catch (e) {}
+        try { loadInboxNotifs(true); } catch (e) {}
         // klik di luar panel / lonceng → tutup
         setTimeout(function() {
           if (window.__notifOutsideBound) return;
@@ -21965,8 +22024,14 @@ function fillOperatorList(selectedEmail) {
       setNotifBadge(total);
       try { applyNavBadges(groups); } catch (eB) {}
     }
-    async function loadSidebarBadges() {
+    var _lastBadgesAt = 0;
+    var _badgesInFlight = null;
+    async function loadSidebarBadges(force) {
       if (!sb) return;
+      if (!force && _lastBadgesAt && (Date.now() - _lastBadgesAt < 60000)) return;
+      if (_badgesInFlight) return _badgesInFlight;
+      _badgesInFlight = (async function() {
+      try {
       var role = currentRole();
       var staff = role === "admin" || role === "ppic" || role === "korlap";
       try {
@@ -22014,9 +22079,19 @@ function fillOperatorList(selectedEmail) {
           }
         }
       } catch (eI) { console.warn(eI); }
+      _lastBadgesAt = Date.now();
+      } finally { _badgesInFlight = null; }
+      })();
+      return _badgesInFlight;
     }
-    async function loadInboxNotifs() {
+    var _lastInboxAt = 0;
+    var _inboxInFlight = null;
+    async function loadInboxNotifs(force) {
       if (!sb) return;
+      if (!force && _lastInboxAt && (Date.now() - _lastInboxAt < 90000)) return;
+      if (_inboxInFlight) return _inboxInFlight;
+      _inboxInFlight = (async function() {
+      try {
       var role = currentRole();
       var groups = [];
       try {
@@ -22241,12 +22316,25 @@ function fillOperatorList(selectedEmail) {
         console.warn("inbox", e);
       }
       renderNotifItems(groups);
-      try { await loadSisaSo(); } catch (e2) {}
+      _lastInboxAt = Date.now();
+      try {
+        var onHome = (typeof currentPageId === "function") ? currentPageId() === "page-home" : true;
+        if (onHome || !sisaSoRows.length) await loadSisaSo(force);
+      } catch (e2) {}
+      } finally { _inboxInFlight = null; }
+      })();
+      return _inboxInFlight;
     }
 
     var sisaSoRows = [];
-    async function loadSisaSo() {
+    var _lastSisaSoAt = 0;
+    var _sisaSoInFlight = null;
+    async function loadSisaSo(force) {
       if (!sb) return;
+      if (!force && _lastSisaSoAt && (Date.now() - _lastSisaSoAt < 180000) && sisaSoRows.length) return;
+      if (_sisaSoInFlight) return _sisaSoInFlight;
+      _sisaSoInFlight = (async function() {
+      try {
       var role = currentRole();
       if (role === "operator" || role === "gudang") {
         if ($("homeSisaSoCard")) $("homeSisaSoCard").style.display = "none";
@@ -22369,7 +22457,11 @@ function fillOperatorList(selectedEmail) {
       });
       rows.sort(function(a, b) { return b.sisa - a.sisa; });
       sisaSoRows = rows;
+      _lastSisaSoAt = Date.now();
       renderSisaSo();
+      } finally { _sisaSoInFlight = null; }
+      })();
+      return _sisaSoInFlight;
     }
     function renderSisaSo() {
       var body = $("sisaSoBody");
@@ -23091,7 +23183,6 @@ function fillOperatorList(selectedEmail) {
       }
       pickList = data || [];
       renderPicks();
-      try { loadInboxNotifs(); } catch (eN2) {}
     }
     function renderPicks() {
       var body = $("pickBody");
@@ -23532,7 +23623,7 @@ function fillOperatorList(selectedEmail) {
           }
         }
         await loadPicks();
-        try { loadInboxNotifs(); } catch (eN) {}
+        try { loadInboxNotifs(true); } catch (eN) {}
         var msg = "Import massal: " + ok + " dibuat";
         if (skip) msg += ", " + skip + " skip";
         if (fail) msg += ", " + fail + " gagal";
@@ -24259,7 +24350,7 @@ function fillOperatorList(selectedEmail) {
       }
       if (stEl && pickMode === "prod" && status === "handover") stEl.value = "handover";
       await loadPicks();
-      try { loadInboxNotifs(); } catch (eN) {}
+      try { loadInboxNotifs(true); } catch (eN) {}
       if (pendingBackorder) {
         $("pickEditId").value = id;
         await createPickBackorder(true); // sudah dikonfirmasi di dialog 3 tombol
@@ -25146,57 +25237,62 @@ var id = await newPickId();
         var dp = el.getAttribute("data-page");
         el.classList.toggle("active", dp === page);
       });
+      var _nowNav = Date.now();
+      var _shouldFetch = function(k, ttlMs) {
+        ttlMs = ttlMs || 20000;
+        if (_pageLoadAt[k] && (_nowNav - _pageLoadAt[k] < ttlMs)) return false;
+        _pageLoadAt[k] = _nowNav;
+        return true;
+      };
       if (page === "pick-prod" || page === "pick-wh" || page === "pick") {
         if (page === "pick-wh") applyPickMode("wh");
         else if (page === "pick-prod") applyPickMode("prod");
-        // page==="pick" → pertahankan pickMode yang sedang aktif
         else applyPickMode(pickMode === "wh" ? "wh" : "prod");
         try { loadPicks(); } catch (ePk) {}
       }
       try { closeMoreSheet(); } catch (eMs) {}
       if (page === "plans") {
-        if (currentRole() === "operator") { page = "home"; try { loadOperatorHome(); } catch (e) {} }
-        else { try { loadPlans(); } catch (e) {} }
+        if (currentRole() === "operator") { page = "home"; if (_shouldFetch("home", 15000)) { try { loadOperatorHome(); } catch (e) {} } }
+        else if (_shouldFetch("plans", 15000)) { try { loadPlans(); } catch (e) {} }
       }
       if (page === "plan-import" && currentRole() === "operator") { page = "home"; }
-      if (page === "reports") { try { loadReportsPage(); } catch (e) {} }
+      if (page === "reports" && _shouldFetch("reports", 15000)) { try { loadReportsPage(); } catch (e) {} }
       if (page === "export-data") { try { initExportPage(); } catch (eEx) {} }
-      if (page === "orders") { try { loadOrdersPage(); } catch (e) {} }
-      if (page === "order-trading") { try { loadOrderTrading(); } catch (e) {} }
-      if (page === "absences") { try { loadAbsences(); } catch (e) {} }
-      if (page === "revisions") { try { loadRevisionRequests(); } catch (eR) {} }
-      if (page === "audit") { try { loadAuditLogs(); } catch (eA) {} }
-      if (page === "fg-korlap") { try { loadFgKorlap(); } catch (eF) {} }
-      if (page === "kendala") { try { loadKendalaAnalysis(); } catch (eK) {} }
-      if (page === "ranking") { try { loadRanking(); } catch (e) {} }
-      if (page === "marketing") { try { setMktTab("kemarin"); } catch (e) {} }
-      if (page === "operasional") { try { loadOperasional(); } catch (e) {} }
-      if (page === "improvements") { try { loadImprovements(); } catch (eImp) {} }
+      if (page === "orders" && _shouldFetch("orders", 20000)) { try { loadOrdersPage(); } catch (e) {} }
+      if (page === "order-trading" && _shouldFetch("order-trading", 20000)) { try { loadOrderTrading(); } catch (e) {} }
+      if (page === "absences" && _shouldFetch("absences", 20000)) { try { loadAbsences(); } catch (e) {} }
+      if (page === "revisions" && _shouldFetch("revisions", 20000)) { try { loadRevisionRequests(); } catch (eR) {} }
+      if (page === "audit" && _shouldFetch("audit", 30000)) { try { loadAuditLogs(); } catch (eA) {} }
+      if (page === "fg-korlap" && _shouldFetch("fg-korlap", 20000)) { try { loadFgKorlap(); } catch (eF) {} }
+      if (page === "kendala" && _shouldFetch("kendala", 30000)) { try { loadKendalaAnalysis(); } catch (eK) {} }
+      if (page === "ranking" && _shouldFetch("ranking", 30000)) { try { loadRanking(); } catch (e) {} }
+      if (page === "marketing" && _shouldFetch("marketing", 20000)) { try { setMktTab("kemarin"); } catch (e) {} }
+      if (page === "operasional" && _shouldFetch("operasional", 20000)) { try { loadOperasional(); } catch (e) {} }
+      if (page === "improvements" && _shouldFetch("improvements", 30000)) { try { loadImprovements(); } catch (eImp) {} }
       if (page === "home") {
         try { loadInboxNotifs(); } catch (eIn) {}
-        try {
-          if (currentRole() === "operator") loadOperatorHome();
-          else loadHomeDaily();
-        } catch (eHd) { console.warn(eHd); }
+        if (_shouldFetch("home", 15000)) {
+          try {
+            if (currentRole() === "operator") loadOperatorHome();
+            else loadHomeDaily();
+          } catch (eHd) { console.warn(eHd); }
+        }
       }
-      if (page === "routes") { try { loadRoutes(); renderRouteProductTable(); } catch (e) {} }
+      if (page === "routes") { if (_shouldFetch("routes", 60000) || !(routes && routes.length)) { try { loadRoutes(); } catch (e) {} } try { renderRouteProductTable(); } catch (e2) {} }
       else { try { closeRouteEditor(); } catch (e4) {} }
       if (page === "products") { try { renderProducts(); } catch (e) {} }
       if (page === "machines") { try { renderMachines(); } catch (e) {} }
-      if (page === "customers") { try { loadCustomers().then(function() { renderCustomersPage(); }); } catch (e) {} }
-      if (page === "vendors") { try { loadVendors().then(function() { renderVendorsPage(); }); } catch (e) {} }
-      if (page === "accounts") { try { loadAccounts(); } catch (e) {} }
-      if (page === "purchasing") { try { loadPurchaseOrders(); } catch (e) {} }
-      if (page === "gudang") { try { setGudangTab(gudangActiveTab || "stok"); } catch (eG) {} }
-      if (page === "pick") { try { loadPicks(); } catch (ePk) {} }
-      if (page === "delivery") { try { loadDeliveries(); } catch (eD) {} }
-      if (page === "qc") { try { loadQcInbox(); } catch (eQ) {} }
-      if (page === "purchasing") { try { setModTab("purchasing", modTabState.purchasing || "inbox"); } catch (ePr) {} }
-      if (page === "pr-ppic") { try { setModTab("pr-ppic", modTabState["pr-ppic"] || "daftar"); } catch (ePr2) {} }
-      if (page === "qc") { try { setQcTab(modTabState.qc || "antrian"); } catch (eQc) {} }
-      if (page === "bom") { try { loadBom(); } catch (e) {} }
-      if (page === "korlap") { try { loadKorlapHourly(); } catch (e) {} }
-      if (page === "wip") { try { loadWipStock(); } catch (e) {} }
+      if (page === "customers") { if (_shouldFetch("customers", 60000) || !(customers && customers.length)) { try { loadCustomers().then(function() { renderCustomersPage(); }); } catch (e) {} } else { try { renderCustomersPage(); } catch (e2) {} } }
+      if (page === "vendors") { if (_shouldFetch("vendors", 60000)) { try { loadVendors().then(function() { renderVendorsPage(); }); } catch (e) {} } else { try { renderVendorsPage(); } catch (e2) {} } }
+      if (page === "accounts" && _shouldFetch("accounts", 30000)) { try { loadAccounts(); } catch (e) {} }
+      if (page === "purchasing" && _shouldFetch("purchasing", 20000)) { try { loadPurchaseOrders(); } catch (e) {} try { setModTab("purchasing", modTabState.purchasing || "inbox"); } catch (ePr) {} }
+      if (page === "gudang" && _shouldFetch("gudang", 20000)) { try { setGudangTab(gudangActiveTab || "stok"); } catch (eG) {} }
+      if (page === "delivery" && _shouldFetch("delivery", 20000)) { try { loadDeliveries(); } catch (eD) {} }
+      if (page === "qc" && _shouldFetch("qc", 20000)) { try { loadQcInbox(); } catch (eQ) {} try { setQcTab(modTabState.qc || "antrian"); } catch (eQc) {} }
+      if (page === "pr-ppic" && _shouldFetch("pr-ppic", 20000)) { try { setModTab("pr-ppic", modTabState["pr-ppic"] || "daftar"); } catch (ePr2) {} }
+      if (page === "bom") { if (_shouldFetch("bom", 60000) || !(bomRows && bomRows.length)) { try { loadBom(); } catch (e) {} } else { try { renderBomTable(); } catch (e2) {} } }
+      if (page === "korlap" && _shouldFetch("korlap", 15000)) { try { loadKorlapHourly(); } catch (e) {} }
+      if (page === "wip" && _shouldFetch("wip", 20000)) { try { loadWipStock(); } catch (e) {} }
     }
 
     function applyUserChip() {
