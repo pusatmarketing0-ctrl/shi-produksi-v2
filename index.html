@@ -4355,7 +4355,7 @@
     }
     .pg-btn:disabled { opacity: 0.35; cursor: default; }
     </style>
-<script src="/_aistudio-iframe.js?v=1f94f900"></script></head>
+<script src="/_aistudio-iframe.js?v=29045eb3"></script></head>
 <body>
   <div id="pwaBar" class="pwa-bar" role="dialog" aria-label="Pasang aplikasi">
     <div class="pwa-txt">📥 Pasang aplikasi di HP<small>Jadi shortcut seperti app biasa — gratis</small></div>
@@ -17861,6 +17861,8 @@ function fillOperatorList(selectedEmail) {
     };
     function invalidatePagesByTable(table) {
       if (!table) return;
+      _inboxSummaryCache = null;
+      _inboxSummaryAt = 0;
       Object.keys(RT_PAGE_TABLES).forEach(function(pid) {
         if (RT_PAGE_TABLES[pid].indexOf(table) >= 0) {
           var key = pid.replace(/^page-/, "");
@@ -19981,6 +19983,7 @@ function fillOperatorList(selectedEmail) {
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada PO</td></tr>';
         if ($("poPager")) $("poPager").innerHTML = "";
+        try { updatePurchasingEtaBadge(); } catch (eB) {}
         return;
       }
       var slice = list.slice((poPage - 1) * pageSize, poPage * pageSize);
@@ -22956,6 +22959,41 @@ function fillOperatorList(selectedEmail) {
       setNotifBadge(total);
       try { applyNavBadges(groups); } catch (eB) {}
     }
+    var _inboxSummaryCache = null;
+    var _inboxSummaryAt = 0;
+    var _inboxSummaryInFlight = null;
+    var _inboxSummaryRole = "";
+    var _inboxSummaryRpcMissing = false;
+    async function fetchInboxSummaryRpc(force) {
+      if (!sb || _inboxSummaryRpcMissing) return null;
+      var role = (typeof currentRole === "function") ? currentRole() : "";
+      var today = (typeof todayStr === "function") ? todayStr() : new Date().toISOString().slice(0, 10);
+      if (_inboxSummaryInFlight) return _inboxSummaryInFlight;
+      if (!force && _inboxSummaryCache && _inboxSummaryRole === role && (Date.now() - _inboxSummaryAt < 30000)) {
+        return _inboxSummaryCache;
+      }
+      _inboxSummaryInFlight = (async function() {
+        try {
+          var res = await sb.rpc("get_inbox_summary", { p_role: role, p_today: today });
+          if (res.error) {
+            var msg = String(res.error.message || "");
+            if (/get_inbox_summary|PGRST202|42883|does not exist|Could not find/i.test(msg)) {
+              _inboxSummaryRpcMissing = true;
+            }
+            return null;
+          }
+          _inboxSummaryCache = res.data || null;
+          _inboxSummaryAt = Date.now();
+          _inboxSummaryRole = role;
+          return _inboxSummaryCache;
+        } catch (eRpc) {
+          return null;
+        } finally {
+          _inboxSummaryInFlight = null;
+        }
+      })();
+      return _inboxSummaryInFlight;
+    }
     var _lastBadgesAt = 0;
     var _badgesInFlight = null;
     async function loadSidebarBadges(force) {
@@ -22966,6 +23004,37 @@ function fillOperatorList(selectedEmail) {
       try {
       var role = currentRole();
       var staff = role === "admin" || role === "ppic" || role === "korlap";
+      var rpcSum = await fetchInboxSummaryRpc(force);
+      if (rpcSum) {
+        if (staff) {
+          var nRevR = Number(rpcSum.rev_requested) || 0;
+          var navBR = $("navRevBadge");
+          if (navBR) {
+            if (nRevR > 0) { navBR.style.display = ""; navBR.textContent = String(nRevR); }
+            else navBR.style.display = "none";
+          }
+          document.querySelectorAll('.mobile-nav button[data-page="revisions"]').forEach(function(btn) {
+            var old = btn.querySelector(".nav-count");
+            if (old) old.remove();
+            if (nRevR > 0) {
+              var sp = document.createElement("span");
+              sp.className = "nav-count";
+              sp.textContent = nRevR > 99 ? "99+" : String(nRevR);
+              btn.appendChild(sp);
+            }
+          });
+        }
+        if (role === "admin") {
+          var nImpR = Number(rpcSum.imp_baru) || 0;
+          var badgeR = $("navImpBadge");
+          if (badgeR) {
+            if (nImpR > 0) { badgeR.style.display = ""; badgeR.textContent = String(nImpR); }
+            else badgeR.style.display = "none";
+          }
+        }
+        _lastBadgesAt = Date.now();
+        return;
+      }
       try {
         if (staff) {
           var { data: revs, error: eRev } = await sb.from("plan_revision_requests")
@@ -23026,6 +23095,89 @@ function fillOperatorList(selectedEmail) {
       try {
       var role = currentRole();
       var groups = [];
+      var rpcSum = await fetchInboxSummaryRpc(force);
+      if (rpcSum) {
+        if (role === "purchasing" || role === "admin" || role === "ppic") {
+          var prItemsR = [];
+          var nPrR = Number(rpcSum.pr_open) || 0;
+          if (nPrR) prItemsR.push({ label: "Permintaan beli (PR)", count: nPrR, page: role === "ppic" ? "pr-ppic" : "purchasing", icon: "📝" });
+          if (role === "purchasing" || role === "admin") {
+            var nPoR = Number(rpcSum.po_draft) || 0;
+            if (nPoR) prItemsR.push({ label: "PO draft", count: nPoR, page: "purchasing", icon: "🛒" });
+            var nOrdR = Number(rpcSum.po_ordered) || 0;
+            if (nOrdR) prItemsR.push({ label: "PO ordered", count: nOrdR, page: "purchasing", icon: "🚚" });
+            var nEtaR = Number(rpcSum.po_need_eta) || 0;
+            if (nEtaR) prItemsR.push({ label: "Perlu ETA sisa", count: nEtaR, page: "purchasing", tab: "po", filter: "need_eta", icon: "⏰" });
+            var nLateR = Number(rpcSum.po_overdue) || 0;
+            if (nLateR) prItemsR.push({ label: "ETA terlambat", count: nLateR, page: "purchasing", tab: "po", filter: "need_overdue", icon: "🚨" });
+          }
+          if (prItemsR.length) {
+            groups.push({ label: "Procurement", icon: "🛒", count: prItemsR.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: prItemsR, open: true });
+          }
+        }
+        if (role === "qc" || role === "admin") {
+          var nPendR = Number(rpcSum.qc_pending) || 0, nPartR = Number(rpcSum.qc_partial) || 0;
+          var qcItemsR = [];
+          if (nPendR) qcItemsR.push({ label: "Menunggu QC", count: nPendR, page: "qc", icon: "⏳" });
+          if (nPartR) qcItemsR.push({ label: "QC sebagian", count: nPartR, page: "qc", icon: "◐" });
+          if (qcItemsR.length) groups.push({ label: "Quality Control", icon: "✅", count: nPendR + nPartR, items: qcItemsR, open: true });
+        }
+        if (role === "gudang" || role === "admin") {
+          var gItemsR = [];
+          var nRecvR = Number(rpcSum.gd_wait_recv) || 0;
+          var nShipReqR = Number(rpcSum.gd_ship_req) || 0;
+          var nShipPickR = Number(rpcSum.gd_ship_pick) || 0;
+          var nDoReadyR = Number(rpcSum.do_ready) || 0;
+          if (nRecvR) gItemsR.push({ label: "Menunggu terima", count: nRecvR, page: "gudang", icon: "📥" });
+          if (nShipReqR) gItemsR.push({ label: "Instruksi kirim (baru)", count: nShipReqR, page: "gudang", icon: "📤" });
+          if (nShipPickR) gItemsR.push({ label: "Siap buat DO", count: nShipPickR, page: "gudang", icon: "📋" });
+          if (nDoReadyR) gItemsR.push({ label: "DO siap kirim", count: nDoReadyR, page: "delivery", icon: "🚚" });
+          if (gItemsR.length) {
+            groups.push({ label: "Gudang", icon: "📦", count: gItemsR.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: gItemsR, open: true });
+          }
+        }
+        var pickItemsR = [];
+        if (role === "gudang" || role === "admin") {
+          var pkReqR = Number(rpcSum.pick_req) || 0, pkPartR = Number(rpcSum.pick_partial) || 0, pkPrepR = Number(rpcSum.pick_prep) || 0;
+          if (pkReqR) pickItemsR.push({ label: "Pick diminta", count: pkReqR, page: "pick-wh", icon: "📥" });
+          if (pkPartR) pickItemsR.push({ label: "Pick parsial", count: pkPartR, page: "pick-wh", icon: "◐" });
+          if (pkPrepR) pickItemsR.push({ label: "Pick siap serah", count: pkPrepR, page: "pick-wh", icon: "📦" });
+        }
+        if (role === "ppic" || role === "korlap" || role === "admin") {
+          var nHandR = Number(rpcSum.pick_handover) || 0, nMineR = Number(rpcSum.pick_prod_mine) || 0;
+          if (nHandR) pickItemsR.push({ label: "Menunggu terima bahan", count: nHandR, page: "pick-prod", icon: "✅" });
+          if (nMineR) pickItemsR.push({ label: "Pick proses (produksi)", count: nMineR, page: "pick-prod", icon: "📋" });
+        }
+        if (pickItemsR.length) {
+          groups.push({ label: "Pick komponen", icon: "🧩", count: pickItemsR.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: pickItemsR, open: true });
+        }
+        if (role === "marketing" || role === "trading" || role === "admin") {
+          var otMap = rpcSum.ot_by_status || {};
+          var otItemsR = Object.keys(otMap).filter(function(st) { return Number(otMap[st]) > 0; }).map(function(st) {
+            return { label: st.replace(/_/g, " "), count: Number(otMap[st]) || 0, page: "order-trading", icon: "📄" };
+          });
+          var otTotalR = otItemsR.reduce(function(s, x) { return s + x.count; }, 0);
+          if (otTotalR) groups.push({ label: "Order Trading", icon: "🤝", count: otTotalR, items: otItemsR, open: true });
+        }
+        if (role === "ppic" || role === "korlap" || role === "admin") {
+          var nOpenR = Number(rpcSum.plan_open) || 0, nDraftR = Number(rpcSum.plan_draft) || 0, nProgR = Number(rpcSum.plan_in_progress) || 0;
+          var pItemsR = [];
+          if (nOpenR) pItemsR.push({ label: "Plan open hari ini", count: nOpenR, page: "plans", icon: "📅" });
+          if (nDraftR) pItemsR.push({ label: "Plan draft (belum OP)", count: nDraftR, page: "plans", icon: "✏️" });
+          if (nProgR) pItemsR.push({ label: "In progress", count: nProgR, page: "plans", icon: "▶" });
+          if (pItemsR.length) groups.push({ label: "Produksi", icon: "🏭", count: nOpenR + nDraftR + nProgR, items: pItemsR, open: true });
+        }
+        if (role === "operator") {
+          groups.push({ label: "Laporan", icon: "📋", count: 1, items: [{ label: "Isi laporan hari ini", count: 1, page: "reports", icon: "✍️" }], open: true });
+        }
+        renderNotifItems(groups);
+        _lastInboxAt = Date.now();
+        try {
+          var onHomeR = (typeof currentPageId === "function") ? currentPageId() === "page-home" : true;
+          if (onHomeR || !sisaSoRows.length) await loadSisaSo(force);
+        } catch (eH) {}
+        return;
+      }
       try {
         // —— Purchase / PR ——
         if (role === "purchasing" || role === "admin" || role === "ppic") {
