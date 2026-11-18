@@ -3454,8 +3454,7 @@
         padding: 0.25rem 0.5rem;
       }
     }
-    /* Glassy senada di form OT / SO */
-    #otModal.modal-bg .modal,
+    /* Glassy senada di form SO (#orderModal) */
     #orderModal.modal-bg .modal {
       background: rgba(248, 252, 250, 0.72) !important;
       backdrop-filter: blur(18px) saturate(1.15);
@@ -3463,15 +3462,12 @@
       border: 1px solid rgba(255,255,255,0.55);
       box-shadow: 0 20px 50px rgba(15,40,30,0.12);
     }
-    #otModal .sheet-foot,
     #orderModal .sheet-foot {
       background: rgba(255,255,255,0.45) !important;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-top: 1px solid rgba(255,255,255,0.5);
     }
-    #otModal .odoo-form-row input,
-    #otModal .odoo-form-row select,
     #orderModal .odoo-form-row input,
     #orderModal .odoo-form-row select {
       background: rgba(255,255,255,0.42) !important;
@@ -3481,43 +3477,341 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
-    #otModal .odoo-form-row input:focus,
     #orderModal .odoo-form-row input:focus {
       background: rgba(255,255,255,0.7) !important;
       border-color: rgba(13,159,110,0.4) !important;
       box-shadow: 0 0 0 2px rgba(13,159,110,0.12);
     }
-    #otModal .odoo-lines-table input,
     #orderModal .odoo-lines-table input {
       background: rgba(255,255,255,0.42) !important;
       border: 1px solid rgba(255,255,255,0.6) !important;
       border-radius: 10px !important;
     }
-    #otModal #otDropZone,
-    #otModal #otStatusBox {
-      background: rgba(255,255,255,0.35) !important;
-      border: 1px dashed rgba(148,163,184,0.55) !important;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-radius: 14px !important;
-    }
-    #otModal #otStatusBox {
-      border-style: solid !important;
-      border-color: rgba(16,185,129,0.2) !important;
-      background: rgba(236,253,245,0.45) !important;
-    }
-    #otModal #otAttachList > div {
-      background: rgba(255,255,255,0.4) !important;
-      border: 1px solid rgba(255,255,255,0.55) !important;
-      backdrop-filter: blur(8px);
-    }
-    #otModal .ot-modal-banner {
-      background: transparent !important;
-      border-bottom: 1px solid rgba(255,255,255,0.35);
-    }
-    #otModal .sheet-body,
     #orderModal .sheet-body {
       background: transparent !important;
+    }
+
+    /* ===== Modern SaaS Redesign: Order Trading Modal (#otModal) ===== */
+    #otModal.modal-bg .modal.modal-sheet.odoo-form-modal {
+      width: min(1000px, 95vw) !important;
+      max-width: 1000px !important;
+      max-height: min(92vh, 840px) !important;
+      padding: 0 !important;
+      border-radius: 16px !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      overflow: hidden !important;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 900px) {
+      #otModal .sheet-handle { display: none !important; }
+    }
+    #otModal .ot-modal-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.4rem 0.9rem !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      flex-shrink: 0;
+    }
+    #otModal .ot-modal-kicker {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #0d9f6e;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.15rem;
+    }
+    #otModal .ot-modal-banner h2 {
+      margin: 0;
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    #otModal .ot-modal-sub {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.18rem;
+    }
+    #otModal .ot-banner-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+    #otModal .ot-close-x {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 1.2rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    #otModal .ot-close-x:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+    #otModal .sheet-body {
+      background: #ffffff !important;
+      padding: 1rem 1.4rem 1.35rem !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    #otModal #otStatusBox.odoo-statusbar-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem 1rem;
+      flex-wrap: wrap;
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      padding: 0.55rem 0.8rem !important;
+      margin: 0 0 0.9rem 0 !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+    #otModal .odoo-form-grid {
+      gap: 0.5rem 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    #otModal .ot-form-col-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 0.4rem 0;
+    }
+    #otModal .odoo-form-row {
+      grid-template-columns: 7rem 1fr;
+      gap: 0.65rem;
+      align-items: center;
+      padding: 0.3rem 0;
+      border-bottom: none;
+    }
+    #otModal .odoo-form-row label {
+      font-size: 0.78rem;
+      color: #475569;
+      padding-top: 0;
+      font-weight: 600;
+    }
+    #otModal .odoo-form-row input,
+    #otModal .odoo-form-row select {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0.45rem 0.68rem !important;
+      font-size: 0.84rem !important;
+      min-height: 36px;
+      color: #0f172a !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #otModal .odoo-form-row input:hover,
+    #otModal .odoo-form-row select:hover {
+      border-color: #94a3b8 !important;
+      background: #ffffff !important;
+    }
+    #otModal .odoo-form-row input:focus,
+    #otModal .odoo-form-row select:focus {
+      background: #ffffff !important;
+      border-color: #0d9f6e !important;
+      box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.14) !important;
+    }
+    #otModal .ot-notebook-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+      margin: 0.25rem 0 0.75rem;
+    }
+    #otModal .ot-notebook-bar .odoo-tabs {
+      border-bottom: none;
+      margin: 0;
+    }
+    #otModal .ot-lines-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    #otModal #otLinesTable {
+      width: 100%;
+      margin-top: 0;
+      border-collapse: collapse;
+    }
+    @media (min-width: 721px) {
+      #otModal #otLinesTable { table-layout: fixed; }
+      #otModal #otLinesTable .col-num { width: 40px; }
+      #otModal #otLinesTable .col-prod { width: auto; }
+      #otModal #otLinesTable .col-qty { width: 84px; }
+      #otModal #otLinesTable .col-harga { width: 118px; }
+      #otModal #otLinesTable .col-hpp { width: 112px; }
+      #otModal #otLinesTable .col-sub { width: 126px; }
+      #otModal #otLinesTable .col-act { width: 38px; }
+    }
+    #otModal #otLinesTable thead th {
+      background: #f8fafc;
+      color: #475569;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.55rem 0.6rem;
+      border-bottom: 1px solid #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    #otModal #otLinesTable thead th.ot-col-qty,
+    #otModal #otLinesTable thead th.ot-col-harga,
+    #otModal #otLinesTable thead th.ot-col-hpp,
+    #otModal #otLinesTable thead th.ot-col-sub {
+      text-align: right;
+    }
+    #otModal #otLinesTable tbody td {
+      padding: 0.42rem 0.45rem !important;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    #otModal #otLinesTable tbody tr:last-child td {
+      border-bottom: none;
+    }
+    #otModal #otLinesTable input {
+      width: 100% !important;
+      min-width: 0 !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 6px !important;
+      padding: 0.36rem 0.5rem !important;
+      font-size: 0.82rem !important;
+      min-height: 32px;
+      color: #0f172a !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      font-variant-numeric: tabular-nums;
+    }
+    #otModal #otLinesTable input.ot-qty,
+    #otModal #otLinesTable input.ot-harga,
+    #otModal #otLinesTable input.ot-hpp,
+    #otModal #otLinesTable input.ot-subtotal {
+      text-align: right;
+    }
+    #otModal #otLinesTable input.ot-subtotal {
+      background: #f8fafc !important;
+      border-color: transparent !important;
+      font-weight: 600;
+      color: #0f172a !important;
+    }
+    #otModal #otLinesTable input:focus {
+      border-color: #0d9f6e !important;
+      box-shadow: 0 0 0 2px rgba(13, 159, 110, 0.14) !important;
+    }
+    #otModal .ot-totals-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      padding: 0.6rem 0.9rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      font-size: 0.82rem;
+      color: #475569;
+      font-variant-numeric: tabular-nums;
+    }
+    #otModal #otDropZone {
+      background: #f8fafc !important;
+      border: 1.5px dashed #cbd5e1 !important;
+      border-radius: 10px !important;
+      padding: 1.15rem !important;
+      backdrop-filter: none !important;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    #otModal #otDropZone:hover {
+      border-color: #0d9f6e !important;
+      background: #f0fdf4 !important;
+    }
+    #otModal #otAttachList > div {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 8px !important;
+      backdrop-filter: none !important;
+    }
+    #otModal .sheet-foot {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      padding: 0.75rem 1.4rem !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      backdrop-filter: none !important;
+    }
+    #otModal .sheet-foot .ot-foot-hint {
+      font-size: 0.74rem;
+      color: #64748b;
+    }
+    #otModal .sheet-foot .ot-foot-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+    #otModal .sheet-foot .btn,
+    #otModal .sheet-foot .btn-odoo {
+      flex: 0 0 auto !important;
+      min-height: 38px !important;
+      padding: 0.45rem 1.05rem !important;
+      font-size: 0.84rem !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      white-space: nowrap;
+    }
+    @media (max-width: 720px) {
+      #otModal.modal-bg .modal.modal-sheet.odoo-form-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 18px 18px 0 0 !important;
+      }
+      #otModal .ot-modal-banner,
+      #otModal .sheet-body,
+      #otModal .sheet-foot {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+      #otModal .ot-foot-hint { display: none; }
+      #otModal .odoo-form-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+      #otModal #otLinesTable colgroup { display: none; }
+      #otModal #otLinesTable tr.ot-line {
+        display: grid !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        box-shadow: none !important;
+      }
     }
 
 
@@ -3904,8 +4198,8 @@
       border-radius: 8px;
       padding: 0.5rem 0.65rem;
     }
-    .odoo-chatter-item.is-revisi { border-left: 3px solid #dc2626; background: #fff5f5; }
-    .odoo-chatter-item.is-chat { border-left: 3px solid #0d9f6e; }
+    .odoo-chatter-item.is-revisi { border-color: #fecdd3; background: #fff1f2; }
+    .odoo-chatter-item.is-chat { border-color: #a7f3d0; background: #f0fdf4; }
     .odoo-avatar {
       display: inline-flex;
       width: 1.55rem; height: 1.55rem;
@@ -4118,42 +4412,41 @@
       align-items: center;
     }
     .odoo-chevron-steps {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 0.2rem;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
     }
     .odoo-chevron {
       position: relative;
-      padding: 0.28rem 0.65rem;
+      padding: 0.28rem 0.62rem;
       font-size: 0.72rem;
       font-weight: 600;
       color: #64748b;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: transparent;
+      border: none;
       border-radius: 6px;
       white-space: nowrap;
     }
     .odoo-chevron.done {
       background: #ecfdf5;
-      color: #065f46;
-      border-color: #a7f3d0;
+      color: #047857;
     }
     .odoo-chevron.active {
       background: #0d9f6e;
       color: #ffffff;
-      border-color: #0d9f6e;
-      box-shadow: 0 2px 6px rgba(13, 159, 110, 0.22);
     }
     .odoo-chevron.rev {
       background: #fff1f2;
       color: #be123c;
-      border-color: #fecdd3;
     }
     .odoo-chevron.cancel {
       background: #fee2e2;
       color: #991b1b;
-      border-color: #fca5a5;
     }
     .ot-turn-banner {
       display: flex;
@@ -4225,11 +4518,12 @@
       font-size: 0.78rem;
     }
     .odoo-chatter-item.is-chat {
-      border-left: 3px solid #0d9f6e;
+      border-color: #a7f3d0;
+      background: #f0fdf4;
     }
     .odoo-chatter-item.is-revisi {
-      border-left: 3px solid #e11d48;
-      background: #fffafb;
+      border-color: #fecdd3;
+      background: #fff1f2;
     }
     .odoo-tab-cnt {
       display: inline-block;
@@ -4498,49 +4792,37 @@
     }
 
     .ot-status.cancelled { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
-    #otModal .ot-modal-banner {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      gap: 0.75rem; flex-wrap: wrap;
-      padding: 0.85rem 1.1rem 0.5rem;
-    }
-    #otModal .ot-modal-banner h2 { margin: 0; font-size: 1.1rem; font-weight: 800; }
-    #otModal .ot-modal-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; }
     #otModal .sheet-head { display: none; }
-    #otStatusBox {
-      margin-top: 0.85rem !important;
-      padding: 0.85rem !important;
-      border-radius: 14px !important;
-      background: #f0fdf4 !important;
-      border: 1px solid #bbf7d0;
-    }
 
-  
     .ot-line-head {
       display: flex; justify-content: space-between; align-items: center;
       gap: 0.5rem; margin-bottom: 0.55rem;
     }
     .ot-line-num {
-      font-size: 0.68rem; font-weight: 800; color: #047857;
+      font-size: 0.68rem; font-weight: 700; color: #047857;
       background: #ecfdf5; border: 1px solid #a7f3d0;
-      border-radius: 8px; padding: 0.15rem 0.45rem;
+      border-radius: 6px; padding: 0.14rem 0.42rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-variant-numeric: tabular-nums;
     }
     .ot-prod-name {
       font-size: 0.82rem; color: var(--text); margin-top: 0.35rem;
       line-height: 1.35; min-height: 1.1em;
     }
     .ot-prod-name strong { font-weight: 700; }
-    .ot-line {
-      /* table row — jangan card */
-      border: none !important;
-      border-radius: 0 !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      display: table-row !important;
+    @media (min-width: 721px) {
+      .ot-line {
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+        background: transparent;
+        box-shadow: none;
+        display: table-row;
+      }
     }
     .ot-line td {
-      padding: 0.35rem 0.4rem !important;
+      padding: 0.4rem 0.45rem;
       border-bottom: 1px solid #f1f5f9;
       vertical-align: middle;
     }
@@ -7490,16 +7772,20 @@
   </div>
 
   <div id="otModal" class="modal-bg">
-    <div class="modal modal-sheet odoo-form-modal" style="padding-top:0.35rem">
+    <div class="modal modal-sheet odoo-form-modal">
       <div class="sheet-handle"></div>
       <div class="ot-modal-banner">
         <div>
+          <div class="ot-modal-kicker">Sales · Order Trading</div>
           <h2 id="otModalTitle">Order Trading</h2>
           <div class="ot-modal-sub" id="otModalSub">Customer akhir · produk · lampiran</div>
         </div>
-        <span class="ot-status draft" id="otModalStatusPill" style="display:none">—</span>
+        <div class="ot-banner-right">
+          <span class="ot-status draft" id="otModalStatusPill" style="display:none">—</span>
+          <button type="button" class="ot-close-x" onclick="closeOtModal()" aria-label="Tutup">&times;</button>
+        </div>
       </div>
-      <div class="sheet-body" style="padding-top:0">
+      <div class="sheet-body">
         <input type="hidden" id="otEditId" />
         <div class="odoo-statusbar-bar" id="otStatusBox" style="display:none">
           <div class="odoo-statusbar-actions" id="otActionBtns"></div>
@@ -7508,12 +7794,14 @@
         <div id="otTurnBanner" class="ot-turn-banner" style="display:none"></div>
         <div class="odoo-form-grid">
           <div>
-            <div class="odoo-form-row"><label>Customer</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
-            <div class="odoo-form-row" id="otOwnerRow" style="display:none"><label>Salesperson</label><div id="otOwnerDisplay" style="padding:0.3rem 0"></div></div>
-            <div class="odoo-form-row"><label>Catatan</label><input id="otNote" placeholder="Catatan order / deadline / kemasan" /></div>
+            <div class="ot-form-col-title">Info Order &amp; Customer</div>
+            <div class="odoo-form-row"><label>Customer</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik nama customer..." autocomplete="off" /></div>
+            <div class="odoo-form-row" id="otOwnerRow" style="display:none"><label>Salesperson</label><div id="otOwnerDisplay" style="padding:0.2rem 0"></div></div>
+            <div class="odoo-form-row"><label>Catatan</label><input id="otNote" placeholder="Deadline, kemasan, atau instruksi order" /></div>
             <div class="odoo-form-row"><label>Catatan DP</label><input id="otDpNote" placeholder="Info transfer / nominal DP" /></div>
           </div>
           <div>
+            <div class="ot-form-col-title">Referensi Dokumen</div>
             <div class="odoo-form-row"><label>SO Trading</label><input id="otSoTradingNo" placeholder="Diisi Trading (No SO Trading)" /></div>
             <div class="odoo-form-row"><label>PO Trading</label><input id="otPoTradingNo" placeholder="No PO ke pabrik / Trading" /></div>
             <div class="odoo-form-row"><label>SO Odoo</label><input id="otNoSo" placeholder="SO/2026/... (diisi Marketing saat terbit)" /></div>
@@ -7522,46 +7810,55 @@
         <input type="hidden" id="otSoTradingNote" />
         <input type="hidden" id="otSoTradingNoHead" />
         <input type="hidden" id="otNoSoHead" />
-        <div class="odoo-tabs" id="otFormTabs">
-          <button type="button" class="odoo-tab active" data-otftab="lines" onclick="setOtFormTab('lines')">Order Lines</button>
-          <button type="button" class="odoo-tab" data-otftab="files" onclick="setOtFormTab('files')">Lampiran <span class="odoo-tab-badge" id="otAttachCountBadge">0</span></button>
+        <div class="ot-notebook-bar">
+          <div class="odoo-tabs" id="otFormTabs">
+            <button type="button" class="odoo-tab active" data-otftab="lines" onclick="setOtFormTab('lines')">Order Lines</button>
+            <button type="button" class="odoo-tab" data-otftab="files" onclick="setOtFormTab('files')">Lampiran <span class="odoo-tab-badge" id="otAttachCountBadge">0</span></button>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btnOtAddLine" onclick="otAddLine()">+ Tambah Produk</button>
         </div>
         <div id="otPaneLines">
-          <div style="display:flex;justify-content:flex-end;margin-top:0.35rem">
-            <button type="button" class="btn btn-ghost btn-sm" id="btnOtAddLine" onclick="otAddLine()">+ Add a product</button>
-          </div>
-          <div style="overflow:auto">
+          <div class="ot-lines-card">
             <table class="odoo-lines-table" id="otLinesTable">
+              <colgroup>
+                <col class="col-num" />
+                <col class="col-prod" />
+                <col class="col-qty" />
+                <col class="col-harga ot-col-harga" />
+                <col class="col-hpp ot-col-hpp" />
+                <col class="col-sub ot-col-sub" />
+                <col class="col-act" />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style="width:2rem">#</th>
-                  <th style="min-width:11rem">Product</th>
-                  <th style="width:5.5rem">Qty</th>
-                  <th style="width:6.5rem" class="ot-col-harga">Harga jual</th>
-                  <th style="width:6rem" class="ot-col-hpp">HPP</th>
-                  <th style="width:7rem" class="ot-col-sub">Subtotal</th>
-                  <th style="width:2.2rem"></th>
+                  <th>#</th>
+                  <th>Product</th>
+                  <th class="ot-col-qty">Qty</th>
+                  <th class="ot-col-harga">Harga jual</th>
+                  <th class="ot-col-hpp">HPP</th>
+                  <th class="ot-col-sub">Subtotal</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="otLines"></tbody>
             </table>
+            <div class="ot-totals-bar" id="otFormTotals"></div>
           </div>
-          <div class="odoo-form-total" id="otFormTotals" style="margin-top:0.45rem;font-size:0.82rem;color:#334155"></div>
         </div>
-        <div id="otPaneFiles" style="display:none;padding-top:0.55rem">
+        <div id="otPaneFiles" style="display:none;padding-top:0.25rem">
           <div id="otFilesBox" class="ot-files-premium" style="margin-top:0">
             <div class="ot-section-title" style="margin-top:0">Lampiran Dokumen (Google Drive)</div>
-            <div id="otDropZone" style="border:1.5px dashed #94a3b8;border-radius:12px;padding:0.9rem;text-align:center;background:rgba(255,255,255,0.6);cursor:pointer">
-              <div style="font-size:0.84rem;font-weight:600;color:var(--text)">Klik atau tarik file ke sini</div>
-              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem">PO Customer / SO Trading / Bukti DP · PDF atau gambar · maks ~6 MB per file</div>
+            <div id="otDropZone" style="text-align:center;cursor:pointer">
+              <div style="font-size:0.84rem;font-weight:600;color:#0f172a">Klik atau tarik file ke sini</div>
+              <div style="font-size:0.74rem;color:#64748b;margin-top:0.2rem">PO Customer / SO Trading / Bukti DP · PDF atau gambar · maks 6 MB per file</div>
               <input type="file" id="otMultiFiles" multiple accept="application/pdf,.pdf,image/*" style="display:none" />
             </div>
-            <div style="display:flex;gap:0.4rem;margin-top:0.5rem;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;align-items:center">
               <button type="button" class="btn-odoo-teal" id="btnOtUploadAll" onclick="otUploadMultiFiles()">Upload ke Drive</button>
-              <span id="otUploadStatus" style="font-size:0.75rem;color:var(--text-muted)"></span>
+              <span id="otUploadStatus" style="font-size:0.75rem;color:#64748b"></span>
             </div>
-            <div id="otAttachList" style="margin-top:0.65rem;display:flex;flex-direction:column;gap:0.4rem"></div>
-            <p style="font-size:0.72rem;color:var(--text-muted);margin:0.4rem 0 0">Ketuk lampiran untuk preview atau download.</p>
+            <div id="otAttachList" style="margin-top:0.65rem;display:flex;flex-direction:column;gap:0.45rem"></div>
+            <p style="font-size:0.72rem;color:#64748b;margin:0.5rem 0 0">Ketuk lampiran untuk preview atau download.</p>
           </div>
         </div>
         <div id="otChatterBox" class="odoo-chatter" style="display:none">
@@ -7576,9 +7873,12 @@
           <div id="otTimeline" class="odoo-chatter-feed"></div>
         </div>
       </div>
-      <div class="sheet-foot" style="display:flex;gap:0.5rem;justify-content:flex-end;padding:0.75rem 1rem">
-        <button type="button" class="btn btn-ghost" onclick="closeOtModal()">Tutup</button>
-        <button type="button" class="btn-odoo" id="btnOtSave" onclick="saveOrderTrading()">Simpan</button>
+      <div class="sheet-foot">
+        <span class="ot-foot-hint">Upload lampiran &amp; tek-tok aktif otomatis setelah tersimpan</span>
+        <div class="ot-foot-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeOtModal()">Tutup</button>
+          <button type="button" class="btn-odoo" id="btnOtSave" onclick="saveOrderTrading()">Simpan</button>
+        </div>
       </div>
     </div>
   </div>
@@ -18871,6 +19171,7 @@ function fillOperatorList(selectedEmail) {
       });
       if ($("otPaneLines")) $("otPaneLines").style.display = isFiles ? "none" : "block";
       if ($("otPaneFiles")) $("otPaneFiles").style.display = isFiles ? "block" : "none";
+      if ($("btnOtAddLine")) $("btnOtAddLine").style.visibility = isFiles ? "hidden" : "visible";
       if (isFiles) { try { otSetupDropZone(); } catch (eZ) {} }
     }
     function setOtFacet(val, fromSelect) {
