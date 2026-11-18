@@ -5940,7 +5940,16 @@
               <option value="2">Shift 2</option>
               <option value="3">Shift 3</option>
             </select>
+            <select id="fgkStatusFilter" onchange="renderFgKorlap()" style="border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.65rem">
+              <option value="">Semua status</option>
+              <option value="belum">Belum isi</option>
+              <option value="selisih">Selisih</option>
+              <option value="cocok">Cocok</option>
+            </select>
             <input type="search" id="fgkSearch" placeholder="Cari produk / SO..." oninput="renderFgKorlap()" style="min-width:12rem" />
+          </div>
+          <div style="margin-bottom:0.65rem;padding:0.5rem 0.75rem;border-radius:10px;background:#ecfdf5;border:1px solid #a7f3d0;font-size:0.76rem;color:#065f46">
+            Mulai <strong>18 Nov 2026</strong>: angka <strong>Korlap</strong> menjadi acuan final stok gudang (auto-koreksi selisih) &amp; status <strong>SO Done</strong>. Jika ada selisih dengan OP, wajib isi alasannya.
           </div>
           <div class="grid-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.55rem;margin-bottom:0.75rem">
             <div class="kpi" style="padding:0.65rem"><div class="label">SKU / SO</div><div class="value" id="fgkKpiRows" style="font-size:1.35rem">0</div></div>
@@ -7594,6 +7603,27 @@
           <span style="font-size:0.82rem;color:#065f46">Total Korlap (auto)</span>
           <strong id="fgkMTotal" style="font-size:1.15rem;color:#047857">0</strong>
         </div>
+        <div id="fgkDiffReasonWrap" style="display:none;margin-top:0.65rem;padding:0.65rem 0.75rem;border-radius:12px;background:#fff7ed;border:1px solid #fdba74">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.4rem">
+            <strong style="font-size:0.82rem;color:#9a3412">Alasan Selisih (Wajib Diisi)</strong>
+            <span id="fgkDiffBadge" class="pill" style="background:#fee2e2;color:#991b1b;font-size:0.72rem">Selisih</span>
+          </div>
+          <div class="field" style="margin:0 0 0.45rem">
+            <select id="fgkMDiffReasonCat" style="width:100%;border:1px solid #fb923c;border-radius:10px;padding:0.48rem 0.6rem;background:#fff">
+              <option value="">— Pilih penyebab selisih —</option>
+              <option value="Salah input / hitung Operator">Salah input / hitung Operator</option>
+              <option value="Reject / sortir ulang packing">Reject / sortir ulang packing</option>
+              <option value="Sisa belum serah terima / masih di line">Sisa belum serah terima / masih di line</option>
+              <option value="Gabungan sisa shift / bet sebelumnya">Gabungan sisa shift / bet sebelumnya</option>
+              <option value="Selisih qty per masterbox / kemasan">Selisih qty per masterbox / kemasan</option>
+              <option value="Lainnya">Lainnya (tulis detail di bawah)</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0">
+            <input type="text" id="fgkMDiffReasonDetail" placeholder="Detail alasan selisih (wajib jika pilih Lainnya)..." style="border-color:#fb923c" />
+          </div>
+          <p id="fgkDiffAdjHint" style="font-size:0.72rem;color:#9a3412;margin:0.4rem 0 0">Stok gudang akan otomatis disesuaikan mengikuti total fisik Korlap.</p>
+        </div>
         <div class="field" style="margin-top:0.65rem"><label>Kendala</label>
           <input type="text" id="fgkMKen" placeholder="opsional" />
         </div>
@@ -8907,6 +8937,92 @@
       if (o && o._eff_status) return o._eff_status;
       return db;
     }
+    const FG_KORLAP_CUTOFF_DATE = "2026-11-18";
+    function fgkNormSoKey(s) {
+      var str = String(s || "").trim();
+      if (!str || str === "-") return "";
+      return str.replace(/^S0\//i, "SO/");
+    }
+    function fgkRowTotalQty(r) {
+      if (!r) return 0;
+      var bets = [];
+      if (r.bets) {
+        try { bets = typeof r.bets === "string" ? JSON.parse(r.bets) : (r.bets || []); } catch (e) { bets = []; }
+      }
+      if (bets.length) {
+        return bets.reduce(function(s, b) { return s + (Number(b && b.qty) || 0); }, 0);
+      }
+      return Number(r.output_qty) || 0;
+    }
+    function fgkHasReported(r) {
+      if (!r) return false;
+      var out = fgkRowTotalQty(r);
+      return out > 0 || (r.output_qty != null && r.output_qty !== "");
+    }
+    function fgkExtractDiffReason(r) {
+      var notesRaw = String((r && r.notes) || "");
+      var vr = String((r && r.variance_reason) || "").trim();
+      var m = notesRaw.match(/^\s*\[Selisih:\s*([^\]]+)\]\s*/i);
+      var cleanNotes = m ? notesRaw.replace(m[0], "").trim() : notesRaw.trim();
+      var full = vr || (m ? String(m[1] || "").trim() : "");
+      var cat = "";
+      var detail = "";
+      if (full) {
+        var idx = full.indexOf(" — ");
+        if (idx >= 0) {
+          cat = full.slice(0, idx).trim();
+          detail = full.slice(idx + 3).trim();
+        } else {
+          cat = full;
+        }
+      }
+      return { full: full, cat: cat, detail: detail, cleanNotes: cleanNotes };
+    }
+    function fgkBuildNotesWithReason(cleanNotes, reasonCat, reasonDetail) {
+      var c = String(cleanNotes || "").replace(/^\s*\[Selisih:\s*[^\]]+\]\s*/i, "").trim();
+      var cat = String(reasonCat || "").trim();
+      var det = String(reasonDetail || "").trim();
+      if (!cat) return c;
+      var tag = "[Selisih: " + cat + (det ? " — " + det : "") + "]";
+      return c ? (tag + " " + c) : tag;
+    }
+    function fgkIndexRows(fgRows) {
+      var idx = {};
+      (fgRows || []).forEach(function(r) {
+        if (!r || !fgkHasReported(r)) return;
+        var d = String(r.report_date || "").slice(0, 10);
+        var pid = String(r.product_id || "");
+        var sh = String(r.shift || "1");
+        if (!d || !pid) return;
+        var qty = fgkRowTotalQty(r);
+        var candidates = [];
+        var so = fgkNormSoKey(r.no_so);
+        var oid = String(r.order_id || "").trim();
+        if (so) candidates.push(so);
+        if (oid && candidates.indexOf(oid) < 0) candidates.push(oid);
+        if (!candidates.length) candidates.push("");
+        candidates.forEach(function(c) {
+          var k = d + "||" + pid + "||" + c + "||" + sh;
+          idx[k] = (idx[k] || 0) + qty;
+        });
+      });
+      return idx;
+    }
+    function fgkLookupIndexed(idx, day, pid, soKey, orderId, shift) {
+      var sh = String(shift || "1");
+      var keys = [];
+      var s1 = fgkNormSoKey(soKey);
+      var s2 = String(orderId || "").trim();
+      if (s1) keys.push(day + "||" + pid + "||" + s1 + "||" + sh);
+      if (s2 && s2 !== s1) keys.push(day + "||" + pid + "||" + s2 + "||" + sh);
+      keys.push(day + "||" + pid + "||" + "" + "||" + sh);
+      for (var i = 0; i < keys.length; i++) {
+        if (Object.prototype.hasOwnProperty.call(idx, keys[i])) {
+          return { found: true, qty: Number(idx[keys[i]]) || 0 };
+        }
+      }
+      return { found: false, qty: 0 };
+    }
     async function enrichSoStatusesFromProduction(orders) {
       if (!sb || !orders || !orders.length) return orders;
       try {
@@ -8923,13 +9039,13 @@
         var chunk = 80;
         for (var i = 0; i < orderIds.length; i += chunk) {
           var ids = orderIds.slice(i, i + chunk);
-          var { data: p1 } = await sb.from("plans").select("plan_id,order_id,no_so,product_id,machine_id,target_qty").in("order_id", ids).limit(3000);
+          var { data: p1 } = await sb.from("plans").select("plan_id,order_id,no_so,product_id,machine_id,target_qty,plan_date,shift").in("order_id", ids).limit(3000);
           if (p1) plans = plans.concat(p1);
         }
         // juga by no_so jika order_id kosong di plan
         for (var j = 0; j < noSos.length; j += chunk) {
           var ns = noSos.slice(j, j + chunk);
-          var { data: p2 } = await sb.from("plans").select("plan_id,order_id,no_so,product_id,machine_id,target_qty").in("no_so", ns).limit(3000);
+          var { data: p2 } = await sb.from("plans").select("plan_id,order_id,no_so,product_id,machine_id,target_qty,plan_date,shift").in("no_so", ns).limit(3000);
           if (p2) plans = plans.concat(p2);
         }
         // dedupe plans
@@ -8947,31 +9063,76 @@
             actByPlan[r.plan_id] = (actByPlan[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
           });
         }
-        // actual FG per order_id / no_so / product
+        // Ambil laporan FG Korlap mulai tanggal cut-off
+        var fgkIdx = {};
+        try {
+          var hasPostCutoff = plans.some(function(p) {
+            return String(p.plan_date || "").slice(0, 10) >= FG_KORLAP_CUTOFF_DATE;
+          });
+          if (hasPostCutoff) {
+            var { data: fgRows } = await sb.from("fg_korlap_reports")
+              .select("report_date,product_id,no_so,order_id,shift,output_qty,bets")
+              .gte("report_date", FG_KORLAP_CUTOFF_DATE)
+              .limit(5000);
+            fgkIdx = fgkIndexRows(fgRows || []);
+          }
+        } catch (eKl) { console.warn("enrich fg_korlap_reports", eKl); }
+
+        // actual FG per order_id / no_so / product (sebelum cut-off = OP, mulai cut-off = Korlap jika ada, fallback OP + tandai unverified)
         var fgByOrder = {}; // order_id -> { product_id -> qty }
         var fgBySo = {}; // no_so -> { product_id -> qty }
+        var unverifiedByOrder = {}; // order_id -> boolean
+        var unverifiedBySo = {}; // no_so -> boolean
         var hasPlanByOrder = {};
         var hasPlanBySo = {};
+        var postCutBuckets = {}; // key: day||pid||soKey||shift -> { day, pid, oid, nso, sh, opQty }
         plans.forEach(function(p) {
           var isFg = false;
           try { isFg = typeof isFgMachine === "function" ? isFgMachine(p.machine_id) : true; } catch (e) { isFg = true; }
           var oid = p.order_id || "";
-          var nso = p.no_so || "";
+          var nso = fgkNormSoKey(p.no_so);
           if (oid) hasPlanByOrder[oid] = true;
           if (nso) hasPlanBySo[nso] = true;
           if (!isFg) return;
           var a = Number(actByPlan[p.plan_id]) || 0;
-          if (!(a > 0)) return;
           var pid = String(p.product_id || "");
-          if (oid) {
-            if (!fgByOrder[oid]) fgByOrder[oid] = {};
-            fgByOrder[oid][pid] = (fgByOrder[oid][pid] || 0) + a;
-          }
-          if (nso) {
-            if (!fgBySo[nso]) fgBySo[nso] = {};
-            fgBySo[nso][pid] = (fgBySo[nso][pid] || 0) + a;
+          var day = String(p.plan_date || "").slice(0, 10);
+          if (!day || day < FG_KORLAP_CUTOFF_DATE) {
+            if (!(a > 0)) return;
+            if (oid) {
+              if (!fgByOrder[oid]) fgByOrder[oid] = {};
+              fgByOrder[oid][pid] = (fgByOrder[oid][pid] || 0) + a;
+            }
+            if (nso) {
+              if (!fgBySo[nso]) fgBySo[nso] = {};
+              fgBySo[nso][pid] = (fgBySo[nso][pid] || 0) + a;
+            }
+          } else {
+            var sh = String(p.shift || "1");
+            var bKey = day + "||" + pid + "||" + (nso || oid || "") + "||" + sh;
+            if (!postCutBuckets[bKey]) postCutBuckets[bKey] = { day: day, pid: pid, oid: oid, nso: nso, sh: sh, opQty: 0 };
+            postCutBuckets[bKey].opQty += a;
           }
         });
+        Object.keys(postCutBuckets).forEach(function(bk) {
+          var b = postCutBuckets[bk];
+          var hit = fgkLookupIndexed(fgkIdx, b.day, b.pid, b.nso, b.oid, b.sh);
+          var qtyUse = hit.found ? hit.qty : b.opQty;
+          if (!hit.found && b.opQty > 0) {
+            if (b.oid) unverifiedByOrder[b.oid] = true;
+            if (b.nso) unverifiedBySo[b.nso] = true;
+          }
+          if (!(qtyUse > 0)) return;
+          if (b.oid) {
+            if (!fgByOrder[b.oid]) fgByOrder[b.oid] = {};
+            fgByOrder[b.oid][b.pid] = (fgByOrder[b.oid][b.pid] || 0) + qtyUse;
+          }
+          if (b.nso) {
+            if (!fgBySo[b.nso]) fgBySo[b.nso] = {};
+            fgBySo[b.nso][b.pid] = (fgBySo[b.nso][b.pid] || 0) + qtyUse;
+          }
+        });
+
         var toPersist = [];
         orders.forEach(function(o) {
           var db = soDbStatusNorm(o.status);
@@ -8982,7 +9143,9 @@
           var actTotal = 0;
           var lineActs = 0;
           var lineDone = 0;
-          var byProd = fgByOrder[o.order_id] || fgBySo[o.no_so] || {};
+          var nsoKey = fgkNormSoKey(o.no_so);
+          var byProd = fgByOrder[o.order_id] || fgBySo[nsoKey] || fgBySo[o.no_so] || {};
+          var hasUnverifiedKorlap = !!(unverifiedByOrder[o.order_id] || unverifiedBySo[nsoKey]);
           lines.forEach(function(l) {
             var q = Number(l.qty) || 0;
             poTotal += q;
@@ -8991,13 +9154,18 @@
             if (a > 0) lineActs++;
             if (q > 0 && a >= q * 0.98) lineDone++; // toleransi 2%
           });
-          var hasPlan = !!(hasPlanByOrder[o.order_id] || hasPlanBySo[o.no_so]);
+          var hasPlan = !!(hasPlanByOrder[o.order_id] || hasPlanBySo[nsoKey] || hasPlanBySo[o.no_so]);
           var eff = db;
-          if (poTotal > 0 && actTotal >= poTotal * 0.98) {
-            eff = "completed";
+          var readyByQty = (poTotal > 0 && actTotal >= poTotal * 0.98) || (lines.length > 0 && lineDone === lines.length);
+          if (readyByQty) {
+            if (hasUnverifiedKorlap) {
+              eff = "partial";
+              o._pending_korlap_done = true;
+            } else {
+              eff = "completed";
+            }
           } else if (actTotal > 0) {
             eff = lineDone > 0 && lineDone < lines.length ? "partial" : "in_production";
-            if (lineDone === lines.length && lines.length) eff = "completed";
           } else if (hasPlan) {
             eff = "in_production";
           } else if (db === "confirmed" || db === "locked") {
@@ -9232,7 +9400,7 @@
               '<td>' + odooPersonHtml(sp) + '</td>' +
               '<td style="text-align:right"><strong>' + formatNum(lineQty(o)) + '</strong>' +
                 (n ? '<div style="font-size:0.68rem;color:#94a3b8">' + formatNum(n) + ' line</div>' : '') + '</td>' +
-              '<td>' + odooSoStatusPill(soEffectiveStatus(o)) + '</td>' +
+              '<td>' + odooSoStatusPill(soEffectiveStatus(o)) + (o._pending_korlap_done ? '<div style="font-size:0.64rem;color:#b45309;margin-top:0.15rem">Tunggu FG Korlap</div>' : '') + '</td>' +
               '<td><button type="button" class="btn btn-ghost btn-sm" data-edit="' + encodeURIComponent(o.order_id) + '">Edit</button></td></tr>';
           }).join("");
           body.querySelectorAll("[data-oid]").forEach(tr => {
@@ -14886,13 +15054,16 @@ function fillOperatorList(selectedEmail) {
       if (g.line_closed) return "DONE";
       var db = String(g.order_status || g.db_status || "").toLowerCase();
       if (db === "done" || db === "closed") return "DONE";
-      if (g.po_qty > 0 && g.act_total >= g.po_qty) return "DONE";
+      if (g.po_qty > 0 && g.act_total >= g.po_qty && !g.unverifiedKorlap) return "DONE";
       if (g.act_total > 0 || g.plan_total > 0) return "PARTIAL";
       return "OPEN";
     }
-    function opsStatusBadge(st) {
+    function opsStatusBadge(st, g) {
       const c = st === "DONE" ? "badge-done" : (st === "PARTIAL" ? "badge-partial" : "badge-open");
-      return '<span class="badge-st ' + c + '">' + st + '</span>';
+      var extra = (g && g.pendingKorlapDone && st !== "DONE")
+        ? '<div style="font-size:0.58rem;color:#b45309;font-weight:600;margin-top:0.12rem;line-height:1.15" title="Qty OP sudah cukup, menunggu verifikasi FG Korlap untuk status DONE">Tunggu Korlap</div>'
+        : "";
+      return '<span class="badge-st ' + c + '">' + st + '</span>' + extra;
     }
 
     var opsMenuCtx = null;
@@ -15347,6 +15518,19 @@ function fillOperatorList(selectedEmail) {
         actualByPlan[r.plan_id] = (actualByPlan[r.plan_id] || 0) + (Number(r.actual_qty) || 0);
       });
 
+      // Ambil laporan FG Korlap mulai cut-off agar Grid mengikuti Korlap mulai 2026-11-18
+      var opsFgkIdx = {};
+      try {
+        if (end >= FG_KORLAP_CUTOFF_DATE) {
+          var { data: fgGridRows } = await sb.from("fg_korlap_reports")
+            .select("report_date,product_id,no_so,order_id,shift,output_qty,bets")
+            .gte("report_date", FG_KORLAP_CUTOFF_DATE)
+            .lte("report_date", end)
+            .limit(5000);
+          opsFgkIdx = fgkIndexRows(fgGridRows || []);
+        }
+      } catch (eFgkGrid) { console.warn("ops fg_korlap_reports", eFgkGrid); }
+
       const groups = {};
       // pastikan BOM siap untuk reverse-map giling → FG
       try { if (!window.__bomRows) { /* sync best-effort */ } } catch (eB) {}
@@ -15407,6 +15591,8 @@ function fillOperatorList(selectedEmail) {
             planDay: {},
             opDay: {},
             actDay: {},
+            korlapDayFlag: {},
+            _fgPostCutShifts: {},
             primerDay: {},
             procTotalDay: {},
             procDoneDay: {},
@@ -15442,7 +15628,13 @@ function fillOperatorList(selectedEmail) {
         // Actual qty hanya dari proses FG (packing masterbox) — primer tidak menambah pcs
         const actQty = actualByPlan[p.plan_id] || 0;
         if (fg) {
-          g.actDay[day] = (g.actDay[day] || 0) + actQty;
+          if (day < FG_KORLAP_CUTOFF_DATE) {
+            g.actDay[day] = (g.actDay[day] || 0) + actQty;
+          } else {
+            var sh = String(p.shift || "1");
+            if (!g._fgPostCutShifts[day]) g._fgPostCutShifts[day] = {};
+            g._fgPostCutShifts[day][sh] = (g._fgPostCutShifts[day][sh] || 0) + actQty;
+          }
         } else {
           g.primerDay[day] = true;
         }
@@ -15459,6 +15651,31 @@ function fillOperatorList(selectedEmail) {
       // For plan qty cells: use FG sum; if 0 and primer, mark primer
       Object.keys(groups).forEach(k => {
         const g = groups[k];
+        // Terapkan angka Korlap mulai FG_KORLAP_CUTOFF_DATE pada actDay
+        Object.keys(g._fgPostCutShifts || {}).forEach(function(day) {
+          var shifts = g._fgPostCutShifts[day] || {};
+          var daySum = 0;
+          var anyKorlap = false;
+          var anyPending = false;
+          Object.keys(shifts).forEach(function(sh) {
+            var opShiftQty = Number(shifts[sh]) || 0;
+            var hit = fgkLookupIndexed(opsFgkIdx, day, g.product_id, g.no_so, g.order_id, sh);
+            if (hit.found) {
+              daySum += hit.qty;
+              anyKorlap = true;
+            } else {
+              daySum += opShiftQty;
+              if (opShiftQty > 0) {
+                anyPending = true;
+                g.unverifiedKorlap = true;
+              }
+            }
+          });
+          g.actDay[day] = daySum;
+          if (anyPending && anyKorlap) g.korlapDayFlag[day] = "mixed";
+          else if (anyKorlap) g.korlapDayFlag[day] = "korlap";
+          else if (anyPending) g.korlapDayFlag[day] = "pending";
+        });
         Object.keys(g.opSetDay).forEach(day => {
           g.opDay[day] = Object.keys(g.opSetDay[day]).length;
         });
@@ -15611,21 +15828,21 @@ function fillOperatorList(selectedEmail) {
         for (var oi = 0; oi < orderIds.length; oi += 60) {
           var chunk = orderIds.slice(oi, oi + 60);
           if (!chunk.length) break;
-          var rOrd = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
+          var rOrd = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date,shift")
             .in("order_id", chunk).lte("plan_date", end).limit(5000);
           pushPlans(rOrd.data);
         }
         for (var si = 0; si < noSos.length; si += 60) {
           var chunkS = noSos.slice(si, si + 60);
           if (!chunkS.length) break;
-          var rNoSo = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
+          var rNoSo = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date,shift")
             .in("no_so", chunkS).lte("plan_date", end).limit(5000);
           pushPlans(rNoSo.data);
         }
         for (var pi = 0; pi < productIds.length; pi += 40) {
           var chunkP = productIds.slice(pi, pi + 40);
           if (!chunkP.length) break;
-          var rProd = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date")
+          var rProd = await sb.from("plans").select("plan_id,product_id,order_id,no_so,machine_id,plan_date,shift")
             .in("product_id", chunkP).lte("plan_date", end).limit(5000);
           pushPlans(rProd.data);
         }
@@ -15656,33 +15873,63 @@ function fillOperatorList(selectedEmail) {
           });
         }
 
-        function applyActToGroup(p, qtyBefore, qtyEnd) {
-          if (!(qtyBefore > 0) && !(qtyEnd > 0)) return;
+        function findOpsGroupForPlan(p) {
           var rowPid = resolveOpsRowProductId(p) || p.product_id;
-          if (!rowPid) return;
-          var key = String(rowPid) + "||" + String(p.no_so || p.order_id || "");
-          function addTo(g) {
-            if (!g) return;
-            g.act_life = (Number(g.act_life) || 0) + (qtyBefore || 0);
-            g.act_through_end = (Number(g.act_through_end) || 0) + (qtyEnd || 0);
-          }
-          if (groups[key]) {
-            addTo(groups[key]);
-            return;
-          }
-          Object.keys(groups).forEach(function(gk) {
-            var g = groups[gk];
-            if (String(g.product_id) !== String(rowPid)) return;
+          if (!rowPid) return null;
+          var key = String(rowPid) + "||" + String(opsNormSo(p.no_so) || p.order_id || "");
+          if (groups[key]) return groups[key];
+          var gKeys = Object.keys(groups);
+          for (var gi = 0; gi < gKeys.length; gi++) {
+            var g = groups[gKeys[gi]];
+            if (String(g.product_id) !== String(rowPid)) continue;
             var sameSo = (p.order_id && g.order_id && String(p.order_id) === String(g.order_id)) ||
-              (p.no_so && g.no_so && String(p.no_so) === String(g.no_so));
-            if (sameSo) addTo(g);
-          });
+              (p.no_so && g.no_so && opsNormSo(p.no_so) === opsNormSo(g.no_so));
+            if (sameSo) return g;
+          }
+          return null;
+        }
+        function addToOpsGroup(g, qtyBefore, qtyEnd) {
+          if (!g || (!(qtyBefore > 0) && !(qtyEnd > 0))) return;
+          g.act_life = (Number(g.act_life) || 0) + (qtyBefore || 0);
+          g.act_through_end = (Number(g.act_through_end) || 0) + (qtyEnd || 0);
         }
 
+        var lifePostCutBuckets = {}; // gk || day || sh -> { g, day, sh, opBefore, opEnd }
         lifePlans.forEach(function(p) {
           // HANYA packing masterbox (FG) — jangan seluruh proses
           if (!isFgMachine(p.machine_id)) return;
-          applyActToGroup(p, actBeforeByPlan[p.plan_id] || 0, actEndByPlan[p.plan_id] || 0);
+          var g = findOpsGroupForPlan(p);
+          if (!g) return;
+          var pDay = p.plan_date ? String(p.plan_date).slice(0, 10) : "";
+          var qBefore = actBeforeByPlan[p.plan_id] || 0;
+          var qEnd = actEndByPlan[p.plan_id] || 0;
+          if (!pDay || pDay < FG_KORLAP_CUTOFF_DATE) {
+            addToOpsGroup(g, qBefore, qEnd);
+          } else {
+            var sh = String(p.shift || "1");
+            var gKey = g.product_id + "||" + (g.no_so || g.order_id || "");
+            var bk = gKey + "@@" + pDay + "@@" + sh;
+            if (!lifePostCutBuckets[bk]) {
+              lifePostCutBuckets[bk] = { g: g, day: pDay, sh: sh, opBefore: 0, opEnd: 0 };
+            }
+            lifePostCutBuckets[bk].opBefore += qBefore;
+            lifePostCutBuckets[bk].opEnd += qEnd;
+          }
+        });
+
+        Object.keys(lifePostCutBuckets).forEach(function(bk) {
+          var b = lifePostCutBuckets[bk];
+          var hit = fgkLookupIndexed(opsFgkIdx, b.day, b.g.product_id, b.g.no_so, b.g.order_id, b.sh);
+          if (hit.found) {
+            var qBefore = b.day < start ? hit.qty : 0;
+            var qEnd = b.day <= end ? hit.qty : 0;
+            addToOpsGroup(b.g, qBefore, qEnd);
+          } else {
+            addToOpsGroup(b.g, b.opBefore, b.opEnd);
+            if (b.opEnd > 0 || b.opBefore > 0) {
+              b.g.unverifiedKorlap = true;
+            }
+          }
         });
 
         Object.keys(groups).forEach(function(k) {
@@ -15693,9 +15940,11 @@ function fillOperatorList(selectedEmail) {
           g.po_qty = Math.max(0, orig - before);
           var through = Number(g.act_through_end) || 0;
           if (g.line_closed) g.status = "DONE";
-          else if (orig > 0 && through >= orig) g.status = "DONE";
-          else if (through > 0 || before > 0 || (Number(g.act_total) || 0) > 0 || (Number(g.plan_total) || 0) > 0) g.status = "PARTIAL";
-          else g.status = "OPEN";
+          else if (orig > 0 && through >= orig && !g.unverifiedKorlap) g.status = "DONE";
+          else if (through > 0 || before > 0 || (Number(g.act_total) || 0) > 0 || (Number(g.plan_total) || 0) > 0) {
+            g.status = "PARTIAL";
+            if (orig > 0 && through >= orig && g.unverifiedKorlap) g.pendingKorlapDone = true;
+          } else g.status = "OPEN";
         });
       } catch (eLife) {
         console.warn("ops remaining PO", eLife);
@@ -15734,13 +15983,16 @@ function fillOperatorList(selectedEmail) {
             var sameSo = g.no_so && h.no_so && opsNormSo(g.no_so) === opsNormSo(h.no_so);
             if (!sameOrd && !sameSo) return;
             // merge h into g
-            ["planDay","planDayFg","primerDay","opDay","actDay","procTotalDay","procDoneDay","opSetDay","planIdsByDay"].forEach(function(mapName) {
+            ["planDay","planDayFg","primerDay","opDay","actDay","korlapDayFlag","procTotalDay","procDoneDay","opSetDay","planIdsByDay"].forEach(function(mapName) {
               if (!h[mapName]) return;
               if (!g[mapName]) g[mapName] = {};
               Object.keys(h[mapName]).forEach(function(d) {
                 var hv = h[mapName][d];
                 if (mapName === "planIdsByDay") {
                   g[mapName][d] = (g[mapName][d] || []).concat(hv || []);
+                } else if (mapName === "korlapDayFlag") {
+                  if (!g[mapName][d]) g[mapName][d] = hv;
+                  else if (g[mapName][d] !== hv) g[mapName][d] = "mixed";
                 } else if (mapName === "primerDay" || mapName === "opSetDay") {
                   if (mapName === "opSetDay") {
                     if (!g[mapName][d]) g[mapName][d] = {};
@@ -15751,6 +16003,8 @@ function fillOperatorList(selectedEmail) {
                 }
               });
             });
+            if (h.unverifiedKorlap) g.unverifiedKorlap = true;
+            if (h.pendingKorlapDone) g.pendingKorlapDone = true;
             g.po_qty = Math.max(Number(g.po_qty) || 0, Number(h.po_qty) || 0);
             g.plan_total = (Number(g.plan_total) || 0) + (Number(h.plan_total) || 0);
             g.plan_total_fg = (Number(g.plan_total_fg) || 0) + (Number(h.plan_total_fg) || 0);
@@ -16335,7 +16589,7 @@ function fillOperatorList(selectedEmail) {
             body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
             body += '<td class="sc-ac" rowspan="3">' + formatNum(g.act_total) + '</td>';
             body += '<td class="sc-op" rowspan="3">' + formatNum(g.op_total) + '</td>';
-            body += '<td class="sc-st" rowspan="3">' + opsStatusBadge(g.status) + '</td>';
+            body += '<td class="sc-st" rowspan="3">' + opsStatusBadge(g.status, g) + '</td>';
             body += '<td class="sc-jp" rowspan="3">—</td>';
           }
           body += '<td class="sc-ket">' + row.ket + '</td>';
@@ -16353,7 +16607,8 @@ function fillOperatorList(selectedEmail) {
             } else if (row.ket === "Actual") {
               const vFg = row.map[d];
               if (vFg != null && Number(vFg) > 0) {
-                content = formatNum(vFg);
+                var klFlag = g.korlapDayFlag && g.korlapDayFlag[d];
+                content = formatNum(vFg) + (klFlag === "pending" || klFlag === "mixed" ? '<sup style="color:#d97706;font-weight:700" title="Sementara OP — belum laporan Korlap">*</sup>' : "");
                 extra = " has-val";
               } else {
                 // primer / non-FG: tampilkan % proses yang sudah laporan
@@ -16386,6 +16641,13 @@ function fillOperatorList(selectedEmail) {
               const tot2 = (g.procTotalDay && g.procTotalDay[d]) || 0;
               const done2 = (g.procDoneDay && g.procDoneDay[d]) || 0;
               titleExtra = ' title="' + done2 + '/' + tot2 + ' proses sudah laporan"';
+            } else if (row.ket === "Actual" && d >= FG_KORLAP_CUTOFF_DATE && g.korlapDayFlag && g.korlapDayFlag[d]) {
+              var kf = g.korlapDayFlag[d];
+              titleExtra = kf === "korlap"
+                ? ' title="Actual final dari Laporan FG Korlap"'
+                : (kf === "mixed"
+                  ? ' title="Sebagian shift sudah FG Korlap, sebagian masih sementara OP"'
+                  : ' title="Sementara dari Operator — Korlap belum laporan FG tanggal ini"');
             }
             const isPoDay = !!(g.po_mark_days && g.po_mark_days[d]);
             if (row.ket === "Plan" && isPoDay) extra += " po-terbit";
@@ -16912,6 +17174,134 @@ function fillOperatorList(selectedEmail) {
       } else {
         toast("FG +" + formatNum(qty) + " " + unit + " masuk gudang (auto)");
       }
+      // Opsi 3 mulai cut-off: jika Korlap sudah laporan untuk shift ini, sinkronkan ulang adjustment gudang
+      try {
+        var pd = String(plan.plan_date || "").slice(0, 10);
+        if (pd >= FG_KORLAP_CUTOFF_DATE) {
+          await syncFgKorlapWarehouseAdjFromPlan(plan);
+        }
+      } catch (eAdj) { console.warn("syncFgKorlapWarehouseAdjFromPlan", eAdj); }
+    }
+
+    /**
+     * Opsi 3 (mulai FG_KORLAP_CUTOFF_DATE):
+     * Menyelaraskan saldo gudang (warehouse_movements) agar selalu sama dengan output fisik Korlap.
+     * Idempoten per (report_date, product_id, no_so, shift) lewat marker ref_note `fgk_adj:...`.
+     */
+    async function syncFgKorlapWarehouseAdj(opts) {
+      if (!sb || !opts || !opts.product_id) return { adjusted: false, diff: 0 };
+      var d = String(opts.report_date || "").slice(0, 10);
+      if (!d || d < FG_KORLAP_CUTOFF_DATE) return { adjusted: false, diff: 0 };
+
+      var pid = String(opts.product_id);
+      var noSoNorm = fgkNormSoKey(opts.no_so || "");
+      var oid = String(opts.order_id || "").trim();
+      var sh = String(opts.shift || "1");
+      var unit = opts.unit || "pcs";
+      var korlapQty = Number(opts.korlap_qty) || 0;
+      var reasonText = String(opts.reason_text || "").trim();
+
+      // Hitung ulang total actual OP terbaru untuk tanggal + produk + SO + shift ini
+      var opTotal = 0;
+      try {
+        var { data: pls } = await sb.from("plans")
+          .select("plan_id,product_id,machine_id,no_so,order_id,shift,status")
+          .eq("plan_date", d)
+          .eq("product_id", pid)
+          .neq("status", "cancelled")
+          .limit(500);
+        var matchIds = [];
+        (pls || []).forEach(function(p) {
+          if (!isFgMachine(p.machine_id)) return;
+          if (String(p.shift || "1") !== sh) return;
+          var pSo = fgkNormSoKey(p.no_so || "");
+          var pOid = String(p.order_id || "").trim();
+          var soMatch = noSoNorm
+            ? (pSo === noSoNorm || (oid && pOid === oid))
+            : (!pSo && (!oid || pOid === oid || !pOid));
+          if (soMatch) matchIds.push(p.plan_id);
+        });
+        if (matchIds.length) {
+          var { data: reps } = await sb.from("reports").select("plan_id,actual_qty").in("plan_id", matchIds);
+          (reps || []).forEach(function(r) { opTotal += Number(r.actual_qty) || 0; });
+        }
+      } catch (eOp) { console.warn("syncFgKorlapWarehouseAdj opTotal", eOp); }
+
+      var diff = korlapQty - opTotal;
+      var marker = "fgk_adj:" + d + "|" + pid + "|" + (noSoNorm || oid || "-") + "|S" + sh;
+
+      // Hapus adjustment lama untuk key yang sama supaya edit tidak double
+      try {
+        var { data: olds } = await sb.from("warehouse_movements")
+          .select("id,ref_note")
+          .eq("product_id", pid)
+          .limit(200);
+        var toDel = (olds || []).filter(function(m) {
+          return String(m.ref_note || "").indexOf(marker) >= 0;
+        }).map(function(m) { return m.id; });
+        if (toDel.length) {
+          await sb.from("warehouse_movements").delete().in("id", toDel);
+        }
+      } catch (eDel) { console.warn("syncFgKorlapWarehouseAdj del", eDel); }
+
+      if (Math.abs(diff) < 0.0001) {
+        return { adjusted: true, diff: 0, opTotal: opTotal };
+      }
+
+      var isPlus = diff > 0;
+      var qtyAbs = Math.abs(diff);
+      var note = marker + " · koreksi FG Korlap " + (isPlus ? "+" : "-") + formatNum(qtyAbs) +
+        (reasonText ? " (" + reasonText + ")" : "");
+      var movePayload = {
+        movement_type: isPlus ? "in_adjust" : "out_adjust",
+        product_id: pid,
+        qty: qtyAbs,
+        unit: unit,
+        no_so: noSoNorm,
+        po_id: "",
+        qc_status: "passed",
+        ref_note: note,
+        created_by: (currentUser && currentUser.email) || ""
+      };
+      var ins = await sb.from("warehouse_movements").insert(movePayload);
+      if (ins.error) {
+        // Fallback jika DB membatasi movement_type hanya tipe standar
+        movePayload.movement_type = isPlus ? "in_fg" : "out_delivery";
+        await sb.from("warehouse_movements").insert(movePayload);
+      }
+      return { adjusted: true, diff: diff, opTotal: opTotal };
+    }
+
+    async function syncFgKorlapWarehouseAdjFromPlan(plan) {
+      if (!sb || !plan || !plan.product_id) return;
+      var d = String(plan.plan_date || "").slice(0, 10);
+      if (!d || d < FG_KORLAP_CUTOFF_DATE) return;
+      var sh = String(plan.shift || "1");
+      var soNorm = fgkNormSoKey(plan.no_so || "");
+      var { data: fgRows } = await sb.from("fg_korlap_reports")
+        .select("*")
+        .eq("report_date", d)
+        .eq("product_id", plan.product_id)
+        .limit(50);
+      var hit = (fgRows || []).find(function(r) {
+        if (String(r.shift || "1") !== sh) return false;
+        var rSo = fgkNormSoKey(r.no_so || "");
+        if (soNorm && rSo === soNorm) return true;
+        if (plan.order_id && r.order_id && String(r.order_id) === String(plan.order_id)) return true;
+        return !soNorm && !rSo;
+      });
+      if (!hit || !fgkHasReported(hit)) return;
+      var reasonInfo = fgkExtractDiffReason(hit);
+      await syncFgKorlapWarehouseAdj({
+        report_date: d,
+        product_id: plan.product_id,
+        no_so: soNorm || fgkNormSoKey(hit.no_so || ""),
+        order_id: plan.order_id || hit.order_id || "",
+        shift: sh,
+        unit: plan.unit || hit.unit || "pcs",
+        korlap_qty: fgkRowTotalQty(hit),
+        reason_text: reasonInfo.full
+      });
     }
 
     async function applyWipFromReport(plan, report_id, actual_qty) {
@@ -25876,6 +26266,8 @@ var id = await newPickId();
             bets: bets,
             kendala: s ? (s.kendala || "") : "",
             notes: s ? (s.notes || "") : "",
+            variance_reason: s ? fgkExtractDiffReason(s).full : "",
+            clean_notes: s ? fgkExtractDiffReason(s).cleanNotes : "",
             reported_by: s ? (s.reported_by || "") : "",
             has_korlap: !!(s && (out > 0 || (s.output_qty != null && s.output_qty !== "")))
           };
@@ -25892,9 +26284,16 @@ var id = await newPickId();
       var body = $("fgkBody");
       var cards = $("fgkCards");
       var q = (($("fgkSearch") && $("fgkSearch").value) || "").toLowerCase().trim();
+      var stFilter = ($("fgkStatusFilter") && $("fgkStatusFilter").value) || "";
       var list = (fgkRows || []).filter(function(r) {
+        if (stFilter) {
+          var diff0 = (Number(r.korlap_qty) || 0) - (Number(r.op_qty) || 0);
+          if (stFilter === "belum" && r.has_korlap) return false;
+          if (stFilter === "cocok" && (!r.has_korlap || Math.abs(diff0) >= 0.0001)) return false;
+          if (stFilter === "selisih" && (!r.has_korlap || Math.abs(diff0) < 0.0001)) return false;
+        }
         if (!q) return true;
-        return (r.product_id + " " + productLabel(r.product_id) + " " + (r.no_so || "") + " " + r.shift).toLowerCase().indexOf(q) >= 0;
+        return (r.product_id + " " + productLabel(r.product_id) + " " + (r.no_so || "") + " " + r.shift + " " + (r.variance_reason || "")).toLowerCase().indexOf(q) >= 0;
       });
       var nKl = 0, nPend = 0, sumOp = 0;
       list.forEach(function(r) {
@@ -25914,7 +26313,8 @@ var id = await newPickId();
         if (!r.has_korlap) return '<span class="pill" style="background:#ffedd5;color:#9a3412">Belum</span>';
         var diff = (Number(r.korlap_qty) || 0) - (Number(r.op_qty) || 0);
         if (Math.abs(diff) < 0.0001) return '<span class="pill" style="background:#d1fae5;color:#065f46">Cocok</span>';
-        return '<span class="pill" style="background:#fee2e2;color:#991b1b">Selisih</span>';
+        return '<span class="pill" style="background:#fee2e2;color:#991b1b">Selisih</span>' +
+          (r.variance_reason ? '<div style="font-size:0.68rem;color:#991b1b;margin-top:0.2rem;line-height:1.3">' + esc(r.variance_reason) + '</div>' : '');
       }
       if (body) {
         body.innerHTML = list.map(function(r) {
@@ -25974,14 +26374,21 @@ var id = await newPickId();
         total += parseFloat(inp.value) || 0;
       });
       if ($("fgkMTotal")) $("fgkMTotal").textContent = formatNum(total);
-      var op = parseFloat(($("fgkMOp") && $("fgkMOp").textContent.replace(/\./g, "").replace(",", ".")) || "0") || 0;
-      // better: from current row
       var key = ($("fgkModalKey") && $("fgkModalKey").value) || "";
       var r = (fgkRows || []).find(function(x) { return x.key === key; });
       if (r && $("fgkMDiff")) {
         var diff = total - (Number(r.op_qty) || 0);
         $("fgkMDiff").textContent = formatNum(diff);
         $("fgkMDiff").style.color = Math.abs(diff) < 0.0001 ? "#047857" : (diff < 0 ? "#b91c1c" : "#b45309");
+        var hasDiff = Math.abs(diff) >= 0.0001;
+        if ($("fgkDiffReasonWrap")) $("fgkDiffReasonWrap").style.display = hasDiff ? "block" : "none";
+        if ($("fgkDiffBadge")) {
+          $("fgkDiffBadge").textContent = (diff > 0 ? "+" : "") + formatNum(diff);
+        }
+        var dVal = ($("fgkDate") && $("fgkDate").value) || todayStr();
+        if ($("fgkDiffAdjHint")) {
+          $("fgkDiffAdjHint").style.display = (dVal >= FG_KORLAP_CUTOFF_DATE) ? "block" : "none";
+        }
       }
       return total;
     }
@@ -26044,8 +26451,23 @@ var id = await newPickId();
           bdHost.innerHTML = "";
         }
       }
+      var parsedReason = fgkExtractDiffReason(r);
+      if ($("fgkMDiffReasonCat")) {
+        var catEl = $("fgkMDiffReasonCat");
+        var hasOpt = Array.from(catEl.options).some(function(opt) { return opt.value === parsedReason.cat; });
+        if (hasOpt) {
+          catEl.value = parsedReason.cat;
+          if ($("fgkMDiffReasonDetail")) $("fgkMDiffReasonDetail").value = parsedReason.detail || "";
+        } else if (parsedReason.full) {
+          catEl.value = "Lainnya";
+          if ($("fgkMDiffReasonDetail")) $("fgkMDiffReasonDetail").value = parsedReason.full;
+        } else {
+          catEl.value = "";
+          if ($("fgkMDiffReasonDetail")) $("fgkMDiffReasonDetail").value = "";
+        }
+      }
       if ($("fgkMKen")) $("fgkMKen").value = r.kendala || "";
-      if ($("fgkMNote")) $("fgkMNote").value = r.notes || "";
+      if ($("fgkMNote")) $("fgkMNote").value = parsedReason.cleanNotes || "";
       var box = $("fgkBets");
       if (box) box.innerHTML = "";
       var bets = (r.bets && r.bets.length) ? r.bets : [{ bet_no: 1, qty: r.korlap_qty || "", notes: "" }];
@@ -26078,8 +26500,26 @@ var id = await newPickId();
       if (!(total > 0) && bets.every(function(b) { return !(Number(b.qty) > 0); })) {
         return toast("Total bet masih 0", true);
       }
+      var diff = total - (Number(r.op_qty) || 0);
+      var hasDiff = Math.abs(diff) >= 0.0001;
+      var reasonCat = ($("fgkMDiffReasonCat") && $("fgkMDiffReasonCat").value) || "";
+      var reasonDetail = (($("fgkMDiffReasonDetail") && $("fgkMDiffReasonDetail").value) || "").trim();
+      var reasonText = "";
+      if (hasDiff) {
+        if (!reasonCat) {
+          if ($("fgkMDiffReasonCat")) $("fgkMDiffReasonCat").focus();
+          return toast("Terdeteksi selisih! Wajib pilih alasan selisih terlebih dahulu.", true);
+        }
+        if (reasonCat === "Lainnya" && !reasonDetail) {
+          if ($("fgkMDiffReasonDetail")) $("fgkMDiffReasonDetail").focus();
+          return toast("Wajib jelaskan detail alasan selisih.", true);
+        }
+        reasonText = reasonCat + (reasonDetail ? " — " + reasonDetail : "");
+      }
       var d = ($("fgkDate") && $("fgkDate").value) || todayStr();
       var email = (currentUser && currentUser.email) || "";
+      var rawNotes = (($("fgkMNote") && $("fgkMNote").value) || "").trim();
+      var finalNotes = hasDiff ? fgkBuildNotesWithReason(rawNotes, reasonCat, reasonDetail) : fgkBuildNotesWithReason(rawNotes, "", "");
       var payload = {
         report_date: d,
         product_id: r.product_id,
@@ -26090,7 +26530,7 @@ var id = await newPickId();
         bets: bets,
         unit: r.unit || "pcs",
         kendala: (($("fgkMKen") && $("fgkMKen").value) || "").trim(),
-        notes: (($("fgkMNote") && $("fgkMNote").value) || "").trim(),
+        notes: finalNotes,
         reported_by: email,
         updated_at: new Date().toISOString()
       };
@@ -26141,15 +26581,40 @@ var id = await newPickId();
           }
         }
       }
+
+      // Opsi 3 mulai FG_KORLAP_CUTOFF_DATE: auto-koreksi saldo gudang agar mengikuti fisik Korlap
+      var adjInfo = { adjusted: false, diff: 0 };
+      if (d >= FG_KORLAP_CUTOFF_DATE) {
+        try {
+          adjInfo = await syncFgKorlapWarehouseAdj({
+            report_date: d,
+            product_id: r.product_id,
+            no_so: r.no_so || "",
+            order_id: r.order_id || "",
+            shift: String(r.shift || "1"),
+            unit: r.unit || "pcs",
+            korlap_qty: total,
+            reason_text: reasonText
+          });
+        } catch (eAdj) { console.warn("saveFgkModal adj", eAdj); }
+      }
+
       try {
         await writeAudit({
           module: "report",
           action: "fg_korlap",
           ref_id: r.product_id + " S" + r.shift,
-          summary: "FG Korlap " + r.product_id + " shift " + r.shift + " · " + bets.length + " bet · total " + total
+          summary: "FG Korlap " + r.product_id + " shift " + r.shift + " · " + bets.length + " bet · total " + total +
+            (reasonText ? " · selisih: " + reasonText : "")
         });
       } catch (eA) {}
-      toast("Disimpan · " + bets.length + " bet · total " + formatNum(total));
+
+      try { invalidatePagesByTable("fg_korlap_reports"); invalidatePagesByTable("warehouse_movements"); } catch (eInv) {}
+      var msg = "Disimpan · " + bets.length + " bet · total " + formatNum(total);
+      if (d >= FG_KORLAP_CUTOFF_DATE && adjInfo && adjInfo.adjusted && Math.abs(adjInfo.diff) >= 0.0001) {
+        msg += " · Stok gudang disesuaikan " + (adjInfo.diff > 0 ? "+" : "") + formatNum(adjInfo.diff);
+      }
+      toast(msg);
       closeFgkModal();
       await loadFgKorlap();
     }
