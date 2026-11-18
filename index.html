@@ -3761,6 +3761,151 @@
     .odoo-pill.invoice-full { background: #d1fae5; color: #065f46; }
     .odoo-pill.invoice-none { background: #f1f5f9; color: #64748b; }
     .odoo-pill.invoice-to { background: #ffedd5; color: #9a3412; }
+    .odoo-pill.revisi { background: #fee2e2; color: #991b1b; }
+    .odoo-pill.so-siap { background: #ccfbf1; color: #115e59; }
+    .odoo-pill.dp { background: #d1fae5; color: #065f46; }
+    .odoo-tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.15rem;
+      height: 1.15rem;
+      padding: 0 0.35rem;
+      margin-left: 0.35rem;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+    .odoo-inv-tabs .mod-tab.active .odoo-tab-badge {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .odoo-tab-badge.is-alert {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .odoo-statusbar-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.9rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      margin: 0 -1rem 0.75rem;
+    }
+    .odoo-statusbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .odoo-chevron-steps {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    .odoo-chevron {
+      position: relative;
+      padding: 0.26rem 0.65rem;
+      font-size: 0.71rem;
+      font-weight: 600;
+      color: #64748b;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .odoo-chevron.done {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #047857;
+    }
+    .odoo-chevron.active {
+      background: #0d9f6e;
+      border-color: #0d9f6e;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(13, 159, 110, 0.22);
+    }
+    .odoo-chevron.revisi {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+    .ot-turn-banner {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 0.78rem;
+      margin-bottom: 0.75rem;
+    }
+    .ot-turn-banner.is-trading { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+    .ot-turn-banner.is-marketing { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .ot-turn-banner.is-revisi { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+    .ot-turn-banner.is-done { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+    .odoo-chatter {
+      margin-top: 0.9rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    .odoo-chatter-head {
+      padding: 0.55rem 0.8rem;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .odoo-chatter-composer {
+      padding: 0.65rem 0.8rem;
+      display: flex;
+      gap: 0.45rem;
+      align-items: center;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .odoo-chatter-composer input {
+      flex: 1;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.45rem 0.65rem;
+      font-size: 0.8rem;
+    }
+    .odoo-chatter-feed {
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 0.55rem 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .odoo-chatter-item {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.5rem 0.65rem;
+    }
+    .odoo-chatter-item.is-revisi { border-left: 3px solid #dc2626; background: #fff5f5; }
+    .odoo-chatter-item.is-chat { border-left: 3px solid #0d9f6e; }
     .odoo-avatar {
       display: inline-flex;
       width: 1.55rem; height: 1.55rem;
@@ -3952,6 +4097,157 @@
     .odoo-op-stats strong {
       font-variant-numeric: tabular-nums;
       color: #0f172a;
+    }
+    /* Odoo Form Statusbar, Notebook & Chatter (Order Trading) */
+    .odoo-statusbar-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.55rem 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .odoo-statusbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .odoo-chevron-steps {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.2rem;
+    }
+    .odoo-chevron {
+      position: relative;
+      padding: 0.28rem 0.65rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #64748b;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .odoo-chevron.done {
+      background: #ecfdf5;
+      color: #065f46;
+      border-color: #a7f3d0;
+    }
+    .odoo-chevron.active {
+      background: #0d9f6e;
+      color: #ffffff;
+      border-color: #0d9f6e;
+      box-shadow: 0 2px 6px rgba(13, 159, 110, 0.22);
+    }
+    .odoo-chevron.rev {
+      background: #fff1f2;
+      color: #be123c;
+      border-color: #fecdd3;
+    }
+    .odoo-chevron.cancel {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #fca5a5;
+    }
+    .ot-turn-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 0.75rem;
+      font-size: 0.78rem;
+    }
+    .ot-turn-banner.turn-trading { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .ot-turn-banner.turn-marketing { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .ot-turn-banner.turn-revisi { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+    .ot-turn-banner.turn-done { background: #f0fdfa; border-color: #99f6e4; color: #115e59; }
+    .ot-turn-banner.turn-cancel { background: #f8fafc; border-color: #cbd5e1; color: #475569; }
+    .odoo-chatter {
+      margin-top: 0.9rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem 0.85rem;
+    }
+    .odoo-chatter-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.55rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .odoo-chatter-composer {
+      display: flex;
+      gap: 0.45rem;
+      margin-bottom: 0.65rem;
+    }
+    .odoo-chatter-composer input {
+      flex: 1;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.45rem 0.65rem;
+      font-size: 0.8rem;
+      background: #ffffff;
+    }
+    .odoo-chatter-composer input:focus {
+      outline: none;
+      border-color: #0d9f6e;
+      box-shadow: 0 0 0 2px rgba(13, 159, 110, 0.14);
+    }
+    .odoo-chatter-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .odoo-chatter-item {
+      display: flex;
+      gap: 0.55rem;
+      align-items: flex-start;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.5rem 0.65rem;
+      font-size: 0.78rem;
+    }
+    .odoo-chatter-item.is-chat {
+      border-left: 3px solid #0d9f6e;
+    }
+    .odoo-chatter-item.is-revisi {
+      border-left: 3px solid #e11d48;
+      background: #fffafb;
+    }
+    .odoo-tab-cnt {
+      display: inline-block;
+      margin-left: 0.3rem;
+      padding: 0.05rem 0.4rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .mod-tab.active .odoo-tab-cnt {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .odoo-tab-cnt.is-alert {
+      background: #fee2e2;
+      color: #991b1b;
     }
     .odoo-ctrl-bar {
       display: flex;
@@ -5060,19 +5356,27 @@
 
                 
         <section id="page-order-trading" class="page" hidden>
-          <div class="odoo-inv-top" style="padding-bottom:0.85rem">
-            <div class="odoo-inv-head" style="padding-bottom:0">
+          <div class="odoo-inv-top">
+            <div class="odoo-inv-head">
               <div>
                 <div class="odoo-inv-bc">
-                  <span>Sales</span><span>/</span><span>Trading</span><span>/</span><strong>Quotations &amp; Orders</strong>
+                  <span id="otBcModule">Sales</span><span>/</span><span>Trading</span><span>/</span><strong id="otBcTitle">Quotations &amp; Orders</strong>
                 </div>
-                <h1 class="odoo-inv-title">Order Trading</h1>
-                <p class="odoo-inv-sub">Marketing → CV Trading → DP → Odoo → Produksi · seluruh referensi terhubung.</p>
+                <h1 class="odoo-inv-title" id="otPageTitle">Order Trading</h1>
+                <p class="odoo-inv-sub" id="otPageSub">Marketing → CV Trading → Revisi / SO Siap → DP → Marketing Terbit SO Produksi.</p>
               </div>
               <div class="odoo-inv-actions">
                 <button class="btn btn-ghost btn-sm" type="button" onclick="loadOrderTrading()">Refresh</button>
                 <button class="btn-odoo" type="button" id="btnOtNew" onclick="openOtModal()">+ Order Trading</button>
               </div>
+            </div>
+            <div class="odoo-inv-tabs" id="otQueueTabs">
+              <button type="button" class="mod-tab" data-otq="queue_marketing" onclick="setOtQueueTab('queue_marketing')">Giliran Marketing<span class="odoo-tab-badge" id="otTabCntMarketing">0</span></button>
+              <button type="button" class="mod-tab" data-otq="queue_trading" onclick="setOtQueueTab('queue_trading')">Antrian Trading<span class="odoo-tab-badge" id="otTabCntTrading">0</span></button>
+              <button type="button" class="mod-tab" data-otq="queue_revisi" onclick="setOtQueueTab('queue_revisi')">Perlu Revisi<span class="odoo-tab-badge is-alert" id="otTabCntRevisi">0</span></button>
+              <button type="button" class="mod-tab" data-otq="queue_prod" onclick="setOtQueueTab('queue_prod')">Terbit Produksi<span class="odoo-tab-badge" id="otTabCntProd">0</span></button>
+              <button type="button" class="mod-tab active" data-otq="all_active" onclick="setOtQueueTab('all_active')">Semua Aktif<span class="odoo-tab-badge" id="otTabCntActive">0</span></button>
+              <button type="button" class="mod-tab" data-otq="all" onclick="setOtQueueTab('all')">Semua / Batal</button>
             </div>
           </div>
           <div class="ot-kpi-wrap" style="margin-bottom:0.9rem">
@@ -5110,22 +5414,31 @@
             <div class="odoo-ctrl-bar">
               <div class="odoo-facet-group" id="otFacetGroup">
                 <button type="button" class="odoo-facet active" data-otst="" onclick="setOtFacet('')">Semua</button>
+                <button type="button" class="odoo-facet" data-otst="draft" onclick="setOtFacet('draft')">Draft</button>
+                <button type="button" class="odoo-facet" data-otst="revisi_marketing" onclick="setOtFacet('revisi_marketing')">Revisi</button>
                 <button type="button" class="odoo-facet" data-otst="menunggu_so_trading" onclick="setOtFacet('menunggu_so_trading')">Menunggu SO</button>
+                <button type="button" class="odoo-facet" data-otst="so_siap" onclick="setOtFacet('so_siap')">SO Siap</button>
+                <button type="button" class="odoo-facet" data-otst="so_dibagikan" onclick="setOtFacet('so_dibagikan')">SO Dibagikan</button>
                 <button type="button" class="odoo-facet" data-otst="dp_diterima" onclick="setOtFacet('dp_diterima')">DP Diterima</button>
                 <button type="button" class="odoo-facet" data-otst="terbit_produksi" onclick="setOtFacet('terbit_produksi')">Terbit Produksi</button>
               </div>
               <div class="odoo-ctrl-right">
+                <select id="otFilterOwner" class="odoo-select-inp" onchange="setOtOwnerFilter(this.value)" title="Filter pemilik / salesperson">
+                  <option value="all">Semua Marketing</option>
+                  <option value="mine">Order Saya</option>
+                </select>
                 <select id="otFilterStatus" class="odoo-select-inp" onchange="setOtFacet(this.value, true)">
                   <option value="">Semua status</option>
-                  <option value="draft">draft</option>
-                  <option value="menunggu_so_trading">menunggu SO trading</option>
-                  <option value="so_siap">SO siap</option>
-                  <option value="so_dibagikan">SO dibagikan</option>
-                  <option value="dp_diterima">DP diterima</option>
-                  <option value="terbit_produksi">terbit produksi</option>
-                  <option value="cancelled">dibatalkan</option>
+                  <option value="draft">Draft</option>
+                  <option value="revisi_marketing">Perlu Revisi Marketing</option>
+                  <option value="menunggu_so_trading">Menunggu SO Trading</option>
+                  <option value="so_siap">SO Siap</option>
+                  <option value="so_dibagikan">SO Dibagikan</option>
+                  <option value="dp_diterima">DP Diterima</option>
+                  <option value="terbit_produksi">Terbit Produksi</option>
+                  <option value="cancelled">Dibatalkan</option>
                 </select>
-                <input type="search" id="otSearch" class="odoo-search-inp" placeholder="Cari OT / customer / no SO..." oninput="renderOrderTrading()" />
+                <input type="search" id="otSearch" class="odoo-search-inp" placeholder="Cari OT / customer / no SO / sales..." oninput="renderOrderTrading()" />
               </div>
             </div>
             <div id="otList" style="overflow:auto"></div>
@@ -7186,68 +7499,86 @@
         </div>
         <span class="ot-status draft" id="otModalStatusPill" style="display:none">—</span>
       </div>
-      <div class="sheet-body" style="padding-top:0.35rem">
+      <div class="sheet-body" style="padding-top:0">
         <input type="hidden" id="otEditId" />
+        <div class="odoo-statusbar-bar" id="otStatusBox" style="display:none">
+          <div class="odoo-statusbar-actions" id="otActionBtns"></div>
+          <div class="odoo-chevron-steps" id="otStatusPipeline"></div>
+        </div>
+        <div id="otTurnBanner" class="ot-turn-banner" style="display:none"></div>
         <div class="odoo-form-grid">
           <div>
             <div class="odoo-form-row"><label>Customer</label><input id="otCustomer" class="search-combo" data-combo="customer" placeholder="Cari / ketik customer..." autocomplete="off" /></div>
-            <div class="odoo-form-row"><label>Catatan</label><input id="otNote" placeholder="Opsional" /></div>
-            <div class="odoo-form-row"><label>Catatan DP</label><input id="otDpNote" placeholder="Opsional" /></div>
+            <div class="odoo-form-row" id="otOwnerRow" style="display:none"><label>Salesperson</label><div id="otOwnerDisplay" style="padding:0.3rem 0"></div></div>
+            <div class="odoo-form-row"><label>Catatan</label><input id="otNote" placeholder="Catatan order / deadline / kemasan" /></div>
+            <div class="odoo-form-row"><label>Catatan DP</label><input id="otDpNote" placeholder="Info transfer / nominal DP" /></div>
           </div>
           <div>
-            <div class="odoo-form-row"><label>SO Trading</label><input id="otSoTradingNo" placeholder="No SO ke customer" /></div>
-            <div class="odoo-form-row"><label>PO Trading</label><input id="otPoTradingNo" placeholder="No PO Trading" /></div>
-            <div class="odoo-form-row"><label>SO Odoo</label><input id="otNoSo" placeholder="SO/2026/..." /></div>
+            <div class="odoo-form-row"><label>SO Trading</label><input id="otSoTradingNo" placeholder="Diisi Trading (No SO Trading)" /></div>
+            <div class="odoo-form-row"><label>PO Trading</label><input id="otPoTradingNo" placeholder="No PO ke pabrik / Trading" /></div>
+            <div class="odoo-form-row"><label>SO Odoo</label><input id="otNoSo" placeholder="SO/2026/... (diisi Marketing saat terbit)" /></div>
           </div>
         </div>
         <input type="hidden" id="otSoTradingNote" />
         <input type="hidden" id="otSoTradingNoHead" />
         <input type="hidden" id="otNoSoHead" />
-        <div class="odoo-tabs">
-          <button type="button" class="odoo-tab active">Order Lines</button>
+        <div class="odoo-tabs" id="otFormTabs">
+          <button type="button" class="odoo-tab active" data-otftab="lines" onclick="setOtFormTab('lines')">Order Lines</button>
+          <button type="button" class="odoo-tab" data-otftab="files" onclick="setOtFormTab('files')">Lampiran <span class="odoo-tab-badge" id="otAttachCountBadge">0</span></button>
         </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:0.35rem">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="otAddLine()">+ Add a product</button>
-        </div>
-        <div style="overflow:auto">
-          <table class="odoo-lines-table" id="otLinesTable">
-            <thead>
-              <tr>
-                <th style="width:2rem">#</th>
-                <th style="min-width:11rem">Product</th>
-                <th style="width:5.5rem">Qty</th>
-                <th style="width:6.5rem" class="ot-col-harga">Harga jual</th>
-                <th style="width:6rem" class="ot-col-hpp">HPP</th>
-                <th style="width:7rem" class="ot-col-sub">Subtotal</th>
-                <th style="width:2.2rem"></th>
-              </tr>
-            </thead>
-            <tbody id="otLines"></tbody>
-          </table>
-        </div>
-        <div id="otFilesBox" class="ot-files-premium" style="display:none">
-          <div class="ot-section-title" style="margin-top:0">Lampiran (Google Drive)</div>
-          <div id="otDropZone" style="border:1.5px dashed #94a3b8;border-radius:12px;padding:1rem;text-align:center;background:rgba(255,255,255,0.6);cursor:pointer">
-            <div style="font-size:0.85rem;font-weight:600;color:var(--text)">Klik atau tarik file ke sini</div>
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem">Bisa banyak file sekaligus · PDF / gambar · maks ~6 MB per file</div>
-            <input type="file" id="otMultiFiles" multiple accept="application/pdf,.pdf,image/*" style="display:none" />
+        <div id="otPaneLines">
+          <div style="display:flex;justify-content:flex-end;margin-top:0.35rem">
+            <button type="button" class="btn btn-ghost btn-sm" id="btnOtAddLine" onclick="otAddLine()">+ Add a product</button>
           </div>
-          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;flex-wrap:wrap;align-items:center">
-            <button type="button" class="btn btn-primary btn-sm" id="btnOtUploadAll" onclick="otUploadMultiFiles()">Upload semua</button>
-            <span id="otUploadStatus" style="font-size:0.75rem;color:var(--text-muted)"></span>
+          <div style="overflow:auto">
+            <table class="odoo-lines-table" id="otLinesTable">
+              <thead>
+                <tr>
+                  <th style="width:2rem">#</th>
+                  <th style="min-width:11rem">Product</th>
+                  <th style="width:5.5rem">Qty</th>
+                  <th style="width:6.5rem" class="ot-col-harga">Harga jual</th>
+                  <th style="width:6rem" class="ot-col-hpp">HPP</th>
+                  <th style="width:7rem" class="ot-col-sub">Subtotal</th>
+                  <th style="width:2.2rem"></th>
+                </tr>
+              </thead>
+              <tbody id="otLines"></tbody>
+            </table>
           </div>
-          <div id="otAttachList" style="margin-top:0.65rem;display:flex;flex-direction:column;gap:0.4rem"></div>
-          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.4rem 0 0">File di Google Drive. Ketuk item untuk preview di webapp.</p>
+          <div class="odoo-form-total" id="otFormTotals" style="margin-top:0.45rem;font-size:0.82rem;color:#334155"></div>
         </div>
-        <div id="otStatusBox" style="margin-top:0.75rem;padding:0.75rem;border-radius:12px;background:rgba(16,185,129,0.08);display:none">
-          <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.45rem">Aksi</div>
-          <div id="otActionBtns" style="display:flex;flex-wrap:wrap;gap:0.4rem"></div>
+        <div id="otPaneFiles" style="display:none;padding-top:0.55rem">
+          <div id="otFilesBox" class="ot-files-premium" style="margin-top:0">
+            <div class="ot-section-title" style="margin-top:0">Lampiran Dokumen (Google Drive)</div>
+            <div id="otDropZone" style="border:1.5px dashed #94a3b8;border-radius:12px;padding:0.9rem;text-align:center;background:rgba(255,255,255,0.6);cursor:pointer">
+              <div style="font-size:0.84rem;font-weight:600;color:var(--text)">Klik atau tarik file ke sini</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem">PO Customer / SO Trading / Bukti DP · PDF atau gambar · maks ~6 MB per file</div>
+              <input type="file" id="otMultiFiles" multiple accept="application/pdf,.pdf,image/*" style="display:none" />
+            </div>
+            <div style="display:flex;gap:0.4rem;margin-top:0.5rem;flex-wrap:wrap;align-items:center">
+              <button type="button" class="btn-odoo-teal" id="btnOtUploadAll" onclick="otUploadMultiFiles()">Upload ke Drive</button>
+              <span id="otUploadStatus" style="font-size:0.75rem;color:var(--text-muted)"></span>
+            </div>
+            <div id="otAttachList" style="margin-top:0.65rem;display:flex;flex-direction:column;gap:0.4rem"></div>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin:0.4rem 0 0">Ketuk lampiran untuk preview atau download.</p>
+          </div>
         </div>
-        <div id="otTimeline" style="margin-top:0.75rem;font-size:0.78rem;color:var(--text-muted)"></div>
+        <div id="otChatterBox" class="odoo-chatter" style="display:none">
+          <div class="odoo-chatter-head">
+            <span>Diskusi Tek-tok &amp; Riwayat Aktivitas</span>
+            <span id="otChatterCount" style="font-size:0.72rem;color:#64748b;font-weight:500"></span>
+          </div>
+          <div class="odoo-chatter-composer">
+            <input type="text" id="otChatInput" placeholder="Tulis pesan tek-tok ke Trading / Marketing (Enter untuk kirim)..." onkeydown="if(event.key==='Enter'){event.preventDefault();otSendChatMessage();}" />
+            <button type="button" class="btn-odoo-teal" onclick="otSendChatMessage()">Kirim</button>
+          </div>
+          <div id="otTimeline" class="odoo-chatter-feed"></div>
+        </div>
       </div>
       <div class="sheet-foot" style="display:flex;gap:0.5rem;justify-content:flex-end;padding:0.75rem 1rem">
         <button type="button" class="btn btn-ghost" onclick="closeOtModal()">Tutup</button>
-        <button type="button" class="btn btn-primary" id="btnOtSave" onclick="saveOrderTrading()">Simpan</button>
+        <button type="button" class="btn-odoo" id="btnOtSave" onclick="saveOrderTrading()">Simpan</button>
       </div>
     </div>
   </div>
@@ -18493,12 +18824,68 @@ function fillOperatorList(selectedEmail) {
       deliveryList = data || [];
       renderDeliveries();
     }
+    var otQueueTabKey = "";
+    var otOwnerFilterVal = "";
+    var otRoleViewInitialized = false;
+    function otInitRoleViewOnce() {
+      if (otRoleViewInitialized) return;
+      otRoleViewInitialized = true;
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      if (role === "trading") {
+        otQueueTabKey = "queue_trading";
+        otOwnerFilterVal = "all";
+      } else if (role === "marketing") {
+        otQueueTabKey = "queue_marketing";
+        otOwnerFilterVal = "mine";
+      } else {
+        otQueueTabKey = "all_active";
+        otOwnerFilterVal = "all";
+      }
+      document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
+        b.classList.toggle("active", b.getAttribute("data-otq") === otQueueTabKey);
+      });
+      if ($("otFilterOwner")) $("otFilterOwner").value = otOwnerFilterVal;
+    }
+    function setOtQueueTab(tabKey) {
+      otQueueTabKey = tabKey || "all_active";
+      otRoleViewInitialized = true;
+      document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
+        b.classList.toggle("active", b.getAttribute("data-otq") === otQueueTabKey);
+      });
+      // Reset facet status agar tidak bentrok dengan tab
+      if ($("otFilterStatus")) $("otFilterStatus").value = "";
+      document.querySelectorAll("#otFacetGroup .odoo-facet").forEach(function(b) {
+        b.classList.toggle("active", (b.getAttribute("data-otst") || "") === "");
+      });
+      renderOrderTrading();
+    }
+    function setOtOwnerFilter(val) {
+      otOwnerFilterVal = val || "all";
+      otRoleViewInitialized = true;
+      renderOrderTrading();
+    }
+    function setOtFormTab(tabKey) {
+      var isFiles = tabKey === "files";
+      document.querySelectorAll("#otFormTabs .odoo-tab").forEach(function(b) {
+        b.classList.toggle("active", b.getAttribute("data-otftab") === (isFiles ? "files" : "lines"));
+      });
+      if ($("otPaneLines")) $("otPaneLines").style.display = isFiles ? "none" : "block";
+      if ($("otPaneFiles")) $("otPaneFiles").style.display = isFiles ? "block" : "none";
+      if (isFiles) { try { otSetupDropZone(); } catch (eZ) {} }
+    }
     function setOtFacet(val, fromSelect) {
       val = val || "";
       if (!fromSelect && $("otFilterStatus")) $("otFilterStatus").value = val;
       document.querySelectorAll("#otFacetGroup .odoo-facet").forEach(function(b) {
         b.classList.toggle("active", (b.getAttribute("data-otst") || "") === val);
       });
+      if (val) {
+        otQueueTabKey = "all_active";
+        otRoleViewInitialized = true;
+        document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
+          b.classList.toggle("active", (b.getAttribute("data-otq") || "") === "all_active");
+        });
+      }
       renderOrderTrading();
     }
     function setSoFacet(val, fromSelect) {
@@ -26960,9 +27347,54 @@ var id = await newPickId();
       return await nextSeqId("OT", "order_trading", "ot_id");
     }
 
+    function otEffectiveStatus(row) {
+      var st = String((row && row.status) || "draft").toLowerCase();
+      if (st === "revisi_marketing") return "revisi_marketing";
+      if (st === "draft") {
+        var noteSrc = String((row && row.so_trading_note) || "") + " " + String((row && row.note) || "");
+        if (/\[REVISI:/i.test(noteSrc)) return "revisi_marketing";
+      }
+      return st || "draft";
+    }
+    function otExtractRevisionNote(row) {
+      var src1 = String((row && row.so_trading_note) || "");
+      var m1 = src1.match(/\[REVISI:\s*([^\]]+)\]/i);
+      if (m1) return m1[1].trim();
+      var src2 = String((row && row.note) || "");
+      var m2 = src2.match(/\[REVISI:\s*([^\]]+)\]/i);
+      if (m2) return m2[1].trim();
+      return "";
+    }
+    function otTurnInfo(row) {
+      var st = otEffectiveStatus(row);
+      if (st === "menunggu_so_trading") {
+        return { owner: "Trading", cls: "turn-trading", badgeCls: "progress", hint: "Menunggu CV Trading cek harga/HPP dan menerbitkan No SO Trading (atau kembalikan jika perlu revisi)." };
+      }
+      if (st === "revisi_marketing") {
+        var rev = otExtractRevisionNote(row);
+        return { owner: "Marketing (Revisi)", cls: "turn-revisi", badgeCls: "revisi", hint: "Dikembalikan Trading untuk revisi" + (rev ? ": " + rev : " — cek catatan tek-tok lalu kirim ulang ke Trading.") };
+      }
+      if (st === "so_siap") {
+        return { owner: "Marketing", cls: "turn-marketing", badgeCls: "so-siap", hint: "SO Trading sudah siap! Marketing bagikan SO ke customer lalu catat DP & terbitkan ke Produksi." };
+      }
+      if (st === "so_dibagikan") {
+        return { owner: "Marketing", cls: "turn-marketing", badgeCls: "quotation", hint: "SO sudah dibagikan ke customer. Marketing follow-up DP lalu terbitkan ke Produksi." };
+      }
+      if (st === "dp_diterima") {
+        return { owner: "Marketing", cls: "turn-marketing", badgeCls: "dp", hint: "DP sudah diterima! Marketing isi No SO Odoo lalu klik Terbit ke Produksi." };
+      }
+      if (st === "terbit_produksi" || st === "in_production" || st === "done") {
+        return { owner: "Produksi", cls: "turn-done", badgeCls: "locked", hint: "Sudah diterbitkan ke Sales Order & Produksi" + (row && row.no_so ? " (" + row.no_so + ")" : "") + "." };
+      }
+      if (st === "cancelled") {
+        return { owner: "Batal", cls: "turn-cancel", badgeCls: "cancel", hint: "Order Trading ini telah dibatalkan." };
+      }
+      return { owner: "Marketing", cls: "turn-marketing", badgeCls: "done", hint: "Masih Draft. Lengkapi produk & lampiran lalu klik Kirim ke Trading." };
+    }
     function otStatusLabel(st) {
       const m = {
         draft: "Draft",
+        revisi_marketing: "Revisi Marketing",
         menunggu_so_trading: "Menunggu SO Trading",
         so_siap: "SO Siap",
         so_dibagikan: "SO Dibagikan",
@@ -27085,11 +27517,51 @@ var id = await newPickId();
           });
         }
       }
+      otInitRoleViewOnce();
+      otPopulateOwnerFilter();
       renderOrderTrading();
       try { renderOtKpi(); } catch (eK) {}
-      // role UI for new button
+      // role UI for new button + header
       const role = currentRole();
       if ($("btnOtNew")) $("btnOtNew").style.display = (role === "marketing" || role === "admin") ? "" : "none";
+      if ($("otBcTitle")) {
+        $("otBcTitle").textContent = role === "trading" ? "Meja Proses Trading" : "Marketing ↔ Trading";
+      }
+      if ($("otPageSub")) {
+        $("otPageSub").textContent = role === "trading"
+          ? "Antrian order dari tim Marketing — lengkapi SO Trading / HPP lalu kirim balik atau minta revisi."
+          : "Alur Marketing → CV Trading → Revisi / SO Siap → DP → Marketing Terbit ke Produksi.";
+      }
+    }
+
+    function otPopulateOwnerFilter() {
+      var sel = $("otFilterOwner");
+      if (!sel) return;
+      var cur = otOwnerFilterVal || sel.value || "all";
+      var myEm = String((currentUser && currentUser.email) || "").toLowerCase();
+      var owners = {};
+      var mineCount = 0;
+      (otCache || []).forEach(function(r) {
+        var em = String(r.created_by || r.salesperson || "").trim();
+        if (!em) return;
+        var low = em.toLowerCase();
+        owners[low] = (owners[low] || 0) + 1;
+        if (myEm && low === myEm) mineCount++;
+      });
+      var opts = [
+        '<option value="all">Semua Marketing (' + (otCache || []).length + ')</option>',
+        '<option value="mine">Order Saya (' + mineCount + ')</option>'
+      ];
+      Object.keys(owners).sort().forEach(function(low) {
+        if (myEm && low === myEm) return;
+        var label = low.indexOf("@") >= 0 ? low.split("@")[0].replace(/[._]/g, " ") : low;
+        label = label.replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        opts.push('<option value="' + esc(low) + '">' + esc(label) + ' (' + owners[low] + ')</option>');
+      });
+      sel.innerHTML = opts.join("");
+      var exists = Array.from(sel.options).some(function(o) { return o.value === cur; });
+      sel.value = exists ? cur : "all";
+      otOwnerFilterVal = sel.value;
     }
 
     function otStatusClass(st) {
@@ -27097,65 +27569,145 @@ var id = await newPickId();
       return "ot-status " + st.replace(/[^a-z0-9_]/gi, "");
     }
     function renderOrderTrading() {
+      otInitRoleViewOnce();
       const box = $("otList");
       if (!box) return;
       const q = (($("otSearch") && $("otSearch").value) || "").toLowerCase().trim();
-      const st = ($("otFilterStatus") && $("otFilterStatus").value) || "";
-      let rows = otCache.slice();
-      if (st) rows = rows.filter(function(r) { return r.status === st; });
+      const stFilter = ($("otFilterStatus") && $("otFilterStatus").value) || "";
+      const ownerFilter = ($("otFilterOwner") && $("otFilterOwner").value) || otOwnerFilterVal || "all";
+      const myEmail = String((currentUser && currentUser.email) || "").toLowerCase();
+
+      // Hitung badge per tab berdasarkan owner filter yang aktif (tanpa filter status/tab)
+      var baseRows = (otCache || []).filter(function(r) {
+        if (ownerFilter === "mine" && myEmail) {
+          return String(r.created_by || r.salesperson || "").toLowerCase() === myEmail;
+        }
+        if (ownerFilter && ownerFilter !== "all" && ownerFilter !== "mine") {
+          return String(r.created_by || r.salesperson || "").toLowerCase() === ownerFilter;
+        }
+        return true;
+      });
+      var cntTrd = 0, cntMkt = 0, cntRev = 0, cntProd = 0, cntAct = 0;
+      baseRows.forEach(function(r) {
+        var est = otEffectiveStatus(r);
+        if (est === "cancelled") return;
+        if (est === "terbit_produksi" || est === "done") { cntProd++; return; }
+        cntAct++;
+        if (est === "menunggu_so_trading") cntTrd++;
+        else cntMkt++;
+        if (est === "revisi_marketing") cntRev++;
+      });
+      if ($("otTabCntTrading")) $("otTabCntTrading").textContent = String(cntTrd);
+      if ($("otTabCntMarketing")) $("otTabCntMarketing").textContent = String(cntMkt);
+      if ($("otTabCntRevisi")) {
+        $("otTabCntRevisi").textContent = String(cntRev);
+        $("otTabCntRevisi").style.display = cntRev > 0 ? "inline-flex" : "none";
+      }
+      if ($("otTabCntProd")) $("otTabCntProd").textContent = String(cntProd);
+      if ($("otTabCntActive")) $("otTabCntActive").textContent = String(cntAct);
+
+      let rows = baseRows.slice();
+      // Filter berdasarkan Queue Tab aktif
+      var qTab = otQueueTabKey || "all_active";
+      if (qTab === "queue_trading") {
+        rows = rows.filter(function(r) { return otEffectiveStatus(r) === "menunggu_so_trading"; });
+      } else if (qTab === "queue_marketing") {
+        rows = rows.filter(function(r) {
+          var est = otEffectiveStatus(r);
+          return ["draft", "revisi_marketing", "so_siap", "so_dibagikan", "dp_diterima"].indexOf(est) >= 0;
+        });
+      } else if (qTab === "queue_revisi") {
+        rows = rows.filter(function(r) { return otEffectiveStatus(r) === "revisi_marketing"; });
+      } else if (qTab === "queue_prod") {
+        rows = rows.filter(function(r) {
+          var est = otEffectiveStatus(r);
+          return est === "terbit_produksi" || est === "done";
+        });
+      } else if (qTab === "all_active") {
+        rows = rows.filter(function(r) {
+          var est = otEffectiveStatus(r);
+          return est !== "cancelled" && est !== "terbit_produksi" && est !== "done";
+        });
+      }
+
+      if (stFilter) {
+        rows = rows.filter(function(r) { return otEffectiveStatus(r) === stFilter; });
+      }
       if (q) {
         rows = rows.filter(function(r) {
           const lines = otLinesCache[r.ot_id] || [];
           const names = lines.map(function(l) {
             try { return productLabel(l.product_id); } catch (e) { return l.product_id; }
           });
-          const blob = [r.ot_id, r.customer_name, r.no_so, r.so_trading_no, r.status].concat(lines.map(function(l) { return l.product_id; })).concat(names).join(" ").toLowerCase();
+          const blob = [r.ot_id, r.customer_name, r.no_so, r.so_trading_no, r.po_trading_no, r.created_by, otEffectiveStatus(r)].concat(lines.map(function(l) { return l.product_id; })).concat(names).join(" ").toLowerCase();
           return blob.indexOf(q) >= 0;
         });
       }
       if (!rows.length) {
-        box.innerHTML = "<div style='padding:2rem;color:var(--text-muted);text-align:center'>Belum ada Order Trading</div>";
+        var extraReset = (ownerFilter === "mine" || qTab !== "all")
+          ? '<div style="margin-top:0.65rem;display:flex;gap:0.4rem;justify-content:center;flex-wrap:wrap">' +
+              (ownerFilter === "mine" ? '<button type="button" class="btn btn-ghost btn-sm" onclick="if($(\'otFilterOwner\')){$(\'otFilterOwner\').value=\'all\';}setOtOwnerFilter(\'all\')">Lihat Semua Tim Marketing</button>' : '') +
+              (qTab !== "all" ? '<button type="button" class="btn btn-ghost btn-sm" onclick="setOtQueueTab(\'all\')">Lihat Semua Status</button>' : '') +
+            '</div>'
+          : '';
+        box.innerHTML = "<div style='padding:2rem;color:var(--text-muted);text-align:center'>Tidak ada Order Trading di antrian ini" + extraReset + "</div>";
         return;
       }
-      function otOdooStatus(st) {
-        st = String(st || "").toLowerCase();
-        if (st === "draft") return '<span class="odoo-pill quotation">Draft</span>';
-        if (st === "dp" || st === "waiting_dp") return '<span class="odoo-pill progress">Waiting DP</span>';
-        if (st === "confirmed" || st === "trading") return '<span class="odoo-pill locked">Trading</span>';
+      function otOdooStatus(r) {
+        var st = otEffectiveStatus(r);
+        if (st === "draft") return '<span class="odoo-pill done">Draft</span>';
+        if (st === "revisi_marketing") return '<span class="odoo-pill revisi">Perlu Revisi</span>';
+        if (st === "menunggu_so_trading") return '<span class="odoo-pill progress">Di Trading</span>';
+        if (st === "so_siap") return '<span class="odoo-pill so-siap">SO Siap</span>';
+        if (st === "so_dibagikan") return '<span class="odoo-pill quotation">SO Dibagikan</span>';
+        if (st === "dp_diterima") return '<span class="odoo-pill dp">DP Diterima</span>';
         if (st === "terbit_produksi" || st === "done") return '<span class="odoo-pill locked">Terbit Produksi</span>';
         if (st === "cancelled" || st === "canceled") return '<span class="odoo-pill cancel">Cancelled</span>';
         return '<span class="odoo-pill quotation">' + esc(otStatusLabel(st)) + '</span>';
       }
       var html = '<table class="odoo-list"><thead><tr>' +
-        '<th>Number</th><th>Creation Date</th><th>Customer</th><th>SO / Ref</th>' +
-        '<th style="text-align:right">Total</th><th>Status</th><th></th>' +
+        '<th>Number &amp; Sales</th><th>Tanggal</th><th>Customer</th><th>SO / PO Ref</th>' +
+        '<th>Giliran</th><th style="text-align:right">Total</th><th>Status</th><th></th>' +
         '</tr></thead><tbody>';
       rows.forEach(function(r) {
         var lines = otLinesCache[r.ot_id] || [];
         var total = 0, qty = 0;
         lines.forEach(function(ln) {
-          var q = Number(ln.qty) || 0;
+          var q0 = Number(ln.qty) || 0;
           var h = Number(ln.harga) || 0;
-          qty += q;
-          total += q * h;
+          qty += q0;
+          total += q0 * h;
         });
-        var ref = r.so_trading_no || r.no_so || "—";
+        var poRef = r.po_trading_no || r.po_trading || "";
+        if (!poRef && r.note) {
+          var mPo = String(r.note).match(/\[PO_TRADING:([^\]]+)\]/);
+          if (mPo) poRef = mPo[1].trim();
+        }
+        var refParts = [];
+        if (r.so_trading_no) refParts.push('<span style="color:#0f766e;font-weight:600">SO Trd: ' + esc(r.so_trading_no) + '</span>');
+        if (poRef) refParts.push('<span style="color:#475569">PO: ' + esc(poRef) + '</span>');
+        if (r.no_so) refParts.push('<span style="color:#047857;font-weight:600">Odoo: ' + esc(r.no_so) + '</span>');
         var person = r.created_by || r.salesperson || "";
+        var turn = otTurnInfo(r);
+        var revNote = otEffectiveStatus(r) === "revisi_marketing" ? otExtractRevisionNote(r) : "";
         var totalTxt = total > 0
           ? "Rp " + formatNum(total)
           : (qty > 0 ? formatNum(qty) + " qty" : "—");
         html += '<tr data-otid="' + esc(r.ot_id) + '">' +
-          '<td><span class="odoo-num">' + esc(r.ot_id) + '</span></td>' +
-          '<td>' + odooFmtDate(r.created_at || r.ot_date || r.updated_at) + '</td>' +
-          '<td>' + esc(r.customer_name || "—") + '</td>' +
-          '<td style="font-size:0.82rem">' + esc(ref) +
+          '<td><span class="odoo-num">' + esc(r.ot_id) + '</span>' +
             (person ? '<div style="margin-top:0.2rem">' + odooPersonHtml(person) + '</div>' : '') +
           '</td>' +
-          '<td style="text-align:right;font-weight:600">' + totalTxt +
-            (lines.length ? '<div style="font-size:0.68rem;color:#94a3b8;font-weight:500">' + lines.length + ' line</div>' : '') +
+          '<td>' + odooFmtDate(r.created_at || r.ot_date || r.updated_at) + '</td>' +
+          '<td><strong>' + esc(r.customer_name || "—") + '</strong>' +
+            (revNote ? '<div style="font-size:0.7rem;color:#991b1b;margin-top:0.15rem">Revisi: ' + esc(revNote) + '</div>' : '') +
           '</td>' +
-          '<td>' + otOdooStatus(r.status) + '</td>' +
-          '<td><button type="button" class="btn btn-ghost btn-sm ot-open-btn" data-otid="' + esc(r.ot_id) + '">Detail</button></td>' +
+          '<td style="font-size:0.78rem;line-height:1.45">' + (refParts.length ? refParts.join("<br/>") : '<span style="color:#94a3b8">—</span>') + '</td>' +
+          '<td><span class="odoo-pill ' + esc(turn.badgeCls) + '">' + esc(turn.owner) + '</span></td>' +
+          '<td style="text-align:right;font-weight:600">' + totalTxt +
+            (lines.length ? '<div style="font-size:0.68rem;color:#94a3b8;font-weight:500">' + lines.length + ' item</div>' : '') +
+          '</td>' +
+          '<td>' + otOdooStatus(r) + '</td>' +
+          '<td><button type="button" class="btn btn-ghost btn-sm ot-open-btn" data-otid="' + esc(r.ot_id) + '">Buka</button></td>' +
         '</tr>';
       });
       html += '</tbody></table>';
@@ -27488,6 +28040,26 @@ function otProductDisplay(productId) {
         if (n) n.textContent = String(i + 1);
       });
     }
+    function otUpdateTotalsFooter() {
+      var host = $("otFormTotals");
+      if (!host) return;
+      var sumQty = 0, sumOmset = 0, sumHpp = 0;
+      document.querySelectorAll("#otLines .ot-line").forEach(function(wrap) {
+        var q = parseInputNum(wrap.querySelector(".ot-qty") && wrap.querySelector(".ot-qty").value) || 0;
+        var h = parseInputNum(wrap.querySelector(".ot-harga") && wrap.querySelector(".ot-harga").value) || 0;
+        var hp = parseInputNum(wrap.querySelector(".ot-hpp") && wrap.querySelector(".ot-hpp").value) || 0;
+        sumQty += q;
+        sumOmset += q * h;
+        sumHpp += q * hp;
+      });
+      var parts = ["Total Qty: <strong>" + formatNum(sumQty) + "</strong>"];
+      if (sumOmset > 0) parts.push("Total Omset: <strong style='color:#065f46'>Rp " + formatNum(Math.round(sumOmset)) + "</strong>");
+      if (sumHpp > 0 && sumOmset > 0) {
+        var margin = sumOmset - sumHpp;
+        parts.push("Est. Margin: <strong style='color:" + (margin >= 0 ? "#047857" : "#b91c1c") + "'>Rp " + formatNum(Math.round(margin)) + "</strong>");
+      }
+      host.innerHTML = parts.join(" &nbsp;·&nbsp; ");
+    }
     function otBindLineSubtotal(wrap) {
       if (!wrap) return;
       function recalc() {
@@ -27495,8 +28067,9 @@ function otProductDisplay(productId) {
         var h = parseInputNum(wrap.querySelector(".ot-harga") && wrap.querySelector(".ot-harga").value);
         var sub = wrap.querySelector(".ot-subtotal");
         if (sub) sub.value = (q > 0 && h > 0) ? formatInputNum(q * h, true) : "";
+        otUpdateTotalsFooter();
       }
-      ["ot-qty", "ot-harga"].forEach(function(cls) {
+      ["ot-qty", "ot-harga", "ot-hpp"].forEach(function(cls) {
         var el = wrap.querySelector("." + cls);
         if (el) {
           el.addEventListener("input", recalc);
@@ -27535,13 +28108,130 @@ function otProductDisplay(productId) {
       wrap.querySelector(".ot-del").onclick = function() {
         wrap.remove();
         otRenumberLines();
+        otUpdateTotalsFooter();
       };
       try {
         bindAllThousandInputs();
         var prodInp = wrap.querySelector(".ot-prod");
         otBindLineProduct(prodInp, wrap);
         if (showPrice) otBindLineSubtotal(wrap);
+        else otUpdateTotalsFooter();
       } catch (e) { console.warn(e); }
+    }
+
+    function otRenderStatusPipeline(row) {
+      var host = $("otStatusPipeline");
+      if (!host) return;
+      var est = otEffectiveStatus(row);
+      if (est === "cancelled") {
+        host.innerHTML = '<span class="odoo-chevron revisi">Dibatalkan</span>';
+        return;
+      }
+      var steps = [
+        { k: "draft", l: "Draft" },
+        { k: "menunggu_so_trading", l: "Di Trading" },
+        { k: "so_siap", l: "SO Siap" },
+        { k: "so_dibagikan", l: "SO Dibagikan" },
+        { k: "dp_diterima", l: "DP" },
+        { k: "terbit_produksi", l: "Terbit Produksi" }
+      ];
+      var orderMap = { draft: 0, revisi_marketing: 0, menunggu_so_trading: 1, so_siap: 2, so_dibagikan: 3, dp_diterima: 4, terbit_produksi: 5, done: 5 };
+      var curIdx = Object.prototype.hasOwnProperty.call(orderMap, est) ? orderMap[est] : 0;
+      var html = "";
+      if (est === "revisi_marketing") {
+        html += '<span class="odoo-chevron revisi">Revisi Marketing</span>';
+      }
+      html += steps.map(function(s, idx) {
+        var cls = "odoo-chevron";
+        if (est !== "revisi_marketing" && idx === curIdx) cls += " active";
+        else if (idx < curIdx) cls += " done";
+        return '<span class="' + cls + '">' + esc(s.l) + '</span>';
+      }).join("");
+      host.innerHTML = html;
+    }
+
+    function otRenderTurnBanner(row) {
+      var el = $("otTurnBanner");
+      if (!el) return;
+      if (!row) {
+        el.style.display = "none";
+        return;
+      }
+      var turn = otTurnInfo(row);
+      el.className = "ot-turn-banner " + turn.cls;
+      el.style.display = "flex";
+      el.innerHTML = '<div><strong>Giliran ' + esc(turn.owner) + ':</strong> ' + esc(turn.hint) + '</div>';
+    }
+
+    async function loadOtTimeline(otId) {
+      var box = $("otTimeline");
+      var cnt = $("otChatterCount");
+      if (!box) return;
+      if (!sb || !otId) {
+        box.innerHTML = '<div style="font-size:0.76rem;color:#94a3b8;padding:0.25rem 0">Simpan OT untuk memulai log tek-tok</div>';
+        if (cnt) cnt.textContent = "";
+        return;
+      }
+      try {
+        var { data, error } = await sb.from("order_trading_events")
+          .select("*")
+          .eq("ot_id", otId)
+          .order("created_at", { ascending: false })
+          .limit(60);
+        if (error) {
+          box.innerHTML = '<div style="font-size:0.75rem;color:#94a3b8">' + esc(error.message) + '</div>';
+          return;
+        }
+        var evs = data || [];
+        if (cnt) cnt.textContent = evs.length + " aktivitas";
+        if (!evs.length) {
+          box.innerHTML = '<div style="font-size:0.76rem;color:#94a3b8;padding:0.25rem 0">Belum ada pesan tek-tok atau riwayat</div>';
+          return;
+        }
+        var evLabel = {
+          created: "Buat OT",
+          updated: "Update data",
+          submitted_to_trading: "Kirim ke Trading",
+          revisi_marketing: "Minta Revisi",
+          so_ready: "SO Trading Siap",
+          so_shared: "SO Dibagikan",
+          dp_received: "DP Diterima",
+          published_production: "Terbit Produksi",
+          file_uploaded: "Upload Lampiran",
+          chat: "Pesan Tek-tok",
+          cancelled: "Dibatalkan"
+        };
+        box.innerHTML = evs.map(function(ev) {
+          var kind = String(ev.event || "");
+          var isChat = kind === "chat";
+          var isRev = kind === "revisi_marketing";
+          var cls = "odoo-chatter-item" + (isRev ? " is-revisi" : (isChat ? " is-chat" : ""));
+          var who = String(ev.by_email || "Sistem");
+          var dt = "";
+          try { dt = formatWibDateTime(ev.created_at); } catch (eD) { dt = String(ev.created_at || "").slice(0, 16); }
+          return '<div class="' + cls + '">' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.4rem;flex-wrap:wrap">' +
+                '<div>' + odooPersonHtml(who) + ' <span class="odoo-pill ' + (isRev ? 'revisi' : (isChat ? 'so-siap' : 'done')) + '" style="margin-left:0.25rem">' + esc(evLabel[kind] || kind) + '</span></div>' +
+                '<span style="font-size:0.68rem;color:#94a3b8">' + esc(dt) + '</span>' +
+              '</div>' +
+              (ev.note ? '<div style="font-size:0.8rem;color:#1e293b;margin-top:0.28rem;white-space:pre-wrap">' + esc(ev.note) + '</div>' : '') +
+            '</div>' +
+          '</div>';
+        }).join("");
+      } catch (e) { console.warn("loadOtTimeline", e); }
+    }
+
+    async function otSendChatMessage() {
+      var otId = ($("otEditId") && $("otEditId").value) || "";
+      var inp = $("otChatInput");
+      var msg = ((inp && inp.value) || "").trim();
+      if (!msg) return toast("Tulis pesan tek-tok terlebih dahulu", true);
+      if (!otId) return toast("Simpan Order Trading dulu sebelum mengirim pesan", true);
+      await otAddEvent(otId, "chat", msg);
+      if (inp) inp.value = "";
+      await loadOtTimeline(otId);
+      toast("Pesan tek-tok terkirim");
     }
 
 function closeOtModal() {
@@ -27557,8 +28247,8 @@ function closeOtModal() {
       try { fillCustomerList(); } catch (e) {}
 
       if ($("otEditId")) $("otEditId").value = otId || "";
-      if ($("otModalTitle")) $("otModalTitle").textContent = otId ? "Detail Order Trading" : "Order Trading baru";
-      if ($("otModalSub")) $("otModalSub").textContent = otId ? "Edit data · lampiran · alur status" : "Isi customer & baris produk";
+      if ($("otModalTitle")) $("otModalTitle").textContent = otId ? "Order Trading" : "Order Trading Baru";
+      if ($("otModalSub")) $("otModalSub").textContent = otId ? "Form Odoo · status · lampiran · tek-tok" : "Isi customer, produk & upload lampiran awal";
       if ($("otModalStatusPill")) { $("otModalStatusPill").style.display = "none"; }
       if ($("otCustomer")) $("otCustomer").value = "";
       if ($("otNote")) $("otNote").value = "";
@@ -27567,20 +28257,37 @@ function closeOtModal() {
       if ($("otPoTradingNo")) $("otPoTradingNo").value = "";
       if ($("otNoSo")) $("otNoSo").value = "";
       if ($("otDpNote")) $("otDpNote").value = "";
-      if ($("otDpNote")) $("otDpNote").value = "";
+      if ($("otChatInput")) $("otChatInput").value = "";
+      if ($("otUploadStatus")) $("otUploadStatus").textContent = "";
       if ($("otLines")) $("otLines").innerHTML = "";
       if ($("otTimeline")) $("otTimeline").innerHTML = "";
+      setOtFormTab("lines");
 
       var statusBox = $("otStatusBox");
       var filesBox = $("otFilesBox");
+      var chatterBox = $("otChatterBox");
+      var ownerRow = $("otOwnerRow");
       var role = currentRole();
-      var canEdit = role === "marketing" || role === "admin";
+      var canMkt = role === "marketing" || role === "admin";
+      var canTrd = role === "trading" || role === "admin";
 
       if (!otId) {
-        if (statusBox) statusBox.style.display = "none";
-        if (filesBox) filesBox.style.display = "none";
+        if (statusBox) statusBox.style.display = canMkt ? "flex" : "none";
+        if (chatterBox) chatterBox.style.display = "none";
+        if (ownerRow) ownerRow.style.display = "none";
+        otRenderStatusPipeline({ status: "draft" });
+        otRenderTurnBanner(null);
+        if ($("otActionBtns")) {
+          $("otActionBtns").innerHTML = canMkt
+            ? '<button type="button" class="btn btn-odoo btn-sm" onclick="otSubmitNewAndSend()">Simpan &amp; Kirim ke Trading</button>'
+            : '<span style="font-size:0.78rem;color:var(--text-muted)">Draft Baru</span>';
+        }
+        otFillFileLinks({});
+        if (filesBox) filesBox.style.display = "block";
+        try { otSetupDropZone(); } catch (eZ0) {}
         otAddLine();
-        if ($("btnOtSave")) $("btnOtSave").style.display = canEdit ? "" : "none";
+        if ($("btnOtSave")) $("btnOtSave").style.display = canMkt ? "" : "none";
+        if ($("btnOtAddLine")) $("btnOtAddLine").style.display = canMkt ? "" : "none";
       } else {
         var row = otCache.find(function(r) { return r.ot_id === otId; });
         if (!row) {
@@ -27592,16 +28299,21 @@ function closeOtModal() {
           otCache.unshift(res.data);
           row = res.data;
         }
+        var effSt = otEffectiveStatus(row);
         if ($("otCustomer")) $("otCustomer").value = row.customer_name || "";
-        if ($("otNote")) $("otNote").value = row.note || "";
         if ($("otModalStatusPill")) {
           $("otModalStatusPill").style.display = "";
-          $("otModalStatusPill").className = otStatusClass(row.status);
-          $("otModalStatusPill").textContent = otStatusLabel(row.status);
+          $("otModalStatusPill").className = otStatusClass(effSt);
+          $("otModalStatusPill").textContent = otStatusLabel(effSt);
         }
         if ($("otModalSub")) $("otModalSub").textContent = (row.ot_id || "") + (row.customer_name ? " · " + row.customer_name : "");
+        if (ownerRow && $("otOwnerDisplay")) {
+          var creator = row.created_by || row.salesperson || "";
+          ownerRow.style.display = creator ? "" : "none";
+          $("otOwnerDisplay").innerHTML = creator ? odooPersonHtml(creator) : "";
+        }
         if ($("otSoTradingNo")) $("otSoTradingNo").value = row.so_trading_no || "";
-        if ($("otSoTradingNote")) $("otSoTradingNote").value = row.so_trading_note || "";
+        if ($("otSoTradingNote")) $("otSoTradingNote").value = String(row.so_trading_note || "").replace(/\s*\[REVISI:[^\]]*\]\s*/gi, "").trim();
         if ($("otPoTradingNo")) {
           var poV = row.po_trading_no || row.po_trading || "";
           if (!poV && row.note) {
@@ -27610,11 +28322,13 @@ function closeOtModal() {
           }
           $("otPoTradingNo").value = poV;
         }
-        if ($("otNote") && row.note) {
-          $("otNote").value = String(row.note).replace(/\s*\[PO_TRADING:[^\]]*\]\s*/g, "").trim();
+        if ($("otNote")) {
+          $("otNote").value = String(row.note || "")
+            .replace(/\s*\[PO_TRADING:[^\]]*\]\s*/g, "")
+            .replace(/\s*\[REVISI:[^\]]*\]\s*/gi, "")
+            .trim();
         }
         if ($("otNoSo")) $("otNoSo").value = row.no_so || "";
-        if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
         if ($("otDpNote")) $("otDpNote").value = row.dp_note || "";
 
         var lines = otLinesCache[otId] || [];
@@ -27628,14 +28342,20 @@ function closeOtModal() {
         } else {
           otAddLine();
         }
+        otUpdateTotalsFooter();
 
-        if (statusBox) statusBox.style.display = "block";
+        if (statusBox) statusBox.style.display = "flex";
         if (filesBox) filesBox.style.display = "block";
+        if (chatterBox) chatterBox.style.display = "block";
         try { otFillFileLinks(row); } catch (eF) {}
         try { otSetupDropZone(); } catch (eZ) {}
-        if ($("btnOtSave")) {
-          $("btnOtSave").style.display = (canEdit && (row.status === "draft" || row.status === "menunggu_so_trading")) ? "" : "none";
-        }
+        var editableByMkt = canMkt && ["draft", "revisi_marketing", "menunggu_so_trading", "so_siap", "so_dibagikan", "dp_diterima"].indexOf(effSt) >= 0;
+        var editableByTrd = canTrd && ["menunggu_so_trading", "so_siap"].indexOf(effSt) >= 0;
+        var canSaveAny = editableByMkt || editableByTrd;
+        if ($("btnOtSave")) $("btnOtSave").style.display = canSaveAny ? "" : "none";
+        if ($("btnOtAddLine")) $("btnOtAddLine").style.display = canSaveAny ? "" : "none";
+        try { otRenderStatusPipeline(row); } catch (eP) {}
+        try { otRenderTurnBanner(row); } catch (eB) {}
         try { renderOtActions(row); } catch (eA) {}
         try { await loadOtTimeline(otId); } catch (eT) {}
       }
@@ -27714,6 +28434,7 @@ function closeOtModal() {
       var box = $("otAttachList");
       if (!box) return;
       otSyncLegacyUrlsFromAttachments();
+      if ($("otAttachCountBadge")) $("otAttachCountBadge").textContent = String((otAttachments || []).length);
       if (!otAttachments || !otAttachments.length) {
         box.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted)">Belum ada lampiran</div>';
         return;
@@ -27900,10 +28621,14 @@ function closeOtModal() {
       return data;
     }
     async function otUploadMultiFiles() {
-      var otId = ($("otEditId") && $("otEditId").value) || "";
-      if (!otId) return toast("Simpan Order Trading dulu sebelum upload", true);
       var input = $("otMultiFiles");
       if (!input || !input.files || !input.files.length) return toast("Pilih file dulu", true);
+      var otId = ($("otEditId") && $("otEditId").value) || "";
+      if (!otId) {
+        // Auto-simpan draft OT terlebih dahulu agar bisa langsung upload file saat bikin OT baru
+        otId = await saveOrderTrading(true);
+        if (!otId) return;
+      }
       var files = Array.prototype.slice.call(input.files);
       var st = $("otUploadStatus");
       if (st) st.textContent = "Mengupload 0/" + files.length + "…";
@@ -28104,23 +28829,40 @@ function closeOtModal() {
       }
     }
 
-    async function saveOrderTrading() {
-
-      if (!sb) return;
+    async function saveOrderTrading(keepOpen) {
+      if (!sb) return null;
       const role = currentRole();
-      if (!(role === "marketing" || role === "admin")) return toast("Hanya Marketing yang membuat Order Trading", true);
+      if (!(role === "marketing" || role === "trading" || role === "admin")) {
+        toast("Hanya Marketing / Trading yang dapat menyimpan Order Trading", true);
+        return null;
+      }
       const customer = (($("otCustomer") && $("otCustomer").value) || "").trim();
-      if (!customer) return toast("Customer wajib", true);
+      if (!customer) {
+        toast("Customer wajib diisi", true);
+        return null;
+      }
       try { await ensureCustomerSaved(customer); } catch (eC) {}
       const lines = collectOtLines();
-      if (!lines.length) return toast("Minimal 1 produk + qty (isi produk & qty tiap baris)", true);
+      if (!lines.length) {
+        toast("Minimal 1 produk + qty (isi produk & qty tiap baris)", true);
+        return null;
+      }
       let otId = ($("otEditId") && $("otEditId").value) || "";
       const isNew = !otId;
+      if (isNew && role === "trading") {
+        toast("Order Trading baru dibuat oleh Marketing", true);
+        return null;
+      }
       if (!otId) otId = await newOtId();
+      var existingRow = !isNew ? (otCache.find(function(x) { return x.ot_id === otId; }) || null) : null;
       var poTrading = (($("otPoTradingNo") && $("otPoTradingNo").value) || "").trim();
       var noteBase = (($("otNote") && $("otNote").value) || "").trim();
       // bersihkan tag lama bila ada
-      noteBase = noteBase.replace(/\s*\[PO_TRADING:[^\]]*\]\s*/g, "").trim();
+      noteBase = noteBase.replace(/\s*\[PO_TRADING:[^\]]*\]\s*/g, "").replace(/\s*\[REVISI:[^\]]*\]\s*/gi, "").trim();
+      var revNoteExisting = existingRow ? otExtractRevisionNote(existingRow) : "";
+      if (revNoteExisting && existingRow && otEffectiveStatus(existingRow) === "revisi_marketing" && existingRow.status === "draft") {
+        noteBase = (noteBase ? noteBase + " " : "") + "[REVISI:" + revNoteExisting + "]";
+      }
       const payload = {
         ot_id: otId,
         customer_name: customer,
@@ -28153,7 +28895,6 @@ function closeOtModal() {
           }
           resHdr = await otUpsertHeader(pl2);
           if (resHdr.error) {
-            // coba nama kolom alternatif
             var pl3 = Object.assign({}, payload);
             delete pl3.po_trading_no;
             pl3.po_trading = poTrading || null;
@@ -28163,11 +28904,11 @@ function closeOtModal() {
               resHdr = await otUpsertHeader(pl3);
             }
           }
-          if (!resHdr.error && poTrading) {
-            toast("PO Trading disimpan (tambah kolom po_trading_no di Supabase agar permanen)", false);
-          }
         }
-        if (resHdr.error) return toast(resHdr.error.message, true);
+        if (resHdr.error) {
+          toast(resHdr.error.message, true);
+          return null;
+        }
       }
       if (isNew) {
         try { await otAddEvent(otId, "created", customer); } catch (e) {}
@@ -28195,57 +28936,75 @@ function closeOtModal() {
           } else ok++;
         } else ok++;
       }
-      if (!ok) return toast("Gagal simpan produk: " + (failMsg || "cek order_trading_lines"), true);
+      if (!ok) {
+        toast("Gagal simpan produk: " + (failMsg || "cek order_trading_lines"), true);
+        return null;
+      }
       otLinesCache[otId] = lines.map(function(l) {
         return { ot_id: otId, product_id: l.product_id, qty: l.qty, harga: l.harga, hpp: l.hpp, unit: l.unit };
       });
+      if ($("otEditId")) $("otEditId").value = otId;
+      if (keepOpen) {
+        await loadOrderTrading();
+        return otId;
+      }
       toast((isNew ? "OT dibuat: " + otId + " · " : "Tersimpan · ") + ok + " produk" + (ok < lines.length ? " (sebagian gagal)" : ""));
-      closeOtModal();
-      await loadOrderTrading();
+      if (isNew) {
+        await loadOrderTrading();
+        await openOtModal(otId);
+      } else {
+        closeOtModal();
+        await loadOrderTrading();
+      }
+      return otId;
     }
 
     function renderOtActions(row) {
       var box = $("otActionBtns") || $("otActions");
       if (!box || !row) return;
       var role = currentRole();
-      var st = row.status || "draft";
+      var st = otEffectiveStatus(row);
       var otId = row.ot_id;
       var btns = [];
       function add(label, act, cls) {
         btns.push('<button type="button" class="btn ' + (cls || "btn-ghost") + ' btn-sm ot-act-btn" data-ot-act="' + act + '" data-ot-id="' + esc(otId) + '">' + label + "</button>");
       }
       if (role === "marketing" || role === "admin") {
-        if (st === "draft") add("Kirim ke Trading", "otSubmitTrading", "btn-primary");
-        if (st === "so_siap") add("Tandai SO dibagikan", "otMarkShared", "btn-ghost");
-        if (st === "so_dibagikan" || st === "so_siap") add("DP diterima", "otMarkDp", "btn-primary");
+        if (st === "draft") add("Kirim ke Trading", "otSubmitTrading", "btn-odoo");
+        if (st === "revisi_marketing") add("Kirim Ulang ke Trading", "otSubmitTrading", "btn-odoo");
+        if (st === "so_siap") add("Tandai SO Dibagikan", "otMarkShared", "btn-odoo-teal");
+        if (st === "so_dibagikan" || st === "so_siap") add("DP Diterima", "otMarkDp", "btn-odoo");
         if (st === "dp_diterima" || st === "so_dibagikan") {
-          add("Terbit ke Produksi", "otPublishProduction", "btn-primary");
+          add("Terbit ke Produksi", "otPublishProduction", "btn-odoo");
         }
         if (st === "terbit_produksi" || st === "in_production" || st === "done" || row.order_id) {
-          btns.push('<span style="font-size:0.8rem;color:#059669;font-weight:600">Sudah di produksi' + (row.order_id ? " · " + esc(row.order_id) : "") + "</span>");
+          btns.push('<span class="odoo-pill locked">Sudah di Produksi' + (row.order_id ? " · " + esc(row.order_id) : "") + "</span>");
         }
         // Batal / hapus hanya sebelum terbit produksi
-        var preProd = ["draft", "menunggu_so_trading", "so_siap", "so_dibagikan", "dp_diterima"].indexOf(st) >= 0;
+        var preProd = ["draft", "revisi_marketing", "menunggu_so_trading", "so_siap", "so_dibagikan", "dp_diterima"].indexOf(st) >= 0;
         if (preProd) {
           add("Batalkan OT", "otCancel", "btn-ghost");
-          if (st === "draft" || st === "menunggu_so_trading") {
-            add("Hapus permanen", "otDelete", "btn-danger");
+          if (st === "draft" || st === "revisi_marketing" || st === "menunggu_so_trading") {
+            add("Hapus Permanen", "otDelete", "btn-danger");
           }
         }
         if (st === "cancelled") {
-          btns.push('<span style="font-size:0.8rem;color:#64748b">Status: Dibatalkan</span>');
-          add("Hapus permanen", "otDelete", "btn-danger");
+          btns.push('<span class="odoo-pill cancel">Dibatalkan</span>');
+          add("Hapus Permanen", "otDelete", "btn-danger");
         }
       }
       if (role === "trading" || role === "admin") {
-        if (st === "menunggu_so_trading" || st === "draft") {
-          add("SO Trading siap", "otMarkSoReady", "btn-primary");
+        if (st === "menunggu_so_trading" || st === "draft" || st === "revisi_marketing") {
+          add("SO Trading Siap", "otMarkSoReady", "btn-odoo");
+        }
+        if (st === "menunggu_so_trading") {
+          add("Kembalikan ke Marketing", "otReturnToMarketing", "btn-ghost");
         }
       }
       if (!btns.length) {
-        box.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Status: ' + esc(st) + " — tidak ada aksi</span>";
+        box.innerHTML = '<span style="font-size:0.78rem;color:var(--text-muted)">Status: ' + esc(otStatusLabel(st)) + "</span>";
       } else {
-        box.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center">' + btns.join("") + "</div>";
+        box.innerHTML = btns.join("");
         box.querySelectorAll(".ot-act-btn").forEach(function(btn) {
           btn.onclick = function(e) {
             e.preventDefault();
@@ -28254,7 +29013,7 @@ function closeOtModal() {
           };
         });
       }
-      if ($("otStatusBox")) $("otStatusBox").style.display = "block";
+      if ($("otStatusBox")) $("otStatusBox").style.display = "flex";
     }
 
     async function otRunAction(otId, act) {
@@ -28295,34 +29054,59 @@ function closeOtModal() {
         await loadOrderTrading();
         return;
       } else if (act === "otSubmitTrading") {
+        var savedSub = await saveOrderTrading(true);
+        if (!savedSub) return;
         patch.status = "menunggu_so_trading";
         patch.submitted_at = now;
+        patch.so_trading_note = (($("otSoTradingNote") && $("otSoTradingNote").value) || "").replace(/\s*\[REVISI:[^\]]*\]\s*/gi, "").trim() || null;
         event = "submitted_to_trading";
+        note = otEffectiveStatus(r0) === "revisi_marketing" ? "Dikirim ulang oleh Marketing setelah revisi" : "Dikirim ke Trading";
+      } else if (act === "otReturnToMarketing") {
+        var revReason = await appPrompt({
+          title: "Kembalikan ke Marketing (Minta Revisi)",
+          message: "Tuliskan alasan atau bagian yang perlu dicek/direvisi oleh Marketing:",
+          okText: "Kirim ke Marketing",
+          cancelText: "Batal",
+          defaultValue: ""
+        });
+        if (revReason == null) return;
+        revReason = String(revReason).trim();
+        if (!revReason) return toast("Alasan revisi wajib diisi", true);
+        patch.status = "revisi_marketing";
+        var curNote = (($("otSoTradingNote") && $("otSoTradingNote").value) || "").replace(/\s*\[REVISI:[^\]]*\]\s*/gi, "").trim();
+        patch.so_trading_note = (curNote ? curNote + " " : "") + "[REVISI: " + revReason + "]";
+        event = "revisi_marketing";
+        note = revReason;
       } else if (act === "otMarkSoReady") {
         const no = (($("otSoTradingNo") && $("otSoTradingNo").value) || "").trim();
         const nte = (($("otSoTradingNote") && $("otSoTradingNote").value) || "").trim();
         if (!no) return toast("Isi No SO Trading di header form dulu", true);
+        var savedTrd = await saveOrderTrading(true);
+        if (!savedTrd) return;
         patch.status = "so_siap";
         patch.so_trading_no = no;
-        patch.so_trading_note = nte;
+        patch.so_trading_note = nte.replace(/\s*\[REVISI:[^\]]*\]\s*/gi, "").trim();
         patch.so_ready_by = email;
         patch.so_ready_at = now;
         event = "so_ready";
-        note = no || nte;
+        note = "No SO Trading: " + no + (nte ? " · " + nte : "");
       } else if (act === "otMarkShared") {
         patch.status = "so_dibagikan";
         patch.shared_by = email;
         patch.shared_at = now;
         event = "so_shared";
+        note = "SO dibagikan ke customer";
       } else if (act === "otMarkDp") {
         patch.status = "dp_diterima";
         patch.dp_at = now;
         patch.dp_note = (($("otDpNote") && $("otDpNote").value) || "").trim();
         event = "dp_received";
-        note = patch.dp_note;
+        note = patch.dp_note || "DP diterima";
       } else if (act === "otPublishProduction") {
         const noSo = (($("otNoSo") && $("otNoSo").value) || "").trim();
         if (!noSo) return toast("Isi No SO Odoo di header form dulu", true);
+        var savedPub = await saveOrderTrading(true);
+        if (!savedPub) return;
         // create production order
         const { data: lines } = await sb.from("order_trading_lines").select("*").eq("ot_id", otId);
         if (!lines || !lines.length) return toast("Tidak ada baris produk", true);
@@ -28393,9 +29177,13 @@ function closeOtModal() {
 
       var { error } = await sb.from("order_trading").update(patch).eq("ot_id", otId);
       if (error) {
-        // fallback: buang kolom opsional yang belum ada di schema
+        // fallback: jika constraint status menolak 'revisi_marketing' atau kolom opsional tidak ada
         var msg = String(error.message || "");
-        if (/cancelled_at|cancelled_by|schema cache|could not find/i.test(msg)) {
+        if (patch.status === "revisi_marketing" && /check|constraint|status/i.test(msg)) {
+          patch.status = "draft";
+          var rFallback = await sb.from("order_trading").update(patch).eq("ot_id", otId);
+          if (rFallback.error) return toast(rFallback.error.message, true);
+        } else if (/cancelled_at|cancelled_by|schema cache|could not find/i.test(msg)) {
           delete patch.cancelled_at;
           delete patch.cancelled_by;
           var r2 = await sb.from("order_trading").update({ status: patch.status || "cancelled", updated_at: now }).eq("ot_id", otId);
@@ -28405,9 +29193,15 @@ function closeOtModal() {
         }
       }
       await otAddEvent(otId, event, note);
-      toast("Status diperbarui: " + otStatusLabel(patch.status || r0.status));
+      toast("Status diperbarui: " + otStatusLabel(patch.status === "draft" && event === "revisi_marketing" ? "revisi_marketing" : (patch.status || r0.status)));
       await loadOrderTrading();
       openOtModal(otId);
+    }
+
+    async function otSubmitNewAndSend() {
+      var newId = await saveOrderTrading(true);
+      if (!newId) return;
+      await otRunAction(newId, "otSubmitTrading");
     }
 
 
