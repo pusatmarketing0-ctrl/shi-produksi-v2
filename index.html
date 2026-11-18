@@ -5656,9 +5656,9 @@
               <button type="button" class="mod-tab" data-otq="queue_marketing" onclick="setOtQueueTab('queue_marketing')">Giliran Marketing<span class="odoo-tab-badge" id="otTabCntMarketing">0</span></button>
               <button type="button" class="mod-tab" data-otq="queue_trading" onclick="setOtQueueTab('queue_trading')">Antrian Trading<span class="odoo-tab-badge" id="otTabCntTrading">0</span></button>
               <button type="button" class="mod-tab" data-otq="queue_revisi" onclick="setOtQueueTab('queue_revisi')">Perlu Revisi<span class="odoo-tab-badge is-alert" id="otTabCntRevisi">0</span></button>
+              <button type="button" class="mod-tab" data-otq="all_active" onclick="setOtQueueTab('all_active')">Sedang Proses<span class="odoo-tab-badge" id="otTabCntActive">0</span></button>
               <button type="button" class="mod-tab" data-otq="queue_prod" onclick="setOtQueueTab('queue_prod')">Terbit Produksi<span class="odoo-tab-badge" id="otTabCntProd">0</span></button>
-              <button type="button" class="mod-tab active" data-otq="all_active" onclick="setOtQueueTab('all_active')">Semua Aktif<span class="odoo-tab-badge" id="otTabCntActive">0</span></button>
-              <button type="button" class="mod-tab" data-otq="all" onclick="setOtQueueTab('all')">Semua / Batal</button>
+              <button type="button" class="mod-tab active" data-otq="all" onclick="setOtQueueTab('all')">Semua Order<span class="odoo-tab-badge" id="otTabCntAll">0</span></button>
             </div>
           </div>
           <div class="ot-kpi-wrap" style="margin-bottom:0.9rem">
@@ -19129,16 +19129,37 @@ function fillOperatorList(selectedEmail) {
     var otRoleViewInitialized = false;
     function otInitRoleViewOnce() {
       if (otRoleViewInitialized) return;
+      var list = otCache || [];
+      // Tunggu sampai data termuat sebelum mengunci default tab agar bisa cek apakah antrian punya isi
+      if (!list.length) {
+        otQueueTabKey = "all";
+        otOwnerFilterVal = "all";
+        document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
+          b.classList.toggle("active", b.getAttribute("data-otq") === otQueueTabKey);
+        });
+        return;
+      }
       otRoleViewInitialized = true;
       var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      var myEmail = String((currentUser && currentUser.email) || "").toLowerCase();
+      var cntTrd = 0, cntAct = 0, cntMineAll = 0, cntMineMkt = 0;
+      list.forEach(function(r) {
+        var est = otEffectiveStatus(r);
+        var isMine = myEmail && String(r.created_by || r.salesperson || "").toLowerCase() === myEmail;
+        if (isMine) cntMineAll++;
+        if (est === "cancelled" || est === "terbit_produksi" || est === "done") return;
+        cntAct++;
+        if (est === "menunggu_so_trading") cntTrd++;
+        else if (isMine) cntMineMkt++;
+      });
       if (role === "trading") {
-        otQueueTabKey = "queue_trading";
+        otQueueTabKey = cntTrd > 0 ? "queue_trading" : "all";
         otOwnerFilterVal = "all";
       } else if (role === "marketing") {
-        otQueueTabKey = "queue_marketing";
-        otOwnerFilterVal = "mine";
+        otOwnerFilterVal = cntMineAll > 0 ? "mine" : "all";
+        otQueueTabKey = cntMineMkt > 0 ? "queue_marketing" : "all";
       } else {
-        otQueueTabKey = "all_active";
+        otQueueTabKey = cntAct > 0 ? "all_active" : "all";
         otOwnerFilterVal = "all";
       }
       document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
@@ -19147,7 +19168,7 @@ function fillOperatorList(selectedEmail) {
       if ($("otFilterOwner")) $("otFilterOwner").value = otOwnerFilterVal;
     }
     function setOtQueueTab(tabKey) {
-      otQueueTabKey = tabKey || "all_active";
+      otQueueTabKey = tabKey || "all";
       otRoleViewInitialized = true;
       document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
         b.classList.toggle("active", b.getAttribute("data-otq") === otQueueTabKey);
@@ -19176,17 +19197,20 @@ function fillOperatorList(selectedEmail) {
     }
     function setOtFacet(val, fromSelect) {
       val = val || "";
+      otRoleViewInitialized = true;
       if (!fromSelect && $("otFilterStatus")) $("otFilterStatus").value = val;
       document.querySelectorAll("#otFacetGroup .odoo-facet").forEach(function(b) {
         b.classList.toggle("active", (b.getAttribute("data-otst") || "") === val);
       });
       if (val) {
-        otQueueTabKey = "all_active";
-        otRoleViewInitialized = true;
-        document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
-          b.classList.toggle("active", (b.getAttribute("data-otq") || "") === "all_active");
-        });
+        otQueueTabKey = (val === "terbit_produksi") ? "queue_prod" : "all";
+      } else {
+        // Klik "Semua" di facet → pastikan menampilkan Semua Order agar tidak terjebak tab kosong
+        otQueueTabKey = "all";
       }
+      document.querySelectorAll("#otQueueTabs .mod-tab").forEach(function(b) {
+        b.classList.toggle("active", (b.getAttribute("data-otq") || "") === otQueueTabKey);
+      });
       renderOrderTrading();
     }
     function setSoFacet(val, fromSelect) {
@@ -27906,32 +27930,33 @@ var id = await newPickId();
       }
       if ($("otTabCntProd")) $("otTabCntProd").textContent = String(cntProd);
       if ($("otTabCntActive")) $("otTabCntActive").textContent = String(cntAct);
+      if ($("otTabCntAll")) $("otTabCntAll").textContent = String(baseRows.length);
 
       let rows = baseRows.slice();
-      // Filter berdasarkan Queue Tab aktif
-      var qTab = otQueueTabKey || "all_active";
-      if (qTab === "queue_trading") {
-        rows = rows.filter(function(r) { return otEffectiveStatus(r) === "menunggu_so_trading"; });
-      } else if (qTab === "queue_marketing") {
-        rows = rows.filter(function(r) {
-          var est = otEffectiveStatus(r);
-          return ["draft", "revisi_marketing", "so_siap", "so_dibagikan", "dp_diterima"].indexOf(est) >= 0;
-        });
-      } else if (qTab === "queue_revisi") {
-        rows = rows.filter(function(r) { return otEffectiveStatus(r) === "revisi_marketing"; });
-      } else if (qTab === "queue_prod") {
-        rows = rows.filter(function(r) {
-          var est = otEffectiveStatus(r);
-          return est === "terbit_produksi" || est === "done";
-        });
-      } else if (qTab === "all_active") {
-        rows = rows.filter(function(r) {
-          var est = otEffectiveStatus(r);
-          return est !== "cancelled" && est !== "terbit_produksi" && est !== "done";
-        });
-      }
-
-      if (stFilter) {
+      // Filter berdasarkan Queue Tab aktif (jika belum difilter status spesifik di facet)
+      var qTab = otQueueTabKey || "all";
+      if (!stFilter) {
+        if (qTab === "queue_trading") {
+          rows = rows.filter(function(r) { return otEffectiveStatus(r) === "menunggu_so_trading"; });
+        } else if (qTab === "queue_marketing") {
+          rows = rows.filter(function(r) {
+            var est = otEffectiveStatus(r);
+            return ["draft", "revisi_marketing", "so_siap", "so_dibagikan", "dp_diterima"].indexOf(est) >= 0;
+          });
+        } else if (qTab === "queue_revisi") {
+          rows = rows.filter(function(r) { return otEffectiveStatus(r) === "revisi_marketing"; });
+        } else if (qTab === "queue_prod") {
+          rows = rows.filter(function(r) {
+            var est = otEffectiveStatus(r);
+            return est === "terbit_produksi" || est === "done";
+          });
+        } else if (qTab === "all_active") {
+          rows = rows.filter(function(r) {
+            var est = otEffectiveStatus(r);
+            return est !== "cancelled" && est !== "terbit_produksi" && est !== "done";
+          });
+        }
+      } else {
         rows = rows.filter(function(r) { return otEffectiveStatus(r) === stFilter; });
       }
       if (q) {
