@@ -7597,6 +7597,26 @@
               </div>
             </div>
           </div>
+          <div id="doPendingShipBox" class="odoo-sheet" style="margin-bottom:0.85rem;border:1px solid #a7f3d0;background:#f0fdf4" hidden>
+            <div class="odoo-ctrl-bar" style="border-bottom:1px solid #d1fae5;background:#ecfdf5">
+              <div style="display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap">
+                <strong style="font-size:0.88rem;color:#065f46">Instruksi Kirim Masuk (Belum Jadi DO)</strong>
+                <span id="doPendingShipCount" class="pill" style="background:#059669;color:#fff;font-size:0.72rem;font-weight:700">0</span>
+                <span style="font-size:0.75rem;color:#047857">Instruksi status Kirim / Picked dari Marketing &amp; Gudang yang belum punya dokumen DO.</span>
+              </div>
+              <div class="odoo-ctrl-right">
+                <button type="button" class="btn-odoo" style="padding:0.35rem 0.8rem;font-size:0.78rem" onclick="syncAllPendingShipsToDo()">+ Masukkan Semua ke DO</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="odoo-list">
+                <thead><tr>
+                  <th>No. Instruksi</th><th>Tanggal</th><th>SO / Customer</th><th>Produk (FG)</th><th>Status Instruksi</th><th style="text-align:right">Aksi</th>
+                </tr></thead>
+                <tbody id="doPendingShipBody"></tbody>
+              </table>
+            </div>
+          </div>
           <div class="odoo-sheet">
             <div class="odoo-ctrl-bar">
               <div class="odoo-facet-group" id="doFacetGroup">
@@ -15499,7 +15519,7 @@ function fillOperatorList(selectedEmail) {
         if ((role === "marketing" || role === "admin") && r.status === "pending") {
           acts += '<button type="button" class="btn btn-primary btn-sm" onclick="confirmShipNow(\'' + r.ship_id + '\')">Kirim</button> ';
         }
-        if (forGudang || role === "gudang") {
+        if (forGudang || role === "gudang" || role === "admin") {
           if (r.status === "requested") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
           else if (r.status === "picked") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buka / Buat DO</button>';
         }
@@ -15571,8 +15591,9 @@ function fillOperatorList(selectedEmail) {
     }
     async function confirmShipNow(shipId) {
       if (!shipId) return;
-      if (!confirm("Kirim sekarang? Gudang akan melihat instruksi ini.")) return;
+      if (!confirm("Kirim sekarang? Gudang & Delivery Order akan menerima instruksi ini.")) return;
       await updateShipStatus(shipId, "requested");
+      try { await ensureDraftDoForShip(shipId, "draft"); } catch (eD) { console.warn(eD); }
       try { loadMktYesterdayFg(); } catch (e) {}
     }
     async function updateShipStatus(shipId, status) {
@@ -15586,12 +15607,20 @@ function fillOperatorList(selectedEmail) {
         updated_at: new Date().toISOString()
       }).eq("ship_id", shipId);
       if (error) return toast(error.message, true);
+      if (status === "cancelled") {
+        try {
+          await sb.from("deliveries")
+            .update({ status: "cancelled", updated_at: new Date().toISOString() })
+            .ilike("notes", "%" + shipId + "%")
+            .in("status", ["draft", "ready"]);
+        } catch (eC) {}
+      }
       var label = { pending: "Pending", requested: "Kirim", picked: "Diambil", shipped: "Terkirim", cancelled: "Batal" };
       toast("Status → " + (label[status] || status));
       loadShipRequests();
     }
 
-    /** Helper: cari DO non-cancelled yang sudah terhubung ke SHIP-xxx atau buat otomatis berstatus ready */
+    /** Helper: cari DO non-cancelled yang sudah terhubung ke SHIP-xxx */
     async function _findExistingDoForShip(shipId) {
       if (!sb || !shipId) return null;
       var cached = (deliveryList || []).find(function(d) {
@@ -15610,6 +15639,84 @@ function fillOperatorList(selectedEmail) {
       return null;
     }
 
+    /** Buat DO otomatis (draft saat instruksi dikirim, atau ready saat sudah picked) jika belum ada */
+    async function ensureDraftDoForShip(shipId, targetStatus) {
+      if (!sb || !shipId) return null;
+      targetStatus = targetStatus || "draft";
+      var existing = await _findExistingDoForShip(shipId);
+      if (existing && existing.delivery_id) {
+        if (targetStatus === "ready" && existing.status === "draft") {
+          try {
+            await sb.from("deliveries").update({
+              status: "ready",
+              updated_at: new Date().toISOString()
+            }).eq("delivery_id", existing.delivery_id);
+            existing.status = "ready";
+          } catch (eU) { console.warn(eU); }
+        }
+        return existing;
+      }
+      var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
+      if (!r) {
+        var { data } = await sb.from("ship_requests").select("*").eq("ship_id", shipId).maybeSingle();
+        r = data;
+      }
+      if (!r || r.status === "cancelled" || r.status === "pending") return null;
+      var { data: lines } = await sb.from("ship_request_lines").select("*").eq("ship_id", shipId);
+      lines = (lines && lines.length ? lines : (r.ship_request_lines || [])) || [];
+      var validLines = lines.filter(function(l) { return l && l.product_id && Number(l.qty) > 0; });
+      if (!validLines.length) return null;
+
+      var order = null;
+      try {
+        if (r.order_id) {
+          var { data: o1 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("order_id", r.order_id).maybeSingle();
+          order = o1;
+        }
+        if (!order && r.no_so) {
+          var { data: o2 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("no_so", r.no_so).limit(1).maybeSingle();
+          order = o2;
+        }
+      } catch (eO) {}
+
+      var do_id = await newDeliveryId();
+      var nowIso = new Date().toISOString();
+      var doHeader = {
+        delivery_id: do_id,
+        order_id: (order && order.order_id) || r.order_id || "",
+        no_so: (order && order.no_so) || r.no_so || "",
+        customer_name: (order && order.customer_name) || r.customer_name || "",
+        delivery_date: todayStr(),
+        status: targetStatus,
+        no_do_odoo: null,
+        notes: "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : ""),
+        created_by: (currentUser && currentUser.email) || "",
+        created_at: nowIso,
+        updated_at: nowIso
+      };
+      var { error: eDo } = await sb.from("deliveries").insert(doHeader);
+      if (eDo && /no_do_odoo|column/i.test(String(eDo.message || ""))) {
+        var doFallback = Object.assign({}, doHeader);
+        delete doFallback.no_do_odoo;
+        ({ error: eDo } = await sb.from("deliveries").insert(doFallback));
+      }
+      if (eDo) {
+        console.warn("ensureDraftDoForShip insert error:", eDo);
+        return null;
+      }
+      var doLinesPayload = validLines.map(function(l) {
+        return {
+          delivery_id: do_id,
+          product_id: l.product_id,
+          qty: Number(l.qty),
+          unit: l.unit || "pcs"
+        };
+      });
+      var { error: eDl } = await sb.from("delivery_lines").insert(doLinesPayload);
+      if (eDl) console.warn("ensureDraftDoForShip lines error:", eDl);
+      return doHeader;
+    }
+
     async function _openDeliveriesPageWithDo(doId, toastMsg) {
       window.__highlightDoId = doId || "";
       try { closeShipDetail(); } catch (e0) {}
@@ -15623,12 +15730,12 @@ function fillOperatorList(selectedEmail) {
       if (toastMsg) toast(toastMsg);
     }
 
-    /** Gudang: Konfirmasi Picked -> otomatis set picked + buat DO (ready) + langsung masuk ke menu Delivery Order (DO) */
+    /** Gudang: Konfirmasi Picked -> otomatis set picked + buat/upgrade DO (ready) + langsung masuk ke menu Delivery Order (DO) */
     async function confirmPickedToDo(shipId) {
       return await createDoFromShip(shipId, { fromPickedConfirm: true });
     }
 
-    /** Gudang: dari instruksi requested/picked -> otomatis buat DO (ready) tanpa form ganda & langsung masuk ke menu Delivery Order */
+    /** Gudang: dari instruksi requested/picked -> otomatis buat/upgrade DO (ready) & langsung masuk ke menu Delivery Order */
     async function createDoFromShip(shipId, opts) {
       opts = opts || {};
       if (!sb || !shipId) return;
@@ -15653,12 +15760,18 @@ function fillOperatorList(selectedEmail) {
           r.status = "picked";
         }
 
-        // Jika DO untuk instruksi ini sudah pernah dibuat, langsung buka menu Delivery Order tanpa buat ganda
+        // Jika DO sudah ada (mis. masih draft dari saat Instruksi Kirim dibuat), upgrade ke 'ready' & buka menu DO
         var existingDo = await _findExistingDoForShip(shipId);
         if (existingDo && existingDo.delivery_id) {
+          if (existingDo.status === "draft") {
+            await sb.from("deliveries").update({
+              status: "ready",
+              updated_at: new Date().toISOString()
+            }).eq("delivery_id", existingDo.delivery_id);
+          }
           await _openDeliveriesPageWithDo(
             existingDo.delivery_id,
-            "Picked dikonfirmasi · membuka DO " + existingDo.delivery_id + " di menu Delivery Order"
+            "Picked dikonfirmasi · DO " + existingDo.delivery_id + " siap kirim di menu Delivery Order"
           );
           return;
         }
@@ -16195,9 +16308,12 @@ function fillOperatorList(selectedEmail) {
       });
       var { error: e2 } = await sb.from("ship_request_lines").insert(lineRows);
       if (e2) return toast(e2.message, true);
-      toast("Instruksi kirim " + ship_id + " dikirim ke gudang");
+      // Langsung buatkan DO (draft) agar instruksi kirim langsung tampak di menu Delivery Order (DO)
+      try { await ensureDraftDoForShip(ship_id, "draft"); } catch (eDoNew) { console.warn(eDoNew); }
+      toast("Instruksi kirim " + ship_id + " dikirim ke gudang & masuk Delivery Order (draft)");
       closeShipRequestModal();
       try { loadShipRequests(); } catch (e) {}
+      try { loadDeliveries(); } catch (eDL) {}
       try { loadMktYesterdayFg(); } catch (eY) {}
       try { loadMktFgStock(); } catch (eS2) {}
       try { setMktTab("kirim"); } catch (e3) {}
@@ -19471,7 +19587,7 @@ function fillOperatorList(selectedEmail) {
       "page-purchasing": ["purchase_orders", "purchase_lines"],
       "page-gudang": ["purchase_orders", "purchase_lines", "ship_requests", "ship_request_lines"],
       "page-qc": ["purchase_lines"],
-      "page-delivery": ["ship_requests"],
+      "page-delivery": ["ship_requests", "ship_request_lines", "deliveries", "delivery_lines"],
       "page-marketing": ["ship_requests", "ship_request_lines", "fg_korlap_reports", "reports", "orders"],
       "page-wip": ["wip_stock"],
       "page-absences": ["absences"],
@@ -19578,7 +19694,7 @@ function fillOperatorList(selectedEmail) {
       }
       if (rtChannel) return;
       try {
-        var tables = ["plans", "reports", "hourly_reports", "purchase_orders", "purchase_lines", "wip_stock", "absences", "ship_requests", "ship_request_lines", "plan_revision_requests", "fg_korlap_reports", "orders"];
+        var tables = ["plans", "reports", "hourly_reports", "purchase_orders", "purchase_lines", "wip_stock", "absences", "ship_requests", "ship_request_lines", "deliveries", "delivery_lines", "plan_revision_requests", "fg_korlap_reports", "orders"];
         var ch = sb.channel("shi-live");
         tables.forEach(function(t) {
           ch = ch.on("postgres_changes", { event: "*", schema: "public", table: t }, function() {
@@ -19708,6 +19824,7 @@ function fillOperatorList(selectedEmail) {
       var m = $("deliveryModal");
       if (m) m.classList.remove("show");
     }
+    var pendingShipForDo = [];
     async function loadDeliveries() {
       if (!sb) return;
       var body = $("doBody");
@@ -19722,7 +19839,87 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       deliveryList = data || [];
+
+      // Cari instruksi kirim aktif (requested / picked) yang belum masuk ke tabel deliveries
+      pendingShipForDo = [];
+      try {
+        var linkedShips = {};
+        deliveryList.forEach(function(d) {
+          if (!d || d.status === "cancelled") return;
+          var matches = String(d.notes || "").match(/SHIP-[A-Z0-9]+/ig);
+          if (matches) matches.forEach(function(sid) { linkedShips[sid.toUpperCase()] = true; });
+        });
+        var { data: openShips } = await sb.from("ship_requests")
+          .select("*")
+          .in("status", ["requested", "picked"])
+          .order("created_at", { ascending: false })
+          .limit(100);
+        var unlinked = (openShips || []).filter(function(r) {
+          return r && r.ship_id && !linkedShips[String(r.ship_id).toUpperCase()];
+        });
+        if (unlinked.length) {
+          var sids = unlinked.map(function(r) { return r.ship_id; });
+          var { data: slines } = await sb.from("ship_request_lines").select("*").in("ship_id", sids.slice(0, 80));
+          var byShip = {};
+          (slines || []).forEach(function(l) {
+            if (!byShip[l.ship_id]) byShip[l.ship_id] = [];
+            byShip[l.ship_id].push(l);
+          });
+          unlinked.forEach(function(r) { r.ship_request_lines = byShip[r.ship_id] || []; });
+        }
+        pendingShipForDo = unlinked;
+      } catch (ePs) { console.warn("pendingShipForDo:", ePs); }
+
+      renderPendingShipsInDo();
       renderDeliveries();
+    }
+    function renderPendingShipsInDo() {
+      var box = $("doPendingShipBox");
+      var body = $("doPendingShipBody");
+      var cntEl = $("doPendingShipCount");
+      if (!box || !body) return;
+      var list = pendingShipForDo || [];
+      if (!list.length) {
+        box.hidden = true;
+        body.innerHTML = "";
+        return;
+      }
+      box.hidden = false;
+      if (cntEl) cntEl.textContent = String(list.length);
+      body.innerHTML = list.map(function(r) {
+        var linesHtml = (r.ship_request_lines || []).map(function(l) {
+          var name = productNameOnly(l.product_id) || "";
+          if (name.indexOf(l.product_id) === 0) name = name.replace(l.product_id, "").replace(/^[\s·\-]+/, "");
+          return "<div><strong>" + esc(l.product_id) + "</strong>" + (name ? " · " + esc(name) : "") + " <span style='color:#047857;font-weight:700'>" + formatNum(l.qty) + " " + esc(l.unit || "pcs") + "</span></div>";
+        }).join("") || "<span style='color:#94a3b8'>Belum ada baris produk</span>";
+        var soCust = (r.customer_name ? "<strong>" + esc(r.customer_name) + "</strong>" : "") +
+          (r.no_so ? "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(r.no_so) + "</div>" : "");
+        var actLabel = r.status === "picked" ? "Buat DO" : "Picked &amp; Buat DO";
+        return "<tr>" +
+          "<td><span class='odoo-num'>" + esc(r.ship_id) + "</span></td>" +
+          "<td>" + esc(String(r.request_date || "").slice(0, 10)) + "</td>" +
+          "<td>" + (soCust || "—") + "</td>" +
+          "<td style='font-size:0.78rem'>" + linesHtml + "</td>" +
+          "<td>" + shipStatusPill(r.status) + "</td>" +
+          "<td style='text-align:right;white-space:nowrap'>" +
+            "<button type='button' class='btn-odoo-teal' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='createDoFromShip(" + JSON.stringify(r.ship_id) + ")'>" + actLabel + "</button>" +
+          "</td></tr>";
+      }).join("");
+    }
+    async function syncAllPendingShipsToDo() {
+      if (!sb) return;
+      var list = (pendingShipForDo || []).slice();
+      if (!list.length) return toast("Semua instruksi kirim sudah masuk ke DO");
+      var ok = 0;
+      for (var i = 0; i < list.length; i++) {
+        var r = list[i];
+        var target = r.status === "picked" ? "ready" : "draft";
+        var created = await ensureDraftDoForShip(r.ship_id, target);
+        if (created && created.delivery_id) ok++;
+      }
+      toast(ok + " instruksi kirim dimasukkan ke Delivery Order");
+      await loadDeliveries();
+      try { loadSidebarBadges(true); } catch (eB) {}
     }
     var otQueueTabKey = "";
     var otOwnerFilterVal = "";
@@ -19850,7 +20047,7 @@ function fillOperatorList(selectedEmail) {
       var list = allDo.filter(function(d) {
         if (st && d.status !== st) return false;
         if (!q) return true;
-        return (d.delivery_id + " " + (d.no_so || "") + " " + (d.customer_name || "")).toLowerCase().indexOf(q) >= 0;
+        return (d.delivery_id + " " + (d.no_so || "") + " " + (d.customer_name || "") + " " + (d.no_do_odoo || "") + " " + (d.notes || "")).toLowerCase().indexOf(q) >= 0;
       });
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pengiriman</td></tr>';
