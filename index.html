@@ -5558,7 +5558,7 @@
         <button class="nav-item" data-page="order-trading" data-roles="admin,marketing,trading,ppic" data-tip="Order Trading"><span class="nav-ico"><svg viewBox="0 0 24 24"><path stroke="#0d9f6e" stroke-width="2" fill="none" d="M4 8h16M4 12h16M4 16h8"/><circle class="anim-spin" cx="18" cy="16" r="3" fill="#a7f3d0" stroke="#0d9f6e" stroke-width="1.5"/></svg></span><span class="nav-txt">Order Trading</span></button>
         <button class="nav-item" data-page="orders" data-roles="admin,ppic,marketing,korlap" data-tip="Sales Order (Odoo)"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#0ea5e9" d="M6 7h14l-1.6 9H7.6z"/><path stroke="#0ea5e9" stroke-width="1.6" fill="none" d="M6 7 5 4H2"/><circle cx="9" cy="19.5" r="1.4" fill="#0369a1"/><circle cx="17" cy="19.5" r="1.4" fill="#0369a1"/></svg></span><span class="nav-txt">Sales Order (Odoo)</span></button>
         <button class="nav-item" data-page="marketing" data-roles="admin,ppic,marketing,korlap" data-tip="Instruksi Kirim (FG)"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-pulse"><path fill="#f43f5e" d="M4 12.5v-2l12-4v10z"/><path fill="#fb7185" d="M7 13v3.5a2 2 0 0 0 2 2h1V13z"/></svg></span><span class="nav-txt">Instruksi Kirim (FG)</span></button>
-        <button class="nav-item" data-page="delivery" data-roles="admin,ppic,gudang,marketing" data-tip="Delivery Order (DO)" onclick="goPage('delivery')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#e11d48" d="M2 9h12v7H2z"/><path fill="#fb7185" d="M14 12h4l3 2.5V16h-7z"/><circle cx="6.5" cy="18.2" r="1.5" fill="#9f1239"/><circle cx="17.5" cy="18.2" r="1.5" fill="#9f1239"/><rect class="anim-load" x="5" y="11" width="5" height="3.5" rx="0.6" fill="#fde68a"/></svg></span><span class="nav-txt">Delivery Order (DO)</span></button>
+        <button class="nav-item" data-page="delivery" data-roles="admin,ppic,gudang,marketing,trading" data-tip="Delivery Order (DO)" onclick="goPage('delivery')"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#e11d48" d="M2 9h12v7H2z"/><path fill="#fb7185" d="M14 12h4l3 2.5V16h-7z"/><circle cx="6.5" cy="18.2" r="1.5" fill="#9f1239"/><circle cx="17.5" cy="18.2" r="1.5" fill="#9f1239"/><rect class="anim-load" x="5" y="11" width="5" height="3.5" rx="0.6" fill="#fde68a"/></svg></span><span class="nav-txt">Delivery Order (DO)</span></button>
 
         <div class="nav-label" data-nav-group="inventory">Pengadaan &amp; Gudang</div>
         <button class="nav-item" data-page="pr-ppic" data-roles="admin,ppic" data-tip="Permintaan Beli (PR)"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-pulse"><path fill="#059669" d="M7 4h10v16l-5-2.8L7 20z"/><path stroke="#fff" stroke-width="1.8" d="M12 8.5v5M9.5 11h5"/></svg></span><span class="nav-txt">Permintaan Beli (PR)</span></button>
@@ -7547,7 +7547,7 @@
                   <span>Sales</span><span>/</span><span>Logistics</span><span>/</span><strong>Delivery Orders (DO)</strong>
                 </div>
                 <h1 class="odoo-inv-title">Delivery Order (DO)</h1>
-                <p class="odoo-inv-sub">Pengiriman finish good ke customer akhir — menutup alur produksi &amp; gudang.</p>
+                <p class="odoo-inv-sub">Alur 1 pintu: Instruksi Marketing → Gudang Siapkan &amp; DO Odoo → PDF Invoice Trading → Kirim → Resi / Sampai.</p>
               </div>
               <div class="odoo-inv-actions">
                 <button class="btn btn-ghost btn-sm" type="button" onclick="loadDeliveries()">Refresh</button>
@@ -7555,45 +7555,55 @@
               </div>
             </div>
           </div>
-          <div class="odoo-inv-overview">
-            <div class="odoo-op-card op-emerald is-click" onclick="setDoFacet('')">
+          <div class="odoo-inv-overview cols-5">
+            <div class="odoo-op-card op-amber is-click" data-docard="perlu_gudang" onclick="setDoFacet('perlu_gudang')">
               <div class="odoo-op-head">
-                <div><h3 class="odoo-op-title">Total DO</h3><div class="odoo-op-sub">Seluruh dokumen pengiriman</div></div>
-                <span class="odoo-pill invoice-full">All</span>
+                <div><h3 class="odoo-op-title" style="color:#b45309">1. Perlu Gudang</h3><div class="odoo-op-sub">Siapkan paket &amp; isi DO Odoo</div></div>
+                <span class="odoo-pill progress">Gudang</span>
               </div>
               <div class="odoo-op-body">
-                <div class="odoo-op-val" id="doOvTotal">—</div>
-                <div class="odoo-op-stats">Tampilkan semua</div>
+                <div class="odoo-op-val" id="doOvGudang">—</div>
+                <div class="odoo-op-stats" id="doOvGudangSub">Bisa validasi atau tolak kapasitas</div>
               </div>
             </div>
-            <div class="odoo-op-card op-amber is-click" onclick="setDoFacet('ready')">
+            <div class="odoo-op-card op-rose is-click" data-docard="butuh_invoice" onclick="setDoFacet('butuh_invoice')">
               <div class="odoo-op-head">
-                <div><h3 class="odoo-op-title" style="color:#b45309">Siap Kirim (Ready)</h3><div class="odoo-op-sub" id="doOvDraftSub">Menunggu kirim ke customer</div></div>
-                <span class="odoo-pill progress">Ready</span>
+                <div><h3 class="odoo-op-title" style="color:#be123c">2. Menunggu Invoice</h3><div class="odoo-op-sub">Admin Trading kirim PDF Inv</div></div>
+                <span class="odoo-pill cancel">Trading</span>
+              </div>
+              <div class="odoo-op-body">
+                <div class="odoo-op-val" id="doOvInvoice">—</div>
+                <div class="odoo-op-stats">DO Odoo sudah terisi</div>
+              </div>
+            </div>
+            <div class="odoo-op-card op-emerald is-click" data-docard="siap_berangkat" onclick="setDoFacet('siap_berangkat')">
+              <div class="odoo-op-head">
+                <div><h3 class="odoo-op-title">3. Siap Berangkat</h3><div class="odoo-op-sub">PDF Invoice siap dicetak</div></div>
+                <span class="odoo-pill invoice-full">Ready</span>
               </div>
               <div class="odoo-op-body">
                 <div class="odoo-op-val" id="doOvReady">—</div>
-                <div class="odoo-op-stats">Filter siap kirim</div>
+                <div class="odoo-op-stats">Cetak invoice &amp; berangkat</div>
               </div>
             </div>
-            <div class="odoo-op-card op-blue is-click" onclick="setDoFacet('shipped')">
+            <div class="odoo-op-card op-blue is-click" data-docard="dikirim" onclick="setDoFacet('dikirim')">
               <div class="odoo-op-head">
-                <div><h3 class="odoo-op-title" style="color:#0369a1">Dalam Pengiriman</h3><div class="odoo-op-sub">Status shipped</div></div>
-                <span class="odoo-pill quotation">Shipped</span>
+                <div><h3 class="odoo-op-title" style="color:#0369a1">4. Dalam Pengiriman</h3><div class="odoo-op-sub">Tunggu Resi / Sampai</div></div>
+                <span class="odoo-pill quotation">Dikirim</span>
               </div>
               <div class="odoo-op-body">
                 <div class="odoo-op-val" id="doOvShipped">—</div>
-                <div class="odoo-op-stats">Filter shipped</div>
+                <div class="odoo-op-stats" id="doOvEmergSub">Ekspedisi &amp; armada sendiri</div>
               </div>
             </div>
-            <div class="odoo-op-card op-teal is-click" onclick="setDoFacet('delivered')">
+            <div class="odoo-op-card op-teal is-click" data-docard="selesai" onclick="setDoFacet('selesai')">
               <div class="odoo-op-head">
-                <div><h3 class="odoo-op-title" style="color:#0f766e">Terkirim (Delivered)</h3><div class="odoo-op-sub">Diterima customer</div></div>
+                <div><h3 class="odoo-op-title" style="color:#0f766e">5. Selesai / Ditolak</h3><div class="odoo-op-sub">Diterima &amp; arsip kirim</div></div>
                 <span class="odoo-pill locked">Done</span>
               </div>
               <div class="odoo-op-body">
                 <div class="odoo-op-val" id="doOvDone">—</div>
-                <div class="odoo-op-stats">Filter delivered</div>
+                <div class="odoo-op-stats" id="doOvRejectSub">Total DO: —</div>
               </div>
             </div>
           </div>
@@ -7602,7 +7612,7 @@
               <div style="display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap">
                 <strong style="font-size:0.88rem;color:#065f46">Instruksi Kirim Masuk (Belum Jadi DO)</strong>
                 <span id="doPendingShipCount" class="pill" style="background:#059669;color:#fff;font-size:0.72rem;font-weight:700">0</span>
-                <span style="font-size:0.75rem;color:#047857">Instruksi status Kirim / Picked dari Marketing &amp; Gudang yang belum punya dokumen DO.</span>
+                <span style="font-size:0.75rem;color:#047857">Instruksi Marketing yang belum punya dokumen DO di bawah.</span>
               </div>
               <div class="odoo-ctrl-right">
                 <button type="button" class="btn-odoo" style="padding:0.35rem 0.8rem;font-size:0.78rem" onclick="syncAllPendingShipsToDo()">+ Masukkan Semua ke DO</button>
@@ -7621,27 +7631,31 @@
             <div class="odoo-ctrl-bar">
               <div class="odoo-facet-group" id="doFacetGroup">
                 <button type="button" class="odoo-facet active" data-dost="" onclick="setDoFacet('')">Semua</button>
-                <button type="button" class="odoo-facet" data-dost="draft" onclick="setDoFacet('draft')">Draft</button>
-                <button type="button" class="odoo-facet" data-dost="ready" onclick="setDoFacet('ready')">Ready</button>
-                <button type="button" class="odoo-facet" data-dost="shipped" onclick="setDoFacet('shipped')">Shipped</button>
-                <button type="button" class="odoo-facet" data-dost="delivered" onclick="setDoFacet('delivered')">Delivered</button>
+                <button type="button" class="odoo-facet" data-dost="perlu_gudang" onclick="setDoFacet('perlu_gudang')">Perlu Gudang</button>
+                <button type="button" class="odoo-facet" data-dost="butuh_invoice" onclick="setDoFacet('butuh_invoice')">Menunggu Invoice</button>
+                <button type="button" class="odoo-facet" data-dost="siap_berangkat" onclick="setDoFacet('siap_berangkat')">Siap Berangkat</button>
+                <button type="button" class="odoo-facet" data-dost="dikirim" onclick="setDoFacet('dikirim')">Dikirim</button>
+                <button type="button" class="odoo-facet" data-dost="selesai" onclick="setDoFacet('selesai')">Selesai</button>
+                <button type="button" class="odoo-facet" data-dost="ditolak" onclick="setDoFacet('ditolak')">Ditolak Gudang</button>
               </div>
               <div class="odoo-ctrl-right">
                 <select id="doStatusFilter" class="odoo-select-inp" onchange="setDoFacet(this.value, true)">
-                  <option value="">Semua status</option>
-                  <option value="draft">draft</option>
-                  <option value="ready">ready</option>
-                  <option value="shipped">shipped</option>
-                  <option value="delivered">delivered</option>
-                  <option value="cancelled">cancelled</option>
+                  <option value="">Semua tahap</option>
+                  <option value="perlu_gudang">1. Perlu Gudang</option>
+                  <option value="butuh_invoice">2. Menunggu Invoice</option>
+                  <option value="siap_berangkat">3. Siap Berangkat</option>
+                  <option value="dikirim">4. Dalam Pengiriman</option>
+                  <option value="selesai">5. Selesai</option>
+                  <option value="ditolak">Ditolak Gudang</option>
+                  <option value="batal">Dibatalkan</option>
                 </select>
-                <input type="search" id="doSearch" class="odoo-search-inp" placeholder="Cari DO / SO / customer..." oninput="renderDeliveries()" />
+                <input type="search" id="doSearch" class="odoo-search-inp" placeholder="Cari DO / Odoo / SO / customer / resi..." oninput="renderDeliveries()" />
               </div>
             </div>
             <div class="table-wrap">
               <table class="odoo-list">
                 <thead><tr>
-                  <th>DO Reference</th><th>Tanggal</th><th>SO Reference</th><th>Customer</th><th>Status</th><th></th>
+                  <th>DO &amp; Instruksi</th><th>Tanggal</th><th>Customer / SO</th><th>DO Odoo &amp; Invoice</th><th>Pengiriman &amp; Tahap</th><th style="text-align:right">Aksi</th>
                 </tr></thead>
                 <tbody id="doBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
               </table>
@@ -15514,14 +15528,18 @@ function fillOperatorList(selectedEmail) {
       });
       function rowHtml(r, forGudang) {
         var n = (r.ship_request_lines || []).length;
+        var rejectM = String(r.notes || "").match(/\[REJECT_GUDANG:([^\]]*)\]/);
+        var isRej = r.status === "pending" && !!rejectM;
         var acts = "";
         acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\')">Detail</button> ';
-        if ((role === "marketing" || role === "admin") && r.status === "pending") {
+        if ((role === "marketing" || role === "admin") && isRej) {
+          acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openDoResubmitByShip(\'' + r.ship_id + '\')">Ajukan Ulang</button> ';
+        } else if ((role === "marketing" || role === "admin") && r.status === "pending") {
           acts += '<button type="button" class="btn btn-primary btn-sm" onclick="confirmShipNow(\'' + r.ship_id + '\')">Kirim</button> ';
         }
         if (forGudang || role === "gudang" || role === "admin") {
-          if (r.status === "requested") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
-          else if (r.status === "picked") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buka / Buat DO</button>';
+          if (r.status === "requested") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Siapkan &amp; DO</button> ';
+          else if (r.status === "picked") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buka DO</button>';
         }
         if ((role === "marketing" || role === "admin") && (r.status === "requested" || r.status === "pending")) {
           acts += ' <button type="button" class="btn btn-ghost btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'cancelled\')">Batal</button>';
@@ -15539,12 +15557,16 @@ function fillOperatorList(selectedEmail) {
           : (so ? "<strong>" + esc(so) + "</strong>" : "<span style='color:#94a3b8'>—</span>");
         var fromYest = String(r.request_date || "").slice(0, 10) === yest || /output|kemarin|pending marketing/i.test(String(r.notes || ""));
         var badge = fromYest ? ' <span class="pill" style="background:#ecfdf5;color:#047857;font-size:0.62rem">dari output kemarin</span>' : "";
-        var note = (r.notes || "").trim();
+        var note = String(r.notes || "").replace(/\[[A-Z0-9_]+:[^\]]*\]/g, "").replace(/\s{2,}/g, " ").trim();
+        var statusCell = isRej
+          ? '<span class="pill" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5">Ditolak Gudang</span>' +
+            (rejectM[1] ? '<div style="font-size:0.7rem;color:#b91c1c;margin-top:0.2rem">' + esc(rejectM[1]) + "</div>" : "")
+          : shipStatusPill(r.status);
         return "<tr>" +
           "<td><strong>" + esc(r.ship_id) + "</strong>" + badge + "</td>" +
           "<td>" + esc(String(r.request_date || "").slice(0, 10)) + "</td>" +
           "<td>" + custHtml + "</td>" +
-          "<td>" + shipStatusPill(r.status) + "</td>" +
+          "<td>" + statusCell + "</td>" +
           "<td style='font-size:0.78rem;min-width:14rem'>" + (lines || (n ? n + " item" : "<span style='color:#b91c1c'>Belum ada baris produk</span>")) + "</td>" +
           "<td style='font-size:0.74rem;color:var(--text-muted);max-width:10rem'>" + (note ? esc(note) : "—") + "</td>" +
           "<td style='white-space:nowrap'>" + acts + "</td></tr>";
@@ -15760,19 +15782,16 @@ function fillOperatorList(selectedEmail) {
           r.status = "picked";
         }
 
-        // Jika DO sudah ada (mis. masih draft dari saat Instruksi Kirim dibuat), upgrade ke 'ready' & buka menu DO
+        // Jika DO sudah ada -> buka menu DO (bila masih draft & belum punya No. DO Odoo, langsung buka modal isi DO Odoo!)
         var existingDo = await _findExistingDoForShip(shipId);
         if (existingDo && existingDo.delivery_id) {
-          if (existingDo.status === "draft") {
-            await sb.from("deliveries").update({
-              status: "ready",
-              updated_at: new Date().toISOString()
-            }).eq("delivery_id", existingDo.delivery_id);
-          }
           await _openDeliveriesPageWithDo(
             existingDo.delivery_id,
-            "Picked dikonfirmasi · DO " + existingDo.delivery_id + " siap kirim di menu Delivery Order"
+            "Membuka " + existingDo.delivery_id + " di Delivery Order"
           );
+          if (opts.fromPickedConfirm && !String(existingDo.no_do_odoo || "").trim() && typeof openDoStageModal === "function") {
+            setTimeout(function() { openDoStageModal(existingDo.delivery_id, "odoo"); }, 120);
+          }
           return;
         }
 
@@ -15796,7 +15815,6 @@ function fillOperatorList(selectedEmail) {
         var wantNoSo = (order && order.no_so) || r.no_so || "";
         var wantCust = (order && order.customer_name) || r.customer_name || "";
 
-        // Jika baris produk ada, langsung auto-create DO berstatus 'ready' & pindah ke menu Delivery Order
         var validLines = lines.filter(function(l) { return l && l.product_id && Number(l.qty) > 0; });
         if (validLines.length) {
           var do_id = await newDeliveryId();
@@ -15806,8 +15824,8 @@ function fillOperatorList(selectedEmail) {
             order_id: wantOrderId,
             no_so: wantNoSo,
             customer_name: wantCust,
-            delivery_date: todayStr(),
-            status: "ready",
+            delivery_date: r.request_date || todayStr(),
+            status: "draft",
             no_do_odoo: null,
             notes: "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : ""),
             created_by: (currentUser && currentUser.email) || "",
@@ -15833,8 +15851,11 @@ function fillOperatorList(selectedEmail) {
             if (!eDl) {
               await _openDeliveriesPageWithDo(
                 do_id,
-                "Picked → DO " + do_id + " siap di menu Delivery Order · klik Kirim & isi No. DO Odoo 1x saat kirim"
+                "DO " + do_id + " dibuat — masukkan No. DO Odoo untuk lanjut ke Admin Trading"
               );
+              if (opts.fromPickedConfirm && typeof openDoStageModal === "function") {
+                setTimeout(function() { openDoStageModal(do_id, "odoo"); }, 120);
+              }
               return;
             }
           }
@@ -20018,11 +20039,73 @@ function fillOperatorList(selectedEmail) {
       });
       renderOrders();
     }
+    function doParseTags(notes) {
+      var s = String(notes || "");
+      function pick(key) {
+        var m = s.match(new RegExp("\\[" + key + ":([^\\]]*)\\]"));
+        return m ? String(m[1] || "").trim() : "";
+      }
+      var clean = s
+        .replace(/\[[A-Z0-9_]+:[^\]]*\]/g, "")
+        .replace(/\s*·\s*·\s*/g, " · ")
+        .replace(/^\s*·\s*|\s*·\s*$/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      var doOdooNote = "";
+      var mO = s.match(/DO Odoo:\s*([^\s·\[]+)/i);
+      if (mO) doOdooNote = mO[1];
+      return {
+        reject: pick("REJECT"),
+        rejectDate: pick("REJECT_DATE"),
+        invUrl: pick("INV_URL"),
+        invName: pick("INV_NAME"),
+        invNo: pick("INV_NO"),
+        invAt: pick("INV_AT"),
+        invBy: pick("INV_BY"),
+        method: pick("METHOD"),
+        courier: pick("COURIER"),
+        resi: pick("RESI"),
+        recv: pick("RECV"),
+        deliveredAt: pick("DELIVERED_AT"),
+        emergency: pick("EMERGENCY"),
+        resubmit: pick("RESUBMIT"),
+        doOdooNote: doOdooNote,
+        cleanNotes: clean
+      };
+    }
+    function doWriteTags(notes, updates) {
+      var s = String(notes || "");
+      Object.keys(updates || {}).forEach(function(key) {
+        var re = new RegExp("\\s*\\[" + key + ":[^\\]]*\\]", "g");
+        s = s.replace(re, "");
+        var val = updates[key];
+        if (val != null && String(val).trim() !== "") {
+          var safe = String(val).replace(/[\[\]]/g, "").trim();
+          s = (s ? s.trim() + " " : "") + "[" + key + ":" + safe + "]";
+        }
+      });
+      return s.trim();
+    }
+    function doGetStage(d) {
+      if (!d) return "perlu_gudang";
+      var st = String(d.status || "draft").toLowerCase();
+      var meta = doParseTags(d.notes);
+      var odoo = String(d.no_do_odoo || meta.doOdooNote || "").trim();
+      if (st === "cancelled") return meta.reject ? "ditolak" : "batal";
+      if (st === "delivered") return "selesai";
+      if (st === "shipped") return "dikirim";
+      if (st === "draft" || !odoo) return "perlu_gudang";
+      if (!meta.invUrl) return "butuh_invoice";
+      return "siap_berangkat";
+    }
     function setDoFacet(val, fromSelect) {
       val = val || "";
       if (!fromSelect && $("doStatusFilter")) $("doStatusFilter").value = val;
       document.querySelectorAll("#doFacetGroup .odoo-facet").forEach(function(b) {
         b.classList.toggle("active", (b.getAttribute("data-dost") || "") === val);
+      });
+      document.querySelectorAll("#page-delivery .odoo-op-card[data-docard]").forEach(function(c) {
+        c.classList.toggle("active", !!val && c.getAttribute("data-docard") === val);
       });
       renderDeliveries();
     }
@@ -20030,54 +20113,151 @@ function fillOperatorList(selectedEmail) {
       var body = $("doBody");
       if (!body) return;
       var allDo = deliveryList || [];
-      var dDraft = 0, dReady = 0, dShip = 0, dDone = 0;
+      var cnt = { perlu_gudang: 0, butuh_invoice: 0, siap_berangkat: 0, dikirim: 0, selesai: 0, ditolak: 0, batal: 0, emergency: 0 };
       allDo.forEach(function(d) {
-        var s = String(d.status || "").toLowerCase();
-        if (s === "draft") dDraft++;
-        else if (s === "ready") dReady++;
-        else if (s === "shipped") dShip++;
-        else if (s === "delivered") dDone++;
+        var stg = doGetStage(d);
+        if (cnt[stg] != null) cnt[stg]++;
+        var meta = doParseTags(d.notes);
+        if (stg === "dikirim" && meta.emergency && !meta.invUrl) cnt.emergency++;
       });
-      if ($("doOvTotal")) $("doOvTotal").textContent = formatNum(allDo.length);
-      if ($("doOvReady")) $("doOvReady").textContent = formatNum(dReady);
-      if ($("doOvDraftSub")) $("doOvDraftSub").textContent = dDraft > 0 ? (formatNum(dDraft) + " masih draft (perlu Set Ready)") : "Menunggu kirim ke customer";
-      if ($("doOvShipped")) $("doOvShipped").textContent = formatNum(dShip);
-      if ($("doOvDone")) $("doOvDone").textContent = formatNum(dDone);
+      if ($("doOvGudang")) $("doOvGudang").textContent = formatNum(cnt.perlu_gudang);
+      if ($("doOvInvoice")) $("doOvInvoice").textContent = formatNum(cnt.butuh_invoice);
+      if ($("doOvReady")) $("doOvReady").textContent = formatNum(cnt.siap_berangkat);
+      if ($("doOvShipped")) $("doOvShipped").textContent = formatNum(cnt.dikirim);
+      if ($("doOvDone")) $("doOvDone").textContent = formatNum(cnt.selesai);
+      if ($("doOvEmergSub")) {
+        $("doOvEmergSub").textContent = cnt.emergency > 0
+          ? (formatNum(cnt.emergency) + " kirim darurat (inv. menyusul)")
+          : "Ekspedisi & armada sendiri";
+      }
+      if ($("doOvRejectSub")) {
+        $("doOvRejectSub").textContent = cnt.ditolak > 0
+          ? (formatNum(cnt.ditolak) + " ditolak gudang · total " + formatNum(allDo.length))
+          : ("Total DO: " + formatNum(allDo.length));
+      }
 
       var q = (($("doSearch") && $("doSearch").value) || "").toLowerCase().trim();
       var st = ($("doStatusFilter") && $("doStatusFilter").value) || "";
       var list = allDo.filter(function(d) {
-        if (st && d.status !== st) return false;
+        if (st && doGetStage(d) !== st) return false;
         if (!q) return true;
         return (d.delivery_id + " " + (d.no_so || "") + " " + (d.customer_name || "") + " " + (d.no_do_odoo || "") + " " + (d.notes || "")).toLowerCase().indexOf(q) >= 0;
       });
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pengiriman</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pengiriman pada tahap ini</td></tr>';
         pageOf("do", [], "doPager");
         return;
       }
+      var role = (typeof currentRole === "function") ? currentRole() : "";
+      var isGudang = role === "gudang" || role === "admin";
+      var isTrading = role === "trading" || role === "admin";
+      var isMkt = role === "marketing" || role === "admin" || role === "ppic";
+
       var pageList = pageOf("do", list, "doPager");
       var hlId = window.__highlightDoId || "";
       body.innerHTML = pageList.map(function(d) {
-        var acts = "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
-        if (d.status === "draft") {
-          acts += " <button type='button' class='btn btn-primary btn-sm' style='padding:0.25rem 0.6rem;font-size:0.75rem' onclick='markDoReady(" + JSON.stringify(d.delivery_id) + ")'>Set Ready</button>";
-        } else if (d.status === "ready") {
-          acts += " <button type='button' class='btn-odoo-teal' style='padding:0.25rem 0.6rem;font-size:0.75rem' onclick='openShipDoModal(" + JSON.stringify(d.delivery_id) + ")'>Kirim</button>";
-        }
-        var odoo = d.no_do_odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(d.no_do_odoo) + "</div>" : "";
+        var meta = doParseTags(d.notes);
+        var stg = doGetStage(d);
+        var odoo = String(d.no_do_odoo || meta.doOdooNote || "").trim();
         var shipMatch = String(d.notes || "").match(/SHIP-[A-Z0-9]+/i);
-        var shipBadge = shipMatch ? '<div style="font-size:0.68rem;color:#047857;font-weight:600">' + esc(shipMatch[0]) + "</div>" : "";
-        var stLo = String(d.status || "").toLowerCase();
-        var pillCls = stLo === "delivered" ? "locked" : (stLo === "shipped" ? "quotation" : (stLo === "cancelled" ? "cancel" : (stLo === "ready" ? "progress" : "done")));
+        var shipBadge = shipMatch ? '<div style="font-size:0.68rem;color:#047857;font-weight:700">' + esc(shipMatch[0]) + "</div>" : "";
+        var cleanNote = meta.cleanNotes ? meta.cleanNotes.replace(/^Dari instruksi SHIP-[A-Z0-9]+\s*·?\s*/i, "").trim() : "";
+        var noteHtml = cleanNote ? '<div style="font-size:0.68rem;color:var(--text-muted);max-width:13rem;white-space:normal">' + esc(cleanNote) + "</div>" : "";
+
+        // Kolom 4: DO Odoo & PDF Invoice
+        var odooLine = odoo
+          ? '<div style="font-weight:700;font-size:0.78rem;color:#0f172a">Odoo: ' + esc(odoo) + "</div>"
+          : '<div style="font-size:0.74rem;color:#94a3b8">Belum validasi DO Odoo</div>';
+        var invLine = "";
+        if (meta.invUrl) {
+          invLine = '<div style="margin-top:0.2rem;display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap">' +
+            '<a href="' + esc(meta.invUrl) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;font-weight:700;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;padding:0.15rem 0.45rem;border-radius:6px;text-decoration:none">📄 ' +
+            esc(meta.invNo ? ("Inv " + meta.invNo) : "Lihat / Cetak PDF") + "</a></div>";
+        } else if (meta.emergency) {
+          invLine = '<div style="margin-top:0.2rem"><span class="pill" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;font-size:0.66rem">⚠ Darurat · Inv. menyusul</span></div>';
+        } else if (odoo && stg === "butuh_invoice") {
+          invLine = '<div style="margin-top:0.2rem;font-size:0.72rem;color:#be123c;font-weight:600">⏳ Tunggu PDF Trading</div>';
+        }
+
+        // Kolom 5: Tahap & Detail pengiriman
+        var stgMeta = {
+          perlu_gudang: { label: "1. Perlu Gudang", cls: "progress" },
+          butuh_invoice: { label: "2. Tunggu Invoice", cls: "cancel" },
+          siap_berangkat: { label: "3. Siap Berangkat", cls: "done" },
+          dikirim: { label: "4. Dalam Pengiriman", cls: "quotation" },
+          selesai: { label: "5. Selesai Terkirim", cls: "locked" },
+          ditolak: { label: "Ditolak Gudang", cls: "cancel" },
+          batal: { label: "Dibatalkan", cls: "cancel" }
+        }[stg] || { label: stg, cls: "done" };
+        var detailLines = [];
+        if (stg === "ditolak" && meta.reject) {
+          detailLines.push('<div style="font-size:0.72rem;color:#b91c1c;margin-top:0.2rem;white-space:normal">Alasan: ' + esc(meta.reject) + (meta.rejectDate ? " · Saran: " + esc(meta.rejectDate) : "") + "</div>");
+        }
+        if (meta.method) {
+          var mTxt = meta.method === "ekspedisi" ? "Ekspedisi" : "Armada Sendiri";
+          if (meta.courier) mTxt += " (" + meta.courier + ")";
+          detailLines.push('<div style="font-size:0.72rem;color:#0f172a;margin-top:0.2rem">' + esc(mTxt) + "</div>");
+        }
+        if (meta.resi) {
+          detailLines.push('<div style="font-size:0.72rem;color:#0369a1;font-weight:700">Resi: ' + esc(meta.resi) + "</div>");
+        }
+        if (meta.recv) {
+          detailLines.push('<div style="font-size:0.72rem;color:#047857">Diterima: ' + esc(meta.recv) + "</div>");
+        }
+        if (meta.emergency) {
+          detailLines.push('<div style="font-size:0.68rem;color:#b45309;white-space:normal">Ket. Darurat: ' + esc(meta.emergency) + "</div>");
+        }
+
+        // Kolom 6: Aksi sesuai giliran tim & status
+        var acts = "";
+        if (stg === "perlu_gudang") {
+          if (isGudang) {
+            acts += "<button type='button' class='btn-odoo-teal' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"odoo\")'>Isi DO Odoo</button>";
+            acts += " <button type='button' class='btn btn-ghost btn-sm' style='color:#b91c1c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"reject\")'>Tolak</button>";
+          }
+        } else if (stg === "butuh_invoice") {
+          if (isTrading) {
+            acts += "<button type='button' class='btn-odoo' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Kirim PDF Inv</button>";
+          }
+          if (isGudang) {
+            acts += " <button type='button' class='btn btn-ghost btn-sm' style='color:#b45309;border-color:#fcd34d' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch_emergency\")'>Kirim Darurat</button>";
+          }
+        } else if (stg === "siap_berangkat") {
+          if (isGudang) {
+            acts += "<button type='button' class='btn-odoo-teal' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch\")'>Berangkat Kirim</button>";
+          }
+          if (isTrading) {
+            acts += " <button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Ganti Inv</button>";
+          }
+        } else if (stg === "dikirim") {
+          if (isGudang) {
+            var finLabel = meta.method === "ekspedisi" ? "Input Resi &amp; Selesai" : "Sampai Customer";
+            acts += "<button type='button' class='btn-odoo' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"finish\")'>" + finLabel + "</button>";
+          }
+          if (!meta.invUrl && isTrading) {
+            acts += " <button type='button' class='btn btn-ghost btn-sm' style='color:#be123c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Upload Inv Susulan</button>";
+          }
+        } else if (stg === "ditolak") {
+          if (isMkt) {
+            acts += "<button type='button' class='btn-odoo' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"resubmit\")'>Ajukan Kirim Ulang</button>";
+          }
+        } else if (stg === "selesai") {
+          if (!meta.invUrl && isTrading) {
+            acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#be123c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Upload Inv Susulan</button>";
+          }
+        }
+        if (role === "admin" || (role === "gudang" && stg !== "selesai" && stg !== "ditolak")) {
+          acts += " <button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
+        }
+
         var rowStyle = (hlId && d.delivery_id === hlId) ? " style='background:#ecfdf5'" : "";
         return "<tr" + rowStyle + ">" +
-          "<td><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + odoo + shipBadge + "</td>" +
-          "<td>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
-          "<td>" + esc(d.no_so || "—") + "</td>" +
-          "<td>" + esc(d.customer_name || "—") + "</td>" +
-          "<td><span class='odoo-pill " + pillCls + "'>" + esc(d.status || "—") + "</span></td>" +
-          "<td style='white-space:nowrap;text-align:right'>" + acts + "</td>" +
+          "<td><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + shipBadge + noteHtml + "</td>" +
+          "<td style='white-space:nowrap'>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
+          "<td><strong>" + esc(d.customer_name || "—") + "</strong>" + (d.no_so ? "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(d.no_so) + "</div>" : "") + "</td>" +
+          "<td>" + odooLine + invLine + "</td>" +
+          "<td><span class='odoo-pill " + stgMeta.cls + "'>" + esc(stgMeta.label) + "</span>" + detailLines.join("") + "</td>" +
+          "<td style='white-space:nowrap;text-align:right'>" + (acts || "<span style='color:#94a3b8;font-size:0.75rem'>—</span>") + "</td>" +
           "</tr>";
       }).join("");
       if (hlId) {
@@ -20085,60 +20265,415 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
-    async function markDoReady(doId) {
-      if (!sb || !doId) return;
-      var { error } = await sb.from("deliveries").update({
-        status: "ready",
-        updated_at: new Date().toISOString()
-      }).eq("delivery_id", doId);
-      if (error) return toast(error.message, true);
-      try {
-        var drow = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
-        var shipRef = "";
-        if (drow && drow.notes) {
-          var m = String(drow.notes).match(/SHIP-[A-Z0-9]+/i);
-          if (m) shipRef = m[0];
+    /** Buka modal ajukan kirim ulang langsung dari baris Instruksi Kirim (by ship_id) */
+    async function openDoResubmitByShip(shipId) {
+      if (!shipId) return;
+      var ex = await _findExistingDoForShip(shipId);
+      if (!ex) {
+        // Jika DO cancelled, cari termasuk yang cancelled
+        try {
+          var { data } = await sb.from("deliveries")
+            .select("*")
+            .ilike("notes", "%" + shipId + "%")
+            .order("delivery_date", { ascending: false })
+            .limit(1);
+          if (data && data.length) ex = data[0];
+        } catch (e) {}
+      }
+      if (ex && ex.delivery_id) {
+        if (!(deliveryList || []).some(function(x) { return x.delivery_id === ex.delivery_id; })) {
+          deliveryList = [ex].concat(deliveryList || []);
         }
-        if (shipRef) {
-          await sb.from("ship_requests").update({
-            status: "picked",
-            updated_at: new Date().toISOString()
-          }).eq("ship_id", shipRef).eq("status", "requested");
-        }
-      } catch (eS) { console.warn(eS); }
-      window.__highlightDoId = doId;
-      toast(doId + " → Ready (siap kirim)");
-      await loadDeliveries();
-      try { loadShipRequests(); } catch (eR) {}
-      try { loadSidebarBadges(true); } catch (eB) {}
+        try { goPage("delivery"); } catch (eN) {}
+        openDoStageModal(ex.delivery_id, "resubmit");
+      } else {
+        // Jika tidak ada DO sebelumnya, kembalikan langsung lewat prompt tanggal
+        var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
+        var newDate = prompt("Tanggal kirim ulang (YYYY-MM-DD):", todayStr());
+        if (!newDate) return;
+        var cleanN = String((r && r.notes) || "").replace(/\s*\[REJECT_GUDANG:[^\]]*\]/g, "").trim();
+        await sb.from("ship_requests").update({
+          status: "requested",
+          request_date: newDate,
+          notes: (cleanN ? cleanN + " · " : "") + "Kirim ulang " + newDate,
+          updated_at: new Date().toISOString()
+        }).eq("ship_id", shipId);
+        await ensureDraftDoForShip(shipId, "draft");
+        toast("Instruksi " + shipId + " diajukan kirim ulang");
+        loadShipRequests();
+        try { loadDeliveries(); } catch (eD) {}
+      }
     }
 
-    function openShipDoModal(doId) {
+    var _doStageCtx = null;
+    function openDoStageModal(doId, mode) {
       var d = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
-      var existingOdoo = (d && d.no_do_odoo) ? String(d.no_do_odoo).trim() : "";
-      if (!existingOdoo && d && d.notes) {
-        var mOdoo = String(d.notes).match(/DO Odoo:\s*([^\s·]+)/i);
-        if (mOdoo) existingOdoo = mOdoo[1];
+      if (!d) return toast("DO tidak ditemukan", true);
+      var meta = doParseTags(d.notes);
+      _doStageCtx = { doId: doId, mode: mode, d: d, meta: meta };
+
+      var titleEl = $("doStageTitle");
+      var subEl = $("doStageSub");
+      var bodyEl = $("doStageBody");
+      var btnEl = $("doStageSubmit");
+      if (!bodyEl || !btnEl) return;
+
+      var infoText = d.delivery_id + " · " + (d.customer_name || "—") + (d.no_so ? (" · " + d.no_so) : "");
+      if (subEl) subEl.textContent = infoText;
+      btnEl.disabled = false;
+      btnEl.className = "btn btn-primary";
+      btnEl.style.cssText = "";
+
+      var odooNow = String(d.no_do_odoo || meta.doOdooNote || "").trim();
+
+      if (mode === "odoo") {
+        if (titleEl) titleEl.textContent = "Validasi DO Odoo (Gudang)";
+        btnEl.textContent = "Simpan & Kirim ke Admin Trading";
+        bodyEl.innerHTML =
+          '<div class="field"><label>No. DO Odoo <span style="color:#b91c1c">*</span></label>' +
+          '<input id="dsOdooNo" value="' + esc(odooNow) + '" placeholder="Contoh: WH/OUT/2026/00123" autocomplete="off" />' +
+          '<p style="font-size:0.74rem;color:var(--text-muted);margin:0.3rem 0 0">Setelah disimpan, DO otomatis masuk ke antrean <strong>Menunggu Invoice (Admin Trading)</strong>.</p></div>' +
+          '<div class="field"><label>Catatan packing gudang (opsional)</label>' +
+          '<input id="dsPackNote" placeholder="Mis. 10 karton siap di loading dock" /></div>';
+        setTimeout(function() { if ($("dsOdooNo")) $("dsOdooNo").focus(); }, 80);
+
+      } else if (mode === "reject") {
+        if (titleEl) titleEl.textContent = "Tolak Instruksi (Kapasitas Gudang)";
+        btnEl.textContent = "Tolak Instruksi";
+        btnEl.className = "btn";
+        btnEl.style.cssText = "background:#dc2626;color:#fff;border:none";
+        var tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
+        var z = function(n) { return String(n).padStart(2, "0"); };
+        var tmrStr = tmr.getFullYear() + "-" + z(tmr.getMonth() + 1) + "-" + z(tmr.getDate());
+        bodyEl.innerHTML =
+          '<div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:0.65rem">' +
+            '<button type="button" class="btn btn-ghost btn-sm" onclick="if($(\'dsRejectReason\'))$(\'dsRejectReason\').value=\'Kapasitas packing hari ini penuh\'">Kapasitas penuh</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" onclick="if($(\'dsRejectReason\'))$(\'dsRejectReason\').value=\'Armada / pick up penuh hari ini\'">Armada penuh</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" onclick="if($(\'dsRejectReason\'))$(\'dsRejectReason\').value=\'Barang FG belum siap / kurang\'">Stok FG belum siap</button>' +
+          '</div>' +
+          '<div class="field"><label>Alasan Penolakan <span style="color:#b91c1c">*</span></label>' +
+          '<input id="dsRejectReason" placeholder="Jelaskan alasan kapasitas gudang tidak cukup..." /></div>' +
+          '<div class="field"><label>Saran Tanggal Kirim (opsional)</label>' +
+          '<input type="date" id="dsRejectDate" value="' + esc(tmrStr) + '" /></div>' +
+          '<p style="font-size:0.74rem;color:#b91c1c;margin:0.25rem 0 0">Marketing akan melihat penolakan ini dan bisa klik <strong>Ajukan Kirim Ulang</strong>.</p>';
+        setTimeout(function() { if ($("dsRejectReason")) $("dsRejectReason").focus(); }, 80);
+
+      } else if (mode === "resubmit") {
+        if (titleEl) titleEl.textContent = "Ajukan Kirim Ulang ke Gudang";
+        btnEl.textContent = "Ajukan Kirim Ulang";
+        btnEl.style.cssText = "";
+        var tmr2 = new Date(); tmr2.setDate(tmr2.getDate() + 1);
+        var z2 = function(n) { return String(n).padStart(2, "0"); };
+        var defDate = meta.rejectDate || (tmr2.getFullYear() + "-" + z2(tmr2.getMonth() + 1) + "-" + z2(tmr2.getDate()));
+        bodyEl.innerHTML =
+          (meta.reject ? '<div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:0.6rem 0.75rem;border-radius:8px;font-size:0.8rem;margin-bottom:0.75rem"><strong>Alasan penolakan Gudang:</strong> ' + esc(meta.reject) + '</div>' : '') +
+          '<div class="field"><label>Tanggal Kirim Baru <span style="color:#b91c1c">*</span></label>' +
+          '<input type="date" id="dsResubmitDate" value="' + esc(defDate) + '" /></div>' +
+          '<div class="field"><label>Catatan tambahan untuk Gudang (opsional)</label>' +
+          '<input id="dsResubmitNote" placeholder="Mis. prioritas pagi / sudah konfirmasi customer" /></div>';
+
+      } else if (mode === "invoice") {
+        if (titleEl) titleEl.textContent = "Kirim PDF Invoice ke Gudang";
+        btnEl.textContent = "Simpan & Kirim Invoice";
+        btnEl.style.cssText = "";
+        bodyEl.innerHTML =
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:0.55rem 0.75rem;border-radius:8px;font-size:0.78rem;margin-bottom:0.75rem">No. DO Odoo: <strong>' + esc(odooNow || "—") + '</strong></div>' +
+          '<div class="field"><label>Upload File PDF Invoice (Google Drive) <span style="color:#b91c1c">*</span></label>' +
+          '<input type="file" id="dsInvFile" accept="application/pdf,.pdf,image/*" />' +
+          '<div id="dsInvStatus" style="font-size:0.74rem;color:#047857;margin-top:0.25rem">' + (meta.invUrl ? ('Sudah ada PDF: ' + esc(meta.invName || meta.invUrl)) : '') + '</div></div>' +
+          '<div class="field"><label>No. Invoice Odoo (opsional)</label>' +
+          '<input id="dsInvNo" value="' + esc(meta.invNo || "") + '" placeholder="Mis. INV/2026/00412" /></div>' +
+          '<div class="field"><label>Atau Link PDF Invoice Manual (opsional jika tanpa upload)</label>' +
+          '<input id="dsInvUrl" value="' + esc(meta.invUrl || "") + '" placeholder="https://drive.google.com/..." /></div>';
+
+      } else if (mode === "dispatch" || mode === "dispatch_emergency") {
+        var isEmergDefault = (mode === "dispatch_emergency") || !meta.invUrl;
+        if (titleEl) titleEl.textContent = !meta.invUrl ? "Berangkat Kirim (Opsi Darurat)" : "Berangkat Kirim (Gudang)";
+        btnEl.textContent = "Konfirmasi Berangkat";
+        btnEl.style.cssText = "";
+        var invBox = meta.invUrl
+          ? '<div style="background:#ecfdf5;border:1px solid #a7f3d0;padding:0.6rem 0.75rem;border-radius:8px;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:center;gap:0.5rem">' +
+              '<div style="font-size:0.8rem;color:#065f46"><strong>PDF Invoice Siap:</strong> ' + esc(meta.invNo || meta.invName || "PDF Terlampir") + '</div>' +
+              '<a href="' + esc(meta.invUrl) + '" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="text-decoration:none">🖨 Cetak / Lihat</a></div>'
+          : '<div style="background:#fffbeb;border:1px solid #fde68a;padding:0.65rem 0.75rem;border-radius:8px;margin-bottom:0.75rem">' +
+              '<div style="font-size:0.8rem;font-weight:700;color:#92400e;margin-bottom:0.35rem">⚠ PDF Invoice dari Admin Trading belum masuk</div>' +
+              '<label style="display:flex;align-items:flex-start;gap:0.45rem;font-size:0.78rem;color:#78350f;cursor:pointer">' +
+                '<input type="checkbox" id="dsEmergCheck"' + (isEmergDefault ? ' checked' : '') + ' style="width:auto;margin-top:0.15rem" onchange="var bx=$(\'dsEmergReasonWrap\');if(bx)bx.style.display=this.checked?\'block\':\'none\'" />' +
+                '<span>Gunakan <strong>Opsi Darurat</strong>: berangkat sekarang tanpa PDF Invoice (invoice menyusul).</span>' +
+              '</label>' +
+              '<div id="dsEmergReasonWrap" style="margin-top:0.45rem;display:' + (isEmergDefault ? 'block' : 'none') + '">' +
+                '<input id="dsEmergReason" placeholder="Alasan darurat (wajib, mis. kurir sudah tunggu / deadline hari ini)" />' +
+              '</div></div>';
+        var curMethod = meta.method || "ekspedisi";
+        bodyEl.innerHTML =
+          invBox +
+          '<div class="field"><label>No. DO Odoo</label><input id="dsDispatchOdoo" value="' + esc(odooNow) + '" placeholder="WH/OUT/..." /></div>' +
+          '<div class="field"><label>Metode Pengiriman</label>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">' +
+              '<label style="display:flex;align-items:center;gap:0.4rem;border:1px solid #cbd5e1;border-radius:8px;padding:0.45rem 0.65rem;cursor:pointer;font-size:0.82rem"><input type="radio" name="dsMethod" value="ekspedisi"' + (curMethod === "ekspedisi" ? " checked" : "") + ' style="width:auto" onchange="onDsMethodChange()"> Ekspedisi / Kurir</label>' +
+              '<label style="display:flex;align-items:center;gap:0.4rem;border:1px solid #cbd5e1;border-radius:8px;padding:0.45rem 0.65rem;cursor:pointer;font-size:0.82rem"><input type="radio" name="dsMethod" value="armada"' + (curMethod === "armada" ? " checked" : "") + ' style="width:auto" onchange="onDsMethodChange()"> Armada Sendiri</label>' +
+            '</div></div>' +
+          '<div class="field"><label id="dsCourierLabel">' + (curMethod === "armada" ? "Nama Supir / Kendaraan (opsional)" : "Nama Ekspedisi (mis. JNE / J&T / Cargo)") + '</label>' +
+          '<input id="dsCourier" value="' + esc(meta.courier || "") + '" placeholder="' + (curMethod === "armada" ? "Mis. Pak Budi · Grand Max" : "Mis. JNE Cargo / Indah Logistics") + '" /></div>';
+
+      } else if (mode === "finish") {
+        var isExp = (meta.method || "ekspedisi") === "ekspedisi";
+        if (titleEl) titleEl.textContent = isExp ? "Input No. Resi & Selesai" : "Konfirmasi Sampai ke Customer";
+        btnEl.textContent = "Tandai Selesai (Delivered)";
+        btnEl.style.cssText = "";
+        bodyEl.innerHTML =
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:0.55rem 0.75rem;border-radius:8px;font-size:0.78rem;margin-bottom:0.75rem">' +
+            'Metode: <strong>' + (isExp ? "Ekspedisi" : "Armada Sendiri") + (meta.courier ? (" · " + esc(meta.courier)) : "") + '</strong></div>' +
+          '<div class="field"><label>No. Resi Ekspedisi ' + (isExp ? '<span style="color:#b91c1c">*</span>' : '(opsional)') + '</label>' +
+          '<input id="dsResi" value="' + esc(meta.resi || "") + '" placeholder="Masukkan nomor resi pengiriman..." /></div>' +
+          '<div class="field"><label>Nama Penerima / Catatan Sampai ' + (!isExp ? '<span style="color:#b91c1c">*</span>' : '(opsional)') + '</label>' +
+          '<input id="dsRecv" value="' + esc(meta.recv || "") + '" placeholder="Mis. Diterima Ibu Sari · aman" /></div>';
+        setTimeout(function() { var el = $(isExp ? "dsResi" : "dsRecv"); if (el) el.focus(); }, 80);
       }
-      if ($("shipDoId")) $("shipDoId").value = doId || "";
-      if ($("shipDoOdooNo")) $("shipDoOdooNo").value = existingOdoo;
-      if ($("shipDoInfo")) {
-        $("shipDoInfo").textContent = d
-          ? (d.delivery_id + " · " + (d.no_so || "—") + " · " + (d.customer_name || "—"))
-          : (doId || "");
-      }
-      if ($("shipDoHint")) {
-        $("shipDoHint").textContent = existingOdoo
-          ? ("No. DO Odoo sudah terisi (" + existingOdoo + ") — langsung klik Konfirmasi kirim.")
-          : "Isi nomor DO resmi dari Odoo (cukup 1x di sini) sebelum status jadi shipped.";
-      }
-      var m = $("shipDoModal");
+
+      var m = $("doStageModal");
       if (m) {
         m.classList.add("show");
         m.style.display = "flex";
       }
       document.body.classList.add("modal-open");
-      setTimeout(function() { if ($("shipDoOdooNo") && !existingOdoo) $("shipDoOdooNo").focus(); }, 100);
+    }
+    function onDsMethodChange() {
+      var sel = document.querySelector('input[name="dsMethod"]:checked');
+      var m = sel ? sel.value : "ekspedisi";
+      if ($("dsCourierLabel")) $("dsCourierLabel").textContent = m === "armada" ? "Nama Supir / Kendaraan (opsional)" : "Nama Ekspedisi (mis. JNE / J&T / Cargo)";
+      if ($("dsCourier")) $("dsCourier").placeholder = m === "armada" ? "Mis. Pak Budi · Grand Max" : "Mis. JNE Cargo / Indah Logistics";
+    }
+    function closeDoStageModal() {
+      var m = $("doStageModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+      _doStageCtx = null;
+    }
+    async function _updateDeliveriesSafe(doId, payload, fallbackNotes) {
+      var { error } = await sb.from("deliveries").update(payload).eq("delivery_id", doId);
+      if (error && /no_do_odoo|column/i.test(String(error.message || ""))) {
+        var p2 = Object.assign({}, payload);
+        delete p2.no_do_odoo;
+        if (fallbackNotes != null) p2.notes = fallbackNotes;
+        ({ error } = await sb.from("deliveries").update(p2).eq("delivery_id", doId));
+      }
+      return error;
+    }
+    async function _syncShipRequestFromDo(notes, newStatus, newDate, extraNotes) {
+      var m = String(notes || "").match(/SHIP-[A-Z0-9]+/i);
+      if (!m || !sb) return;
+      var sid = m[0];
+      try {
+        var upd = { status: newStatus, updated_at: new Date().toISOString() };
+        if (newDate) upd.request_date = newDate;
+        if (extraNotes !== undefined) upd.notes = extraNotes;
+        await sb.from("ship_requests").update(upd).eq("ship_id", sid);
+      } catch (e) { console.warn("_syncShipRequestFromDo", e); }
+    }
+    async function submitDoStageModal() {
+      if (!sb || !_doStageCtx) return;
+      var ctx = _doStageCtx;
+      var d = ctx.d;
+      var doId = ctx.doId;
+      var mode = ctx.mode;
+      var btn = $("doStageSubmit");
+      var nowIso = new Date().toISOString();
+      var mShip = String(d.notes || "").match(/SHIP-[A-Z0-9]+/i);
+      var shipId = mShip ? mShip[0] : "";
+
+      try {
+        if (btn) btn.disabled = true;
+
+        if (mode === "odoo") {
+          var odooNo = (($("dsOdooNo") && $("dsOdooNo").value) || "").trim();
+          var packNote = (($("dsPackNote") && $("dsPackNote").value) || "").trim();
+          if (!odooNo) { toast("Isi No. DO Odoo dulu", true); if ($("dsOdooNo")) $("dsOdooNo").focus(); return; }
+          var newNotes = d.notes || "";
+          if (packNote) newNotes = (newNotes ? newNotes + " · " : "") + packNote;
+          var err = await _updateDeliveriesSafe(doId, {
+            status: "ready",
+            no_do_odoo: odooNo,
+            notes: newNotes,
+            updated_at: nowIso
+          }, (newNotes ? newNotes + " · " : "") + "DO Odoo: " + odooNo);
+          if (err) return toast(err.message, true);
+          if (shipId) await _syncShipRequestFromDo(d.notes, "picked");
+          toast("DO Odoo disimpan → masuk antrean Menunggu Invoice Trading");
+
+        } else if (mode === "reject") {
+          var reason = (($("dsRejectReason") && $("dsRejectReason").value) || "").trim();
+          var sugDate = (($("dsRejectDate") && $("dsRejectDate").value) || "").trim();
+          if (!reason) { toast("Isi alasan penolakan gudang", true); if ($("dsRejectReason")) $("dsRejectReason").focus(); return; }
+          var rNotes = doWriteTags(d.notes, { REJECT: reason, REJECT_DATE: sugDate });
+          var errR = await _updateDeliveriesSafe(doId, {
+            status: "cancelled",
+            notes: rNotes,
+            updated_at: nowIso
+          });
+          if (errR) return toast(errR.message, true);
+          if (shipId) {
+            var { data: sr } = await sb.from("ship_requests").select("notes").eq("ship_id", shipId).maybeSingle();
+            var srNotes = doWriteTags((sr && sr.notes) || "", { REJECT_GUDANG: reason + (sugDate ? (" (saran " + sugDate + ")") : "") });
+            await _syncShipRequestFromDo(d.notes, "pending", null, srNotes);
+          }
+          toast("Instruksi ditolak Gudang — notifikasi dikirim ke Marketing");
+
+        } else if (mode === "resubmit") {
+          var newDate = (($("dsResubmitDate") && $("dsResubmitDate").value) || "").trim();
+          var addNote = (($("dsResubmitNote") && $("dsResubmitNote").value) || "").trim();
+          if (!newDate) { toast("Pilih tanggal kirim baru", true); return; }
+          var resNotes = doWriteTags(d.notes, { REJECT: "", REJECT_DATE: "", RESUBMIT: newDate });
+          if (addNote) resNotes = (resNotes ? resNotes + " · " : "") + addNote;
+          var errRs = await _updateDeliveriesSafe(doId, {
+            status: "draft",
+            delivery_date: newDate,
+            notes: resNotes,
+            updated_at: nowIso
+          });
+          if (errRs) return toast(errRs.message, true);
+          if (shipId) {
+            var { data: sr2 } = await sb.from("ship_requests").select("notes").eq("ship_id", shipId).maybeSingle();
+            var srClean = doWriteTags((sr2 && sr2.notes) || "", { REJECT_GUDANG: "" });
+            if (addNote) srClean = (srClean ? srClean + " · " : "") + addNote;
+            await _syncShipRequestFromDo(d.notes, "requested", newDate, srClean);
+          }
+          toast("Diajukan kirim ulang ke Gudang (" + newDate + ")");
+
+        } else if (mode === "invoice") {
+          var fEl = $("dsInvFile");
+          var file = fEl && fEl.files && fEl.files[0];
+          var invUrl = (($("dsInvUrl") && $("dsInvUrl").value) || "").trim();
+          var invName = ctx.meta.invName || "";
+          var invNo = (($("dsInvNo") && $("dsInvNo").value) || "").trim();
+          if (file) {
+            if ($("dsInvStatus")) $("dsInvStatus").textContent = "Mengupload PDF ke Google Drive…";
+            toast("Mengupload PDF Invoice ke Google Drive…");
+            if (typeof otUploadOneToDrive !== "function") throw new Error("Uploader Google Drive tidak tersedia");
+            var up = await otUploadOneToDrive(file, "delivery_invoice");
+            invUrl = (up && (up.url || up.webViewLink || up.link)) || "";
+            invName = (up && up.name) || file.name || "Invoice.pdf";
+          }
+          if (!invUrl) { toast("Upload PDF Invoice atau isi link PDF terlebih dahulu", true); return; }
+          var nextSt = (d.status === "shipped" || d.status === "delivered") ? d.status : "ready";
+          var iNotes = doWriteTags(d.notes, {
+            INV_URL: invUrl,
+            INV_NAME: invName || "Invoice.pdf",
+            INV_NO: invNo,
+            INV_AT: nowIso.slice(0, 16),
+            INV_BY: (currentUser && currentUser.email) || ""
+          });
+          var errI = await _updateDeliveriesSafe(doId, {
+            status: nextSt,
+            notes: iNotes,
+            updated_at: nowIso
+          });
+          if (errI) return toast(errI.message, true);
+          toast("PDF Invoice dikirim ke Gudang — siap cetak & berangkat");
+
+        } else if (mode === "dispatch" || mode === "dispatch_emergency") {
+          var hasInv = !!(ctx.meta && ctx.meta.invUrl);
+          var isEmerg = !hasInv && !!($("dsEmergCheck") && $("dsEmergCheck").checked);
+          var emergReason = (($("dsEmergReason") && $("dsEmergReason").value) || "").trim();
+          if (!hasInv && !isEmerg) {
+            toast("Centang Opsi Darurat jika ingin berangkat tanpa PDF Invoice", true);
+            return;
+          }
+          if (!hasInv && isEmerg && !emergReason) {
+            toast("Isi alasan pengiriman darurat tanpa invoice", true);
+            if ($("dsEmergReason")) $("dsEmergReason").focus();
+            return;
+          }
+          var dispOdoo = (($("dsDispatchOdoo") && $("dsDispatchOdoo").value) || "").trim() || String(d.no_do_odoo || ctx.meta.doOdooNote || "").trim();
+          if (!dispOdoo) {
+            toast("Isi No. DO Odoo terlebih dahulu", true);
+            if ($("dsDispatchOdoo")) $("dsDispatchOdoo").focus();
+            return;
+          }
+          var mRad = document.querySelector('input[name="dsMethod"]:checked');
+          var method = mRad ? mRad.value : "ekspedisi";
+          var courier = (($("dsCourier") && $("dsCourier").value) || "").trim();
+          var dispNotes = doWriteTags(d.notes, {
+            METHOD: method,
+            COURIER: courier,
+            EMERGENCY: isEmerg ? emergReason : ""
+          });
+          var errD = await _updateDeliveriesSafe(doId, {
+            status: "shipped",
+            no_do_odoo: dispOdoo,
+            notes: dispNotes,
+            updated_at: nowIso
+          }, (dispNotes ? dispNotes + " · " : "") + "DO Odoo: " + dispOdoo);
+          if (errD) return toast(errD.message, true);
+
+          // Potong stok FG jika sebelumnya belum shipped/delivered
+          if (d.status !== "shipped" && d.status !== "delivered") {
+            try {
+              var { data: lines } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
+              for (var i = 0; i < (lines || []).length; i++) {
+                await sb.from("warehouse_movements").insert({
+                  movement_type: "out_delivery",
+                  product_id: lines[i].product_id,
+                  qty: lines[i].qty,
+                  unit: lines[i].unit || "pcs",
+                  order_id: d.order_id || null,
+                  no_so: d.no_so || "",
+                  ref_note: "DO " + doId + " / Odoo " + dispOdoo + (isEmerg ? " (Darurat)" : ""),
+                  created_by: (currentUser && currentUser.email) || ""
+                });
+              }
+            } catch (eM) { console.warn("out_delivery", eM); }
+          }
+          if (shipId) await _syncShipRequestFromDo(d.notes, "shipped");
+          toast("Berangkat kirim (" + (method === "armada" ? "Armada Sendiri" : "Ekspedisi") + (isEmerg ? " · Darurat" : "") + ")");
+
+        } else if (mode === "finish") {
+          var isExp = (ctx.meta.method || "ekspedisi") === "ekspedisi";
+          var resi = (($("dsResi") && $("dsResi").value) || "").trim();
+          var recv = (($("dsRecv") && $("dsRecv").value) || "").trim();
+          if (isExp && !resi) {
+            toast("Isi No. Resi Ekspedisi", true);
+            if ($("dsResi")) $("dsResi").focus();
+            return;
+          }
+          if (!isExp && !recv && !resi) {
+            toast("Isi nama penerima / keterangan sampai ke customer", true);
+            if ($("dsRecv")) $("dsRecv").focus();
+            return;
+          }
+          var finNotes = doWriteTags(d.notes, {
+            RESI: resi,
+            RECV: recv,
+            DELIVERED_AT: nowIso.slice(0, 16)
+          });
+          var errF = await _updateDeliveriesSafe(doId, {
+            status: "delivered",
+            notes: finNotes,
+            updated_at: nowIso
+          });
+          if (errF) return toast(errF.message, true);
+          if (shipId) await _syncShipRequestFromDo(d.notes, "shipped");
+          toast("Pengiriman selesai (Delivered)");
+        }
+
+        window.__highlightDoId = doId;
+        closeDoStageModal();
+        await loadDeliveries();
+        try { loadShipRequests(); } catch (eSR) {}
+        try { loadInboxNotifs(true); } catch (eN) {}
+        try { loadSidebarBadges(true); } catch (eB) {}
+      } catch (eAll) {
+        toast(String((eAll && eAll.message) || eAll), true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function openShipDoModal(doId) {
+      return openDoStageModal(doId, "dispatch");
     }
     function closeShipDoModal() {
       var m = $("shipDoModal");
@@ -20149,65 +20684,7 @@ function fillOperatorList(selectedEmail) {
       document.body.classList.remove("modal-open");
     }
     async function confirmShipDo() {
-      if (!sb) return;
-      var doId = (($("shipDoId") && $("shipDoId").value) || "").trim();
-      var noDoOdoo = (($("shipDoOdooNo") && $("shipDoOdooNo").value) || "").trim();
-      if (!doId) return toast("DO tidak valid", true);
-      if (!noDoOdoo) {
-        toast("Isi nomor DO Odoo", true);
-        if ($("shipDoOdooNo")) $("shipDoOdooNo").focus();
-        return;
-      }
-      var header = {
-        status: "shipped",
-        no_do_odoo: noDoOdoo,
-        updated_at: new Date().toISOString()
-      };
-      var { error } = await sb.from("deliveries").update(header).eq("delivery_id", doId);
-      if (error && /no_do_odoo|column/i.test(String(error.message || ""))) {
-        // fallback: notes
-        var d0 = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
-        ({ error } = await sb.from("deliveries").update({
-          status: "shipped",
-          notes: ((d0 && d0.notes) ? d0.notes + " · " : "") + "DO Odoo: " + noDoOdoo,
-          updated_at: new Date().toISOString()
-        }).eq("delivery_id", doId));
-      }
-      if (error) return toast(error.message, true);
-
-      // potong stok + tutup ship request
-      try {
-        var { data: lines } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
-        var drow = (deliveryList || []).find(function(x) { return x.delivery_id === doId; }) || {};
-        for (var i = 0; i < (lines || []).length; i++) {
-          await sb.from("warehouse_movements").insert({
-            movement_type: "out_delivery",
-            product_id: lines[i].product_id,
-            qty: lines[i].qty,
-            unit: lines[i].unit || "pcs",
-            order_id: drow.order_id || null,
-            no_so: drow.no_so || "",
-            ref_note: "DO " + doId + " / Odoo " + noDoOdoo,
-            created_by: (currentUser && currentUser.email) || ""
-          });
-        }
-        var shipRef = "";
-        if (drow.notes) {
-          var m = String(drow.notes).match(/SHIP-[A-Z0-9]+/i);
-          if (m) shipRef = m[0];
-        }
-        if (shipRef) {
-          await sb.from("ship_requests").update({
-            status: "shipped",
-            updated_at: new Date().toISOString()
-          }).eq("ship_id", shipRef);
-        }
-      } catch (eM) { console.warn(eM); }
-
-      toast("DO dikirim · Odoo " + noDoOdoo);
-      closeShipDoModal();
-      loadDeliveries();
-      try { loadShipRequests(); } catch (e) {}
+      return await submitDoStageModal();
     }
     async function openDeliveryModal(doId) {
       $("doLines").innerHTML = "";
@@ -20217,6 +20694,7 @@ function fillOperatorList(selectedEmail) {
       $("doStatus").value = "draft";
       $("doNotes").value = "";
       $("doCustomer").value = "";
+      window.__doEditRawNotes = "";
       if ($("doOdooNo")) $("doOdooNo").value = "";
       if ($("doShipRef")) $("doShipRef").value = "";
       await fillDoSoSelect(doId ? "" : "");
@@ -20225,7 +20703,8 @@ function fillOperatorList(selectedEmail) {
         if (d) {
           $("doDate").value = String(d.delivery_date || "").slice(0, 10);
           $("doStatus").value = d.status || "draft";
-          $("doNotes").value = d.notes || "";
+          window.__doEditRawNotes = d.notes || "";
+          $("doNotes").value = doParseTags(d.notes).cleanNotes || "";
           $("doCustomer").value = d.customer_name || "";
           if ($("doOdooNo")) $("doOdooNo").value = d.no_do_odoo || "";
           await fillDoSoSelect(d.order_id || "");
@@ -20311,6 +20790,11 @@ function fillOperatorList(selectedEmail) {
         if ($("doOdooNo")) $("doOdooNo").focus();
         return;
       }
+      var rawNotes = ($("doNotes").value || "").trim();
+      if (!isNew && window.__doEditRawNotes) {
+        var prevTags = String(window.__doEditRawNotes).match(/\[[A-Z0-9_]+:[^\]]*\]/g);
+        if (prevTags && prevTags.length) rawNotes = (rawNotes ? rawNotes + " " : "") + prevTags.join(" ");
+      }
       var header = {
         delivery_id: do_id,
         order_id: order_id,
@@ -20319,7 +20803,7 @@ function fillOperatorList(selectedEmail) {
         delivery_date: $("doDate").value || todayStr(),
         status: st,
         no_do_odoo: no_do_odoo || null,
-        notes: ($("doNotes").value || "").trim(),
+        notes: rawNotes,
         updated_at: new Date().toISOString()
       };
       if (isNew) {
@@ -20393,6 +20877,7 @@ function fillOperatorList(selectedEmail) {
         } catch (eShip) { console.warn(eShip); }
       }
       toast("DO disimpan" + (header.status === "shipped" ? " · instruksi kirim → shipped" : ""));
+      window.__doEditRawNotes = "";
       closeDeliveryModal();
       window.__highlightDoId = do_id;
       if ($("page-delivery") && $("page-delivery").hidden) {
@@ -24882,6 +25367,8 @@ function fillOperatorList(selectedEmail) {
         } catch (e4) {}
       } else if (page === "order-trading" && filter && typeof setOtFacet === "function") {
         try { setOtFacet(filter); } catch (e5) {}
+      } else if (page === "delivery" && typeof setDoFacet === "function") {
+        try { setDoFacet(filter || ""); } catch (e6) {}
       }
     }
 
@@ -24934,6 +25421,12 @@ function fillOperatorList(selectedEmail) {
           svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
         };
       }
+      if (s.indexOf("delivery") >= 0 || s.indexOf("pengiriman") >= 0) {
+        return {
+          tone: "tone-teal",
+          svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>'
+        };
+      }
       if (s.indexOf("produksi") >= 0 || s.indexOf("plan") >= 0) {
         return {
           tone: "",
@@ -24949,9 +25442,9 @@ function fillOperatorList(selectedEmail) {
     function notifItemTone(it) {
       var lbl = String((it && it.label) || "").toLowerCase();
       var flt = String((it && it.filter) || "").toLowerCase();
-      if (flt === "need_overdue" || lbl.indexOf("terlambat") >= 0) return "tone-danger";
-      if (flt === "need_eta" || lbl.indexOf("eta") >= 0 || lbl.indexOf("sebagian") >= 0 || lbl.indexOf("parsial") >= 0 || lbl.indexOf("revisi") >= 0 || lbl.indexOf("menunggu") >= 0) return "tone-warn";
-      if (lbl.indexOf("draft") >= 0 || lbl.indexOf("siap") >= 0) return "tone-info";
+      if (flt === "need_overdue" || flt === "ditolak" || lbl.indexOf("terlambat") >= 0 || lbl.indexOf("ditolak") >= 0 || lbl.indexOf("darurat") >= 0) return "tone-danger";
+      if (flt === "need_eta" || flt === "butuh_invoice" || lbl.indexOf("eta") >= 0 || lbl.indexOf("sebagian") >= 0 || lbl.indexOf("parsial") >= 0 || lbl.indexOf("revisi") >= 0 || lbl.indexOf("menunggu") >= 0 || lbl.indexOf("butuh") >= 0) return "tone-warn";
+      if (lbl.indexOf("draft") >= 0 || lbl.indexOf("siap") >= 0 || lbl.indexOf("perlu") >= 0) return "tone-info";
       return "";
     }
 
@@ -25256,11 +25749,9 @@ function fillOperatorList(selectedEmail) {
           var nRecvR = Number(rpcSum.gd_wait_recv) || 0;
           var nShipReqR = Number(rpcSum.gd_ship_req) || 0;
           var nShipPickR = Number(rpcSum.gd_ship_pick) || 0;
-          var nDoReadyR = Number(rpcSum.do_ready) || 0;
           if (nRecvR) gItemsR.push({ label: "Menunggu terima", count: nRecvR, page: "gudang", icon: "📥" });
           if (nShipReqR) gItemsR.push({ label: "Instruksi kirim (baru)", count: nShipReqR, page: "gudang", icon: "📤" });
           if (nShipPickR) gItemsR.push({ label: "Siap buat DO", count: nShipPickR, page: "gudang", icon: "📋" });
-          if (nDoReadyR) gItemsR.push({ label: "DO siap kirim", count: nDoReadyR, page: "delivery", icon: "🚚" });
           if (gItemsR.length) {
             groups.push({ label: "Gudang", icon: "📦", count: gItemsR.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: gItemsR, open: true });
           }
@@ -25299,6 +25790,36 @@ function fillOperatorList(selectedEmail) {
         if (role === "operator") {
           groups.push({ label: "Laporan", icon: "📋", count: 1, items: [{ label: "Isi laporan hari ini", count: 1, page: "reports", icon: "✍️" }], open: true });
         }
+        try {
+          if (role === "gudang" || role === "trading" || role === "marketing" || role === "admin") {
+            var { data: allDosR } = await sb.from("deliveries").select("delivery_id,status,no_do_odoo,notes").limit(150);
+            var dlCnt = { perlu_gudang: 0, butuh_invoice: 0, siap_berangkat: 0, dikirim: 0, ditolak: 0, emergNoInv: 0 };
+            (allDosR || []).forEach(function(d) {
+              var stg = doGetStage(d);
+              if (dlCnt[stg] != null) dlCnt[stg]++;
+              if (stg === "dikirim") {
+                var m = doParseTags(d.notes);
+                if (m.emergency && !m.invUrl) dlCnt.emergNoInv++;
+              }
+            });
+            var dlItems = [];
+            if (role === "gudang" || role === "admin") {
+              if (dlCnt.perlu_gudang) dlItems.push({ label: "DO perlu disiapkan / DO Odoo", count: dlCnt.perlu_gudang, page: "delivery", filter: "perlu_gudang", icon: "📦" });
+              if (dlCnt.siap_berangkat) dlItems.push({ label: "DO siap berangkat (ada Invoice)", count: dlCnt.siap_berangkat, page: "delivery", filter: "siap_berangkat", icon: "🚚" });
+              if (dlCnt.dikirim) dlItems.push({ label: "DO dalam pengiriman (butuh resi/sampai)", count: dlCnt.dikirim, page: "delivery", filter: "dikirim", icon: "🧾" });
+            }
+            if (role === "trading" || role === "admin") {
+              if (dlCnt.butuh_invoice) dlItems.push({ label: "DO butuh PDF Invoice", count: dlCnt.butuh_invoice, page: "delivery", filter: "butuh_invoice", icon: "📄" });
+              if (dlCnt.emergNoInv) dlItems.push({ label: "DO darurat (invoice menyusul)", count: dlCnt.emergNoInv, page: "delivery", filter: "dikirim", icon: "⚠️" });
+            }
+            if (role === "marketing" || role === "admin") {
+              if (dlCnt.ditolak) dlItems.push({ label: "DO ditolak Gudang (ajukan ulang)", count: dlCnt.ditolak, page: "delivery", filter: "ditolak", icon: "⛔" });
+            }
+            if (dlItems.length) {
+              groups.push({ label: "Delivery & Pengiriman", icon: "🚚", count: dlItems.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: dlItems, open: true });
+            }
+          }
+        } catch (eDlR) {}
         renderNotifItems(groups);
         _lastInboxAt = Date.now();
         try {
@@ -25422,12 +25943,6 @@ function fillOperatorList(selectedEmail) {
           } catch (eG2) {}
           if (nShipReq) gItems.push({ label: "Instruksi kirim (baru)", count: nShipReq, page: "gudang", icon: "📤" });
           if (nShipPick) gItems.push({ label: "Siap buat DO", count: nShipPick, page: "gudang", icon: "📋" });
-          var nDoReady = 0;
-          try {
-            var { data: dos } = await sb.from("deliveries").select("delivery_id").eq("status", "ready").limit(50);
-            nDoReady = (dos || []).length;
-          } catch (eG3) {}
-          if (nDoReady) gItems.push({ label: "DO siap kirim", count: nDoReady, page: "delivery", icon: "🚚" });
           if (gItems.length) {
             groups.push({
               label: "Gudang",
@@ -25528,6 +26043,36 @@ function fillOperatorList(selectedEmail) {
       } catch (e) {
         console.warn("inbox", e);
       }
+      try {
+        if (role === "gudang" || role === "trading" || role === "marketing" || role === "admin") {
+          var { data: allDosF } = await sb.from("deliveries").select("delivery_id,status,no_do_odoo,notes").limit(150);
+          var dlCntF = { perlu_gudang: 0, butuh_invoice: 0, siap_berangkat: 0, dikirim: 0, ditolak: 0, emergNoInv: 0 };
+          (allDosF || []).forEach(function(d) {
+            var stg = doGetStage(d);
+            if (dlCntF[stg] != null) dlCntF[stg]++;
+            if (stg === "dikirim") {
+              var m = doParseTags(d.notes);
+              if (m.emergency && !m.invUrl) dlCntF.emergNoInv++;
+            }
+          });
+          var dlItemsF = [];
+          if (role === "gudang" || role === "admin") {
+            if (dlCntF.perlu_gudang) dlItemsF.push({ label: "DO perlu disiapkan / DO Odoo", count: dlCntF.perlu_gudang, page: "delivery", filter: "perlu_gudang", icon: "📦" });
+            if (dlCntF.siap_berangkat) dlItemsF.push({ label: "DO siap berangkat (ada Invoice)", count: dlCntF.siap_berangkat, page: "delivery", filter: "siap_berangkat", icon: "🚚" });
+            if (dlCntF.dikirim) dlItemsF.push({ label: "DO dalam pengiriman (butuh resi/sampai)", count: dlCntF.dikirim, page: "delivery", filter: "dikirim", icon: "🧾" });
+          }
+          if (role === "trading" || role === "admin") {
+            if (dlCntF.butuh_invoice) dlItemsF.push({ label: "DO butuh PDF Invoice", count: dlCntF.butuh_invoice, page: "delivery", filter: "butuh_invoice", icon: "📄" });
+            if (dlCntF.emergNoInv) dlItemsF.push({ label: "DO darurat (invoice menyusul)", count: dlCntF.emergNoInv, page: "delivery", filter: "dikirim", icon: "⚠️" });
+          }
+          if (role === "marketing" || role === "admin") {
+            if (dlCntF.ditolak) dlItemsF.push({ label: "DO ditolak Gudang (ajukan ulang)", count: dlCntF.ditolak, page: "delivery", filter: "ditolak", icon: "⛔" });
+          }
+          if (dlItemsF.length) {
+            groups.push({ label: "Delivery & Pengiriman", icon: "🚚", count: dlItemsF.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: dlItemsF, open: true });
+          }
+        }
+      } catch (eDlF) {}
       renderNotifItems(groups);
       _lastInboxAt = Date.now();
       try {
@@ -31117,6 +31662,20 @@ function closeOtModal() {
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closePrManualModal()">Batal</button>
         <button class="btn btn-primary" type="button" onclick="savePrManual()">Kirim ke Purchase</button>
+      </div>
+    </div>
+  </div>
+  <div id="doStageModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100185">
+    <div class="modal modal-sheet" style="max-width:460px;width:94vw">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="doStageTitle" style="margin:0">Proses DO</h2>
+        <p id="doStageSub" style="margin:0.35rem 0 0;font-size:0.8rem;color:var(--text-muted)"></p>
+      </div>
+      <div class="sheet-body" id="doStageBody"></div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeDoStageModal()">Batal</button>
+        <button type="button" class="btn btn-primary" id="doStageSubmit" onclick="submitDoStageModal()">Simpan</button>
       </div>
     </div>
   </div>
