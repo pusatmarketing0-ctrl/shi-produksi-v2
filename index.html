@@ -4933,7 +4933,7 @@
     }
     .pg-btn:disabled { opacity: 0.35; cursor: default; }
     </style>
-<script src="/_aistudio-iframe.js?v=29045eb3"></script></head>
+</head>
 <body>
   <div id="pwaBar" class="pwa-bar" role="dialog" aria-label="Pasang aplikasi">
     <div class="pwa-txt">📥 Pasang aplikasi di HP<small>Jadi shortcut seperti app biasa — gratis</small></div>
@@ -14839,18 +14839,18 @@ function fillOperatorList(selectedEmail) {
         var actionHtml = "";
         if (sh) {
           var kirimBtn = (sh.status === "pending")
-            ? ' <button type="button" class="btn btn-primary btn-sm" style="margin-top:0.25rem" onclick="confirmShipNow(' + JSON.stringify(sh.ship_id) + ')">Kirim</button>'
+            ? ' <button type="button" class="btn btn-primary btn-sm" style="margin-top:0.25rem" onclick="confirmShipNow(' + esc(JSON.stringify(sh.ship_id)) + ')">Kirim</button>'
             : "";
           actionHtml =
             shipStatusPill(sh.status) +
             '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">' + esc(sh.ship_id) + "</div>" +
-            '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem" onclick="openShipDetail(' + JSON.stringify(sh.ship_id) + ')">Detail</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem" onclick="openShipDetail(' + esc(JSON.stringify(sh.ship_id)) + ')">Detail</button>' +
             kirimBtn;
         } else {
           actionHtml =
             '<span class="pill" style="background:#f1f5f9;color:#64748b">Belum</span> ' +
-            '<button type="button" class="btn btn-ghost btn-sm" onclick=\'openMktAksiModal(' +
-            JSON.stringify(String(x.product_id)) + "," + Number(x.actual) + "," + JSON.stringify(nos0) + ")\'>Aksi</button>";
+            '<button type="button" class="btn btn-ghost btn-sm" onclick="openMktAksiModal(' +
+            esc(JSON.stringify(String(x.product_id))) + "," + Number(x.actual) + "," + esc(JSON.stringify(nos0)) + ')">Aksi</button>';
         }
         var name = productNameOnly(x.product_id) || "";
         if (name.indexOf(x.product_id) === 0) name = name.replace(x.product_id, "").replace(/^[\s·\-]+/, "");
@@ -28502,13 +28502,17 @@ function otProductDisplay(productId) {
         var { data, error } = await sb.from("order_trading_events")
           .select("*")
           .eq("ot_id", otId)
-          .order("created_at", { ascending: false })
-          .limit(60);
+          .limit(200);
         if (error) {
           box.innerHTML = '<div style="font-size:0.75rem;color:#94a3b8">' + esc(error.message) + '</div>';
           return;
         }
-        var evs = data || [];
+        var evs = (data || []).slice().sort(function(a, b) {
+          var ta = Date.parse(a.created_at || a.at || a.ts || a.event_at || "") || 0;
+          var tb = Date.parse(b.created_at || b.at || b.ts || b.event_at || "") || 0;
+          if (tb !== ta) return tb - ta;
+          return (Number(b.id) || 0) - (Number(a.id) || 0);
+        }).slice(0, 60);
         if (cnt) cnt.textContent = evs.length + " aktivitas";
         if (!evs.length) {
           box.innerHTML = '<div style="font-size:0.76rem;color:#94a3b8;padding:0.25rem 0">Belum ada pesan tek-tok atau riwayat</div>';
@@ -28533,8 +28537,9 @@ function otProductDisplay(productId) {
           var isRev = kind === "revisi_marketing";
           var cls = "odoo-chatter-item" + (isRev ? " is-revisi" : (isChat ? " is-chat" : ""));
           var who = String(ev.by_email || "Sistem");
+          var rawTs = ev.created_at || ev.at || ev.ts || ev.event_at || "";
           var dt = "";
-          try { dt = formatWibDateTime(ev.created_at); } catch (eD) { dt = String(ev.created_at || "").slice(0, 16); }
+          try { dt = rawTs ? formatWibDateTime(rawTs) : ""; } catch (eD) { dt = String(rawTs).slice(0, 16); }
           return '<div class="' + cls + '">' +
             '<div style="flex:1;min-width:0">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.4rem;flex-wrap:wrap">' +
