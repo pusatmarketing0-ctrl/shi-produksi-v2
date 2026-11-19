@@ -15501,7 +15501,7 @@ function fillOperatorList(selectedEmail) {
         }
         if (forGudang || role === "gudang") {
           if (r.status === "requested") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\',\'picked\')">Picked</button> ';
-          else if (r.status === "picked") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buat DO</button>';
+          else if (r.status === "picked") acts += '<button type="button" class="btn btn-primary btn-sm" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buka / Buat DO</button>';
         }
         if ((role === "marketing" || role === "admin") && (r.status === "requested" || r.status === "pending")) {
           acts += ' <button type="button" class="btn btn-ghost btn-sm" onclick="updateShipStatus(\'' + r.ship_id + '\',\'cancelled\')">Batal</button>';
@@ -15591,80 +15591,173 @@ function fillOperatorList(selectedEmail) {
       loadShipRequests();
     }
 
-    /** Gudang: dari instruksi picked → buka form DO terisi otomatis (SO/customer/produk) */
-    async function createDoFromShip(shipId) {
+    /** Helper: cari DO non-cancelled yang sudah terhubung ke SHIP-xxx atau buat otomatis berstatus ready */
+    async function _findExistingDoForShip(shipId) {
+      if (!sb || !shipId) return null;
+      var cached = (deliveryList || []).find(function(d) {
+        return d && d.status !== "cancelled" && String(d.notes || "").indexOf(shipId) >= 0;
+      });
+      if (cached) return cached;
+      try {
+        var { data } = await sb.from("deliveries")
+          .select("*")
+          .ilike("notes", "%" + shipId + "%")
+          .neq("status", "cancelled")
+          .order("delivery_date", { ascending: false })
+          .limit(1);
+        if (data && data.length) return data[0];
+      } catch (e) { console.warn("_findExistingDoForShip:", e); }
+      return null;
+    }
+
+    async function _openDeliveriesPageWithDo(doId, toastMsg) {
+      window.__highlightDoId = doId || "";
+      try { closeShipDetail(); } catch (e0) {}
+      try { goPage("delivery"); } catch (e1) {}
+      try {
+        if ($("doSearch")) $("doSearch").value = "";
+        setDoFacet("");
+      } catch (e2) {}
+      try { await loadDeliveries(); } catch (e3) {}
+      try { await loadShipRequests(); } catch (e4) {}
+      if (toastMsg) toast(toastMsg);
+    }
+
+    /** Gudang: Konfirmasi Picked -> otomatis set picked + buat DO (ready) + langsung masuk ke menu Delivery Order (DO) */
+    async function confirmPickedToDo(shipId) {
+      return await createDoFromShip(shipId, { fromPickedConfirm: true });
+    }
+
+    /** Gudang: dari instruksi requested/picked -> otomatis buat DO (ready) tanpa form ganda & langsung masuk ke menu Delivery Order */
+    async function createDoFromShip(shipId, opts) {
+      opts = opts || {};
       if (!sb || !shipId) return;
-      var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
-      if (!r) {
-        var { data } = await sb.from("ship_requests").select("*").eq("ship_id", shipId).maybeSingle();
-        r = data;
-      }
-      if (!r) return toast("Instruksi tidak ditemukan", true);
-      if (r.status !== "picked" && r.status !== "requested") {
-        return toast("Hanya instruksi requested/picked yang bisa jadi DO", true);
-      }
-      if (r.status === "requested") {
-        await sb.from("ship_requests").update({ status: "picked", updated_at: new Date().toISOString() }).eq("ship_id", shipId);
-        r.status = "picked";
-      }
-      var { data: lines } = await sb.from("ship_request_lines").select("*").eq("ship_id", shipId);
-      lines = lines || r.ship_request_lines || [];
-      if (!lines.length) return toast("Instruksi tanpa produk — tidak bisa buat DO", true);
-
-      // resolve SO dari order_id / no_so / customer
-      var order = null;
+      if (window.__pickingShipBusy) return;
+      window.__pickingShipBusy = true;
       try {
-        if (r.order_id) {
-          var { data: o1 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("order_id", r.order_id).maybeSingle();
-          order = o1;
+        var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
+        if (!r) {
+          var { data } = await sb.from("ship_requests").select("*, ship_request_lines(*)").eq("ship_id", shipId).maybeSingle();
+          r = data;
         }
-        if (!order && r.no_so) {
-          var { data: o2 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("no_so", r.no_so).limit(1).maybeSingle();
-          order = o2;
+        if (!r) return toast("Instruksi tidak ditemukan", true);
+        if (r.status !== "picked" && r.status !== "requested") {
+          return toast("Hanya instruksi requested/picked yang bisa diproses ke DO", true);
         }
-      } catch (eO) { console.warn(eO); }
+        if (r.status === "requested") {
+          var { error: eUp } = await sb.from("ship_requests").update({
+            status: "picked",
+            updated_at: new Date().toISOString()
+          }).eq("ship_id", shipId);
+          if (eUp) return toast(eUp.message, true);
+          r.status = "picked";
+        }
 
-      closeShipDetail();
-      try {
-        await openDeliveryModal("");
-      } catch (e) {
-        try { goPage("delivery"); } catch (e2) {}
-        await openDeliveryModal("");
-      }
+        // Jika DO untuk instruksi ini sudah pernah dibuat, langsung buka menu Delivery Order tanpa buat ganda
+        var existingDo = await _findExistingDoForShip(shipId);
+        if (existingDo && existingDo.delivery_id) {
+          await _openDeliveriesPageWithDo(
+            existingDo.delivery_id,
+            "Picked dikonfirmasi · membuka DO " + existingDo.delivery_id + " di menu Delivery Order"
+          );
+          return;
+        }
 
-      window.__doFromShipId = shipId;
-      if ($("doShipRef")) $("doShipRef").value = shipId;
-      if ($("doDate")) $("doDate").value = todayStr();
-      if ($("doStatus")) $("doStatus").value = "ready";
-      if ($("doNotes")) $("doNotes").value = "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : "");
+        var { data: lines } = await sb.from("ship_request_lines").select("*").eq("ship_id", shipId);
+        lines = (lines && lines.length ? lines : (r.ship_request_lines || [])) || [];
 
-      // pastikan SO terpilih di combobox
-      var inp = $("doSoSelect");
-      if (inp) {
-        var wantId = (order && order.order_id) || r.order_id || "";
-        var wantSo = (order && order.no_so) || r.no_so || "";
+        // Resolve SO dari order_id / no_so / customer
+        var order = null;
+        try {
+          if (r.order_id) {
+            var { data: o1 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("order_id", r.order_id).maybeSingle();
+            order = o1;
+          }
+          if (!order && r.no_so) {
+            var { data: o2 } = await sb.from("orders").select("order_id,no_so,customer_name,status").eq("no_so", r.no_so).limit(1).maybeSingle();
+            order = o2;
+          }
+        } catch (eO) { console.warn(eO); }
+
+        var wantOrderId = (order && order.order_id) || r.order_id || "";
+        var wantNoSo = (order && order.no_so) || r.no_so || "";
         var wantCust = (order && order.customer_name) || r.customer_name || "";
-        if (wantId) {
-          inp.dataset.scId = wantId;
-          inp.value = (wantSo || wantId) + (wantCust ? (" · " + wantCust) : "");
-          if (!(window.__doSoCache || []).some(function(o) { return o.order_id === wantId; })) {
+
+        // Jika baris produk ada, langsung auto-create DO berstatus 'ready' & pindah ke menu Delivery Order
+        var validLines = lines.filter(function(l) { return l && l.product_id && Number(l.qty) > 0; });
+        if (validLines.length) {
+          var do_id = await newDeliveryId();
+          var nowIso = new Date().toISOString();
+          var doHeader = {
+            delivery_id: do_id,
+            order_id: wantOrderId,
+            no_so: wantNoSo,
+            customer_name: wantCust,
+            delivery_date: todayStr(),
+            status: "ready",
+            no_do_odoo: null,
+            notes: "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : ""),
+            created_by: (currentUser && currentUser.email) || "",
+            created_at: nowIso,
+            updated_at: nowIso
+          };
+          var { error: eDo } = await sb.from("deliveries").insert(doHeader);
+          if (eDo && /no_do_odoo|column/i.test(String(eDo.message || ""))) {
+            var doFallback = Object.assign({}, doHeader);
+            delete doFallback.no_do_odoo;
+            ({ error: eDo } = await sb.from("deliveries").insert(doFallback));
+          }
+          if (!eDo) {
+            var doLinesPayload = validLines.map(function(l) {
+              return {
+                delivery_id: do_id,
+                product_id: l.product_id,
+                qty: Number(l.qty),
+                unit: l.unit || "pcs"
+              };
+            });
+            var { error: eDl } = await sb.from("delivery_lines").insert(doLinesPayload);
+            if (!eDl) {
+              await _openDeliveriesPageWithDo(
+                do_id,
+                "Picked → DO " + do_id + " siap di menu Delivery Order · klik Kirim & isi No. DO Odoo 1x saat kirim"
+              );
+              return;
+            }
+          }
+        }
+
+        // Fallback jika instruksi belum punya baris produk valid: buka menu Delivery Order + form DO terisi
+        closeShipDetail();
+        try { goPage("delivery"); } catch (eNav) {}
+        await openDeliveryModal("");
+        window.__doFromShipId = shipId;
+        if ($("doShipRef")) $("doShipRef").value = shipId;
+        if ($("doDate")) $("doDate").value = todayStr();
+        if ($("doStatus")) $("doStatus").value = "ready";
+        if ($("doNotes")) $("doNotes").value = "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : "");
+        var inp = $("doSoSelect");
+        if (inp && wantOrderId) {
+          inp.dataset.scId = wantOrderId;
+          inp.value = (wantNoSo || wantOrderId) + (wantCust ? (" · " + wantCust) : "");
+          if (!(window.__doSoCache || []).some(function(o) { return o.order_id === wantOrderId; })) {
             window.__doSoCache = (window.__doSoCache || []).concat([{
-              order_id: wantId, no_so: wantSo, customer_name: wantCust, status: ""
+              order_id: wantOrderId, no_so: wantNoSo, customer_name: wantCust, status: ""
             }]);
           }
           onDoSoChange();
         }
+        if ($("doCustomer")) $("doCustomer").value = wantCust || ($("doCustomer").value || "");
+        if ($("doLines")) $("doLines").innerHTML = "";
+        if (lines.length) {
+          lines.forEach(function(l) { addDoLine({ product_id: l.product_id, qty: l.qty, unit: l.unit || "pcs" }); });
+        } else {
+          addDoLine();
+        }
+        toast("Lengkapi baris produk lalu Simpan DO (No. DO Odoo boleh diisi nanti saat Kirim)");
+      } finally {
+        window.__pickingShipBusy = false;
       }
-      if ($("doCustomer")) {
-        $("doCustomer").value = (order && order.customer_name) || r.customer_name || ($("doCustomer").value || "");
-      }
-
-      // ganti baris kosong default dengan produk dari instruksi
-      if ($("doLines")) $("doLines").innerHTML = "";
-      lines.forEach(function(l) {
-        addDoLine({ product_id: l.product_id, qty: l.qty, unit: l.unit || "pcs" });
-      });
-      toast("SO & produk terisi dari instruksi — cek lalu set status shipped & simpan");
     }
     async function openShipDetail(shipId, nextStatus) {
       var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
@@ -15697,10 +15790,10 @@ function fillOperatorList(selectedEmail) {
         var acts = "";
         var role = currentRole();
         if (nextStatus === "picked" || (r.status === "requested" && (role === "gudang" || role === "admin"))) {
-          acts += '<button type="button" class="btn btn-primary" onclick="updateShipStatus(\'' + r.ship_id + '\',\'picked\');closeShipDetail()">Konfirmasi Picked</button>';
+          acts += '<button type="button" class="btn btn-primary" onclick="confirmPickedToDo(\'' + r.ship_id + '\')">Konfirmasi Picked → Delivery Order</button>';
         }
         if (r.status === "picked" && (role === "gudang" || role === "admin" || role === "marketing")) {
-          acts += ' <button type="button" class="btn btn-primary" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buat DO (wajib)</button>';
+          acts += ' <button type="button" class="btn btn-primary" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buka / Buat DO</button>';
         }
         acts += ' <button type="button" class="btn btn-ghost" onclick="closeShipDetail()">Tutup</button>';
         $("shipDetailActions").innerHTML = acts;
@@ -19609,7 +19702,7 @@ function fillOperatorList(selectedEmail) {
 
     var deliveryList = [];
     async function newDeliveryId() {
-      return await nextSeqId("DO", "deliveries", "do_id");
+      return await nextSeqId("DO", "deliveries", "delivery_id");
     }
     function closeDeliveryModal() {
       var m = $("deliveryModal");
@@ -19619,7 +19712,10 @@ function fillOperatorList(selectedEmail) {
       if (!sb) return;
       var body = $("doBody");
       if (body) body.innerHTML = '<tr><td colspan="6" class="empty">Memuat…</td></tr>';
-      var { data, error } = await sb.from("deliveries").select("*").order("delivery_date", { ascending: false }).limit(200);
+      var { data, error } = await sb.from("deliveries").select("*")
+        .order("delivery_date", { ascending: false })
+        .order("delivery_id", { ascending: false })
+        .limit(200);
       if (error) {
         if (body) body.innerHTML = '<tr><td colspan="6" class="empty">' + esc(error.message) + ' — jalankan align_flow_v2.sql</td></tr>';
         deliveryList = [];
@@ -19762,16 +19858,20 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       var pageList = pageOf("do", list, "doPager");
+      var hlId = window.__highlightDoId || "";
       body.innerHTML = pageList.map(function(d) {
         var acts = "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
         if (d.status === "ready" || d.status === "draft") {
           acts += " <button type='button' class='btn-odoo-teal' style='padding:0.25rem 0.6rem;font-size:0.75rem' onclick='openShipDoModal(" + JSON.stringify(d.delivery_id) + ")'>Kirim</button>";
         }
         var odoo = d.no_do_odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(d.no_do_odoo) + "</div>" : "";
+        var shipMatch = String(d.notes || "").match(/SHIP-[A-Z0-9]+/i);
+        var shipBadge = shipMatch ? '<div style="font-size:0.68rem;color:#047857;font-weight:600">' + esc(shipMatch[0]) + "</div>" : "";
         var stLo = String(d.status || "").toLowerCase();
         var pillCls = stLo === "delivered" ? "locked" : (stLo === "shipped" ? "quotation" : (stLo === "cancelled" ? "cancel" : (stLo === "ready" ? "progress" : "done")));
-        return "<tr>" +
-          "<td><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + odoo + "</td>" +
+        var rowStyle = (hlId && d.delivery_id === hlId) ? " style='background:#ecfdf5'" : "";
+        return "<tr" + rowStyle + ">" +
+          "<td><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + odoo + shipBadge + "</td>" +
           "<td>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
           "<td>" + esc(d.no_so || "—") + "</td>" +
           "<td>" + esc(d.customer_name || "—") + "</td>" +
@@ -19779,16 +19879,29 @@ function fillOperatorList(selectedEmail) {
           "<td style='white-space:nowrap;text-align:right'>" + acts + "</td>" +
           "</tr>";
       }).join("");
+      if (hlId) {
+        setTimeout(function() { if (window.__highlightDoId === hlId) window.__highlightDoId = ""; }, 4000);
+      }
     }
 
     function openShipDoModal(doId) {
-      if ($("shipDoId")) $("shipDoId").value = doId || "";
-      if ($("shipDoOdooNo")) $("shipDoOdooNo").value = "";
       var d = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
+      var existingOdoo = (d && d.no_do_odoo) ? String(d.no_do_odoo).trim() : "";
+      if (!existingOdoo && d && d.notes) {
+        var mOdoo = String(d.notes).match(/DO Odoo:\s*([^\s·]+)/i);
+        if (mOdoo) existingOdoo = mOdoo[1];
+      }
+      if ($("shipDoId")) $("shipDoId").value = doId || "";
+      if ($("shipDoOdooNo")) $("shipDoOdooNo").value = existingOdoo;
       if ($("shipDoInfo")) {
         $("shipDoInfo").textContent = d
           ? (d.delivery_id + " · " + (d.no_so || "—") + " · " + (d.customer_name || "—"))
           : (doId || "");
+      }
+      if ($("shipDoHint")) {
+        $("shipDoHint").textContent = existingOdoo
+          ? ("No. DO Odoo sudah terisi (" + existingOdoo + ") — langsung klik Konfirmasi kirim.")
+          : "Isi nomor DO resmi dari Odoo (cukup 1x di sini) sebelum status jadi shipped.";
       }
       var m = $("shipDoModal");
       if (m) {
@@ -19796,7 +19909,7 @@ function fillOperatorList(selectedEmail) {
         m.style.display = "flex";
       }
       document.body.classList.add("modal-open");
-      setTimeout(function() { if ($("shipDoOdooNo")) $("shipDoOdooNo").focus(); }, 100);
+      setTimeout(function() { if ($("shipDoOdooNo") && !existingOdoo) $("shipDoOdooNo").focus(); }, 100);
     }
     function closeShipDoModal() {
       var m = $("shipDoModal");
@@ -20014,21 +20127,25 @@ function fillOperatorList(selectedEmail) {
       if (error) return toast(error.message, true);
       var { error: eL } = await sb.from("delivery_lines").insert(lines);
       if (eL) return toast(eL.message, true);
+      var existingDo = !isNew ? (deliveryList || []).find(function(x) { return x.delivery_id === do_id; }) : null;
+      var wasAlreadyOut = existingDo && (existingDo.status === "shipped" || existingDo.status === "delivered");
       if (header.status === "shipped" || header.status === "delivered") {
-        try {
-          for (var i = 0; i < lines.length; i++) {
-            await sb.from("warehouse_movements").insert({
-              movement_type: "out_delivery",
-              product_id: lines[i].product_id,
-              qty: lines[i].qty,
-              unit: lines[i].unit,
-              order_id: order_id,
-              no_so: no_so,
-              ref_note: "DO " + do_id,
-              created_by: (currentUser && currentUser.email) || ""
-            });
-          }
-        } catch (eM) {}
+        if (!wasAlreadyOut) {
+          try {
+            for (var i = 0; i < lines.length; i++) {
+              await sb.from("warehouse_movements").insert({
+                movement_type: "out_delivery",
+                product_id: lines[i].product_id,
+                qty: lines[i].qty,
+                unit: lines[i].unit,
+                order_id: order_id,
+                no_so: no_so,
+                ref_note: "DO " + do_id + (no_do_odoo ? " / Odoo " + no_do_odoo : ""),
+                created_by: (currentUser && currentUser.email) || ""
+              });
+            }
+          } catch (eM) {}
+        }
         // tutup instruksi kirim terkait
         try {
           var shipRef = (window.__doFromShipId || (($("doShipRef") && $("doShipRef").value) || "")).trim();
@@ -20048,6 +20165,10 @@ function fillOperatorList(selectedEmail) {
       }
       toast("DO disimpan" + (header.status === "shipped" ? " · instruksi kirim → shipped" : ""));
       closeDeliveryModal();
+      window.__highlightDoId = do_id;
+      if ($("page-delivery") && $("page-delivery").hidden) {
+        try { goPage("delivery"); } catch (eNav) {}
+      }
       loadDeliveries();
       try { loadShipRequests(); } catch (eR) {}
     }
@@ -30780,9 +30901,9 @@ function closeOtModal() {
       <div class="sheet-body">
         <input type="hidden" id="shipDoId" />
         <div class="field">
-          <label>No. DO Odoo <span style="color:#b91c1c">(wajib)</span></label>
+          <label>No. DO Odoo <span style="color:#b91c1c">(wajib saat kirim)</span></label>
           <input id="shipDoOdooNo" placeholder="Contoh: WH/OUT/2026/00123" autocomplete="off" />
-          <p style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0">Isi nomor DO resmi dari Odoo sebelum status jadi shipped.</p>
+          <p id="shipDoHint" style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0">Isi nomor DO resmi dari Odoo (cukup 1x di sini) sebelum status jadi shipped.</p>
         </div>
         <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
           <button type="button" class="btn btn-ghost" onclick="closeShipDoModal()">Batal</button>
@@ -30812,8 +30933,8 @@ function closeOtModal() {
             <option value="cancelled">cancelled</option>
           </select>
         </div>
-        <div class="field"><label>No. DO Odoo</label>
-          <input id="doOdooNo" placeholder="Wajib jika status shipped" autocomplete="off" />
+        <div class="field"><label>No. DO Odoo <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(opsional saat Ready)</span></label>
+          <input id="doOdooNo" placeholder="Opsional saat Ready · diisi 1x saat Kirim" autocomplete="off" />
         </div>
         <div class="field"><label>Catatan</label><input id="doNotes" /></div>
         <div style="font-weight:700;margin:0.75rem 0 0.35rem">Baris produk (FG)</div>
