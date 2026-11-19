@@ -7568,7 +7568,7 @@
             </div>
             <div class="odoo-op-card op-amber is-click" onclick="setDoFacet('ready')">
               <div class="odoo-op-head">
-                <div><h3 class="odoo-op-title" style="color:#b45309">Siap Kirim (Ready)</h3><div class="odoo-op-sub">Draft &amp; menunggu kirim</div></div>
+                <div><h3 class="odoo-op-title" style="color:#b45309">Siap Kirim (Ready)</h3><div class="odoo-op-sub" id="doOvDraftSub">Menunggu kirim ke customer</div></div>
                 <span class="odoo-pill progress">Ready</span>
               </div>
               <div class="odoo-op-body">
@@ -20030,15 +20030,17 @@ function fillOperatorList(selectedEmail) {
       var body = $("doBody");
       if (!body) return;
       var allDo = deliveryList || [];
-      var dReady = 0, dShip = 0, dDone = 0;
+      var dDraft = 0, dReady = 0, dShip = 0, dDone = 0;
       allDo.forEach(function(d) {
         var s = String(d.status || "").toLowerCase();
-        if (s === "ready" || s === "draft") dReady++;
+        if (s === "draft") dDraft++;
+        else if (s === "ready") dReady++;
         else if (s === "shipped") dShip++;
         else if (s === "delivered") dDone++;
       });
       if ($("doOvTotal")) $("doOvTotal").textContent = formatNum(allDo.length);
       if ($("doOvReady")) $("doOvReady").textContent = formatNum(dReady);
+      if ($("doOvDraftSub")) $("doOvDraftSub").textContent = dDraft > 0 ? (formatNum(dDraft) + " masih draft (perlu Set Ready)") : "Menunggu kirim ke customer";
       if ($("doOvShipped")) $("doOvShipped").textContent = formatNum(dShip);
       if ($("doOvDone")) $("doOvDone").textContent = formatNum(dDone);
 
@@ -20058,7 +20060,9 @@ function fillOperatorList(selectedEmail) {
       var hlId = window.__highlightDoId || "";
       body.innerHTML = pageList.map(function(d) {
         var acts = "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
-        if (d.status === "ready" || d.status === "draft") {
+        if (d.status === "draft") {
+          acts += " <button type='button' class='btn btn-primary btn-sm' style='padding:0.25rem 0.6rem;font-size:0.75rem' onclick='markDoReady(" + JSON.stringify(d.delivery_id) + ")'>Set Ready</button>";
+        } else if (d.status === "ready") {
           acts += " <button type='button' class='btn-odoo-teal' style='padding:0.25rem 0.6rem;font-size:0.75rem' onclick='openShipDoModal(" + JSON.stringify(d.delivery_id) + ")'>Kirim</button>";
         }
         var odoo = d.no_do_odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(d.no_do_odoo) + "</div>" : "";
@@ -20079,6 +20083,34 @@ function fillOperatorList(selectedEmail) {
       if (hlId) {
         setTimeout(function() { if (window.__highlightDoId === hlId) window.__highlightDoId = ""; }, 4000);
       }
+    }
+
+    async function markDoReady(doId) {
+      if (!sb || !doId) return;
+      var { error } = await sb.from("deliveries").update({
+        status: "ready",
+        updated_at: new Date().toISOString()
+      }).eq("delivery_id", doId);
+      if (error) return toast(error.message, true);
+      try {
+        var drow = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
+        var shipRef = "";
+        if (drow && drow.notes) {
+          var m = String(drow.notes).match(/SHIP-[A-Z0-9]+/i);
+          if (m) shipRef = m[0];
+        }
+        if (shipRef) {
+          await sb.from("ship_requests").update({
+            status: "picked",
+            updated_at: new Date().toISOString()
+          }).eq("ship_id", shipRef).eq("status", "requested");
+        }
+      } catch (eS) { console.warn(eS); }
+      window.__highlightDoId = doId;
+      toast(doId + " → Ready (siap kirim)");
+      await loadDeliveries();
+      try { loadShipRequests(); } catch (eR) {}
+      try { loadSidebarBadges(true); } catch (eB) {}
     }
 
     function openShipDoModal(doId) {
