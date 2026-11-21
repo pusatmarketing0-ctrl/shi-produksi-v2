@@ -5727,136 +5727,221 @@
     .mkt-kpi-card.is-active .value {
       color: #065f46;
     }
-    /* Delivery Order Horizontal Stepper SLA Timeline */
-    .do-tl-box {
-      max-width: 280px;
-      min-width: 220px;
+    /* Delivery Order Modern Stage & SLA Stepper (Full-Fit, Zero Scrollbar) */
+    .do-table {
+      table-layout: auto;
     }
-    .do-tl-scroll {
-      overflow-x: auto;
-      padding: 0.25rem 0.15rem 0.2rem;
-      scrollbar-width: thin;
-      scrollbar-color: #cbd5e1 transparent;
+    .do-table thead th {
+      padding: 0.72rem 0.85rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #64748b;
     }
-    .do-tl-scroll::-webkit-scrollbar { height: 4px; }
-    .do-tl-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
-    .do-tl-track {
+    .do-table tbody td {
+      vertical-align: top;
+      padding: 0.85rem 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.81rem;
+    }
+    .do-table tbody tr {
+      cursor: default;
+    }
+    .do-stage-cell {
+      min-width: 268px;
+      max-width: 340px;
+    }
+    .do-st-head {
       display: flex;
-      align-items: flex-start;
-      min-width: max-content;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.45rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
     }
-    .do-tl-step {
+    .do-st-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.14rem 0.48rem;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .do-st-label.t-pick { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    .do-st-label.t-odoo { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+    .do-st-label.t-inv { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+    .do-st-label.t-ready { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .do-st-label.t-ship { background: #eff6ff; color: #0369a1; border: 1px solid #bae6fd; }
+    .do-st-label.t-done { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .do-st-label.t-rej { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .do-st-label.t-muted { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .do-st-sla {
+      font-size: 0.69rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .do-st-sla.ok { color: #047857; }
+    .do-st-sla.warn { color: #b45309; }
+    .do-st-sla.late { color: #b91c1c; font-weight: 700; }
+    .do-st-sla.info { color: #0369a1; }
+    .do-st-sla.muted { color: #64748b; }
+    .do-st-track {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      align-items: start;
+      width: 100%;
+    }
+    .do-st-track.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 170px;
+    }
+    .do-st-step {
       position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-width: 78px;
-      padding: 0 4px;
       text-align: center;
+      padding: 0 2px;
     }
-    .do-tl-lbl {
-      font-size: 0.6rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-      line-height: 1.15;
-      height: 1.45rem;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      margin-bottom: 0.35rem;
-      color: #94a3b8;
-    }
-    .do-tl-step.is-done .do-tl-lbl,
-    .do-tl-step.is-active .do-tl-lbl { color: #16a34a; }
-    .do-tl-step.is-warn .do-tl-lbl { color: #d97706; }
-    .do-tl-step.is-late .do-tl-lbl,
-    .do-tl-step.is-rej .do-tl-lbl { color: #dc2626; }
-    .do-tl-axis {
+    .do-st-axis {
       position: relative;
       width: 100%;
-      height: 22px;
+      height: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .do-tl-axis::before,
-    .do-tl-axis::after {
+    .do-st-axis::before,
+    .do-st-axis::after {
       content: "";
       position: absolute;
       top: 50%;
       height: 2px;
       transform: translateY(-50%);
-      background: #cbd5e1;
+      background: #e2e8f0;
       z-index: 0;
     }
-    .do-tl-axis::before { left: 0; right: 50%; }
-    .do-tl-axis::after { left: 50%; right: 0; }
-    .do-tl-step:first-child .do-tl-axis::before { display: none; }
-    .do-tl-step:last-child .do-tl-axis::after { display: none; }
-    .do-tl-step.is-done .do-tl-axis::before,
-    .do-tl-step.is-done .do-tl-axis::after,
-    .do-tl-step.is-active .do-tl-axis::before,
-    .do-tl-step.is-warn .do-tl-axis::before,
-    .do-tl-step.is-late .do-tl-axis::before,
-    .do-tl-step.is-rej .do-tl-axis::before { background: #86efac; }
-    .do-tl-dot {
+    .do-st-axis::before { left: 0; right: 50%; }
+    .do-st-axis::after { left: 50%; right: 0; }
+    .do-st-step:first-child .do-st-axis::before { display: none; }
+    .do-st-step:last-child .do-st-axis::after { display: none; }
+    .do-st-step.is-done .do-st-axis::before,
+    .do-st-step.is-done .do-st-axis::after,
+    .do-st-step.is-active .do-st-axis::before,
+    .do-st-step.is-warn .do-st-axis::before,
+    .do-st-step.is-late .do-st-axis::before,
+    .do-st-step.is-rej .do-st-axis::before {
+      background: #6ee7b7;
+    }
+    .do-st-dot {
       position: relative;
       z-index: 1;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
       border: 2px solid #cbd5e1;
-      background: #f8fafc;
+      background: #ffffff;
       padding: 0;
       cursor: pointer;
-      transition: transform 0.12s ease;
+      transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .do-tl-dot:hover { transform: scale(1.18); }
-    .do-tl-step.is-done .do-tl-dot {
-      width: 15px;
-      height: 15px;
-      background: #4ade80;
+    .do-st-dot:hover { transform: scale(1.22); }
+    .do-st-step.is-done .do-st-dot {
+      width: 10px;
+      height: 10px;
+      background: #10b981;
+      border-color: #10b981;
+    }
+    .do-st-step.is-active .do-st-dot {
+      width: 13px;
+      height: 13px;
+      background: #0d9f6e;
       border: 2px solid #ffffff;
-      box-shadow: 0 0 0 2px #4ade80;
+      box-shadow: 0 0 0 2px #0d9f6e;
     }
-    .do-tl-step.is-active .do-tl-dot {
-      width: 20px;
-      height: 20px;
-      background: #16a34a;
-      border: 3px solid #ffffff;
-      box-shadow: 0 0 0 2.5px #16a34a;
-    }
-    .do-tl-step.is-warn .do-tl-dot {
-      width: 20px;
-      height: 20px;
+    .do-st-step.is-warn .do-st-dot {
+      width: 13px;
+      height: 13px;
       background: #d97706;
-      border: 3px solid #ffffff;
-      box-shadow: 0 0 0 2.5px #d97706;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 2px #d97706;
     }
-    .do-tl-step.is-late .do-tl-dot,
-    .do-tl-step.is-rej .do-tl-dot {
-      width: 20px;
-      height: 20px;
+    .do-st-step.is-late .do-st-dot,
+    .do-st-step.is-rej .do-st-dot {
+      width: 13px;
+      height: 13px;
       background: #dc2626;
-      border: 3px solid #ffffff;
-      box-shadow: 0 0 0 2.5px #dc2626;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 2px #dc2626;
     }
-    .do-tl-ts {
-      margin-top: 0.35rem;
-      font-size: 0.65rem;
-      line-height: 1.25;
+    .do-st-lbl {
+      margin-top: 0.22rem;
+      font-size: 0.62rem;
+      font-weight: 500;
+      line-height: 1.15;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+    .do-st-step.is-done .do-st-lbl { color: #059669; font-weight: 600; }
+    .do-st-step.is-active .do-st-lbl { color: #065f46; font-weight: 700; }
+    .do-st-step.is-warn .do-st-lbl { color: #b45309; font-weight: 700; }
+    .do-st-step.is-late .do-st-lbl,
+    .do-st-step.is-rej .do-st-lbl { color: #b91c1c; font-weight: 700; }
+    .do-st-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.45rem;
+      margin-top: 0.36rem;
+      font-size: 0.69rem;
       color: #64748b;
       font-variant-numeric: tabular-nums;
-      min-height: 1.7rem;
     }
-    .do-tl-hint {
-      font-size: 0.64rem;
-      color: #64748b;
-      margin-top: 0.15rem;
-      text-align: center;
-      letter-spacing: 0.01em;
+    .do-st-detail-btn {
+      background: transparent;
+      border: none;
+      padding: 0;
+      font-size: 0.69rem;
+      font-weight: 600;
+      color: #0d9f6e;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
+    .do-st-detail-btn:hover { text-decoration: underline; color: #047857; }
+    .do-st-extra {
+      margin-top: 0.25rem;
+      font-size: 0.71rem;
+      line-height: 1.35;
+      color: #334155;
+    }
+    .do-act-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .do-inv-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #047857;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .do-inv-link:hover { background: #d1fae5; border-color: #6ee7b7; }
     /* Nomor Bets (Multi-Batch) Chips & Cards */
     .bets-chips {
       display: flex;
@@ -8121,7 +8206,7 @@
                   <span>Sales</span><span>/</span><span>Logistics</span><span>/</span><strong>Delivery Orders (DO)</strong>
                 </div>
                 <h1 class="odoo-inv-title">Delivery Order (DO)</h1>
-                <p class="odoo-inv-sub">Alur 1 pintu: Instruksi Marketing → Gudang Siapkan &amp; DO Odoo → PDF Invoice Trading → Kirim → Resi / Sampai.</p>
+                <p class="odoo-inv-sub">Alur 1 pintu: Instruksi Marketing → Siapkan Paket (Picked) → Isi DO Odoo → PDF Invoice Trading → Kirim → Resi / Sampai.</p>
               </div>
               <div class="odoo-inv-actions">
                 <button class="btn btn-ghost btn-sm" type="button" onclick="loadDeliveries()">Refresh</button>
@@ -8132,12 +8217,12 @@
           <div class="odoo-inv-overview cols-5">
             <div class="odoo-op-card op-amber is-click" data-docard="perlu_gudang" onclick="setDoFacet('perlu_gudang')">
               <div class="odoo-op-head">
-                <div><h3 class="odoo-op-title" style="color:#b45309">1. Perlu Gudang</h3><div class="odoo-op-sub">Siapkan paket &amp; isi DO Odoo</div></div>
+                <div><h3 class="odoo-op-title" style="color:#b45309">1. Perlu Gudang</h3><div class="odoo-op-sub">Siapkan (Picked) → DO Odoo</div></div>
                 <span class="odoo-pill progress">Gudang</span>
               </div>
               <div class="odoo-op-body">
                 <div class="odoo-op-val" id="doOvGudang">—</div>
-                <div class="odoo-op-stats" id="doOvGudangSub">Bisa validasi atau tolak kapasitas</div>
+                <div class="odoo-op-stats" id="doOvGudangSub">Picked &amp; validasi DO Odoo</div>
               </div>
             </div>
             <div class="odoo-op-card op-rose is-click" data-docard="butuh_invoice" onclick="setDoFacet('butuh_invoice')">
@@ -8205,18 +8290,21 @@
             <div class="odoo-ctrl-bar">
               <div class="odoo-facet-group" id="doFacetGroup">
                 <button type="button" class="odoo-facet active" data-dost="" onclick="setDoFacet('')">Semua</button>
-                <button type="button" class="odoo-facet" data-dost="perlu_gudang" onclick="setDoFacet('perlu_gudang')">Perlu Gudang</button>
+                <button type="button" class="odoo-facet" data-dost="perlu_picked" onclick="setDoFacet('perlu_picked')">Perlu Picked</button>
+                <button type="button" class="odoo-facet" data-dost="perlu_odoo" onclick="setDoFacet('perlu_odoo')">Isi DO Odoo</button>
                 <button type="button" class="odoo-facet" data-dost="butuh_invoice" onclick="setDoFacet('butuh_invoice')">Menunggu Invoice</button>
                 <button type="button" class="odoo-facet" data-dost="siap_berangkat" onclick="setDoFacet('siap_berangkat')">Siap Berangkat</button>
                 <button type="button" class="odoo-facet" data-dost="dikirim" onclick="setDoFacet('dikirim')">Dikirim</button>
                 <button type="button" class="odoo-facet" data-dost="selesai" onclick="setDoFacet('selesai')">Selesai</button>
-                <button type="button" class="odoo-facet" data-dost="ditolak" onclick="setDoFacet('ditolak')">Ditolak Gudang</button>
+                <button type="button" class="odoo-facet" data-dost="ditolak" onclick="setDoFacet('ditolak')">Ditolak</button>
                 <button type="button" class="odoo-facet" data-dost="sla_late" onclick="setDoFacet('sla_late')" id="doSlaLateFacet" style="color:#b91c1c">Lewat SLA <span id="doSlaLateCount"></span></button>
               </div>
               <div class="odoo-ctrl-right">
                 <select id="doStatusFilter" class="odoo-select-inp" onchange="setDoFacet(this.value, true)">
                   <option value="">Semua tahap</option>
-                  <option value="perlu_gudang">1. Perlu Gudang</option>
+                  <option value="perlu_gudang">1. Semua Perlu Gudang</option>
+                  <option value="perlu_picked">1a. Perlu Siapkan (Picked)</option>
+                  <option value="perlu_odoo">1b. Siap Isi DO Odoo</option>
                   <option value="butuh_invoice">2. Menunggu Invoice</option>
                   <option value="siap_berangkat">3. Siap Berangkat</option>
                   <option value="dikirim">4. Dalam Pengiriman</option>
@@ -8229,7 +8317,7 @@
               </div>
             </div>
             <div class="table-wrap">
-              <table class="odoo-list">
+              <table class="odoo-list do-table" id="doTable">
                 <thead><tr>
                   <th>DO &amp; Instruksi</th><th>Tanggal</th><th>Customer / SO</th><th>Produk &amp; Qty</th><th>DO Odoo &amp; Invoice</th><th>Tahap &amp; SLA</th><th style="text-align:right">Aksi</th>
                 </tr></thead>
@@ -16307,6 +16395,8 @@ function fillOperatorList(selectedEmail) {
     async function ensureDraftDoForShip(shipId, targetStatus) {
       if (!sb || !shipId) return null;
       targetStatus = targetStatus || "draft";
+      var nowIso = new Date().toISOString();
+      var actorEmail = (currentUser && currentUser.email) || "";
       var r = (shipReqList || []).find(function(x) { return x.ship_id === shipId; });
       if (!r) {
         var { data } = await sb.from("ship_requests").select("*").eq("ship_id", shipId).maybeSingle();
@@ -16315,16 +16405,24 @@ function fillOperatorList(selectedEmail) {
       var existing = await _findExistingDoForShip(shipId);
       if (existing && existing.delivery_id) {
         var updEx = {};
-        if (targetStatus === "ready" && existing.status === "draft") updEx.status = "ready";
+        var exNotes = existing.notes || "";
+        var dMeta = doParseTags(exNotes);
+        if (targetStatus === "ready" && existing.status === "draft") {
+          updEx.status = "ready";
+        }
+        if (targetStatus === "ready" && !dMeta.pickedAt) {
+          exNotes = doWriteTags(exNotes, { PICKED_AT: nowIso, PICKED_BY: actorEmail });
+          updEx.notes = exNotes;
+        }
         if (r && r.notes) {
           var sMeta = doParseTags(r.notes);
-          var dMeta = doParseTags(existing.notes);
           if (sMeta.betsMkt.length && !dMeta.betsMkt.length) {
-            updEx.notes = doWriteTags(existing.notes, { BETS_MKT: doEncodeBetsTag(sMeta.betsMkt) });
+            exNotes = doWriteTags(exNotes, { BETS_MKT: doEncodeBetsTag(sMeta.betsMkt) });
+            updEx.notes = exNotes;
           }
         }
         if (Object.keys(updEx).length) {
-          updEx.updated_at = new Date().toISOString();
+          updEx.updated_at = nowIso;
           try {
             await sb.from("deliveries").update(updEx).eq("delivery_id", existing.delivery_id);
             Object.assign(existing, updEx);
@@ -16351,7 +16449,10 @@ function fillOperatorList(selectedEmail) {
       } catch (eO) {}
 
       var do_id = await newDeliveryId();
-      var nowIso = new Date().toISOString();
+      var initNotes = "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : "");
+      if (targetStatus === "ready") {
+        initNotes = doWriteTags(initNotes, { PICKED_AT: nowIso, PICKED_BY: actorEmail });
+      }
       var doHeader = {
         delivery_id: do_id,
         order_id: (order && order.order_id) || r.order_id || "",
@@ -16360,8 +16461,8 @@ function fillOperatorList(selectedEmail) {
         delivery_date: r.request_date || todayStr(),
         status: targetStatus,
         no_do_odoo: null,
-        notes: "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : ""),
-        created_by: (currentUser && currentUser.email) || "",
+        notes: initNotes,
+        created_by: actorEmail,
         created_at: nowIso,
         updated_at: nowIso
       };
@@ -16431,9 +16532,19 @@ function fillOperatorList(selectedEmail) {
           r.status = "picked";
         }
 
-        // Jika DO sudah ada -> buka menu DO (bila masih draft & belum punya No. DO Odoo, langsung buka modal isi DO Odoo!)
+        // Jika DO sudah ada -> pastikan sudah bertanda Picked & buka menu DO
         var existingDo = await _findExistingDoForShip(shipId);
         if (existingDo && existingDo.delivery_id) {
+          var exMetaNow = doParseTags(existingDo.notes);
+          if (r.status === "picked" && (!exMetaNow.pickedAt || existingDo.status === "draft")) {
+            var nowPick = new Date().toISOString();
+            var pickUpd = {
+              status: existingDo.status === "draft" ? "ready" : existingDo.status,
+              notes: !exMetaNow.pickedAt ? doWriteTags(existingDo.notes, { PICKED_AT: nowPick, PICKED_BY: (currentUser && currentUser.email) || "" }) : existingDo.notes,
+              updated_at: nowPick
+            };
+            try { await sb.from("deliveries").update(pickUpd).eq("delivery_id", existingDo.delivery_id); } catch (ePu) {}
+          }
           await _openDeliveriesPageWithDo(
             existingDo.delivery_id,
             "Membuka " + existingDo.delivery_id + " di Delivery Order"
@@ -16468,16 +16579,20 @@ function fillOperatorList(selectedEmail) {
         if (validLines.length) {
           var do_id = await newDeliveryId();
           var nowIso = new Date().toISOString();
+          var actorEmail = (currentUser && currentUser.email) || "";
+          var isPickedNow = r.status === "picked";
+          var initNotes = "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : "");
+          if (isPickedNow) initNotes = doWriteTags(initNotes, { PICKED_AT: nowIso, PICKED_BY: actorEmail });
           var doHeader = {
             delivery_id: do_id,
             order_id: wantOrderId,
             no_so: wantNoSo,
             customer_name: wantCust,
             delivery_date: r.request_date || todayStr(),
-            status: "draft",
+            status: isPickedNow ? "ready" : "draft",
             no_do_odoo: null,
-            notes: "Dari instruksi " + shipId + (r.notes ? " · " + r.notes : ""),
-            created_by: (currentUser && currentUser.email) || "",
+            notes: initNotes,
+            created_by: actorEmail,
             created_at: nowIso,
             updated_at: nowIso
           };
@@ -16500,7 +16615,7 @@ function fillOperatorList(selectedEmail) {
             if (!eDl) {
               await _openDeliveriesPageWithDo(
                 do_id,
-                "DO " + do_id + " dibuat — masukkan No. DO Odoo untuk lanjut ke Admin Trading"
+                "DO " + do_id + (isPickedNow ? " sudah Picked — masukkan No. DO Odoo untuk lanjut ke Admin Trading" : " dibuat — klik Siapkan (Picked) terlebih dahulu")
               );
               if (opts.fromPickedConfirm && typeof openDoStageModal === "function") {
                 setTimeout(function() { openDoStageModal(do_id, "odoo"); }, 120);
@@ -21443,6 +21558,8 @@ function fillOperatorList(selectedEmail) {
         reject: pick("REJECT"),
         rejectDate: pick("REJECT_DATE"),
         rejectAt: pick("REJECT_AT"),
+        pickedAt: pick("PICKED_AT"),
+        pickedBy: pick("PICKED_BY"),
         odooAt: pick("ODOO_AT"),
         invUrl: pick("INV_URL"),
         invName: pick("INV_NAME"),
@@ -21667,6 +21784,15 @@ function fillOperatorList(selectedEmail) {
       }
       return { error: "", items: order.map(function(k) { return byPid[k]; }) };
     }
+    function doIsPicked(d, meta) {
+      if (!d) return false;
+      meta = meta || doParseTags(d.notes);
+      var st = String(d.status || "draft").toLowerCase();
+      var odoo = String(d.no_do_odoo || meta.doOdooNote || "").trim();
+      if (st === "shipped" || st === "delivered" || !!odoo) return true;
+      if (meta.pickedAt || st === "ready") return true;
+      return false;
+    }
     function doGetStage(d) {
       if (!d) return "perlu_gudang";
       var st = String(d.status || "draft").toLowerCase();
@@ -21705,6 +21831,7 @@ function fillOperatorList(selectedEmail) {
     function doComputeSla(d, stg, meta) {
       meta = meta || doParseTags(d && d.notes);
       stg = stg || doGetStage(d);
+      var picked = doIsPicked(d, meta);
       var now = Date.now();
       var today = (typeof todayStr === "function") ? todayStr() : new Date().toISOString().slice(0, 10);
       var reqDate = String((d && d.delivery_date) || "").slice(0, 10);
@@ -21732,10 +21859,15 @@ function fillOperatorList(selectedEmail) {
       }
 
       var startMs = createdMs || updatedMs || now;
-      var limitH = 4, warnH = 2.5, labelTarget = "4j";
+      var limitH = 2, warnH = 1.25, labelTarget = "2j";
       if (stg === "perlu_gudang") {
-        startMs = doParseIso(meta.resubmitAt) || createdMs || updatedMs || now;
-        limitH = 4; warnH = 2.5; labelTarget = "4j";
+        if (!picked) {
+          startMs = doParseIso(meta.resubmitAt) || createdMs || updatedMs || now;
+          limitH = 2; warnH = 1.25; labelTarget = "2j";
+        } else {
+          startMs = doParseIso(meta.pickedAt) || doParseIso(meta.resubmitAt) || updatedMs || createdMs || now;
+          limitH = 2; warnH = 1.25; labelTarget = "2j";
+        }
       } else if (stg === "butuh_invoice") {
         startMs = doParseIso(meta.odooAt) || updatedMs || createdMs || now;
         limitH = 2; warnH = 1; labelTarget = "2j";
@@ -21769,6 +21901,7 @@ function fillOperatorList(selectedEmail) {
       var z = function(n) { return String(n).padStart(2, "0"); };
       return {
         date: z(dt.getDate()) + "/" + z(dt.getMonth() + 1) + "/" + dt.getFullYear(),
+        shortDate: z(dt.getDate()) + "/" + z(dt.getMonth() + 1),
         time: z(dt.getHours()) + ":" + z(dt.getMinutes())
       };
     }
@@ -21776,8 +21909,10 @@ function fillOperatorList(selectedEmail) {
       meta = meta || doParseTags(d && d.notes);
       stg = stg || doGetStage(d);
       sla = sla || doComputeSla(d, stg, meta);
+      var picked = doIsPicked(d, meta);
       var reqDate = String((d && d.delivery_date) || "").slice(0, 10);
       var tStart = doParseIso(meta.resubmitAt) || doParseIso(d && d.created_at) || doParseIso(reqDate);
+      var tPick = doParseIso(meta.pickedAt);
       var tOdoo = doParseIso(meta.odooAt);
       var tInv = doParseIso(meta.invAt);
       var tShip = doParseIso(meta.shipAt);
@@ -21786,20 +21921,27 @@ function fillOperatorList(selectedEmail) {
       var tRej = doParseIso(meta.rejectAt) || tUpd;
       var odooNo = String((d && d.no_do_odoo) || meta.doOdooNote || "").trim();
 
-      if (stg === "butuh_invoice" && !tOdoo) tOdoo = tUpd;
+      if (stg === "perlu_gudang" && picked && !tPick) tPick = tUpd;
+      if (stg === "butuh_invoice") {
+        if (!tOdoo) tOdoo = tUpd;
+        if (!tPick) tPick = tStart || tOdoo;
+      }
       if (stg === "siap_berangkat") {
         if (!tOdoo) tOdoo = tUpd;
         if (!tInv) tInv = tUpd;
+        if (!tPick) tPick = tStart || tOdoo;
       }
       if (stg === "dikirim") {
         if (!tShip) tShip = tUpd;
         if (odooNo && !tOdoo) tOdoo = tStart || tShip;
+        if (!tPick) tPick = tStart || tOdoo || tShip;
         if (meta.invUrl && !tInv) tInv = tShip;
       }
       if (stg === "selesai") {
         if (!tDone) tDone = tUpd;
         if (!tShip) tShip = tDone;
         if (odooNo && !tOdoo) tOdoo = tStart || tShip;
+        if (!tPick) tPick = tStart || tOdoo || tShip;
         if (meta.invUrl && !tInv) tInv = tShip;
       }
 
@@ -21813,7 +21955,8 @@ function fillOperatorList(selectedEmail) {
         return [
           {
             key: "masuk",
-            top: "INSTRUKSI<br>MASUK",
+            short: "Masuk",
+            title: "Instruksi Masuk",
             cls: "is-done",
             ms: tStart,
             target: "Diterima sistem",
@@ -21821,7 +21964,8 @@ function fillOperatorList(selectedEmail) {
           },
           {
             key: "rejected",
-            top: "DITOLAK<br>GUDANG",
+            short: "Ditolak",
+            title: "Ditolak Gudang",
             cls: "is-rej",
             ms: tRej,
             target: "Ajukan kirim ulang",
@@ -21832,33 +21976,54 @@ function fillOperatorList(selectedEmail) {
 
       if (stg === "batal") {
         return [
-          { key: "masuk", top: "INSTRUKSI<br>MASUK", cls: "is-done", ms: tStart, target: "—", note: "Instruksi kirim masuk" },
-          { key: "batal", top: "DIBATALKAN", cls: "is-rej", ms: tUpd, target: "—", note: "DO dibatalkan" }
+          { key: "masuk", short: "Masuk", title: "Instruksi Masuk", cls: "is-done", ms: tStart, target: "—", note: "Instruksi kirim masuk" },
+          { key: "batal", short: "Batal", title: "Dibatalkan", cls: "is-rej", ms: tUpd, target: "—", note: "DO dibatalkan" }
         ];
       }
 
-      var idxMap = { perlu_gudang: 0, butuh_invoice: 1, siap_berangkat: 2, dikirim: 3, selesai: 4 };
-      var curIdx = idxMap[stg] != null ? idxMap[stg] : 0;
+      var curIdx = 0;
+      if (stg === "perlu_gudang") curIdx = picked ? 1 : 0;
+      else if (stg === "butuh_invoice") curIdx = 2;
+      else if (stg === "siap_berangkat") curIdx = 3;
+      else if (stg === "dikirim") curIdx = 4;
+      else if (stg === "selesai") curIdx = 5;
+
       var actCls = activeToneCls();
-      var s3Lbl = meta.emergency && !meta.invUrl ? "DARURAT<br>NO INV" : "INVOICE<br>TRADING";
-      var s3Cls = meta.emergency && !meta.invUrl ? "is-warn" : (curIdx > 2 ? "is-done" : (curIdx === 2 ? actCls : "is-todo"));
+      var s3Short = meta.emergency && !meta.invUrl ? "Darurat" : "Siap";
+      var s3Title = meta.emergency && !meta.invUrl ? "Berangkat Darurat (Tanpa Inv)" : "Siap Berangkat";
+      var s3Cls = meta.emergency && !meta.invUrl ? "is-warn" : (curIdx > 3 ? "is-done" : (curIdx === 3 ? actCls : "is-todo"));
 
       var defs = [
         {
-          key: "perlu_gudang",
-          top: "SIAPKAN<br>&amp; DO ODOO",
+          key: "picked",
+          short: "Pick",
+          title: "1a. Siapkan Barang (Picked)",
           cls: curIdx > 0 ? "is-done" : actCls,
-          ms: curIdx > 0 ? (tOdoo || tStart) : tStart,
+          ms: curIdx > 0 ? (tPick || tStart) : tStart,
           startMs: tStart,
+          endMs: tPick || null,
+          target: "≤ 2 jam",
+          note: picked
+            ? ("Barang sudah disiapkan (Picked)" + (meta.pickedBy ? (" · oleh " + meta.pickedBy) : ""))
+            : "Gudang siapkan fisik paket & cek No. Bets"
+        },
+        {
+          key: "odoo",
+          short: "Odoo",
+          title: "1b. Input DO Odoo",
+          cls: curIdx > 1 ? "is-done" : (curIdx === 1 ? actCls : "is-todo"),
+          ms: curIdx > 1 ? (tOdoo || tPick || tStart) : (curIdx === 1 ? (tPick || tStart) : 0),
+          startMs: tPick || tStart,
           endMs: tOdoo || null,
-          target: "≤ 4 jam (hari sama)",
-          note: odooNo ? ("No. DO Odoo: " + odooNo) : "Gudang siapkan paket & input No. DO Odoo"
+          target: "≤ 2 jam",
+          note: odooNo ? ("No. DO Odoo: " + odooNo) : "Setelah Picked, input No. DO Odoo untuk lanjut ke Trading"
         },
         {
           key: "butuh_invoice",
-          top: "INVOICE<br>TRADING",
-          cls: curIdx > 1 ? (meta.emergency && !meta.invUrl ? "is-warn" : "is-done") : (curIdx === 1 ? actCls : "is-todo"),
-          ms: curIdx > 1 ? (tInv || (meta.emergency ? tShip : 0)) : (curIdx === 1 ? tOdoo : 0),
+          short: "Invoice",
+          title: "2. Invoice Trading",
+          cls: curIdx > 2 ? (meta.emergency && !meta.invUrl ? "is-warn" : "is-done") : (curIdx === 2 ? actCls : "is-todo"),
+          ms: curIdx > 2 ? (tInv || (meta.emergency ? tShip : 0)) : (curIdx === 2 ? tOdoo : 0),
           startMs: tOdoo,
           endMs: tInv || null,
           target: "≤ 2 jam",
@@ -21866,9 +22031,10 @@ function fillOperatorList(selectedEmail) {
         },
         {
           key: "siap_berangkat",
-          top: meta.emergency && !meta.invUrl ? "DARURAT<br>BERANGKAT" : "SIAP<br>BERANGKAT",
+          short: s3Short,
+          title: "3. " + s3Title,
           cls: s3Cls,
-          ms: curIdx > 2 ? tShip : (curIdx === 2 ? (tInv || tUpd) : 0),
+          ms: curIdx > 3 ? tShip : (curIdx === 3 ? (tInv || tUpd) : 0),
           startMs: tInv,
           endMs: tShip || null,
           target: "≤ 2 jam",
@@ -21876,9 +22042,10 @@ function fillOperatorList(selectedEmail) {
         },
         {
           key: "dikirim",
-          top: "DALAM<br>KIRIM",
-          cls: curIdx > 3 ? "is-done" : (curIdx === 3 ? actCls : "is-todo"),
-          ms: curIdx > 3 ? tDone : (curIdx === 3 ? (tShip || tUpd) : 0),
+          short: "Kirim",
+          title: "4. Dalam Pengiriman",
+          cls: curIdx > 4 ? "is-done" : (curIdx === 4 ? actCls : "is-todo"),
+          ms: curIdx > 4 ? tDone : (curIdx === 4 ? (tShip || tUpd) : 0),
           startMs: tShip,
           endMs: tDone || null,
           target: "≤ 24 jam (Resi / Sampai)",
@@ -21886,35 +22053,79 @@ function fillOperatorList(selectedEmail) {
         },
         {
           key: "selesai",
-          top: "SELESAI<br>TERKIRIM",
-          cls: curIdx === 4 ? "is-done" : "is-todo",
-          ms: curIdx === 4 ? (tDone || tUpd) : 0,
+          short: "Selesai",
+          title: "5. Selesai Terkirim",
+          cls: curIdx === 5 ? "is-done" : "is-todo",
+          ms: curIdx === 5 ? (tDone || tUpd) : 0,
           startMs: tStart,
-          endMs: curIdx === 4 ? (tDone || tUpd) : null,
+          endMs: curIdx === 5 ? (tDone || tUpd) : null,
           target: reqDate ? ("Target tgl " + reqDate) : "Tepat waktu",
-          note: curIdx === 4 ? sla.text : "Selesai setelah resi / konfirmasi sampai"
+          note: curIdx === 5 ? sla.text : "Selesai setelah resi / konfirmasi sampai"
         }
       ];
       return defs;
     }
-    function doTimelineHtml(d, stg, meta, sla) {
+    function doTimelineHtml(d, stg, meta, sla, detailLinesHtml) {
+      meta = meta || doParseTags(d && d.notes);
+      stg = stg || doGetStage(d);
+      sla = sla || doComputeSla(d, stg, meta);
+      var picked = doIsPicked(d, meta);
       var steps = doBuildTimelineSteps(d, stg, meta, sla);
+
+      var stageBadge = { label: "1a. Perlu Picked", cls: "t-pick" };
+      if (stg === "perlu_gudang") {
+        stageBadge = picked
+          ? { label: "1b. Siap DO Odoo", cls: "t-odoo" }
+          : { label: "1a. Perlu Picked", cls: "t-pick" };
+      } else if (stg === "butuh_invoice") {
+        stageBadge = { label: "2. Tunggu Invoice", cls: "t-inv" };
+      } else if (stg === "siap_berangkat") {
+        stageBadge = { label: "3. Siap Berangkat", cls: "t-ready" };
+      } else if (stg === "dikirim") {
+        stageBadge = { label: "4. Dalam Kirim", cls: "t-ship" };
+      } else if (stg === "selesai") {
+        stageBadge = { label: "5. Selesai", cls: "t-done" };
+      } else if (stg === "ditolak") {
+        stageBadge = { label: "Ditolak Gudang", cls: "t-rej" };
+      } else if (stg === "batal") {
+        stageBadge = { label: "Dibatalkan", cls: "t-muted" };
+      }
+
+      var slaIco = sla.tone === "late" ? "⏱ " : (sla.tone === "ok" ? "✓ " : (sla.tone === "muted" ? "" : "⏳ "));
+      var activeIdx = 0;
+      steps.forEach(function(s, i) {
+        if (s.cls === "is-active" || s.cls === "is-warn" || s.cls === "is-late" || s.cls === "is-rej") activeIdx = i;
+      });
+      if (stg === "selesai") activeIdx = steps.length - 1;
+      var activeStep = steps[activeIdx] || steps[0];
+      var activeParts = activeStep && activeStep.ms ? doFmtDateTimeParts(activeStep.ms) : null;
+
       var nodes = steps.map(function(s, idx) {
-        var parts = s.cls === "is-todo" ? null : doFmtDateTimeParts(s.ms);
-        var tsHtml = parts
-          ? ('<div>' + esc(parts.date) + '</div><div>' + esc(parts.time) + '</div>')
-          : '<div style="color:#cbd5e1">—</div>';
-        return '<div class="do-tl-step ' + s.cls + '">' +
-          '<div class="do-tl-lbl">' + s.top + '</div>' +
-          '<div class="do-tl-axis">' +
-            '<button type="button" class="do-tl-dot" title="Klik untuk detail tahap & SLA" onclick="openDoTimelineModal(' + esc(JSON.stringify(d.delivery_id)) + ',' + idx + ')"></button>' +
+        var p = s.cls === "is-todo" ? null : doFmtDateTimeParts(s.ms);
+        var tip = s.title + (p ? (" · " + p.date + " " + p.time) : " · Belum") + (s.note ? (" — " + s.note) : "");
+        return '<div class="do-st-step ' + s.cls + '" title="' + esc(tip) + '">' +
+          '<div class="do-st-axis">' +
+            '<button type="button" class="do-st-dot" aria-label="' + esc(s.title) + '" onclick="openDoTimelineModal(' + esc(JSON.stringify(d.delivery_id)) + ',' + idx + ')"></button>' +
           '</div>' +
-          '<div class="do-tl-ts">' + tsHtml + '</div>' +
+          '<div class="do-st-lbl">' + esc(s.short || s.title) + '</div>' +
         '</div>';
       }).join("");
-      return '<div class="do-tl-box">' +
-        '<div class="do-tl-scroll"><div class="do-tl-track">' + nodes + '</div></div>' +
-        '<div class="do-tl-hint">↔ Geser · klik titik untuk detail tahap</div>' +
+
+      var tsText = activeParts
+        ? ((stg === "selesai" ? "Selesai " : "Update ") + activeParts.shortDate + " " + activeParts.time)
+        : "Baru masuk";
+
+      return '<div class="do-stage-cell">' +
+        '<div class="do-st-head">' +
+          '<span class="do-st-label ' + stageBadge.cls + '">' + esc(stageBadge.label) + '</span>' +
+          '<span class="do-st-sla ' + esc(sla.tone || "muted") + '">' + slaIco + esc(sla.text || "") + '</span>' +
+        '</div>' +
+        '<div class="do-st-track' + (steps.length === 2 ? ' cols-2' : '') + '">' + nodes + '</div>' +
+        '<div class="do-st-foot">' +
+          '<span>' + esc(tsText) + '</span>' +
+          '<button type="button" class="do-st-detail-btn" onclick="openDoTimelineModal(' + esc(JSON.stringify(d.delivery_id)) + ',' + activeIdx + ')">Detail SLA →</button>' +
+        '</div>' +
+        (detailLinesHtml ? '<div class="do-st-extra">' + detailLinesHtml + '</div>' : '') +
       '</div>';
     }
     function closeDoTimelineModal() {
@@ -21958,7 +22169,7 @@ function fillOperatorList(selectedEmail) {
           durStr = doFmtDur(Math.max(0, s.endMs - s.startMs));
         }
         var dotBg = s.cls === "is-done" ? "#16a34a" : (s.cls === "is-active" ? "#059669" : (s.cls === "is-warn" ? "#d97706" : ((s.cls === "is-late" || s.cls === "is-rej") ? "#dc2626" : "#cbd5e1")));
-        var cleanTitle = s.top.replace(/<br\s*\/?>/gi, " ").replace(/&amp;/g, "&");
+        var cleanTitle = s.title || s.short || "Tahap";
         return '<div style="padding:0.65rem 0.75rem;border-radius:10px;border:1px solid ' + (isFocus ? "#0d9f6e" : "#e2e8f0") + ';background:' + (isFocus ? "#f0fdf4" : "#ffffff") + ';margin-bottom:0.5rem">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem">' +
             '<div style="display:flex;align-items:center;gap:0.45rem">' +
@@ -22006,8 +22217,9 @@ function fillOperatorList(selectedEmail) {
       document.querySelectorAll("#doFacetGroup .odoo-facet").forEach(function(b) {
         b.classList.toggle("active", (b.getAttribute("data-dost") || "") === val);
       });
+      var cardVal = (val === "perlu_picked" || val === "perlu_odoo") ? "perlu_gudang" : val;
       document.querySelectorAll("#page-delivery .odoo-op-card[data-docard]").forEach(function(c) {
-        c.classList.toggle("active", !!val && c.getAttribute("data-docard") === val);
+        c.classList.toggle("active", !!cardVal && c.getAttribute("data-docard") === cardVal);
       });
       renderDeliveries();
     }
@@ -22015,13 +22227,20 @@ function fillOperatorList(selectedEmail) {
       var body = $("doBody");
       if (!body) return;
       var allDo = deliveryList || [];
-      var cnt = { perlu_gudang: 0, butuh_invoice: 0, siap_berangkat: 0, dikirim: 0, selesai: 0, ditolak: 0, batal: 0, emergency: 0, slaLate: 0 };
+      var cnt = { perlu_gudang: 0, needPick: 0, needOdoo: 0, gudangLate: 0, butuh_invoice: 0, siap_berangkat: 0, dikirim: 0, selesai: 0, ditolak: 0, batal: 0, emergency: 0, slaLate: 0 };
       allDo.forEach(function(d) {
         var meta = doParseTags(d.notes);
         var stg = doGetStage(d);
+        var picked = doIsPicked(d, meta);
         var sla = doComputeSla(d, stg, meta);
         d.__sla = sla;
+        d.__picked = picked;
         if (cnt[stg] != null) cnt[stg]++;
+        if (stg === "perlu_gudang") {
+          if (picked) cnt.needOdoo++;
+          else cnt.needPick++;
+          if (sla.late) cnt.gudangLate++;
+        }
         if (sla.late) cnt.slaLate++;
         if (stg === "dikirim" && meta.emergency && !meta.invUrl) cnt.emergency++;
       });
@@ -22031,9 +22250,9 @@ function fillOperatorList(selectedEmail) {
       if ($("doOvShipped")) $("doOvShipped").textContent = formatNum(cnt.dikirim);
       if ($("doOvDone")) $("doOvDone").textContent = formatNum(cnt.selesai);
       if ($("doOvGudangSub")) {
-        $("doOvGudangSub").textContent = cnt.slaLate > 0
-          ? (formatNum(cnt.slaLate) + " DO lewat SLA · target hari sama")
-          : "Target validasi ≤ 4 jam (hari sama)";
+        $("doOvGudangSub").innerHTML =
+          "<strong>" + formatNum(cnt.needPick) + "</strong> perlu picked · <strong>" + formatNum(cnt.needOdoo) + "</strong> isi Odoo" +
+          (cnt.gudangLate > 0 ? ("<div style='color:#b91c1c;font-weight:600'>" + formatNum(cnt.gudangLate) + " lewat SLA</div>") : "");
       }
       if ($("doSlaLateCount")) $("doSlaLateCount").textContent = cnt.slaLate > 0 ? ("(" + formatNum(cnt.slaLate) + ")") : "";
       if ($("doOvEmergSub")) {
@@ -22050,9 +22269,14 @@ function fillOperatorList(selectedEmail) {
       var q = (($("doSearch") && $("doSearch").value) || "").toLowerCase().trim();
       var st = ($("doStatusFilter") && $("doStatusFilter").value) || "";
       var list = allDo.filter(function(d) {
+        var stg = doGetStage(d);
         if (st === "sla_late") {
           if (!(d.__sla && d.__sla.late)) return false;
-        } else if (st && doGetStage(d) !== st) {
+        } else if (st === "perlu_picked") {
+          if (stg !== "perlu_gudang" || d.__picked) return false;
+        } else if (st === "perlu_odoo") {
+          if (stg !== "perlu_gudang" || !d.__picked) return false;
+        } else if (st && stg !== st) {
           return false;
         }
         if (!q) return true;
@@ -22077,12 +22301,13 @@ function fillOperatorList(selectedEmail) {
       body.innerHTML = pageList.map(function(d) {
         var meta = doParseTags(d.notes);
         var stg = doGetStage(d);
+        var picked = d.__picked != null ? d.__picked : doIsPicked(d, meta);
         var sla = d.__sla || doComputeSla(d, stg, meta);
         var odoo = String(d.no_do_odoo || meta.doOdooNote || "").trim();
         var shipMatch = String(d.notes || "").match(/SHIP-[A-Z0-9]+/i);
-        var shipBadge = shipMatch ? '<div style="font-size:0.68rem;color:#047857;font-weight:700">' + esc(shipMatch[0]) + "</div>" : "";
+        var shipBadge = shipMatch ? '<div style="font-size:0.71rem;color:#047857;font-weight:600;margin-top:0.15rem">' + esc(shipMatch[0]) + "</div>" : "";
         var cleanNote = meta.cleanNotes ? meta.cleanNotes.replace(/^Dari instruksi SHIP-[A-Z0-9]+\s*·?\s*/i, "").trim() : "";
-        var noteHtml = cleanNote ? '<div style="font-size:0.68rem;color:var(--text-muted);max-width:12rem;white-space:normal">' + esc(cleanNote) + "</div>" : "";
+        var noteHtml = cleanNote ? '<div style="font-size:0.7rem;color:#64748b;max-width:12rem;white-space:normal;margin-top:0.18rem;line-height:1.35">' + esc(cleanNote) + "</div>" : "";
 
         // Kolom Produk & Qty + No. Bets
         var dLines = d.delivery_lines || [];
@@ -22095,100 +22320,97 @@ function fillOperatorList(selectedEmail) {
             return String(sx.product_id || "").trim().toUpperCase() === String(l.product_id || "").trim().toUpperCase();
           });
           var sisaNote = (sisaItem && Number(sisaItem.sisa) > 0)
-            ? '<div style="font-size:0.66rem;color:#b45309;font-weight:600;margin-top:0.12rem">Sisa di gudang: ' + formatNum(sisaItem.sisa) + " " + esc(sisaItem.unit || l.unit || "pcs") + " (kirim berikutnya)</div>"
+            ? '<div style="font-size:0.68rem;color:#b45309;font-weight:600;margin-top:0.15rem">Sisa di gudang: ' + formatNum(sisaItem.sisa) + " " + esc(sisaItem.unit || l.unit || "pcs") + "</div>"
             : "";
-          return '<div style="margin-bottom:0.25rem">' +
-            '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.6rem;font-size:0.75rem;line-height:1.35">' +
-              '<span style="color:#0f172a"><strong>' + esc(l.product_id || "—") + '</strong>' + (pName ? (' <span style="color:var(--text-muted)">· ' + esc(pName) + "</span>") : "") + "</span>" +
-              '<strong style="white-space:nowrap;color:#047857">' + formatNum(l.qty) + " " + esc(l.unit || "pcs") + "</strong></div>" +
+          return '<div style="margin-bottom:0.35rem">' +
+            '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.75rem;font-size:0.78rem;line-height:1.38">' +
+              '<span style="color:#0f172a"><strong>' + esc(l.product_id || "—") + '</strong>' + (pName ? (' <span style="color:#64748b">· ' + esc(pName) + "</span>") : "") + "</span>" +
+              '<strong style="white-space:nowrap;color:#047857;font-variant-numeric:tabular-nums">' + formatNum(l.qty) + " " + esc(l.unit || "pcs") + "</strong></div>" +
             betsPills + sisaNote +
           '</div>';
         }).join("");
         if (dLines.length > 4) {
-          prodHtml += '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">+' + (dLines.length - 4) + " item lainnya</div>";
+          prodHtml += '<div style="font-size:0.7rem;color:#64748b;margin-top:0.15rem">+' + (dLines.length - 4) + " item lainnya</div>";
         }
         if (!prodHtml) {
-          prodHtml = '<span style="font-size:0.74rem;color:#94a3b8">Belum ada item</span>';
+          prodHtml = '<span style="font-size:0.75rem;color:#94a3b8">Belum ada item</span>';
         }
 
         // Kolom DO Odoo & PDF Invoice
         var odooLine = odoo
-          ? '<div style="font-weight:700;font-size:0.78rem;color:#0f172a">Odoo: ' + esc(odoo) + "</div>"
-          : '<div style="font-size:0.74rem;color:#94a3b8">Belum validasi DO Odoo</div>';
+          ? '<div style="font-weight:700;font-size:0.79rem;color:#0f172a;font-variant-numeric:tabular-nums">Odoo: ' + esc(odoo) + "</div>"
+          : (picked
+            ? '<div style="font-size:0.75rem;color:#0f766e;font-weight:600">Sudah Picked · Siap DO Odoo</div>'
+            : '<div style="font-size:0.75rem;color:#94a3b8">Menunggu Picked Gudang</div>');
         var invLine = "";
         if (meta.invUrl) {
-          invLine = '<div style="margin-top:0.2rem;display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap">' +
-            '<a href="' + esc(meta.invUrl) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;font-weight:700;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;padding:0.15rem 0.45rem;border-radius:6px;text-decoration:none">📄 ' +
+          invLine = '<div style="margin-top:0.3rem"><a href="' + esc(meta.invUrl) + '" target="_blank" rel="noopener" class="do-inv-link">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
             esc(meta.invNo ? ("Inv " + meta.invNo) : "Lihat / Cetak PDF") + "</a></div>";
         } else if (meta.emergency) {
-          invLine = '<div style="margin-top:0.2rem"><span class="pill" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;font-size:0.66rem">⚠ Darurat · Inv. menyusul</span></div>';
+          invLine = '<div style="margin-top:0.25rem;font-size:0.7rem;font-weight:600;color:#b45309">Darurat · Inv. menyusul</div>';
         } else if (odoo && stg === "butuh_invoice") {
-          invLine = '<div style="margin-top:0.2rem;font-size:0.72rem;color:#be123c;font-weight:600">⏳ Tunggu PDF Trading</div>';
+          invLine = '<div style="margin-top:0.25rem;font-size:0.72rem;color:#be123c;font-weight:600">Tunggu PDF Trading</div>';
         }
 
-        // Kolom Tahap, SLA & Detail pengiriman
-        var stgMeta = {
-          perlu_gudang: { label: "1. Perlu Gudang", cls: "progress" },
-          butuh_invoice: { label: "2. Tunggu Invoice", cls: "cancel" },
-          siap_berangkat: { label: "3. Siap Berangkat", cls: "done" },
-          dikirim: { label: "4. Dalam Pengiriman", cls: "quotation" },
-          selesai: { label: "5. Selesai Terkirim", cls: "locked" },
-          ditolak: { label: "Ditolak Gudang", cls: "cancel" },
-          batal: { label: "Dibatalkan", cls: "cancel" }
-        }[stg] || { label: stg, cls: "done" };
+        // Detail pengiriman (ditampilkan ringkas di bawah stepper)
         var detailLines = [];
         if (stg === "ditolak" && meta.reject) {
-          detailLines.push('<div style="font-size:0.72rem;color:#b91c1c;margin-top:0.2rem;white-space:normal">Alasan: ' + esc(meta.reject) + (meta.rejectDate ? " · Saran: " + esc(meta.rejectDate) : "") + "</div>");
+          detailLines.push('<div style="color:#b91c1c">Alasan: ' + esc(meta.reject) + (meta.rejectDate ? " · Saran: " + esc(meta.rejectDate) : "") + "</div>");
         }
         if (meta.method) {
           var mTxt = meta.method === "ekspedisi" ? "Ekspedisi" : "Armada Sendiri";
           if (meta.courier) mTxt += " (" + meta.courier + ")";
-          detailLines.push('<div style="font-size:0.72rem;color:#0f172a;margin-top:0.2rem">' + esc(mTxt) + "</div>");
-        }
-        if (meta.resi) {
-          detailLines.push('<div style="font-size:0.72rem;color:#0369a1;font-weight:700">Resi: ' + esc(meta.resi) + "</div>");
-        }
-        if (meta.recv) {
-          detailLines.push('<div style="font-size:0.72rem;color:#047857">Diterima: ' + esc(meta.recv) + "</div>");
+          var shipExtras = [esc(mTxt)];
+          if (meta.resi) shipExtras.push('<span style="color:#0369a1;font-weight:600">Resi: ' + esc(meta.resi) + "</span>");
+          if (meta.recv) shipExtras.push('<span style="color:#047857;font-weight:600">Diterima: ' + esc(meta.recv) + "</span>");
+          detailLines.push("<div>" + shipExtras.join(" · ") + "</div>");
+        } else {
+          if (meta.resi) detailLines.push('<div style="color:#0369a1;font-weight:600">Resi: ' + esc(meta.resi) + "</div>");
+          if (meta.recv) detailLines.push('<div style="color:#047857;font-weight:600">Diterima: ' + esc(meta.recv) + "</div>");
         }
         if (meta.emergency) {
-          detailLines.push('<div style="font-size:0.68rem;color:#b45309;white-space:normal">Ket. Darurat: ' + esc(meta.emergency) + "</div>");
+          detailLines.push('<div style="color:#b45309">Darurat: ' + esc(meta.emergency) + "</div>");
         }
 
-        // Kolom Aksi sesuai giliran tim & status
+        // Kolom Aksi sesuai giliran tim & sub-tahap (Picked -> Isi DO Odoo -> Invoice -> Kirim -> Selesai)
         var acts = "";
         if (stg === "perlu_gudang") {
           if (isGudang) {
-            acts += "<button type='button' class='btn-odoo-teal' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"odoo\")'>Isi DO Odoo</button>";
-            acts += " <button type='button' class='btn btn-ghost btn-sm' style='color:#b91c1c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"reject\")'>Tolak</button>";
+            if (!picked) {
+              acts += "<button type='button' class='btn-odoo-teal' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"picked\")'>Siapkan (Picked)</button>";
+            } else {
+              acts += "<button type='button' class='btn-odoo' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"odoo\")'>Isi DO Odoo</button>";
+            }
+            acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#b91c1c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"reject\")'>Tolak</button>";
           }
         } else if (stg === "butuh_invoice") {
           if (isTrading) {
-            acts += "<button type='button' class='btn-odoo' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Kirim PDF Inv</button>";
+            acts += "<button type='button' class='btn-odoo' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Kirim PDF Inv</button>";
           }
           if (isGudang) {
-            acts += " <button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets</button>";
-            acts += " <button type='button' class='btn btn-ghost btn-sm' style='color:#b45309;border-color:#fcd34d' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch_emergency\")'>Kirim Darurat</button>";
+            acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets</button>";
+            acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#b45309;border-color:#fcd34d' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch_emergency\")'>Kirim Darurat</button>";
           }
         } else if (stg === "siap_berangkat") {
           if (isGudang) {
-            acts += "<button type='button' class='btn-odoo-teal' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch\")'>Berangkat Kirim</button>";
-            acts += " <button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets</button>";
+            acts += "<button type='button' class='btn-odoo-teal' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch\")'>Berangkat Kirim</button>";
+            acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets</button>";
           }
           if (isTrading) {
-            acts += " <button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Ganti Inv</button>";
+            acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Ganti Inv</button>";
           }
         } else if (stg === "dikirim") {
           if (isGudang) {
             var finLabel = meta.method === "ekspedisi" ? "Input Resi &amp; Selesai" : "Sampai Customer";
-            acts += "<button type='button' class='btn-odoo' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"finish\")'>" + finLabel + "</button>";
+            acts += "<button type='button' class='btn-odoo' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"finish\")'>" + finLabel + "</button>";
           }
           if (!meta.invUrl && isTrading) {
-            acts += " <button type='button' class='btn btn-ghost btn-sm' style='color:#be123c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Upload Inv Susulan</button>";
+            acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#be123c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Upload Inv Susulan</button>";
           }
         } else if (stg === "ditolak") {
           if (isMkt) {
-            acts += "<button type='button' class='btn-odoo' style='padding:0.28rem 0.65rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"resubmit\")'>Ajukan Kirim Ulang</button>";
+            acts += "<button type='button' class='btn-odoo' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"resubmit\")'>Ajukan Kirim Ulang</button>";
           }
         } else if (stg === "selesai") {
           if (!meta.invUrl && isTrading) {
@@ -22196,18 +22418,18 @@ function fillOperatorList(selectedEmail) {
           }
         }
         if (role === "admin" || (role === "gudang" && stg !== "selesai" && stg !== "ditolak")) {
-          acts += " <button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
+          acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
         }
 
         var rowStyle = (hlId && d.delivery_id === hlId) ? " style='background:#ecfdf5'" : (sla.late ? " style='background:#fffafa'" : "");
         return "<tr" + rowStyle + ">" +
-          "<td><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + shipBadge + noteHtml + "</td>" +
-          "<td style='white-space:nowrap'>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
-          "<td><strong>" + esc(d.customer_name || "—") + "</strong>" + (d.no_so ? "<div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(d.no_so) + "</div>" : "") + "</td>" +
-          "<td style='min-width:13.5rem;max-width:18rem;white-space:normal'>" + prodHtml + "</td>" +
-          "<td>" + odooLine + invLine + "</td>" +
-          "<td>" + doTimelineHtml(d, stg, meta, sla) + detailLines.join("") + "</td>" +
-          "<td style='white-space:nowrap;text-align:right'>" + (acts || "<span style='color:#94a3b8;font-size:0.75rem'>—</span>") + "</td>" +
+          "<td style='white-space:nowrap'><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + shipBadge + noteHtml + "</td>" +
+          "<td style='white-space:nowrap;font-variant-numeric:tabular-nums;color:#475569'>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
+          "<td style='min-width:10.5rem'><strong>" + esc(d.customer_name || "—") + "</strong>" + (d.no_so ? "<div style='font-size:0.73rem;color:#64748b;margin-top:0.12rem'>" + esc(d.no_so) + "</div>" : "") + "</td>" +
+          "<td style='min-width:14.5rem;max-width:20rem;white-space:normal'>" + prodHtml + "</td>" +
+          "<td style='min-width:10rem'>" + odooLine + invLine + "</td>" +
+          "<td>" + doTimelineHtml(d, stg, meta, sla, detailLines.join("")) + "</td>" +
+          "<td style='text-align:right;white-space:nowrap'><div class='do-act-wrap'>" + (acts || "<span style='color:#94a3b8;font-size:0.75rem'>—</span>") + "</div></td>" +
           "</tr>";
       }).join("");
       if (hlId) {
@@ -22327,11 +22549,39 @@ function fillOperatorList(selectedEmail) {
         '</div>';
       }
 
-      if (mode === "odoo") {
+      if (mode === "picked") {
+        if (titleEl) titleEl.textContent = "Penyiapan Barang (Picked · Gudang)";
+        btnEl.textContent = "Konfirmasi Sudah Picked";
+        var hasActBetsP = !!(meta.betsAct && meta.betsAct.length);
+        bodyEl.innerHTML =
+          _doBetsSummaryBox(d, meta, false) +
+          '<div style="margin-bottom:0.75rem">' +
+            '<label style="display:flex;align-items:center;gap:0.45rem;font-size:0.8rem;font-weight:700;color:#0f172a;cursor:pointer">' +
+              '<input type="checkbox" id="dsBetsFixToggle"' + (hasActBetsP ? ' checked' : '') + ' style="width:auto" onchange="var bx=$(\'dsBetsFixWrap\');if(bx)bx.style.display=this.checked?\'block\':\'none\'" />' +
+              '<span>Koreksi Nomor Bets / Qty Aktual saat Picked (Gudang)</span>' +
+            '</label>' +
+            '<div id="dsBetsFixWrap" style="display:' + (hasActBetsP ? 'block' : 'none') + ';margin-top:0.5rem">' +
+              '<div id="dsBetsEditor">' + _doBuildBetsEditorInner(d, meta) + '</div>' +
+              '<div class="field" style="margin-top:0.35rem"><label>Catatan koreksi bets (opsional)</label>' +
+              '<input id="dsBetsFixReason" value="' + esc(meta.betsFixNote || "") + '" placeholder="Mis. stok fisik pakai bets lama / split 2 bets" /></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="field"><label>Catatan penyiapan / staging gudang (opsional)</label>' +
+          '<input id="dsPickNote" placeholder="Mis. sudah disiapkan 5 karton di area packing" />' +
+          '<p style="font-size:0.74rem;color:var(--text-muted);margin:0.35rem 0 0">Setelah dikonfirmasi Picked, tahap lanjut ke <strong>Isi DO Odoo</strong>.</p></div>';
+        try { bindAllThousandInputs(); } catch (eB0) {}
+        setTimeout(function() { if ($("dsPickNote")) $("dsPickNote").focus(); }, 80);
+
+      } else if (mode === "odoo") {
         if (titleEl) titleEl.textContent = "Validasi DO Odoo (Gudang)";
         btnEl.textContent = "Simpan & Kirim ke Admin Trading";
         var hasActBets = !!(meta.betsAct && meta.betsAct.length);
+        var pickedParts = meta.pickedAt ? doFmtDateTimeParts(doParseIso(meta.pickedAt)) : null;
+        var pickedBanner = pickedParts
+          ? '<div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:0.5rem 0.7rem;border-radius:8px;font-size:0.76rem;margin-bottom:0.75rem">✓ Barang sudah <strong>Picked</strong> pada ' + esc(pickedParts.date + " " + pickedParts.time) + (meta.pickedBy ? (" oleh " + esc(meta.pickedBy)) : "") + '</div>'
+          : "";
         bodyEl.innerHTML =
+          pickedBanner +
           _doBetsSummaryBox(d, meta, false) +
           '<div style="margin-bottom:0.75rem">' +
             '<label style="display:flex;align-items:center;gap:0.45rem;font-size:0.8rem;font-weight:700;color:#0f172a;cursor:pointer">' +
@@ -22566,13 +22816,41 @@ function fillOperatorList(selectedEmail) {
       try {
         if (btn) btn.disabled = true;
 
-        if (mode === "odoo") {
+        if (mode === "picked") {
+          var pickNote = (($("dsPickNote") && $("dsPickNote").value) || "").trim();
+          var pNotes = d.notes || "";
+          if (pickNote) pNotes = (pNotes ? pNotes + " · " : "") + pickNote;
+          pNotes = doWriteTags(pNotes, {
+            PICKED_AT: nowIso,
+            PICKED_BY: (currentUser && currentUser.email) || ""
+          });
+          var wantPickBetsFix = !!($("dsBetsFixToggle") && $("dsBetsFixToggle").checked);
+          if (wantPickBetsFix) {
+            var fixedPickNotes = await _applyGudangBetsFix(pNotes);
+            if (fixedPickNotes === null) return;
+            pNotes = fixedPickNotes;
+          }
+          var errP = await _updateDeliveriesSafe(doId, {
+            status: "ready",
+            notes: pNotes,
+            updated_at: nowIso
+          });
+          if (errP) return toast(errP.message, true);
+          if (shipId) await _syncShipRequestFromDo(d.notes, "picked");
+          toast("Barang ditandai sudah Picked" + (wantPickBetsFix ? " (+ koreksi bets)" : "") + " → lanjut Isi DO Odoo");
+
+        } else if (mode === "odoo") {
           var odooNo = (($("dsOdooNo") && $("dsOdooNo").value) || "").trim();
           var packNote = (($("dsPackNote") && $("dsPackNote").value) || "").trim();
           if (!odooNo) { toast("Isi No. DO Odoo dulu", true); if ($("dsOdooNo")) $("dsOdooNo").focus(); return; }
           var newNotes = d.notes || "";
           if (packNote) newNotes = (newNotes ? newNotes + " · " : "") + packNote;
-          newNotes = doWriteTags(newNotes, { ODOO_AT: nowIso });
+          var odooTags = { ODOO_AT: nowIso };
+          if (!ctx.meta.pickedAt) {
+            odooTags.PICKED_AT = nowIso;
+            odooTags.PICKED_BY = (currentUser && currentUser.email) || "";
+          }
+          newNotes = doWriteTags(newNotes, odooTags);
           var wantBetsFix = !!($("dsBetsFixToggle") && $("dsBetsFixToggle").checked);
           if (wantBetsFix) {
             var fixedNotes = await _applyGudangBetsFix(newNotes);
@@ -22621,7 +22899,7 @@ function fillOperatorList(selectedEmail) {
           var newDate = (($("dsResubmitDate") && $("dsResubmitDate").value) || "").trim();
           var addNote = (($("dsResubmitNote") && $("dsResubmitNote").value) || "").trim();
           if (!newDate) { toast("Pilih tanggal kirim baru", true); return; }
-          var resNotes = doWriteTags(d.notes, { REJECT: "", REJECT_DATE: "", REJECT_AT: "", RESUBMIT: newDate, RESUBMIT_AT: nowIso });
+          var resNotes = doWriteTags(d.notes, { REJECT: "", REJECT_DATE: "", REJECT_AT: "", PICKED_AT: "", PICKED_BY: "", RESUBMIT: newDate, RESUBMIT_AT: nowIso });
           if (addNote) resNotes = (resNotes ? resNotes + " · " : "") + addNote;
           var errRs = await _updateDeliveriesSafe(doId, {
             status: "draft",
