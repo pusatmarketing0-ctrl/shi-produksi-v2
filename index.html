@@ -6313,6 +6313,245 @@
       cursor: pointer;
       flex-shrink: 0;
     }
+    /* ===== Form Permintaan & Konfirmasi Pengiriman (A5 Printable) ===== */
+    #shipFormPrintHost { display: none; }
+    .a5-preview-stage {
+      background: #e2e8f0;
+      padding: 1rem;
+      border-radius: 12px;
+      overflow: auto;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .a5-print-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem 0.9rem;
+      padding: 0.65rem 0.85rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      font-size: 0.78rem;
+      color: #334155;
+    }
+    .a5-print-toolbar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .a5-print-toolbar input[type="text"],
+    .a5-print-toolbar select {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.28rem 0.5rem;
+      font-size: 0.78rem;
+      background: #fff;
+      color: #0f172a;
+      font-family: inherit;
+    }
+    .a5-print-sheet {
+      width: 148mm;
+      min-height: 196mm;
+      background: #ffffff;
+      color: #0f172a;
+      padding: 9mm 10mm 8mm;
+      box-sizing: border-box;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+      font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      break-after: page;
+    }
+    .a5-print-sheet:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    .a5-doc-title {
+      font-size: 13.5pt;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      color: #0f172a;
+      margin: 0;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .a5-doc-sub {
+      font-size: 9pt;
+      color: #475569;
+      margin: 2px 0 0;
+      font-weight: 500;
+    }
+    .a5-doc-rule {
+      height: 2.2px;
+      background: #0f172a;
+      margin: 7px 0 9px;
+      border: none;
+    }
+    .a5-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      font-size: 9pt;
+      margin-bottom: 9px;
+      color: #0f172a;
+    }
+    .a5-meta-left {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-weight: 700;
+    }
+    .a5-meta-right {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-weight: 700;
+    }
+    .a5-noform-line {
+      display: inline-block;
+      min-width: 96px;
+      border-bottom: 1.2px solid #475569;
+      text-align: left;
+      padding: 0 3px 1px;
+      font-weight: 700;
+      min-height: 13px;
+    }
+    .a5-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 8.5pt;
+      margin-bottom: 9px;
+    }
+    .a5-table th,
+    .a5-table td {
+      border: 1px solid #cbd5e1;
+      padding: 4.5px 5.5px;
+      vertical-align: middle;
+      color: #0f172a;
+      word-wrap: break-word;
+    }
+    .a5-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.22;
+      font-size: 8.2pt;
+    }
+    .a5-table td.a5-c-no {
+      text-align: center;
+      color: #334155;
+      height: 22px;
+    }
+    .a5-table td.a5-c-prod {
+      text-align: left;
+      line-height: 1.25;
+      font-weight: 500;
+    }
+    .a5-table td.a5-c-bets {
+      text-align: center;
+      font-size: 7.8pt;
+      color: #1e293b;
+      font-weight: 600;
+    }
+    .a5-table td.a5-c-qty {
+      text-align: center;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .a5-note-box {
+      background: #f8fafc;
+      border-left: 3px solid #0f172a;
+      padding: 7px 10px;
+      margin: 4px 0 10px;
+      font-size: 8pt;
+      line-height: 1.42;
+      color: #1e293b;
+    }
+    .a5-note-title {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+      font-size: 8.2pt;
+    }
+    .a5-note-box ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+    .a5-note-box li {
+      margin-bottom: 2px;
+    }
+    .a5-sign-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin: 6px 14px 8px;
+      text-align: center;
+      font-size: 8.5pt;
+      color: #0f172a;
+    }
+    .a5-sign-role-top {
+      font-weight: 700;
+      margin-bottom: 34px;
+    }
+    .a5-sign-line {
+      border-top: 1.2px solid #334155;
+      padding-top: 3px;
+      font-size: 8pt;
+      color: #475569;
+    }
+    .a5-doc-foot {
+      border-top: 1px solid #cbd5e1;
+      padding-top: 4px;
+      margin-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 7.5pt;
+      color: #64748b;
+    }
+    @page {
+      size: A5 portrait;
+      margin: 7mm 8mm;
+    }
+    @media print {
+      body.printing-ship-form {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      body.printing-ship-form > *:not(#shipFormPrintHost) {
+        display: none !important;
+      }
+      body.printing-ship-form #shipFormPrintHost {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+      }
+      body.printing-ship-form .a5-print-sheet {
+        width: 100% !important;
+        min-height: 190mm !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+      }
+      body.printing-ship-form * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
     </style>
 </head>
 <body>
@@ -6322,6 +6561,7 @@
     <button type="button" class="btn btn-primary btn-sm" id="pwaInstall">Pasang</button>
   </div>
   <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+  <div id="shipFormPrintHost" aria-hidden="true"></div>
   <div id="pickImgLightbox" class="pick-img-lightbox" hidden onclick="if(event.target===this)closePickImgLightbox()">
     <button type="button" class="pick-img-lightbox-close" onclick="closePickImgLightbox()" aria-label="Tutup">×</button>
     <img id="pickImgLightboxImg" alt="Preview foto" />
@@ -7407,6 +7647,7 @@
                     <option value="cancelled">Batal</option>
                   </select>
                   <input type="search" id="shipSearch" class="odoo-search-inp" placeholder="Cari customer / SO / produk / SHIP…" oninput="renderShipRequests()" />
+                  <button type="button" class="btn btn-ghost btn-sm" id="btnMktPrintShipForm" onclick="printSelectedShipForms()">🖨️ Cetak Form (A5)</button>
                   <button type="button" class="btn btn-ghost btn-sm" onclick="exportShipRequests()">Export</button>
                   <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
                   <button type="button" class="btn-odoo" onclick="openShipRequestModal()">+ Baru</button>
@@ -7414,8 +7655,8 @@
               </div>
               <div class="table-wrap">
                 <table class="odoo-list">
-                  <thead><tr><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
-                  <tbody id="shipReqBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
+                  <thead><tr><th style="width:28px;text-align:center"><input type="checkbox" id="shipReqCheckAll" onchange="toggleAllShipReqPrint(this.checked)" title="Pilih instruksi untuk dicetak dalam 1 Form A5" /></th><th>No</th><th>Tanggal</th><th>Customer / SO</th><th>Status</th><th>Item</th><th>Catatan</th><th></th></tr></thead>
+                  <tbody id="shipReqBody"><tr><td colspan="8" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
             </div>
@@ -16642,6 +16883,8 @@ function fillOperatorList(selectedEmail) {
         if (ra !== rb) return ra - rb;
         return String(b.request_date || b.created_at || "").localeCompare(String(a.request_date || a.created_at || ""));
       });
+      window.__visibleShipPrintIds = list.filter(function(r) { return r.status !== "cancelled"; }).map(function(r) { return r.ship_id; });
+      window.__shipPrintChecked = window.__shipPrintChecked || {};
       function rowHtml(r, forGudang) {
         var n = (r.ship_request_lines || []).length;
         var meta = doParseTags(r.notes);
@@ -16649,6 +16892,7 @@ function fillOperatorList(selectedEmail) {
         var isRej = r.status === "pending" && !!rejectM;
         var acts = "";
         acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\')">Detail</button> ';
+        acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipFormPrint([\'' + esc(r.ship_id) + '\'])" title="Cetak Form Permintaan & Konfirmasi Pengiriman (A5)">Cetak</button> ';
         if ((role === "marketing" || role === "admin") && isRej) {
           acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openDoResubmitByShip(\'' + r.ship_id + '\')">Ajukan Ulang</button> ';
         } else if ((role === "marketing" || role === "admin") && r.status === "pending") {
@@ -16692,7 +16936,11 @@ function fillOperatorList(selectedEmail) {
           ? '<span class="pill" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5">Ditolak Gudang</span>' +
             (rejectM[1] ? '<div style="font-size:0.7rem;color:#b91c1c;margin-top:0.2rem">' + esc(rejectM[1]) + "</div>" : "")
           : shipStatusPill(r.status);
+        var cbCell = forGudang
+          ? ""
+          : '<td style="text-align:center"><input type="checkbox" class="ship-print-cb" data-shipid="' + esc(r.ship_id) + '"' + (window.__shipPrintChecked[r.ship_id] ? " checked" : "") + ' onchange="onShipPrintCheckChange(this)" title="Centang untuk gabung cetak A5" /></td>';
         return "<tr>" +
+          cbCell +
           "<td><strong>" + esc(r.ship_id) + "</strong>" + badge + "</td>" +
           "<td>" + esc(String(r.request_date || "").slice(0, 10)) + "</td>" +
           "<td>" + custHtml + "</td>" +
@@ -16704,7 +16952,7 @@ function fillOperatorList(selectedEmail) {
       if ($("shipReqBody")) {
         $("shipReqBody").innerHTML = list.length
           ? list.map(function(r) { return rowHtml(r, false); }).join("")
-          : '<tr><td colspan="7" class="empty">Belum ada instruksi kirim</td></tr>';
+          : '<tr><td colspan="8" class="empty">Belum ada instruksi kirim</td></tr>';
       }
       if ($("gudangShipBody")) {
         var gList = (shipReqList || []).filter(function(r) { return r.status === "requested" || r.status === "picked"; });
@@ -16712,6 +16960,7 @@ function fillOperatorList(selectedEmail) {
           ? gList.map(function(r) { return rowHtml(r, true); }).join("")
           : '<tr><td colspan="7" class="empty">Tidak ada antrian kirim</td></tr>';
       }
+      try { syncShipPrintBtn(); } catch (eSp) {}
       try { updateGudangOverviewCards(); } catch (eOv) {}
     }
     function exportShipRequests() {
@@ -17114,8 +17363,9 @@ function fillOperatorList(selectedEmail) {
       if ($("shipDetailActions")) {
         var acts = "";
         var role = currentRole();
+        acts += '<button type="button" class="btn btn-ghost" style="border-color:#0d9f6e;color:#047857;font-weight:600" onclick="openShipFormPrint([\'' + esc(r.ship_id) + '\'])">🖨️ Cetak Form (A5)</button>';
         if (nextStatus === "picked" || (r.status === "requested" && (role === "gudang" || role === "admin"))) {
-          acts += '<button type="button" class="btn btn-primary" onclick="confirmPickedToDo(\'' + r.ship_id + '\')">Konfirmasi Picked → Delivery Order</button>';
+          acts += ' <button type="button" class="btn btn-primary" onclick="confirmPickedToDo(\'' + r.ship_id + '\')">Konfirmasi Picked → Delivery Order</button>';
         }
         if (r.status === "picked" && (role === "gudang" || role === "admin" || role === "marketing")) {
           acts += ' <button type="button" class="btn btn-primary" onclick="createDoFromShip(\'' + r.ship_id + '\')">Buka / Buat DO</button>';
@@ -18122,7 +18372,8 @@ function fillOperatorList(selectedEmail) {
       if ($("shipReqCustomer") && opt.dataset.customer) $("shipReqCustomer").value = opt.dataset.customer;
       if ($("shipReqSo") && opt.dataset.noso) $("shipReqSo").value = opt.dataset.noso;
     }
-    async function saveShipRequest() {
+    async function saveShipRequest(opts) {
+      opts = opts || {};
       if (!sb) return;
       var editShipId = (($("shipReqId") && $("shipReqId").value) || "").trim();
       var customer = (($("shipReqCustomer") && $("shipReqCustomer").value) || "").trim();
@@ -18245,6 +18496,9 @@ function fillOperatorList(selectedEmail) {
       try { loadMktYesterdayFg(); } catch (eY) {}
       try { loadMktFgStock(); } catch (eS2) {}
       try { setMktTab("kirim"); } catch (e3) {}
+      if (opts && opts.autoPrint) {
+        try { await openShipFormPrint([ship_id]); } catch (ePr) { console.warn(ePr); }
+      }
     }
 
     // ===== Grid operasional (parity prototipe) =====
@@ -36453,6 +36707,342 @@ function closeOtModal() {
       syncShipLinesTotals();
     }
 
+    // ===== Print Form Permintaan & Konfirmasi Pengiriman (A5) =====
+    window.__shipPrintState = null;
+    window.__shipPrintChecked = window.__shipPrintChecked || {};
+    window.__visibleShipPrintIds = window.__visibleShipPrintIds || [];
+
+    function _shipFormLongDateId(dateStr) {
+      var mNames = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      ];
+      var s = String(dateStr || todayStr()).slice(0, 10);
+      var p = s.split("-");
+      if (p.length !== 3) return s;
+      var y = parseInt(p[0], 10);
+      var m = parseInt(p[1], 10);
+      var d = parseInt(p[2], 10);
+      if (!y || m < 1 || m > 12 || !d) return s;
+      return d + " " + mNames[m - 1] + " " + y;
+    }
+
+    function onShipPrintCheckChange(cb) {
+      if (!cb) return;
+      var id = cb.getAttribute("data-shipid");
+      if (!id) return;
+      window.__shipPrintChecked = window.__shipPrintChecked || {};
+      if (cb.checked) window.__shipPrintChecked[id] = true;
+      else delete window.__shipPrintChecked[id];
+      syncShipPrintBtn();
+    }
+
+    function toggleAllShipReqPrint(checked) {
+      window.__shipPrintChecked = window.__shipPrintChecked || {};
+      var cbs = document.querySelectorAll("#shipReqBody .ship-print-cb");
+      cbs.forEach(function(cb) {
+        cb.checked = !!checked;
+        var id = cb.getAttribute("data-shipid");
+        if (id) {
+          if (checked) window.__shipPrintChecked[id] = true;
+          else delete window.__shipPrintChecked[id];
+        }
+      });
+      syncShipPrintBtn();
+    }
+
+    function syncShipPrintBtn() {
+      var checkedMap = window.__shipPrintChecked || {};
+      var visible = window.__visibleShipPrintIds || [];
+      var selectedCount = 0;
+      document.querySelectorAll("#shipReqBody .ship-print-cb").forEach(function(cb) {
+        if (cb.checked) selectedCount++;
+      });
+      var btn = $("btnMktPrintShipForm");
+      if (btn) {
+        btn.innerHTML = selectedCount > 0
+          ? "🖨️ Cetak Form A5 (" + selectedCount + " dipilih)"
+          : "🖨️ Cetak Form (A5)";
+      }
+      var allCb = $("shipReqCheckAll");
+      if (allCb) {
+        var total = document.querySelectorAll("#shipReqBody .ship-print-cb").length;
+        allCb.checked = total > 0 && selectedCount === total;
+        allCb.indeterminate = selectedCount > 0 && selectedCount < total;
+      }
+    }
+
+    function printSelectedShipForms() {
+      var ids = [];
+      document.querySelectorAll("#shipReqBody .ship-print-cb:checked").forEach(function(cb) {
+        var id = cb.getAttribute("data-shipid");
+        if (id) ids.push(id);
+      });
+      if (!ids.length) {
+        ids = (window.__visibleShipPrintIds || []).slice();
+      }
+      if (!ids.length) return toast("Tidak ada instruksi kirim untuk dicetak", true);
+      openShipFormPrint(ids);
+    }
+
+    async function openShipFormPrint(shipIds) {
+      var ids = Array.isArray(shipIds) ? shipIds.filter(Boolean) : [shipIds].filter(Boolean);
+      if (!ids.length) return toast("Pilih minimal 1 instruksi kirim", true);
+
+      var reqs = [];
+      var missingIds = [];
+      ids.forEach(function(id) {
+        var found = (shipReqList || []).find(function(x) { return x.ship_id === id; });
+        if (found && (found.ship_request_lines || []).length) reqs.push(found);
+        else missingIds.push(id);
+      });
+
+      if (missingIds.length && sb) {
+        try {
+          var { data } = await sb.from("ship_requests")
+            .select("*, ship_request_lines(*)")
+            .in("ship_id", missingIds);
+          var byId = {};
+          (data || []).forEach(function(d) { byId[d.ship_id] = d; });
+          ids.forEach(function(id) {
+            if (!reqs.some(function(x) { return x.ship_id === id; }) && byId[id]) {
+              reqs.push(byId[id]);
+            }
+          });
+        } catch (eLoad) { console.warn(eLoad); }
+      }
+
+      if (!reqs.length) return toast("Data instruksi tidak ditemukan", true);
+
+      // Preserve input order
+      var orderMap = {};
+      ids.forEach(function(id, idx) { orderMap[id] = idx; });
+      reqs.sort(function(a, b) { return (orderMap[a.ship_id] || 0) - (orderMap[b.ship_id] || 0); });
+
+      var rows = [];
+      var datesSet = {};
+      reqs.forEach(function(r) {
+        var d = String(r.request_date || todayStr()).slice(0, 10);
+        if (d) datesSet[d] = true;
+        var meta = doParseTags(r.notes);
+        var lines = r.ship_request_lines || [];
+        lines.forEach(function(l) {
+          var pid = String(l.product_id || "").trim();
+          var rawName = (productNameOnly(pid) || "").trim();
+          if (rawName.indexOf(pid) === 0) {
+            rawName = rawName.slice(pid.length).replace(/^[\s·\-]+/, "").trim();
+          }
+          var cleanName = rawName || pid;
+          var mItem = doBetsFindItem(meta.betsMkt, pid);
+          var betsList = (mItem && Array.isArray(mItem.bets) ? mItem.bets : []).filter(function(b) {
+            return Number(b.qty) > 0 || String(b.no || "").trim();
+          });
+          if (betsList.length) {
+            betsList.forEach(function(b) {
+              rows.push({
+                ship_id: r.ship_id,
+                product_id: pid,
+                product_name: cleanName,
+                bets: String(b.no || "").trim(),
+                qty: Number(b.qty) > 0 ? Number(b.qty) : (Number(l.qty) || 0),
+                unit: l.unit || "pcs"
+              });
+            });
+          } else {
+            rows.push({
+              ship_id: r.ship_id,
+              product_id: pid,
+              product_name: cleanName,
+              bets: "",
+              qty: Number(l.qty) || 0,
+              unit: l.unit || "pcs"
+            });
+          }
+        });
+      });
+
+      var dates = Object.keys(datesSet).sort();
+      var primaryDate = dates[dates.length - 1] || todayStr();
+
+      window.__shipPrintState = {
+        reqs: reqs,
+        rows: rows,
+        dateStr: primaryDate
+      };
+
+      if ($("shipPrintNoForm")) {
+        $("shipPrintNoForm").value = reqs.length === 1 ? (reqs[0].ship_id || "") : "";
+      }
+      if ($("shipPrintDateInp")) {
+        $("shipPrintDateInp").value = primaryDate;
+      }
+      if ($("shipPrintInfoBadge")) {
+        $("shipPrintInfoBadge").textContent = reqs.length + " instruksi · " + rows.length + " baris produk";
+      }
+
+      renderShipFormPrintPreview();
+
+      var modal = $("shipFormPrintModal");
+      if (modal) {
+        modal.classList.add("show");
+        modal.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+    }
+
+    function renderShipFormPrintPreview() {
+      var st = window.__shipPrintState;
+      var wrap = $("shipFormPrintPreview");
+      if (!st || !wrap) return;
+
+      var noForm = (($("shipPrintNoForm") && $("shipPrintNoForm").value) || "").trim();
+      var dateVal = (($("shipPrintDateInp") && $("shipPrintDateInp").value) || st.dateStr || todayStr());
+      var withCode = !!($("shipPrintWithCode") && $("shipPrintWithCode").checked);
+      var withBets = $("shipPrintWithBets") ? !!$("shipPrintWithBets").checked : true;
+      var minRows = parseInt(($("shipPrintMinRows") && $("shipPrintMinRows").value) || "8", 10);
+      if (isNaN(minRows)) minRows = 8;
+
+      var allItems = st.rows || [];
+      var maxPerPage = 13;
+      var chunks = [];
+      if (allItems.length <= maxPerPage) {
+        chunks.push(allItems);
+      } else {
+        for (var i = 0; i < allItems.length; i += maxPerPage) {
+          chunks.push(allItems.slice(i, i + maxPerPage));
+        }
+      }
+      var totalPages = chunks.length;
+      var dateLong = _shipFormLongDateId(dateVal);
+
+      var sheetsHtml = chunks.map(function(chunk, pageIdx) {
+        var startNo = pageIdx * maxPerPage;
+        var targetRows = Math.max(pageIdx === 0 ? minRows : 8, chunk.length + 1);
+        var trHtml = "";
+        for (var r = 0; r < targetRows; r++) {
+          var rowNum = startNo + r + 1;
+          var item = chunk[r];
+          if (item) {
+            var prodText = withCode && item.product_id && item.product_name !== item.product_id
+              ? (item.product_id + " - " + item.product_name)
+              : item.product_name;
+            var betsText = withBets ? (item.bets || "") : "";
+            trHtml += "<tr>" +
+              '<td class="a5-c-no">' + rowNum + "</td>" +
+              '<td class="a5-c-prod">' + esc(prodText) + "</td>" +
+              '<td class="a5-c-bets">' + esc(betsText) + "</td>" +
+              '<td class="a5-c-qty">' + formatNum(item.qty) + "</td>" +
+              "<td></td>" +
+              "<td></td>" +
+              "</tr>";
+          } else {
+            trHtml += "<tr>" +
+              '<td class="a5-c-no">' + rowNum + "</td>" +
+              "<td></td><td></td><td></td><td></td><td></td>" +
+              "</tr>";
+          }
+        }
+
+        var noFormHtml = noForm
+          ? '<span class="a5-noform-line">' + esc(noForm) + "</span>"
+          : '<span class="a5-noform-line">&nbsp;</span>';
+
+        return '<div class="a5-print-sheet">' +
+          '<div class="a5-sheet-top">' +
+            '<h1 class="a5-doc-title">FORM PERMINTAAN &amp; KONFIRMASI PENGIRIMAN</h1>' +
+            '<div class="a5-doc-sub">Bagian Marketing &rarr; Gudang</div>' +
+            '<hr class="a5-doc-rule" />' +
+            '<div class="a5-meta-row">' +
+              '<div class="a5-meta-left"><span>Tanggal</span><span>: ' + esc(dateLong) + "</span></div>" +
+              '<div class="a5-meta-right"><span>No. Form</span><span>: ' + noFormHtml + "</span></div>" +
+            "</div>" +
+            '<table class="a5-table">' +
+              "<colgroup>" +
+                '<col style="width:7%" />' +
+                '<col style="width:35%" />' +
+                '<col style="width:12%" />' +
+                '<col style="width:15%" />' +
+                '<col style="width:12%" />' +
+                '<col style="width:19%" />' +
+              "</colgroup>" +
+              "<thead>" +
+                "<tr>" +
+                  "<th>No</th>" +
+                  "<th>Nama Produk</th>" +
+                  "<th>Bets</th>" +
+                  "<th>Qty Req<br/>Marketing</th>" +
+                  "<th>Qty<br/>Kirim</th>" +
+                  "<th>Keterangan</th>" +
+                "</tr>" +
+              "</thead>" +
+              "<tbody>" + trHtml + "</tbody>" +
+            "</table>" +
+            '<div class="a5-note-box">' +
+              '<div class="a5-note-title">Catatan Penting:</div>' +
+              "<ul>" +
+                "<li>Mohon gudang memproses pengiriman untuk daftar produk di atas.</li>" +
+                "<li>Apabila masih ada stok barang dari kemarin yang mengendap dan belum diproses, mohon dicatat pada kolom <strong>Keterangan</strong> (atau baris tambahan) untuk di-<em>follow up</em> Marketing.</li>" +
+              "</ul>" +
+            "</div>" +
+            '<div class="a5-sign-grid">' +
+              "<div>" +
+                '<div class="a5-sign-role-top">Dibuat Oleh,</div>' +
+                '<div class="a5-sign-line">Marketing</div>' +
+              "</div>" +
+              "<div>" +
+                '<div class="a5-sign-role-top">Diproses Oleh,</div>' +
+                '<div class="a5-sign-line">Gudang</div>' +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+          '<div class="a5-doc-foot">' +
+            "<span>Form Pengiriman Barang (A5)</span>" +
+            "<span>Page " + (pageIdx + 1) + " of " + totalPages + "</span>" +
+          "</div>" +
+        "</div>";
+      }).join("");
+
+      wrap.innerHTML = sheetsHtml;
+    }
+
+    function printShipFormNow() {
+      var wrap = $("shipFormPrintPreview");
+      var host = $("shipFormPrintHost");
+      if (!wrap || !host || !wrap.innerHTML.trim()) {
+        return toast("Preview form belum siap", true);
+      }
+      host.innerHTML = wrap.innerHTML;
+      document.body.classList.add("printing-ship-form");
+
+      var cleaned = false;
+      function cleanup() {
+        if (cleaned) return;
+        cleaned = true;
+        document.body.classList.remove("printing-ship-form");
+        host.innerHTML = "";
+        window.removeEventListener("afterprint", cleanup);
+      }
+      window.addEventListener("afterprint", cleanup);
+      setTimeout(cleanup, 60000);
+      setTimeout(function() {
+        try { window.print(); } catch (e) { cleanup(); toast("Gagal memanggil dialog cetak browser", true); }
+      }, 60);
+    }
+
+    function closeShipFormPrint() {
+      var modal = $("shipFormPrintModal");
+      if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+      }
+      document.body.classList.remove("printing-ship-form");
+      var host = $("shipFormPrintHost");
+      if (host) host.innerHTML = "";
+      if (!document.querySelector(".modal-bg.show")) {
+        document.body.classList.remove("modal-open");
+      }
+    }
+
 </script>
 
   <div id="appConfirmModal" class="modal-bg" style="z-index:100200;display:none">
@@ -36482,6 +37072,38 @@ function closeOtModal() {
       <div class="sheet-body">
         <div id="shipDetailBody"></div>
         <div id="shipDetailActions" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem;justify-content:flex-end"></div>
+      </div>
+    </div>
+  </div>
+  <div id="shipFormPrintModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100190">
+    <div class="modal modal-sheet" style="max-width:720px;width:96vw;max-height:94vh;display:flex;flex-direction:column">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap">
+        <div>
+          <h2 style="margin:0;font-size:1.05rem">Cetak Form Permintaan &amp; Konfirmasi Pengiriman (A5)</h2>
+          <p id="shipPrintInfoBadge" style="margin:0.2rem 0 0;font-size:0.76rem;color:var(--text-muted)"></p>
+        </div>
+        <div style="display:flex;gap:0.45rem;align-items:center">
+          <button type="button" class="btn-odoo" onclick="printShipFormNow()">🖨️ Cetak / Simpan PDF (A5)</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeShipFormPrint()">Tutup</button>
+        </div>
+      </div>
+      <div class="sheet-body" style="overflow:auto">
+        <div class="a5-print-toolbar">
+          <label>Tgl: <input type="date" id="shipPrintDateInp" onchange="renderShipFormPrintPreview()" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.25rem 0.45rem;font-size:0.78rem;background:#fff" /></label>
+          <label>No. Form: <input type="text" id="shipPrintNoForm" placeholder="Kosongkan utk garis tulis" oninput="renderShipFormPrintPreview()" style="width:140px" /></label>
+          <label><input type="checkbox" id="shipPrintWithBets" checked onchange="renderShipFormPrintPreview()" /> Tampilkan Bets</label>
+          <label><input type="checkbox" id="shipPrintWithCode" onchange="renderShipFormPrintPreview()" /> Kode produk</label>
+          <label>Min. baris:
+            <select id="shipPrintMinRows" onchange="renderShipFormPrintPreview()">
+              <option value="8" selected>8 baris (standar A5)</option>
+              <option value="10">10 baris</option>
+              <option value="12">12 baris</option>
+              <option value="0">Sesuai jumlah (+1 kosong)</option>
+            </select>
+          </label>
+        </div>
+        <div id="shipFormPrintPreview" class="a5-preview-stage"></div>
       </div>
     </div>
   </div>
@@ -36647,6 +37269,7 @@ function closeOtModal() {
         <span class="ot-foot-hint">Qty bisa diedit; sisa dari hasil laporan otomatis masuk data gudang untuk pengiriman berikutnya.</span>
         <div class="ot-foot-actions">
           <button type="button" class="btn btn-ghost" onclick="closeShipRequestModal()">Batal</button>
+          <button type="button" class="btn btn-ghost" style="border-color:#0d9f6e;color:#047857;font-weight:700" id="shipReqSavePrintBtn" onclick="saveShipRequest({ autoPrint: true })">Simpan &amp; Cetak Form</button>
           <button type="button" class="btn-odoo" id="shipReqSubmitBtn" onclick="saveShipRequest()">Kirim ke gudang</button>
         </div>
       </div>
