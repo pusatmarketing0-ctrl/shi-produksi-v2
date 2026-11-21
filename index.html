@@ -8870,9 +8870,22 @@
       <div class="sheet-body">
         <input type="hidden" id="gqcLineId" />
         <div id="gqcInfo" style="font-size:0.82rem;padding:0.65rem 0.75rem;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;margin-bottom:0.75rem"></div>
-        <div class="field"><label>Qty diajukan ke QC</label>
-          <input id="gqcQty" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
-          <p style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0">Default = qty datang</p>
+        <div id="gqcModeWrap" class="field" style="display:none;margin-bottom:0.65rem">
+          <label>Jenis input Form QC</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem">
+            <label style="display:flex;align-items:center;gap:0.4rem;border:1px solid #cbd5e1;border-radius:8px;padding:0.4rem 0.55rem;cursor:pointer;font-size:0.78rem">
+              <input type="radio" name="gqcMode" value="add" style="width:auto" onchange="onGqcModeChange()" />
+              <span><strong>+ Tambah Sisa</strong> (bertahap)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:0.4rem;border:1px solid #cbd5e1;border-radius:8px;padding:0.4rem 0.55rem;cursor:pointer;font-size:0.78rem">
+              <input type="radio" name="gqcMode" value="edit" style="width:auto" onchange="onGqcModeChange()" />
+              <span><strong>Koreksi Total</strong> (revisi)</span>
+            </label>
+          </div>
+        </div>
+        <div class="field"><label id="gqcQtyLabel">Qty diajukan ke QC</label>
+          <input id="gqcQty" type="text" class="num-input" inputmode="decimal" placeholder="0" oninput="updateGqcQtyHint()" />
+          <p id="gqcQtyHint" style="font-size:0.72rem;color:var(--text-dim);margin:0.25rem 0 0">Default = qty datang</p>
         </div>
         <div class="field"><label>Catatan (opsional)</label>
           <input id="gqcNotes" placeholder="Kondisi barang, kemasan, dll." />
@@ -22612,10 +22625,17 @@ function fillOperatorList(selectedEmail) {
         pname = p ? p.name : "";
       } catch (e) {}
       var st = gudangRowStatus(r);
+      var formQty = Number(r.qc_form_qty) || 0;
+      var sisaBlmForm = Math.max(0, st.arrived - formQty);
       var arrActor = st.arrived > 0 ? gudangActorHtml(r.arrived_by, r.arrived_name, r.arrived_role, "") : "";
       var qcFormActor = r.qc_form_at ? gudangActorHtml(r.qc_form_by, r.qc_form_name, r.qc_form_role, "Form:") : "";
       var qcAccActor = (r.qc_at || r.qc_by) ? gudangActorHtml(r.qc_by, r.qc_name, r.qc_role, "ACC:") : "";
       var recvActor = st.received > 0 ? gudangActorHtml(r.received_by, r.received_name, r.received_role, "") : "";
+      var formGapBadge = (r.qc_form_at && sisaBlmForm > 0.0001)
+        ? "<div style='font-size:0.65rem;font-weight:700;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:0.1rem 0.35rem;display:inline-block;margin-top:0.15rem'>Form " + formatNum(formQty) + " · Sisa blm form " + formatNum(sisaBlmForm) + "</div>"
+        : (r.qc_form_at && formQty > 0
+          ? "<div style='font-size:0.65rem;color:#475569;margin-top:0.1rem'>Diajukan: " + formatNum(formQty) + "</div>"
+          : "");
       return '<tr class="gudang-item-row">' +
         "<td><strong>" + esc(r.po_id) + "</strong>" +
           (r.no_po_odoo
@@ -22642,6 +22662,7 @@ function fillOperatorList(selectedEmail) {
               esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_form_at) : String(r.qc_form_at).slice(0,16)) +
               "</div>"
             : "") +
+          formGapBadge +
           qcFormActor +
           (r.qc_at
             ? "<div style='font-size:0.65rem;color:#2563eb;margin-top:0.12rem'>ACC " +
@@ -22756,8 +22777,12 @@ function fillOperatorList(selectedEmail) {
       var qty = Number(r.qty) || 0;
       var arrived = Number(r.qty_arrived) || 0;
       var passed = Number(r.qty_qc_passed) || 0;
+      var failed = Number(r.qty_qc_failed) || 0;
       var received = Number(r.qty_received) || 0;
       var formAt = r.qc_form_at;
+      var formQty = Number(r.qc_form_qty) || 0;
+      var doneQc = passed + failed;
+      var sisaBlmForm = Math.max(0, arrived - formQty);
       var btns = [];
       if (arrived < qty) {
         btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangArrive(" + Number(r.line_id) + ")\">Barang sampai</button>");
@@ -22766,8 +22791,14 @@ function fillOperatorList(selectedEmail) {
       }
       if (arrived > 0 && !formAt) {
         btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"openGudangQcForm(" + Number(r.line_id) + ")\">Buat form QC</button>");
+      } else if (arrived > 0 && formAt && sisaBlmForm > 0.0001) {
+        if ((r.qc_status || "pending") === "pending" && formQty > doneQc) {
+          btns.push("<span style=\"font-size:0.7rem;color:#2563eb;display:block;margin-top:0.2rem\">Menunggu ACC QC (" + formatNum(formQty - doneQc) + ")</span>");
+        }
+        btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"openGudangQcForm(" + Number(r.line_id) + ")\">+ Form QC Sisa (" + formatNum(sisaBlmForm) + ")</button>");
       } else if (arrived > 0 && formAt && (r.qc_status || "pending") === "pending") {
         btns.push("<span style=\"font-size:0.7rem;color:#2563eb;display:block;margin-top:0.2rem\">Menunggu ACC QC</span>");
+        btns.push("<button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-top:0.2rem;font-size:0.68rem\" onclick=\"openGudangQcForm(" + Number(r.line_id) + ")\">Ubah form QC</button>");
       } else if (formAt && (r.qc_status || "") === "partial") {
         btns.push("<button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-top:0.25rem\" onclick=\"openGudangQcForm(" + Number(r.line_id) + ")\">Update form QC</button>");
       }
@@ -22850,15 +22881,84 @@ function fillOperatorList(selectedEmail) {
       if ($("gqcPhotoPrev")) $("gqcPhotoPrev").style.display = "none";
       if ($("gqcPhotoClear")) $("gqcPhotoClear").style.display = "none";
     }
+    function _gqcCurrentRow() {
+      var lineId = Number($("gqcLineId") && $("gqcLineId").value);
+      return (gudangRows || []).find(function(x) { return Number(x.line_id) === lineId; }) || {};
+    }
+    function _gqcCurrentMode() {
+      var mw = $("gqcModeWrap");
+      if (!mw || mw.style.display === "none") return "edit";
+      var sel = document.querySelector('input[name="gqcMode"]:checked');
+      return sel ? sel.value : "add";
+    }
+    function updateGqcQtyHint() {
+      var row = _gqcCurrentRow();
+      var arrived = Number(row.qty_arrived) || 0;
+      var alreadyForm = Number(row.qc_form_qty) || 0;
+      var doneQc = (Number(row.qty_qc_passed) || 0) + (Number(row.qty_qc_failed) || 0);
+      var sisaBlmForm = Math.max(0, arrived - alreadyForm);
+      var mode = _gqcCurrentMode();
+      var inpVal = parseInputNum(($("gqcQty") && $("gqcQty").value) || 0) || 0;
+      var hintEl = $("gqcQtyHint");
+      var lblEl = $("gqcQtyLabel");
+      if (row.qc_form_at && mode === "add") {
+        if (lblEl) lblEl.textContent = "Qty tambahan diajukan ke QC (gelombang susulan)";
+        var nextTotal = alreadyForm + inpVal;
+        if (hintEl) {
+          hintEl.innerHTML = "Total Form QC akan menjadi: <strong>" + formatNum(alreadyForm) + " + " + formatNum(inpVal) + " = " + formatNum(nextTotal) + "</strong> (maks. sisa " + formatNum(sisaBlmForm) + ")";
+        }
+      } else if (row.qc_form_at && mode === "edit") {
+        if (lblEl) lblEl.textContent = "Total kumulatif Qty Form QC (koreksi)";
+        if (hintEl) {
+          hintEl.innerHTML = "Minimal sudah di-ACC QC: <strong>" + formatNum(doneQc) + "</strong> · Maks. qty datang: <strong>" + formatNum(arrived) + "</strong>";
+        }
+      } else {
+        if (lblEl) lblEl.textContent = "Qty diajukan ke QC";
+        if (hintEl) hintEl.textContent = "Default = qty datang (" + formatNum(arrived) + "). Bisa isi sebagian dulu bila dicek bertahap.";
+      }
+    }
+    function onGqcModeChange() {
+      var row = _gqcCurrentRow();
+      var arrived = Number(row.qty_arrived) || 0;
+      var alreadyForm = Number(row.qc_form_qty) || 0;
+      var sisaBlmForm = Math.max(0, arrived - alreadyForm);
+      var mode = _gqcCurrentMode();
+      if (mode === "add") {
+        if ($("gqcQty")) $("gqcQty").value = formatInputNum(sisaBlmForm > 0 ? sisaBlmForm : 0, true);
+        if ($("gqcNotes")) $("gqcNotes").value = "";
+      } else {
+        if ($("gqcQty")) $("gqcQty").value = formatInputNum(alreadyForm > 0 ? alreadyForm : arrived, true);
+        if ($("gqcNotes")) $("gqcNotes").value = row.qc_form_notes || "";
+      }
+      updateGqcQtyHint();
+    }
     async function openGudangQcForm(lineId) {
       var row = (gudangRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); });
       if (!row) return toast("Baris tidak ditemukan", true);
       var arrived = Number(row.qty_arrived) || 0;
       if (arrived <= 0) return toast("Catat barang datang dulu", true);
       if ($("gqcLineId")) $("gqcLineId").value = String(lineId);
-      var defQty = Number(row.qc_form_qty) > 0 ? Number(row.qc_form_qty) : arrived;
-      if ($("gqcQty")) $("gqcQty").value = formatInputNum(defQty, true);
-      if ($("gqcNotes")) $("gqcNotes").value = row.qc_form_notes || "";
+
+      var alreadyForm = Number(row.qc_form_qty) || 0;
+      var doneQc = (Number(row.qty_qc_passed) || 0) + (Number(row.qty_qc_failed) || 0);
+      var sisaBlmForm = Math.max(0, arrived - alreadyForm);
+      var hasPrevForm = !!row.qc_form_at && alreadyForm > 0;
+
+      var mw = $("gqcModeWrap");
+      if (mw) mw.style.display = hasPrevForm ? "block" : "none";
+      if (hasPrevForm) {
+        var defMode = sisaBlmForm > 0.0001 ? "add" : "edit";
+        document.querySelectorAll('input[name="gqcMode"]').forEach(function(rad) {
+          rad.checked = rad.value === defMode;
+        });
+        var defQty = defMode === "add" ? sisaBlmForm : alreadyForm;
+        if ($("gqcQty")) $("gqcQty").value = formatInputNum(defQty, true);
+        if ($("gqcNotes")) $("gqcNotes").value = defMode === "add" ? "" : (row.qc_form_notes || "");
+      } else {
+        if ($("gqcQty")) $("gqcQty").value = formatInputNum(arrived, true);
+        if ($("gqcNotes")) $("gqcNotes").value = row.qc_form_notes || "";
+      }
+
       if ($("gqcPhotoUrl")) $("gqcPhotoUrl").value = row.qc_form_photo || "";
       if (row.qc_form_photo) {
         if ($("gqcPhotoImg")) $("gqcPhotoImg").src = row.qc_form_photo;
@@ -22870,12 +22970,20 @@ function fillOperatorList(selectedEmail) {
         var p = (products || []).find(function(x) { return String(x.product_id) === String(row.product_id); });
         pname = p ? p.name : "";
       } catch (e) {}
-      var lead = row.arrived_at ? ("<div style='margin-top:0.35rem;font-size:0.75rem;color:#64748b'>Datang: <b>" + esc(formatDateTimeWib(row.arrived_at)) + "</b></div>") : "";
+      var lead = row.arrived_at ? ("<div style='margin-top:0.25rem;font-size:0.75rem;color:#64748b'>Datang: <b>" + esc(formatDateTimeWib(row.arrived_at)) + "</b></div>") : "";
+      var prevLine = hasPrevForm
+        ? ("<div style='margin-top:0.25rem;font-size:0.76rem;color:#b45309'>Sudah Form QC: <b>" + formatNum(alreadyForm) + "</b>" +
+            (doneQc > 0 ? (" · Sudah ACC QC: <b>" + formatNum(doneQc) + "</b>") : "") +
+            (sisaBlmForm > 0 ? (" · Sisa belum form: <b style='color:#dc2626'>" + formatNum(sisaBlmForm) + "</b>") : "") +
+          "</div>")
+        : "";
       if ($("gqcInfo")) {
         $("gqcInfo").innerHTML = "<strong>" + esc(row.po_id) + "</strong> · " + esc(row.product_id) +
           (pname ? " — " + esc(pname) : "") +
-          "<div>Qty datang: <b>" + formatNum(arrived) + "</b> " + esc(row.unit || "") + "</div>" + lead;
+          "<div>Qty datang: <b>" + formatNum(arrived) + "</b> " + esc(row.unit || "") + "</div>" + prevLine + lead;
       }
+      updateGqcQtyHint();
+      try { bindAllThousandInputs(); } catch (eB) {}
       var fileInp = $("gqcPhotoFile");
       if (fileInp && fileInp.dataset.bound !== "1") {
         fileInp.dataset.bound = "1";
@@ -22931,15 +23039,43 @@ function fillOperatorList(selectedEmail) {
       if (!lineId) return toast("Baris tidak valid", true);
       var row = (gudangRows || []).find(function(x) { return Number(x.line_id) === lineId; }) || {};
       var arrived = Number(row.qty_arrived) || 0;
-      var qty = parseInputNum(($("gqcQty") && $("gqcQty").value) || 0);
-      if (!(qty > 0)) return toast("Qty diajukan ke QC wajib", true);
-      if (qty > arrived + 1e-9) return toast("Qty form tidak boleh melebihi qty datang (" + formatNum(arrived) + ")", true);
-      var notes = (($("gqcNotes") && $("gqcNotes").value) || "").trim();
+      var alreadyForm = Number(row.qc_form_qty) || 0;
+      var doneQc = (Number(row.qty_qc_passed) || 0) + (Number(row.qty_qc_failed) || 0);
+      var sisaBlmForm = Math.max(0, arrived - alreadyForm);
+      var isAddMode = !!(row.qc_form_at && alreadyForm > 0 && _gqcCurrentMode() === "add");
+
+      var qtyInput = parseInputNum(($("gqcQty") && $("gqcQty").value) || 0);
+      if (!(qtyInput > 0)) return toast("Qty diajukan ke QC wajib > 0", true);
+
+      var finalFormQty = qtyInput;
+      var notesInput = (($("gqcNotes") && $("gqcNotes").value) || "").trim();
+      var finalNotes = notesInput;
+      var auditSummary = "";
+
+      if (isAddMode) {
+        if (qtyInput > sisaBlmForm + 1e-9) {
+          return toast("Qty tambahan tidak boleh melebihi sisa belum form (" + formatNum(sisaBlmForm) + ")", true);
+        }
+        finalFormQty = alreadyForm + qtyInput;
+        var prevN = String(row.qc_form_notes || "").trim();
+        var waveTxt = "+" + formatNum(qtyInput) + (notesInput ? (": " + notesInput) : "");
+        finalNotes = prevN ? (prevN + " | " + waveTxt) : (notesInput || ("Susulan +" + formatNum(qtyInput)));
+        auditSummary = "Tambah Form QC " + (row.po_id || "") + " · " + (row.product_id || "") + " +" + formatNum(qtyInput) + " → total " + formatNum(finalFormQty) + " / " + formatNum(arrived) + " " + (row.unit || "") + (notesInput ? (" · " + notesInput) : "");
+      } else {
+        if (qtyInput < doneQc - 1e-9) {
+          return toast("Total Form QC tidak boleh kurang dari yang sudah di-ACC QC (" + formatNum(doneQc) + ")", true);
+        }
+        if (qtyInput > arrived + 1e-9) {
+          return toast("Qty form tidak boleh melebihi qty datang (" + formatNum(arrived) + ")", true);
+        }
+        auditSummary = (row.qc_form_at ? "Koreksi Form QC " : "Form QC ") + (row.po_id || "") + " · " + (row.product_id || "") + " · total " + formatNum(finalFormQty) + " / " + formatNum(arrived) + " " + (row.unit || "") + (notesInput ? (" · " + notesInput) : "");
+      }
+
       var photo = (($("gqcPhotoUrl") && $("gqcPhotoUrl").value) || "").trim();
       var nowIso = new Date().toISOString();
       var payload = {
-        qc_form_qty: qty,
-        qc_form_notes: notes,
+        qc_form_qty: finalFormQty,
+        qc_form_notes: finalNotes,
         qc_form_photo: photo || null,
         qc_form_at: nowIso,
         qc_form_by: (currentUser && currentUser.email) || "",
@@ -22957,7 +23093,7 @@ function fillOperatorList(selectedEmail) {
           module: "gudang",
           action: "qc_form",
           ref_id: String(lineId),
-          summary: "Form QC " + (row.po_id || "") + " · " + (row.product_id || "") + " · qty " + formatNum(qty) + " " + (row.unit || "") + (notes ? " · " + notes : "")
+          summary: auditSummary
         });
       } catch (eAudF) {}
       var leadMsg = "";
@@ -22967,7 +23103,7 @@ function fillOperatorList(selectedEmail) {
           if (mins >= 0) leadMsg = " · " + mins + " menit sejak datang";
         } catch (eL) {}
       }
-      toast("Form QC dikirim" + leadMsg + " — menunggu ACC QC");
+      toast((isAddMode ? ("Form QC +" + formatNum(qtyInput) + " (total " + formatNum(finalFormQty) + ")") : ("Form QC " + formatNum(finalFormQty))) + " dikirim" + leadMsg + " — menunggu ACC QC");
       closeGudangQcForm();
       loadGudangInbox();
       try { loadQcInbox(); } catch (e2) {}
