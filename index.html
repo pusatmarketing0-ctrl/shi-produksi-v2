@@ -5682,9 +5682,9 @@
       .notif-sub-arrow { opacity: 0.7; transform: none; }
     }
     /* Interactive KPI filter cards for Instruksi Kirim (#page-marketing) */
-    #mktYestKpi, #shipKpiBar {
+    #mktYestKpi, #shipKpiBar, #mktFgHoKpi {
       display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important;
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)) !important;
       gap: 0.55rem !important;
     }
     .mkt-kpi-card {
@@ -6207,6 +6207,111 @@
       z-index: 460 !important;
       max-height: 220px;
       overflow-y: auto;
+    }
+    .fg-ho-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.69rem;
+      font-weight: 700;
+      padding: 0.16rem 0.48rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .fg-ho-pill.wait { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+    .fg-ho-pill.prod { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .fg-ho-pill.recv { background: #eff6ff; color: #0369a1; border-color: #bae6fd; }
+    .fg-ho-pill.mkt { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .fg-ho-bets-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.24rem;
+      margin-top: 0.25rem;
+    }
+    .fg-ho-bet-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.22rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.12rem 0.42rem;
+      border-radius: 6px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      font-variant-numeric: tabular-nums;
+    }
+    .fg-ho-summary {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.65rem 0.8rem;
+      margin-bottom: 0.8rem;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.45rem 0.8rem;
+      font-size: 0.78rem;
+    }
+    .fg-ho-summary .lbl {
+      font-size: 0.68rem;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .fg-ho-summary .val {
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 0.1rem;
+    }
+    .fg-ho-bets-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .fg-ho-bets-table th {
+      text-align: left;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #475569;
+      padding: 0.4rem 0.45rem;
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .fg-ho-bets-table td {
+      padding: 0.35rem 0.35rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .fg-ho-bets-table input,
+    .fg-ho-bets-table select {
+      width: 100%;
+      padding: 0.38rem 0.5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      background: #fff;
+    }
+    .fg-ho-notify-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      padding: 0.65rem 0.75rem;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 10px;
+      margin-top: 0.75rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .fg-ho-notify-box input {
+      width: 16px;
+      height: 16px;
+      margin-top: 0.1rem;
+      accent-color: #0d9f6e;
+      cursor: pointer;
+      flex-shrink: 0;
     }
     </style>
 </head>
@@ -7149,10 +7254,10 @@
             <div class="odoo-inv-head">
               <div>
                 <div class="odoo-inv-bc">
-                  <span>Sales</span><span>/</span><span>Shipping &amp; FG</span><span>/</span><strong id="mktBreadcrumbSub">Output FG Kemarin</strong>
+                  <span>Sales</span><span>/</span><span>Shipping &amp; FG</span><span>/</span><strong id="mktBreadcrumbSub">Info Gudang (Siap Kirim)</strong>
                 </div>
                 <h1 class="odoo-inv-title">Instruksi Kirim (FG)</h1>
-                <p class="odoo-inv-sub">Output FG packing, saldo stok siap kirim, dan antrean instruksi ke gudang.</p>
+                <p class="odoo-inv-sub">Barang hasil serah terima Produksi ↔ Gudang yang siap diinstruksikan kirim hari ini.</p>
               </div>
               <div class="odoo-inv-actions">
                 <input type="date" id="mktDate" class="odoo-select-inp" onchange="loadMarketing()" />
@@ -7160,10 +7265,55 @@
               </div>
             </div>
             <div class="mod-tabs odoo-inv-tabs" id="mktTabs" role="tablist">
-              <button type="button" class="mod-tab active" data-mtab="kemarin" onclick="setMktTab('kemarin')">Output FG Kemarin</button>
+              <button type="button" class="mod-tab active" data-mtab="infogudang" onclick="setMktTab('infogudang')">Info Gudang (Siap Kirim) <span class="odoo-pill done" id="mktFgHoTabBadge" style="display:none;margin-left:0.35rem;font-size:0.65rem">0</span></button>
+              <button type="button" class="mod-tab" data-mtab="kemarin" onclick="setMktTab('kemarin')">Output FG Kemarin</button>
               <button type="button" class="mod-tab" data-mtab="kirim" onclick="setMktTab('kirim')">Instruksi Kirim</button>
               <button type="button" class="mod-tab" data-mtab="stok" onclick="setMktTab('stok')">Stok FG</button>
               <button type="button" class="mod-tab" data-mtab="hari" onclick="setMktTab('hari')">Produksi Hari Ini</button>
+            </div>
+          </div>
+          <div id="mktPaneInfoGudang" class="mod-pane">
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <div>
+                  <strong style="font-size:0.88rem;color:#065f46">Info Gudang · Barang Hasil Serah Terima Produksi</strong>
+                  <div style="font-size:0.74rem;color:#64748b">Gudang sudah menerima barang dari Produksi &amp; menginfokan siap kirim. Centang beberapa lalu klik <strong>+ Instruksi Kirim Terpilih</strong>.</div>
+                </div>
+                <div class="odoo-ctrl-right">
+                  <input type="date" id="mktFgHoFrom" class="odoo-select-inp" onchange="loadMktFgHandover()" title="Dari tanggal produksi" />
+                  <input type="date" id="mktFgHoTo" class="odoo-select-inp" onchange="loadMktFgHandover()" title="Sampai tanggal produksi" />
+                  <select id="mktFgHoFilter" class="odoo-select-inp" autocomplete="off" onchange="renderMktFgHandover()">
+                    <option value="siap" selected>Siap Instruksi Kirim (Ada Sisa)</option>
+                    <option value="notified_all">Semua Info Gudang</option>
+                    <option value="unnotified">Menunggu Terima / Info Gudang</option>
+                    <option value="all">Semua Output FG</option>
+                  </select>
+                  <input type="search" id="mktFgHoSearch" class="odoo-search-inp" placeholder="Cari produk / SO / customer / bets…" oninput="renderMktFgHandover()" />
+                  <button type="button" class="btn-odoo" id="btnMktFgHoBulk" onclick="mktShipSelectedHandovers()" disabled>+ Instruksi Kirim Terpilih (0)</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="loadMktFgHandover()">Refresh</button>
+                </div>
+              </div>
+              <div style="padding:0.75rem 1rem 0.25rem">
+                <div id="mktFgHoKpi"></div>
+              </div>
+              <div class="table-wrap">
+                <table class="odoo-list">
+                  <thead>
+                    <tr>
+                      <th style="width:32px"><input type="checkbox" id="mktFgHoCheckAll" onchange="toggleAllMktFgHo(this.checked)" title="Pilih semua siap kirim" /></th>
+                      <th>Info Gudang</th>
+                      <th>Produk (FG)</th>
+                      <th>Customer / SO</th>
+                      <th style="text-align:right">Qty Diterima</th>
+                      <th>No. Bets &amp; Rincian</th>
+                      <th style="text-align:right">Sisa Siap Kirim</th>
+                      <th>Serah Terima &amp; Pelaku</th>
+                      <th style="text-align:right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mktFgHoBody"><tr><td colspan="9" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div id="mktPaneHari" class="mod-pane" hidden>
@@ -7205,7 +7355,7 @@
               </div>
             </div>
           </div>
-          <div id="mktPaneKemarin" class="mod-pane">
+          <div id="mktPaneKemarin" class="mod-pane" hidden>
             <div class="odoo-sheet">
               <div class="odoo-ctrl-bar">
                 <div>
@@ -7882,10 +8032,11 @@
                     <th style="text-align:right">Korlap (Σ bet)</th>
                     <th style="text-align:right">Selisih</th>
                     <th>Status</th>
+                    <th>Serah Terima Gudang</th>
                     <th></th>
                   </tr>
                 </thead>
-                <tbody id="fgkBody"><tr><td colspan="8" class="empty">Pilih tanggal</td></tr></tbody>
+                <tbody id="fgkBody"><tr><td colspan="10" class="empty">Pilih tanggal</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -8065,13 +8216,14 @@
             </div>
             <div class="mod-tabs odoo-inv-tabs" id="gudangTabs" role="tablist">
               <button type="button" class="mod-tab active" data-gtab="stok" onclick="setGudangTab('stok')">On Hand (Stok)</button>
+              <button type="button" class="mod-tab" data-gtab="fg_handover" onclick="setGudangTab('fg_handover')">Serah Terima FG <span class="odoo-pill progress" id="gdTabFgHoBadge" style="display:none;margin-left:0.35rem;font-size:0.65rem">0</span></button>
               <button type="button" class="mod-tab" data-gtab="terima" onclick="setGudangTab('terima')">Receipts (Terima PO)</button>
               <button type="button" class="mod-tab" data-gtab="kirim" onclick="setGudangTab('kirim')">Delivery Orders (Kirim)</button>
               <button type="button" class="mod-tab" data-gtab="mutasi" onclick="setGudangTab('mutasi')">Adjustments (Mutasi)</button>
             </div>
           </div>
 
-          <div class="odoo-inv-overview" id="gudangOverviewGrid">
+          <div class="odoo-inv-overview cols-5" id="gudangOverviewGrid">
             <div class="odoo-op-card op-teal">
               <div class="odoo-op-head">
                 <div>
@@ -8085,6 +8237,23 @@
                 <div class="odoo-op-stats">
                   <div>Stok &gt; 0: <strong id="gdOvInStock">—</strong></div>
                   <div>Kosong / Minus: <strong id="gdOvEmptyStock">—</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="odoo-op-card op-emerald">
+              <div class="odoo-op-head">
+                <div>
+                  <h3 class="odoo-op-title">Serah Terima FG</h3>
+                  <div class="odoo-op-sub">Produksi ↔ Gudang → Mkt</div>
+                </div>
+                <span class="odoo-pill progress" id="gdOvFgHoCount">0 Pending</span>
+              </div>
+              <div class="odoo-op-body">
+                <button type="button" class="btn-odoo-teal" onclick="setGudangTab('fg_handover')">Serah Terima</button>
+                <div class="odoo-op-stats">
+                  <div>Perlu Terima: <strong id="gdOvFgHoWait">—</strong></div>
+                  <div>Belum Info Mkt: <strong id="gdOvFgHoReadyMkt">—</strong></div>
                 </div>
               </div>
             </div>
@@ -8179,6 +8348,47 @@
               <div id="stockPager" class="pg-bar"></div>
             </div>
             <p style="font-size:0.72rem;color:var(--text-muted);margin:0.5rem 0 0">Klik baris produk atau tombol History untuk melihat Stock Moves (kartu stok masuk/keluar).</p>
+          </div>
+
+          <div id="gudang-pane-fg-handover" class="gudang-pane" hidden>
+            <div class="odoo-sheet">
+              <div class="odoo-ctrl-bar">
+                <div>
+                  <strong style="font-size:0.88rem;color:#065f46">Serah Terima FG (Produksi ↔ Gudang → Info Marketing)</strong>
+                  <div style="font-size:0.74rem;color:#64748b">Konfirmasi fisik FG &amp; No. Bets dari Produksi lalu infokan ke Marketing agar siap dibuatkan instruksi kirim.</div>
+                </div>
+                <div class="odoo-ctrl-right">
+                  <input type="date" id="gdFgHoFrom" class="odoo-select-inp" onchange="loadGudangFgHandover()" title="Dari tanggal produksi" />
+                  <input type="date" id="gdFgHoTo" class="odoo-select-inp" onchange="loadGudangFgHandover()" title="Sampai tanggal produksi" />
+                  <select id="gdFgHoFilter" class="odoo-select-inp" autocomplete="off" onchange="renderGudangFgHandover()">
+                    <option value="">Semua Status</option>
+                    <option value="pending_wh" selected>Perlu Terima Gudang</option>
+                    <option value="ready_mkt">Sudah Terima · Belum Info Marketing</option>
+                    <option value="notified">Sudah Info Marketing</option>
+                  </select>
+                  <input type="search" id="gdFgHoSearch" class="odoo-search-inp" placeholder="Cari produk / SO / bets / pelaku…" oninput="renderGudangFgHandover()" />
+                  <button type="button" class="btn-odoo" id="btnGdFgHoBulkNotify" onclick="bulkNotifyFgHoMarketing()" disabled>Infokan Terpilih ke Mkt (0)</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="loadGudangFgHandover()">Refresh</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="odoo-list">
+                  <thead>
+                    <tr>
+                      <th style="width:32px"><input type="checkbox" id="gdFgHoCheckAll" onchange="toggleAllGdFgHo(this.checked)" title="Pilih yang sudah diterima untuk diinfokan ke Marketing" /></th>
+                      <th>Tgl &amp; Shift</th>
+                      <th>Produk (FG)</th>
+                      <th>SO &amp; Customer</th>
+                      <th style="text-align:right">Output Produksi</th>
+                      <th>Terima Gudang &amp; No. Bets</th>
+                      <th>Status &amp; Info Marketing</th>
+                      <th style="text-align:right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gdFgHoBody"><tr><td colspan="8" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div id="gudang-pane-terima" class="gudang-pane" hidden>
@@ -16049,8 +16259,9 @@ function fillOperatorList(selectedEmail) {
     }
 
     function setMktTab(tab) {
-      tab = tab || "hari";
+      tab = tab || "infogudang";
       var mktBc = {
+        infogudang: "Info Gudang (Siap Kirim)",
         kemarin: "Output FG Kemarin",
         kirim: "Instruksi Kirim Gudang",
         stok: "Stok Finish Good",
@@ -16060,10 +16271,12 @@ function fillOperatorList(selectedEmail) {
       document.querySelectorAll("#mktTabs .mod-tab").forEach(function(btn) {
         btn.classList.toggle("active", btn.getAttribute("data-mtab") === tab);
       });
+      if ($("mktPaneInfoGudang")) $("mktPaneInfoGudang").hidden = tab !== "infogudang";
       if ($("mktPaneHari")) $("mktPaneHari").hidden = tab !== "hari";
       if ($("mktPaneStok")) $("mktPaneStok").hidden = tab !== "stok";
       if ($("mktPaneKemarin")) $("mktPaneKemarin").hidden = tab !== "kemarin";
       if ($("mktPaneKirim")) $("mktPaneKirim").hidden = tab !== "kirim";
+      if (tab === "infogudang") try { if (typeof loadMktFgHandover === "function") loadMktFgHandover(); } catch (e0) {}
       if (tab === "kemarin") try { loadMktYesterdayFg(); } catch (e) {}
       if (tab === "stok") try { loadMktFgStock(); } catch (eS) {}
       if (tab === "kirim") try { loadShipRequests(); } catch (e2) {}
@@ -16183,7 +16396,24 @@ function fillOperatorList(selectedEmail) {
           }
         }
       } catch (eSh) { console.warn("shippedMap", eSh); }
-      list.forEach(function(x) { x.stock = stockMap[x.product_id]; x.ship = shippedMap[x.product_id] || null; });
+      var hoStatusByPid = {};
+      try {
+        if (typeof fetchFgHandoverQueue === "function") {
+          var hoYest = await fetchFgHandoverQueue({ fromDate: yest, toDate: yest });
+          (hoYest || []).forEach(function(h) {
+            var cur = hoStatusByPid[h.product_id];
+            var rank = { wait: 0, prod_submit: 1, recv: 2, notified: 3 };
+            if (!cur || (rank[h.state] || 0) >= (rank[cur.state] || 0)) {
+              hoStatusByPid[h.product_id] = h;
+            }
+          });
+        }
+      } catch (eHoY) {}
+      list.forEach(function(x) {
+        x.stock = stockMap[x.product_id];
+        x.ship = shippedMap[x.product_id] || null;
+        x.ho = hoStatusByPid[x.product_id] || null;
+      });
       mktYestRows = list;
       renderMktYesterdayFg();
     }
@@ -16238,6 +16468,13 @@ function fillOperatorList(selectedEmail) {
         var nos0 = nosArr[0] || "";
         var st = x.stock;
         var sh = x.ship;
+        var hoPill = "";
+        if (x.ho) {
+          if (x.ho.state === "notified") hoPill = '<div style="margin-top:0.2rem"><span class="fg-ho-pill mkt">✓ Info Gudang (' + formatNum(x.ho.received_qty) + ')</span></div>';
+          else if (x.ho.state === "recv") hoPill = '<div style="margin-top:0.2rem"><span class="fg-ho-pill recv">Diterima Gudang · belum info</span></div>';
+          else if (x.ho.state === "prod_submit") hoPill = '<div style="margin-top:0.2rem"><span class="fg-ho-pill prod">Diserahkan Produksi</span></div>';
+          else hoPill = '<div style="margin-top:0.2rem"><span class="fg-ho-pill wait">Belum Serah Terima</span></div>';
+        }
         var sisaYest = sh ? Math.max(0, (Number(x.actual) || 0) - (Number(sh.totalQty) || 0)) : (Number(x.actual) || 0);
         var actionHtml = "";
         if (sh) {
@@ -16269,7 +16506,7 @@ function fillOperatorList(selectedEmail) {
         return "<tr>" +
           '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(sisaYest)) + '" data-noso="' + esc(nos0) + '"' +
             (sisaYest <= 0 ? " disabled" : "") + " /></td>" +
-          "<td><strong>" + prod + "</strong></td>" +
+          "<td><strong>" + prod + "</strong>" + hoPill + "</td>" +
           "<td style='text-align:right'><strong>" + formatNum(x.actual) + "</strong></td>" +
           "<td style='font-size:0.78rem'>" + cust + "</td>" +
           "<td style='text-align:right'>" + (st != null ? formatNum(st) : "—") + "</td>" +
@@ -17127,8 +17364,59 @@ function fillOperatorList(selectedEmail) {
       var source = "";
       var reportDate = "";
 
-      // 1) Cek laporan Korlap (fg_korlap_reports) terlebih dahulu
+      // 0) Prioritaskan hasil Serah Terima Gudang (fg_handover) yang sudah diverifikasi fisik & No. Bets
       try {
+        var { data: hoLogs } = await sb.from("audit_logs")
+          .select("created_at,action,ref_id,after_data")
+          .eq("module", "fg_handover")
+          .order("created_at", { ascending: false })
+          .limit(200);
+        var seenHo = {};
+        var recvRows = [];
+        (hoLogs || []).forEach(function(lg) {
+          var rk = String(lg.ref_id || "");
+          if (!rk || seenHo[rk]) return;
+          seenHo[rk] = true;
+          var ad = lg.after_data || {};
+          if (typeof ad === "string") { try { ad = JSON.parse(ad); } catch (eP) { ad = {}; } }
+          if (String(ad.product_id || "").trim().toUpperCase() !== pid.toUpperCase()) return;
+          if (ad.state !== "recv" && ad.state !== "notified" && lg.action !== "receive_wh" && lg.action !== "receive_and_notify" && lg.action !== "notify_mkt") return;
+          recvRows.push(ad);
+        });
+        if (recvRows.length) {
+          var hoPool = recvRows;
+          if (wantSo) {
+            var hoSo = recvRows.filter(function(r) { return fgkNormSoKey(r.no_so) === wantSo; });
+            if (hoSo.length) hoPool = hoSo;
+          }
+          hoPool.sort(function(a, b) {
+            return String(b.report_date || "").localeCompare(String(a.report_date || ""));
+          });
+          var topHoDate = String(hoPool[0].report_date || "").slice(0, 10);
+          var latestHo = hoPool.filter(function(r) { return String(r.report_date || "").slice(0, 10) === topHoDate; });
+          latestHo.forEach(function(ad) {
+            var rBets = Array.isArray(ad.bets) ? ad.bets : [];
+            rBets.forEach(function(b) {
+              var q = Number(b && b.qty) || 0;
+              if (!(q > 0)) return;
+              rawEntries.push({
+                no: String((b && b.no) || "").trim() || "Bet 1",
+                qty: q,
+                unit: String((b && b.unit) || ad.unit || defUnit || "pcs").trim() || "pcs",
+                source: "Serah Terima Gudang",
+                report_date: topHoDate
+              });
+            });
+          });
+          if (rawEntries.length) {
+            reportDate = topHoDate;
+            source = "Serah Terima Gudang";
+          }
+        }
+      } catch (eHoFetch) { console.warn("fetchReportBets handover:", eHoFetch); }
+
+      // 1) Cek laporan Korlap (fg_korlap_reports) jika belum ada Serah Terima Gudang
+      if (!rawEntries.length) try {
         var { data: fgRows } = await sb.from("fg_korlap_reports")
           .select("report_date,product_id,no_so,shift,output_qty,bets,unit,notes,updated_at")
           .eq("product_id", pid)
@@ -17953,6 +18241,7 @@ function fillOperatorList(selectedEmail) {
       closeShipRequestModal();
       try { loadShipRequests(); } catch (e) {}
       try { loadDeliveries(); } catch (eDL) {}
+      try { if (typeof loadMktFgHandover === "function") loadMktFgHandover(); } catch (eHo2) {}
       try { loadMktYesterdayFg(); } catch (eY) {}
       try { loadMktFgStock(); } catch (eS2) {}
       try { setMktTab("kirim"); } catch (e3) {}
@@ -21250,10 +21539,10 @@ function fillOperatorList(selectedEmail) {
       "page-reports": ["reports", "plans"],
       "page-korlap": ["hourly_reports", "plans", "reports"],
       "page-purchasing": ["purchase_orders", "purchase_lines"],
-      "page-gudang": ["purchase_orders", "purchase_lines", "ship_requests", "ship_request_lines"],
+      "page-gudang": ["purchase_orders", "purchase_lines", "ship_requests", "ship_request_lines", "fg_korlap_reports", "reports", "audit_logs"],
       "page-qc": ["purchase_lines"],
       "page-delivery": ["ship_requests", "ship_request_lines", "deliveries", "delivery_lines"],
-      "page-marketing": ["ship_requests", "ship_request_lines", "fg_korlap_reports", "reports", "orders"],
+      "page-marketing": ["ship_requests", "ship_request_lines", "fg_korlap_reports", "reports", "orders", "audit_logs"],
       "page-wip": ["wip_stock"],
       "page-absences": ["absences"],
       "page-revisions": ["plan_revision_requests", "plans"]
@@ -21313,7 +21602,12 @@ function fillOperatorList(selectedEmail) {
           else if (pid === "page-reports") loadReportsPage();
           else if (pid === "page-korlap") { if (typeof loadKorlapHourly === "function") loadKorlapHourly(); }
           else if (pid === "page-purchasing") loadPurchaseOrders();
-          else if (pid === "page-gudang") { if (typeof loadGudang === "function") loadGudang(); else loadPurchaseOrders(); }
+          else if (pid === "page-gudang") {
+            if (gudangActiveTab === "fg_handover" && typeof loadGudangFgHandover === "function") loadGudangFgHandover();
+            else if (typeof loadGudang === "function") loadGudang();
+            else loadPurchaseOrders();
+            try { if (typeof refreshFgHandoverOverviewOnly === "function") refreshFgHandoverOverviewOnly(); } catch (eHoGd) {}
+          }
           else if (pid === "page-qc") { if (typeof loadQcInbox === "function") loadQcInbox(); }
           else if (pid === "page-pick") { if (typeof loadPicks === "function") loadPicks(); }
           else if (pid === "page-delivery") { if (typeof loadDeliveries === "function") loadDeliveries(); }
@@ -21323,7 +21617,8 @@ function fillOperatorList(selectedEmail) {
           }
           else if (pid === "page-marketing") {
             var tab = (document.querySelector("#mktTabs .mod-tab.active") || {}).getAttribute && document.querySelector("#mktTabs .mod-tab.active").getAttribute("data-mtab");
-            if (tab === "kirim") loadShipRequests();
+            if (tab === "infogudang") { if (typeof loadMktFgHandover === "function") loadMktFgHandover(); }
+            else if (tab === "kirim") loadShipRequests();
             else if (tab === "kemarin") loadMktYesterdayFg();
             else if (tab === "stok") loadMktFgStock();
             else loadMarketing();
@@ -23604,11 +23899,25 @@ function fillOperatorList(selectedEmail) {
       if ($("gdOvShipCount")) $("gdOvShipCount").textContent = formatNum(sReq + sPick) + " Queue";
       if ($("gdOvShipReq")) $("gdOvShipReq").textContent = formatNum(sReq);
       if ($("gdOvShipPicked")) $("gdOvShipPicked").textContent = formatNum(sPick);
+
+      try {
+        var hoSum = window.__fgHoSummary || { waitRecv: 0, readyMkt: 0, totalPending: 0 };
+        if ($("gdOvFgHoCount")) $("gdOvFgHoCount").textContent = formatNum(hoSum.waitRecv + hoSum.readyMkt) + " Pending";
+        if ($("gdOvFgHoWait")) $("gdOvFgHoWait").textContent = formatNum(hoSum.waitRecv);
+        if ($("gdOvFgHoReadyMkt")) $("gdOvFgHoReadyMkt").textContent = formatNum(hoSum.readyMkt);
+        var bHo = $("gdTabFgHoBadge");
+        if (bHo) {
+          var totHo = (hoSum.waitRecv || 0) + (hoSum.readyMkt || 0);
+          bHo.textContent = formatNum(totHo);
+          bHo.style.display = totHo > 0 ? "inline-flex" : "none";
+        }
+      } catch (eHoSum) {}
     }
     function setGudangTab(tab) {
       gudangActiveTab = tab || "stok";
       var bcMap = {
         stok: "On Hand Stock",
+        fg_handover: "Serah Terima FG (Produksi ↔ Gudang)",
         terima: "Receipts (Vendor Inbound)",
         kirim: "Delivery Orders Queue",
         mutasi: "Inventory Adjustment"
@@ -23617,8 +23926,8 @@ function fillOperatorList(selectedEmail) {
       document.querySelectorAll("#gudangTabs .mod-tab").forEach(function(btn) {
         btn.classList.toggle("active", btn.getAttribute("data-gtab") === gudangActiveTab);
       });
-      ["stok", "terima", "kirim", "mutasi"].forEach(function(t) {
-        var pane = $("gudang-pane-" + t);
+      ["stok", "fg_handover", "terima", "kirim", "mutasi"].forEach(function(t) {
+        var pane = $("gudang-pane-" + (t === "fg_handover" ? "fg-handover" : t));
         if (pane) pane.hidden = t !== gudangActiveTab;
       });
       refreshGudangTab();
@@ -23626,8 +23935,12 @@ function fillOperatorList(selectedEmail) {
     function refreshGudangTab() {
       if (gudangActiveTab === "stok") {
         try { loadGudangStock(); } catch (e) {}
+        try { if (typeof refreshFgHandoverOverviewOnly === "function") refreshFgHandoverOverviewOnly(); } catch (eHo1) {}
+      } else if (gudangActiveTab === "fg_handover") {
+        try { if (typeof loadGudangFgHandover === "function") loadGudangFgHandover(); } catch (eHo2) {}
       } else if (gudangActiveTab === "terima") {
         try { loadGudangInbox(); } catch (e) {}
+        try { if (typeof refreshFgHandoverOverviewOnly === "function") refreshFgHandoverOverviewOnly(); } catch (eHo3) {}
       } else if (gudangActiveTab === "kirim") {
         try { loadShipRequests(); } catch (e) {}
       } else if (gudangActiveTab === "mutasi") {
@@ -28804,6 +29117,11 @@ function fillOperatorList(selectedEmail) {
         try { setOtFacet(filter); } catch (e5) {}
       } else if (page === "delivery" && typeof setDoFacet === "function") {
         try { setDoFacet(filter || ""); } catch (e6) {}
+      } else if (page === "gudang" && tab === "fg_handover" && filter) {
+        try {
+          if ($("gdFgHoFilter")) $("gdFgHoFilter").value = filter;
+          if (typeof renderGudangFgHandover === "function") renderGudangFgHandover();
+        } catch (e7) {}
       }
     }
 
@@ -29255,6 +29573,34 @@ function fillOperatorList(selectedEmail) {
             }
           }
         } catch (eDlR) {}
+        try {
+          var hoNotifR = (typeof fetchFgHandoverNotifCounts === "function") ? await fetchFgHandoverNotifCounts(force) : null;
+          if (hoNotifR) {
+            if (role === "gudang" || role === "admin") {
+              var gdExist = groups.find(function(g) { return g.label === "Gudang"; });
+              var extraGd = [];
+              if (hoNotifR.waitRecv) extraGd.push({ label: "Serah terima FG (perlu terima)", count: hoNotifR.waitRecv, page: "gudang", tab: "fg_handover", filter: "pending_wh", icon: "🤝" });
+              if (hoNotifR.readyMkt) extraGd.push({ label: "FG diterima (belum info Marketing)", count: hoNotifR.readyMkt, page: "gudang", tab: "fg_handover", filter: "ready_mkt", icon: "📣" });
+              if (extraGd.length) {
+                if (gdExist) {
+                  gdExist.items = extraGd.concat(gdExist.items || []);
+                  gdExist.count = (gdExist.count || 0) + extraGd.reduce(function(s, x) { return s + (x.count || 0); }, 0);
+                } else {
+                  groups.push({ label: "Gudang", icon: "📦", count: extraGd.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: extraGd, open: true });
+                }
+              }
+            }
+            if ((role === "marketing" || role === "admin") && hoNotifR.siapKirim > 0) {
+              groups.push({
+                label: "Info Gudang (FG Siap Kirim)",
+                icon: "📣",
+                count: hoNotifR.siapKirim,
+                items: [{ label: "FG serah terima siap instruksi kirim", count: hoNotifR.siapKirim, page: "marketing", tab: "infogudang", icon: "🚚" }],
+                open: true
+              });
+            }
+          }
+        } catch (eHoN1) {}
         renderNotifItems(groups);
         _lastInboxAt = Date.now();
         try {
@@ -29508,6 +29854,34 @@ function fillOperatorList(selectedEmail) {
           }
         }
       } catch (eDlF) {}
+      try {
+        var hoNotifF = (typeof fetchFgHandoverNotifCounts === "function") ? await fetchFgHandoverNotifCounts(force) : null;
+        if (hoNotifF) {
+          if (role === "gudang" || role === "admin") {
+            var gdExistF = groups.find(function(g) { return g.label === "Gudang"; });
+            var extraGdF = [];
+            if (hoNotifF.waitRecv) extraGdF.push({ label: "Serah terima FG (perlu terima)", count: hoNotifF.waitRecv, page: "gudang", tab: "fg_handover", filter: "pending_wh", icon: "🤝" });
+            if (hoNotifF.readyMkt) extraGdF.push({ label: "FG diterima (belum info Marketing)", count: hoNotifF.readyMkt, page: "gudang", tab: "fg_handover", filter: "ready_mkt", icon: "📣" });
+            if (extraGdF.length) {
+              if (gdExistF) {
+                gdExistF.items = extraGdF.concat(gdExistF.items || []);
+                gdExistF.count = (gdExistF.count || 0) + extraGdF.reduce(function(s, x) { return s + (x.count || 0); }, 0);
+              } else {
+                groups.push({ label: "Gudang", icon: "📦", count: extraGdF.reduce(function(s, x) { return s + (x.count || 0); }, 0), items: extraGdF, open: true });
+              }
+            }
+          }
+          if ((role === "marketing" || role === "admin") && hoNotifF.siapKirim > 0) {
+            groups.push({
+              label: "Info Gudang (FG Siap Kirim)",
+              icon: "📣",
+              count: hoNotifF.siapKirim,
+              items: [{ label: "FG serah terima siap instruksi kirim", count: hoNotifF.siapKirim, page: "marketing", tab: "infogudang", icon: "🚚" }],
+              open: true
+            });
+          }
+        }
+      } catch (eHoN2) {}
       renderNotifItems(groups);
       _lastInboxAt = Date.now();
       try {
@@ -31960,6 +32334,12 @@ var id = await newPickId();
             if (!r.shift && !saved[keyOld]) saved[keyOld] = r;
           });
         } catch (eS) { console.warn(eS); }
+        var hoByKey = {};
+        try {
+          if (typeof fetchFgHandoverLogMap === "function") {
+            hoByKey = await fetchFgHandoverLogMap(d, d);
+          }
+        } catch (eHoK) {}
         fgkRows = Object.keys(groups).map(function(k) {
           var g = groups[k];
           var s = saved[k] || null;
@@ -31974,8 +32354,14 @@ var id = await newPickId();
             out = Number(s.output_qty) || 0;
             if (out > 0) bets = [{ bet_no: 1, qty: out, notes: "" }];
           }
+          var hoKey = (typeof _fgHoMakeKey === "function")
+            ? _fgHoMakeKey(d, g.product_id, g.no_so, g.shift)
+            : (d + "||" + String(g.product_id || "").trim().toUpperCase() + "||" + (String(g.no_so || "").trim().toUpperCase() || "-") + "||" + String(g.shift || "1"));
+          var hoEntry = hoByKey[hoKey] || null;
           return {
             key: k,
+            ho_key: hoKey,
+            report_date: d,
             product_id: g.product_id,
             no_so: g.no_so,
             order_id: g.order_id,
@@ -31991,7 +32377,8 @@ var id = await newPickId();
             variance_reason: s ? fgkExtractDiffReason(s).full : "",
             clean_notes: s ? fgkExtractDiffReason(s).cleanNotes : "",
             reported_by: s ? (s.reported_by || "") : "",
-            has_korlap: !!(s && (out > 0 || (s.output_qty != null && s.output_qty !== "")))
+            has_korlap: !!(s && (out > 0 || (s.output_qty != null && s.output_qty !== ""))),
+            ho: hoEntry
           };
         }).sort(function(a, b) {
           return String(a.product_id).localeCompare(String(b.product_id)) || String(a.shift).localeCompare(String(b.shift));
@@ -31999,7 +32386,7 @@ var id = await newPickId();
         renderFgKorlap();
       } catch (e) {
         console.warn(e);
-        if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="9" class="empty">' + esc(e.message || e) + "</td></tr>";
+        if ($("fgkBody")) $("fgkBody").innerHTML = '<tr><td colspan="10" class="empty">' + esc(e.message || e) + "</td></tr>";
       }
     }
     function renderFgKorlap() {
@@ -32027,7 +32414,7 @@ var id = await newPickId();
       if ($("fgkKpiKl")) $("fgkKpiKl").textContent = formatNum(nKl);
       if ($("fgkKpiPending")) $("fgkKpiPending").textContent = formatNum(nPend);
       if (!list.length) {
-        if (body) body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada plan packing masterbox di filter ini</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="10" class="empty">Tidak ada plan packing masterbox di filter ini</td></tr>';
         if (cards) cards.innerHTML = '<div class="m-card"><div class="m-sub">Tidak ada data</div></div>';
         return;
       }
@@ -32037,6 +32424,26 @@ var id = await newPickId();
         if (Math.abs(diff) < 0.0001) return '<span class="pill" style="background:#d1fae5;color:#065f46">Cocok</span>';
         return '<span class="pill" style="background:#fee2e2;color:#991b1b">Selisih</span>' +
           (r.variance_reason ? '<div style="font-size:0.68rem;color:#991b1b;margin-top:0.2rem;line-height:1.3">' + esc(r.variance_reason) + '</div>' : '');
+      }
+      function fgkHandoverHtml(r) {
+        var qtyOut = r.has_korlap ? (Number(r.korlap_qty) || 0) : (Number(r.op_qty) || 0);
+        var ho = r.ho;
+        if (ho && ho.state === "notified") {
+          return '<span class="fg-ho-pill mkt">✓ Info Marketing</span>' +
+            '<div style="font-size:0.66rem;color:#475569;margin-top:0.15rem">Gudang: ' + esc(ho.received_name || "—") + ' (' + formatNum(ho.received_qty) + ')</div>';
+        }
+        if (ho && ho.state === "recv") {
+          return '<span class="fg-ho-pill recv">✓ Diterima Gudang</span>' +
+            '<div style="font-size:0.66rem;color:#475569;margin-top:0.15rem">' + esc(ho.received_name || "Gudang") + ' · ' + formatNum(ho.received_qty) + ' ' + esc(r.unit || "pcs") + '</div>';
+        }
+        if (ho && ho.state === "prod_submit") {
+          return '<span class="fg-ho-pill prod">Menunggu Terima Gudang</span>' +
+            '<div style="font-size:0.66rem;color:#64748b;margin-top:0.15rem">Diserahkan: ' + esc(ho.submitted_name || ho.from_who || "Produksi") + '</div>';
+        }
+        if (qtyOut > 0) {
+          return '<button type="button" class="btn btn-sm" style="background:#ecfdf5;color:#047857;border:1px solid #6ee7b7;font-weight:700" data-fgk-ho="' + esc(r.key) + '">Serahkan ke Gudang</button>';
+        }
+        return '<span class="fg-ho-pill wait">Belum ada output</span>';
       }
       if (body) {
         body.innerHTML = list.map(function(r) {
@@ -32062,6 +32469,7 @@ var id = await newPickId();
               (nBet > 1 ? '<div style="font-size:0.68rem;color:var(--text-muted)">' + nBet + " bet</div>" : "") + "</td>" +
             '<td style="text-align:right">' + (r.has_korlap ? formatNum(diff) : "—") + "</td>" +
             "<td>" + statusHtml(r) + "</td>" +
+            "<td>" + fgkHandoverHtml(r) + "</td>" +
             '<td><button type="button" class="btn btn-sm btn-primary" data-fgk-btn="' + esc(r.key) + '">' + (r.has_korlap ? "Edit" : "Lapor") + "</button></td></tr>";
         }).join("");
         body.querySelectorAll("tr[data-fgk]").forEach(function(tr) {
@@ -32076,6 +32484,12 @@ var id = await newPickId();
             openFgkModal(btn.getAttribute("data-fgk-btn"));
           };
         });
+        body.querySelectorAll("[data-fgk-ho]").forEach(function(btn) {
+          btn.onclick = function(ev) {
+            ev.stopPropagation();
+            if (typeof submitFgHandoverFromProd === "function") submitFgHandoverFromProd(btn.getAttribute("data-fgk-ho"));
+          };
+        });
       }
       if (cards) {
         cards.innerHTML = list.map(function(r) {
@@ -32083,10 +32497,19 @@ var id = await newPickId();
             '<div class="m-title">' + esc(productLabel(r.product_id) || r.product_id) + "</div>" +
             '<div class="m-sub">' + esc(r.no_so || "—") + " · Shift " + esc(r.shift) + "</div>" +
             '<div class="m-row">OP <b>' + formatNum(r.op_qty) + "</b> · Korlap <b>" + (r.has_korlap ? formatNum(r.korlap_qty) : "—") + "</b></div>" +
-            statusHtml(r) + "</div>";
+            '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center;margin-top:0.35rem">' + statusHtml(r) + " " + fgkHandoverHtml(r) + "</div></div>";
         }).join("");
         cards.querySelectorAll("[data-fgk]").forEach(function(el) {
-          el.onclick = function() { openFgkModal(el.getAttribute("data-fgk")); };
+          el.onclick = function(ev) {
+            if (ev.target && ev.target.closest && ev.target.closest("button")) return;
+            openFgkModal(el.getAttribute("data-fgk"));
+          };
+        });
+        cards.querySelectorAll("[data-fgk-ho]").forEach(function(btn) {
+          btn.onclick = function(ev) {
+            ev.stopPropagation();
+            if (typeof submitFgHandoverFromProd === "function") submitFgHandoverFromProd(btn.getAttribute("data-fgk-ho"));
+          };
         });
       }
     }
@@ -32563,7 +32986,12 @@ var id = await newPickId();
           if ($("shipFrom")) $("shipFrom").value = "";
           if ($("shipTo")) $("shipTo").value = "";
         }
-        if (_shouldFetch("marketing", 20000)) { try { setMktTab("kemarin"); } catch (e) {} }
+        if (_shouldFetch("marketing", 20000)) {
+          try {
+            var curMTab = (document.querySelector("#mktTabs .mod-tab.active") || {}).getAttribute && document.querySelector("#mktTabs .mod-tab.active").getAttribute("data-mtab");
+            setMktTab(curMTab || "infogudang");
+          } catch (e) {}
+        }
       }
       if (page === "operasional" && _shouldFetch("operasional", 20000)) { try { loadOperasional(); } catch (e) {} }
       if (page === "improvements" && _shouldFetch("improvements", 30000)) { try { loadImprovements(); } catch (eImp) {} }
@@ -34850,6 +35278,1181 @@ function closeOtModal() {
       else bind();
     })();
 
+    // ===== Serah Terima FG (Produksi <-> Gudang -> Info Marketing -> Instruksi Kirim) =====
+    var fgHoGudangRows = [];
+    var fgHoMktRows = [];
+    var _fgHoNotifCache = null;
+    var _fgHoNotifCacheAt = 0;
+
+    function _fgHoDaysAgoStr(days) {
+      var t = new Date();
+      t.setDate(t.getDate() - (days || 0));
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      return t.getFullYear() + "-" + z(t.getMonth() + 1) + "-" + z(t.getDate());
+    }
+    function _fgHoMakeKey(reportDate, productId, noSo, shift) {
+      var d = String(reportDate || "").slice(0, 10);
+      var pid = String(productId || "").trim().toUpperCase();
+      var so = (typeof fgkNormSoKey === "function" ? fgkNormSoKey(noSo) : String(noSo || "").trim().toUpperCase()) || "-";
+      var sh = String(shift || "1").trim() || "1";
+      return d + "||" + pid + "||" + so + "||" + sh;
+    }
+    function _fgHoTsShort(iso) {
+      if (!iso) return "";
+      try {
+        if (typeof formatWibDateTime === "function") return formatWibDateTime(iso);
+      } catch (e) {}
+      return String(iso).replace("T", " ").slice(0, 16);
+    }
+    function _fgHoActorMe() {
+      var email = (currentUser && currentUser.email) || "";
+      var name = "";
+      try {
+        if (currentProfile && (currentProfile.name || currentProfile.full_name)) {
+          name = currentProfile.name || currentProfile.full_name;
+        }
+      } catch (e) {}
+      if (!name && email) {
+        try { name = operatorDisplayName(email) || email.split("@")[0]; } catch (e2) { name = email.split("@")[0]; }
+      }
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      return { email: email, name: name || email || "User", role: role };
+    }
+    function _fgHoResolveDisplayName(email, fallbackName) {
+      var em = String(email || "").trim();
+      if (fallbackName) return String(fallbackName).trim();
+      var map = window.__profilesMap || {};
+      var prof = em ? map[em.toLowerCase()] : null;
+      if (prof && (prof.name || prof.full_name)) return prof.name || prof.full_name;
+      if (em) {
+        try { return operatorDisplayName(em) || em.split("@")[0]; } catch (e) { return em.split("@")[0]; }
+      }
+      return "";
+    }
+    function _fgHoParseKorlapBets(r, defUnit) {
+      var out = [];
+      if (!r) return out;
+      var u = String(r.unit || defUnit || "pcs").trim() || "pcs";
+      var bets = [];
+      if (r.bets) {
+        try { bets = typeof r.bets === "string" ? JSON.parse(r.bets) : (r.bets || []); } catch (e) { bets = []; }
+      }
+      var noteBatch = (typeof _shipExtractBatchFromNotes === "function") ? _shipExtractBatchFromNotes(r.notes) : "";
+      if (Array.isArray(bets) && bets.length) {
+        bets.forEach(function(b, idx) {
+          var q = Number(b && b.qty) || 0;
+          if (!(q > 0)) return;
+          var bNo = String((b && (b.no || b.batch_no || b.kode_bets || b.no_bets || b.notes)) || "").trim();
+          if (!bNo) bNo = noteBatch || ("Bet " + ((b && b.bet_no) || (idx + 1)));
+          out.push({ no: bNo, qty: q, unit: String((b && b.unit) || u).trim() || u });
+        });
+      } else if (Number(r.output_qty) > 0) {
+        out.push({ no: noteBatch || "Bet 1", qty: Number(r.output_qty) || 0, unit: u });
+      }
+      return out;
+    }
+
+    async function fetchFgHandoverLogMap(fromDate, toDate) {
+      if (!sb) return {};
+      var map = {};
+      try {
+        if (!window.__profilesMap) {
+          var { data: profs } = await sb.from("profiles").select("email,name,role").limit(500);
+          if (profs) {
+            window.__profilesMap = {};
+            profs.forEach(function(pr) {
+              if (pr && pr.email) window.__profilesMap[String(pr.email).toLowerCase()] = pr;
+            });
+          }
+        }
+      } catch (ePr) {}
+      try {
+        var { data: logs, error } = await sb.from("audit_logs")
+          .select("id,created_at,user_email,user_name,user_role,action,ref_id,summary,after_data")
+          .eq("module", "fg_handover")
+          .order("created_at", { ascending: false })
+          .limit(600);
+        if (error) return map;
+        (logs || []).forEach(function(lg) {
+          var rk = String(lg.ref_id || "").trim();
+          if (!rk) return;
+          var ad = lg.after_data || {};
+          if (typeof ad === "string") { try { ad = JSON.parse(ad); } catch (eP) { ad = {}; } }
+          var key = ad.key || rk;
+          var rd = String(ad.report_date || key.split("||")[0] || "").slice(0, 10);
+          if (fromDate && rd && rd < fromDate) return;
+          if (toDate && rd && rd > toDate) return;
+          if (map[key]) return; // already kept latest descending entry
+          var act = String(lg.action || "");
+          var state = ad.state || "";
+          if (!state) {
+            if (act === "notify_mkt" || act === "receive_and_notify" || ad.notified_mkt) state = "notified";
+            else if (act === "receive_wh") state = "recv";
+            else if (act === "submit_prod") state = "prod_submit";
+          }
+          var normKey = _fgHoMakeKey(rd, ad.product_id || key.split("||")[1], ad.no_so || key.split("||")[2], ad.shift || key.split("||")[3]);
+          var entry = {
+            key: normKey,
+            raw_key: key,
+            report_date: rd,
+            product_id: String(ad.product_id || key.split("||")[1] || "").trim(),
+            no_so: ad.no_so === "-" ? "" : String(ad.no_so || "").trim(),
+            order_id: ad.order_id || "",
+            customer_name: ad.customer_name || "",
+            shift: String(ad.shift || key.split("||")[3] || "1"),
+            unit: ad.unit || "pcs",
+            prod_qty: Number(ad.prod_qty) || 0,
+            received_qty: Number(ad.received_qty) || 0,
+            bets: Array.isArray(ad.bets) ? ad.bets : [],
+            state: state,
+            from_who: ad.from_who || "",
+            submitted_by: ad.submitted_by || (act === "submit_prod" ? (lg.user_email || "") : ""),
+            submitted_name: ad.submitted_name || (act === "submit_prod" ? (lg.user_name || "") : ""),
+            submitted_role: ad.submitted_role || (act === "submit_prod" ? (lg.user_role || "") : ""),
+            submitted_at: ad.submitted_at || (act === "submit_prod" ? (lg.created_at || "") : ""),
+            received_by: ad.received_by || ((act === "receive_wh" || act === "receive_and_notify") ? (lg.user_email || "") : ""),
+            received_name: ad.received_name || ((act === "receive_wh" || act === "receive_and_notify") ? (lg.user_name || "") : ""),
+            received_role: ad.received_role || ((act === "receive_wh" || act === "receive_and_notify") ? (lg.user_role || "") : ""),
+            received_at: ad.received_at || ((act === "receive_wh" || act === "receive_and_notify") ? (lg.created_at || "") : ""),
+            wh_notes: ad.wh_notes || "",
+            notified_mkt: !!(ad.notified_mkt || state === "notified"),
+            notified_by: ad.notified_by || ((act === "notify_mkt" || act === "receive_and_notify") ? (lg.user_email || "") : ""),
+            notified_name: ad.notified_name || ((act === "notify_mkt" || act === "receive_and_notify") ? (lg.user_name || "") : ""),
+            notified_role: ad.notified_role || ((act === "notify_mkt" || act === "receive_and_notify") ? (lg.user_role || "") : ""),
+            notified_at: ad.notified_at || ((act === "notify_mkt" || act === "receive_and_notify") ? (lg.created_at || "") : "")
+          };
+          map[normKey] = entry;
+          if (key !== normKey) map[key] = entry;
+        });
+      } catch (eL) { console.warn("fetchFgHandoverLogMap", eL); }
+      return map;
+    }
+
+    async function fetchFgHandoverQueue(opts) {
+      opts = opts || {};
+      if (!sb) return [];
+      var toDate = String(opts.toDate || todayStr()).slice(0, 10);
+      var fromDate = String(opts.fromDate || _fgHoDaysAgoStr(6)).slice(0, 10);
+
+      // 1) Fetch FG plans in range
+      var plansList = [];
+      try {
+        var { data: pls } = await sb.from("plans")
+          .select("plan_id,plan_date,product_id,machine_id,no_so,order_id,target_qty,unit,status,shift,operator")
+          .gte("plan_date", fromDate)
+          .lte("plan_date", toDate)
+          .neq("status", "cancelled")
+          .limit(3000);
+        plansList = (pls || []).filter(function(p) { return isFgMachine(p.machine_id); });
+      } catch (eP) { console.warn("fgHo plans", eP); }
+
+      // 2) Fetch OP reports for those plans
+      var planIds = plansList.map(function(p) { return p.plan_id; }).filter(Boolean);
+      var repByPlan = {};
+      for (var i = 0; i < planIds.length; i += 100) {
+        try {
+          var chunk = planIds.slice(i, i + 100);
+          var { data: reps } = await sb.from("reports")
+            .select("plan_id,actual_qty,notes,reported_by,report_date")
+            .in("plan_id", chunk);
+          (reps || []).forEach(function(r) {
+            if (!repByPlan[r.plan_id]) repByPlan[r.plan_id] = [];
+            repByPlan[r.plan_id].push(r);
+          });
+        } catch (eR) {}
+      }
+
+      // 3) Fetch Korlap reports in range
+      var klRows = [];
+      try {
+        var { data: fgr } = await sb.from("fg_korlap_reports")
+          .select("*")
+          .gte("report_date", fromDate)
+          .lte("report_date", toDate)
+          .limit(1500);
+        klRows = fgr || [];
+      } catch (eK) { console.warn("fgHo korlap", eK); }
+
+      // 4) Fetch handover logs
+      var hoLogMap = await fetchFgHandoverLogMap(fromDate, toDate);
+
+      // Build unified buckets keyed by _fgHoMakeKey(date, pid, no_so, shift)
+      var buckets = {};
+      function ensureBucket(rd, pid, noSo, shift, orderId, unit) {
+        var k = _fgHoMakeKey(rd, pid, noSo, shift);
+        if (!buckets[k]) {
+          buckets[k] = {
+            key: k,
+            report_date: String(rd || "").slice(0, 10),
+            product_id: String(pid || "").trim(),
+            no_so: String(noSo || "").trim() === "-" ? "" : String(noSo || "").trim(),
+            order_id: orderId || "",
+            shift: String(shift || "1").trim() || "1",
+            unit: unit || (typeof shipDefaultUnitForProduct === "function" ? shipDefaultUnitForProduct(pid) : "pcs") || "pcs",
+            plan_qty: 0,
+            op_qty: 0,
+            op_bets: [],
+            op_actors: {},
+            korlap_qty: 0,
+            has_korlap: false,
+            korlap_bets: [],
+            korlap_by: "",
+            customer_name: ""
+          };
+        }
+        var b = buckets[k];
+        if (!b.no_so && noSo && String(noSo).trim() !== "-") b.no_so = String(noSo).trim();
+        if (!b.order_id && orderId) b.order_id = orderId;
+        if (unit && (!b.unit || b.unit === "pcs")) b.unit = unit;
+        return b;
+      }
+
+      plansList.forEach(function(p) {
+        var rd = String(p.plan_date || "").slice(0, 10);
+        var b = ensureBucket(rd, p.product_id, p.no_so || p.order_id || "", p.shift || "1", p.order_id, p.unit);
+        b.plan_qty += Number(p.target_qty) || 0;
+        var reps = repByPlan[p.plan_id] || [];
+        reps.forEach(function(r) {
+          var q = Number(r.actual_qty) || 0;
+          if (q > 0) {
+            b.op_qty += q;
+            var actorEmail = r.reported_by || p.operator || "";
+            if (actorEmail) b.op_actors[actorEmail] = true;
+            var bNo = (typeof _shipExtractBatchFromNotes === "function") ? _shipExtractBatchFromNotes(r.notes) : "";
+            b.op_bets.push({ no: bNo || "", qty: q, unit: b.unit });
+          }
+        });
+      });
+
+      klRows.forEach(function(r) {
+        if (typeof fgkHasReported === "function" && !fgkHasReported(r)) return;
+        var rd = String(r.report_date || "").slice(0, 10);
+        var b = ensureBucket(rd, r.product_id, r.no_so || r.order_id || "", r.shift || "1", r.order_id, r.unit);
+        var kBets = _fgHoParseKorlapBets(r, b.unit);
+        var out = kBets.reduce(function(s, x) { return s + (Number(x.qty) || 0); }, 0);
+        if (!(out > 0)) out = Number(r.output_qty) || 0;
+        if (out > 0) {
+          b.has_korlap = true;
+          b.korlap_qty = out;
+          b.korlap_bets = kBets.length ? kBets : [{ no: "Bet 1", qty: out, unit: b.unit }];
+          b.korlap_by = r.reported_by || "";
+        }
+      });
+
+      // Also ensure any handover log in range appears even if plans/korlap filtered out
+      Object.keys(hoLogMap).forEach(function(hk) {
+        var h = hoLogMap[hk];
+        if (!h || !h.product_id || h.key !== hk) return;
+        var b = ensureBucket(h.report_date, h.product_id, h.no_so, h.shift, h.order_id, h.unit);
+        if (h.customer_name && !b.customer_name) b.customer_name = h.customer_name;
+      });
+
+      // Keep rows that have production output OR existing handover log
+      var rows = Object.keys(buckets).map(function(k) { return buckets[k]; }).filter(function(b) {
+        var h = hoLogMap[b.key];
+        return (b.korlap_qty > 0 || b.op_qty > 0 || (h && (h.received_qty > 0 || h.state)));
+      });
+
+      // Lookup customer names from orders
+      try {
+        var needSos = [];
+        var seenSo = {};
+        rows.forEach(function(r) {
+          if (r.no_so && !seenSo[r.no_so]) { seenSo[r.no_so] = true; needSos.push(r.no_so); }
+        });
+        if (needSos.length) {
+          var { data: ords } = await sb.from("orders").select("no_so,order_id,customer_name").in("no_so", needSos.slice(0, 120));
+          var bySo = {};
+          (ords || []).forEach(function(o) {
+            if (o.no_so) bySo[String(o.no_so).trim().toUpperCase()] = o;
+          });
+          rows.forEach(function(r) {
+            if (!r.no_so) return;
+            var ord = bySo[String(r.no_so).trim().toUpperCase()];
+            if (ord) {
+              if (!r.customer_name && ord.customer_name) r.customer_name = ord.customer_name;
+              if (!r.order_id && ord.order_id) r.order_id = ord.order_id;
+            }
+          });
+        }
+      } catch (eCust) {}
+
+      // 5) Compute ship_requests already issued on or after fromDate
+      var shipReqs = [];
+      try {
+        var { data: srData } = await sb.from("ship_requests")
+          .select("ship_id,status,request_date,no_so,notes,created_at")
+          .neq("status", "cancelled")
+          .order("created_at", { ascending: false })
+          .limit(250);
+        shipReqs = srData || [];
+        var srIds = shipReqs.map(function(s) { return s.ship_id; }).filter(Boolean);
+        if (srIds.length) {
+          var linesByS = {};
+          for (var si = 0; si < srIds.length; si += 80) {
+            var sch = srIds.slice(si, si + 80);
+            var { data: sls } = await sb.from("ship_request_lines").select("ship_id,product_id,qty,unit").in("ship_id", sch);
+            (sls || []).forEach(function(l) {
+              if (!linesByS[l.ship_id]) linesByS[l.ship_id] = [];
+              linesByS[l.ship_id].push(l);
+            });
+          }
+          shipReqs.forEach(function(s) { s.lines = linesByS[s.ship_id] || []; });
+        }
+      } catch (eSr) { console.warn("fgHo ships", eSr); }
+
+      // Sort oldest-first before FIFO ship allocation, then reverse to newest-first for display
+      rows.sort(function(a, b) {
+        return String(a.report_date).localeCompare(String(b.report_date)) ||
+          String(a.product_id).localeCompare(String(b.product_id)) ||
+          String(a.shift).localeCompare(String(b.shift));
+      });
+
+      // Merge handover log details onto each row
+      rows.forEach(function(r) {
+        var h = hoLogMap[r.key] || null;
+        r.prod_qty = r.has_korlap ? r.korlap_qty : r.op_qty;
+        if (h && h.prod_qty > 0 && !(r.prod_qty > 0)) r.prod_qty = h.prod_qty;
+        var opActorKeys = Object.keys(r.op_actors || {});
+        var defaultPenyerah = _fgHoResolveDisplayName(r.korlap_by || opActorKeys[0] || "", "");
+        r.default_from_who = defaultPenyerah || "Produksi";
+
+        // Default bets list (Korlap bets -> OP bets aggregated -> 1 bet row)
+        var defBets = [];
+        if (r.korlap_bets && r.korlap_bets.length) {
+          defBets = r.korlap_bets.map(function(x) { return { no: x.no, qty: x.qty, unit: x.unit || r.unit }; });
+        } else if (r.op_bets && r.op_bets.length) {
+          var byBNo = {};
+          r.op_bets.forEach(function(ob, idx) {
+            var bn = String(ob.no || "").trim() || ("Bet " + (idx + 1));
+            byBNo[bn] = (byBNo[bn] || 0) + (Number(ob.qty) || 0);
+          });
+          defBets = Object.keys(byBNo).map(function(bn) { return { no: bn, qty: byBNo[bn], unit: r.unit }; });
+        } else if (r.prod_qty > 0) {
+          defBets = [{ no: "Bet 1", qty: r.prod_qty, unit: r.unit }];
+        }
+        r.default_bets = defBets;
+
+        if (h) {
+          r.state = h.state || "wait";
+          r.received_qty = h.received_qty || 0;
+          r.bets = (h.bets && h.bets.length) ? h.bets : defBets;
+          r.from_who = h.from_who || r.default_from_who;
+          r.submitted_by = h.submitted_by || "";
+          r.submitted_name = _fgHoResolveDisplayName(h.submitted_by, h.submitted_name);
+          r.submitted_role = h.submitted_role || "";
+          r.submitted_at = h.submitted_at || "";
+          r.received_by = h.received_by || "";
+          r.received_name = _fgHoResolveDisplayName(h.received_by, h.received_name);
+          r.received_role = h.received_role || "";
+          r.received_at = h.received_at || "";
+          r.wh_notes = h.wh_notes || "";
+          r.notified_mkt = !!h.notified_mkt;
+          r.notified_by = h.notified_by || "";
+          r.notified_name = _fgHoResolveDisplayName(h.notified_by, h.notified_name);
+          r.notified_role = h.notified_role || "";
+          r.notified_at = h.notified_at || "";
+          if (h.customer_name && !r.customer_name) r.customer_name = h.customer_name;
+        } else {
+          r.state = "wait";
+          r.received_qty = 0;
+          r.bets = defBets;
+          r.from_who = r.default_from_who;
+          r.submitted_by = "";
+          r.submitted_name = "";
+          r.submitted_role = "";
+          r.submitted_at = "";
+          r.received_by = "";
+          r.received_name = "";
+          r.received_role = "";
+          r.received_at = "";
+          r.wh_notes = "";
+          r.notified_mkt = false;
+          r.notified_by = "";
+          r.notified_name = "";
+          r.notified_role = "";
+          r.notified_at = "";
+        }
+        r.base_qty = r.received_qty > 0 ? r.received_qty : r.prod_qty;
+        r.shipped_qty = 0;
+        r.rem_qty = r.base_qty;
+        r.rem_bets = (r.bets || []).map(function(x) { return { no: x.no, qty: Number(x.qty) || 0, unit: x.unit || r.unit }; });
+        r.ship_refs = [];
+      });
+
+      // Build ship pools for FIFO deduction against handover rows
+      var shipPools = [];
+      (shipReqs || []).forEach(function(s) {
+        if (!s || s.status === "cancelled") return;
+        var sDate = String(s.request_date || String(s.created_at || "").slice(0, 10)).slice(0, 10);
+        if (sDate && sDate < fromDate) return;
+        var sSoKey = (typeof fgkNormSoKey === "function" ? fgkNormSoKey(s.no_so) : String(s.no_so || "").trim().toUpperCase()) || "";
+        var meta = (typeof doParseTags === "function") ? doParseTags(s.notes) : { betsMkt: [] };
+        (s.lines || []).forEach(function(l) {
+          var pid = String(l.product_id || "").trim().toUpperCase();
+          var q = Number(l.qty) || 0;
+          if (!pid || !(q > 0)) return;
+          var mItem = (typeof doBetsFindItem === "function") ? doBetsFindItem(meta.betsMkt, pid) : null;
+          var betMap = {};
+          if (mItem && Array.isArray(mItem.bets)) {
+            mItem.bets.forEach(function(b) {
+              var bk = String((b && b.no) || "").trim().toUpperCase();
+              if (bk) betMap[bk] = (betMap[bk] || 0) + (Number(b.qty) || 0);
+            });
+          }
+          shipPools.push({
+            ship_id: s.ship_id,
+            status: s.status,
+            sDate: sDate,
+            pid: pid,
+            soKey: sSoKey,
+            rem: q,
+            betRem: betMap
+          });
+        });
+      });
+
+      rows.forEach(function(r) {
+        var rPid = String(r.product_id || "").trim().toUpperCase();
+        var rSo = (typeof fgkNormSoKey === "function" ? fgkNormSoKey(r.no_so) : String(r.no_so || "").trim().toUpperCase()) || "";
+        var cap = r.base_qty;
+        if (!(cap > 0)) return;
+
+        shipPools.forEach(function(sp) {
+          if (!(sp.rem > 0) || !(cap > 0)) return;
+          if (sp.pid !== rPid) return;
+          if (sp.sDate && r.report_date && sp.sDate < r.report_date) return;
+          if (sp.soKey && rSo && sp.soKey !== rSo) return;
+
+          var take = Math.min(cap, sp.rem);
+          if (!(take > 0)) return;
+          cap -= take;
+          sp.rem -= take;
+          r.shipped_qty += take;
+          r.ship_refs.push({ ship_id: sp.ship_id, status: sp.status, qty: take });
+
+          // Deduct from rem_bets matching bet no first, then FIFO
+          var left = take;
+          r.rem_bets.forEach(function(rb) {
+            if (!(left > 0) || !(rb.qty > 0)) return;
+            var bk = String(rb.no || "").trim().toUpperCase();
+            if (bk && sp.betRem[bk] > 0) {
+              var bt = Math.min(rb.qty, sp.betRem[bk], left);
+              rb.qty -= bt;
+              sp.betRem[bk] -= bt;
+              left -= bt;
+            }
+          });
+          if (left > 0) {
+            r.rem_bets.forEach(function(rb) {
+              if (!(left > 0) || !(rb.qty > 0)) return;
+              var bt = Math.min(rb.qty, left);
+              rb.qty -= bt;
+              left -= bt;
+            });
+          }
+        });
+        r.rem_qty = Math.max(0, r.base_qty - r.shipped_qty);
+        r.rem_bets = r.rem_bets.filter(function(rb) { return rb.qty > 0.0001; });
+      });
+
+      // Sort newest date first, then pending/actionable status
+      rows.sort(function(a, b) {
+        return String(b.report_date).localeCompare(String(a.report_date)) ||
+          String(a.product_id).localeCompare(String(b.product_id)) ||
+          String(a.shift).localeCompare(String(b.shift));
+      });
+      return rows;
+    }
+
+    async function fetchFgHandoverNotifCounts(force) {
+      var now = Date.now();
+      if (!force && _fgHoNotifCache && (now - _fgHoNotifCacheAt < 18000)) {
+        return _fgHoNotifCache;
+      }
+      var list = await fetchFgHandoverQueue({ fromDate: _fgHoDaysAgoStr(6), toDate: todayStr() });
+      var sum = { waitRecv: 0, readyMkt: 0, siapKirim: 0, totalPending: 0 };
+      (list || []).forEach(function(r) {
+        if (r.state === "wait" || r.state === "prod_submit") sum.waitRecv++;
+        else if (r.state === "recv" && !r.notified_mkt) sum.readyMkt++;
+        if (r.notified_mkt && r.rem_qty > 0) sum.siapKirim++;
+      });
+      sum.totalPending = sum.waitRecv + sum.readyMkt;
+      window.__fgHoSummary = sum;
+      _fgHoNotifCache = sum;
+      _fgHoNotifCacheAt = now;
+      try {
+        var mb = $("mktFgHoTabBadge");
+        if (mb) {
+          mb.textContent = formatNum(sum.siapKirim);
+          mb.style.display = sum.siapKirim > 0 ? "inline-flex" : "none";
+        }
+      } catch (eB) {}
+      return sum;
+    }
+
+    async function refreshFgHandoverOverviewOnly() {
+      var sum = await fetchFgHandoverNotifCounts(true);
+      window.__fgHoSummary = sum;
+      try { updateGudangOverviewCards(); } catch (e) {}
+    }
+
+    async function submitFgHandoverFromProd(fgkKey) {
+      if (!sb) return;
+      var r = (fgkRows || []).find(function(x) { return x.key === fgkKey; });
+      if (!r) return toast("Data output FG tidak ditemukan", true);
+      var d = r.report_date || ($("fgkDate") && $("fgkDate").value) || todayStr();
+      var qtyOut = r.has_korlap ? (Number(r.korlap_qty) || 0) : (Number(r.op_qty) || 0);
+      if (!(qtyOut > 0)) return toast("Output FG masih 0 — laporkan hasil dulu sebelum serah terima", true);
+      var me = _fgHoActorMe();
+      var bets = (r.bets && r.bets.length)
+        ? r.bets.map(function(b, idx) {
+            return {
+              no: String((b && (b.no || b.notes)) || "").trim() || ("Bet " + ((b && b.bet_no) || (idx + 1))),
+              qty: Number(b && b.qty) || 0,
+              unit: r.unit || "pcs"
+            };
+          }).filter(function(b) { return b.qty > 0; })
+        : [{ no: "Bet 1", qty: qtyOut, unit: r.unit || "pcs" }];
+      var hoKey = _fgHoMakeKey(d, r.product_id, r.no_so, r.shift);
+      var nowIso = new Date().toISOString();
+      var afterPayload = {
+        key: hoKey,
+        report_date: d,
+        product_id: r.product_id,
+        no_so: r.no_so || "",
+        order_id: r.order_id || "",
+        shift: String(r.shift || "1"),
+        unit: r.unit || "pcs",
+        prod_qty: qtyOut,
+        received_qty: 0,
+        bets: bets,
+        state: "prod_submit",
+        from_who: me.name,
+        submitted_by: me.email,
+        submitted_name: me.name,
+        submitted_role: me.role,
+        submitted_at: nowIso,
+        notified_mkt: false
+      };
+      await writeAudit({
+        module: "fg_handover",
+        action: "submit_prod",
+        ref_id: hoKey,
+        summary: "Produksi serahkan FG ke Gudang · " + r.product_id + " · " + formatNum(qtyOut) + " " + (r.unit || "pcs") + (r.no_so ? " · SO " + r.no_so : ""),
+        after: afterPayload
+      });
+      _fgHoNotifCache = null;
+      try { invalidatePagesByTable("audit_logs"); } catch (eI) {}
+      toast("Diserahkan ke Gudang · menunggu konfirmasi terima Gudang");
+      await loadFgKorlap();
+      try { loadInboxNotifs(true); } catch (eN) {}
+    }
+
+    function _fgHoSyncSummaryFromRows(rows) {
+      var sum = { waitRecv: 0, readyMkt: 0, totalPending: 0, siapKirim: (window.__fgHoSummary && window.__fgHoSummary.siapKirim) || 0 };
+      (rows || []).forEach(function(r) {
+        if (r.state === "wait" || r.state === "prod_submit") sum.waitRecv++;
+        else if (r.state === "recv" && !r.notified_mkt) sum.readyMkt++;
+      });
+      sum.totalPending = sum.waitRecv + sum.readyMkt;
+      window.__fgHoSummary = sum;
+      try { updateGudangOverviewCards(); } catch (e) {}
+    }
+
+    async function loadGudangFgHandover() {
+      if (!sb) return;
+      if ($("gdFgHoFrom") && !$("gdFgHoFrom").value) $("gdFgHoFrom").value = _fgHoDaysAgoStr(6);
+      if ($("gdFgHoTo") && !$("gdFgHoTo").value) $("gdFgHoTo").value = todayStr();
+      var fromD = ($("gdFgHoFrom") && $("gdFgHoFrom").value) || _fgHoDaysAgoStr(6);
+      var toD = ($("gdFgHoTo") && $("gdFgHoTo").value) || todayStr();
+      var body = $("gdFgHoBody");
+      if (body) body.innerHTML = '<tr><td colspan="8" class="empty">Memuat data serah terima FG…</td></tr>';
+      try {
+        fgHoGudangRows = await fetchFgHandoverQueue({ fromDate: fromD, toDate: toD });
+        _fgHoSyncSummaryFromRows(fgHoGudangRows);
+        renderGudangFgHandover();
+      } catch (e) {
+        console.warn("loadGudangFgHandover", e);
+        if (body) body.innerHTML = '<tr><td colspan="8" class="empty">' + esc(e.message || e) + "</td></tr>";
+      }
+    }
+
+    function _fgHoBetsChipsHtml(bets, defUnit) {
+      var arr = Array.isArray(bets) ? bets : [];
+      if (!arr.length) return '<span style="font-size:0.72rem;color:#94a3b8">Belum ada No. Bets</span>';
+      return '<div class="fg-ho-bets-wrap">' + arr.map(function(b) {
+        return '<span class="fg-ho-bet-chip"><strong>' + esc(b.no || "Bet") + '</strong> · ' + formatNum(b.qty) + ' ' + esc(b.unit || defUnit || "pcs") + '</span>';
+      }).join("") + '</div>';
+    }
+
+    function renderGudangFgHandover() {
+      var body = $("gdFgHoBody");
+      if (!body) return;
+      var flt = ($("gdFgHoFilter") && $("gdFgHoFilter").value) || "";
+      var q = (($("gdFgHoSearch") && $("gdFgHoSearch").value) || "").toLowerCase().trim();
+      var list = (fgHoGudangRows || []).filter(function(r) {
+        if (flt === "pending_wh" && r.state !== "wait" && r.state !== "prod_submit") return false;
+        if (flt === "ready_mkt" && !(r.state === "recv" && !r.notified_mkt)) return false;
+        if (flt === "notified" && !r.notified_mkt) return false;
+        if (q) {
+          var betTxt = (r.bets || []).map(function(b) { return b.no; }).join(" ");
+          var blob = [r.report_date, r.product_id, productNameOnly(r.product_id), r.no_so, r.customer_name, betTxt, r.from_who, r.received_name, r.notified_name].join(" ").toLowerCase();
+          if (blob.indexOf(q) < 0) return false;
+        }
+        return true;
+      });
+      if ($("gdFgHoCheckAll")) $("gdFgHoCheckAll").checked = false;
+      syncGdFgHoBulkBtn();
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada data serah terima FG untuk filter ini</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(function(r) {
+        var canBulkNotify = (r.state === "recv" && !r.notified_mkt);
+        var prodLabel = (typeof shipProductDisplay === "function" ? shipProductDisplay(r.product_id) : r.product_id);
+        var srcBadge = r.has_korlap
+          ? '<span style="font-size:0.66rem;font-weight:700;color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;padding:0.08rem 0.35rem;border-radius:5px">Korlap</span>'
+          : '<span style="font-size:0.66rem;font-weight:700;color:#0369a1;background:#eff6ff;border:1px solid #bae6fd;padding:0.08rem 0.35rem;border-radius:5px">OP</span>';
+        var whHtml = "";
+        if (r.state === "recv" || r.state === "notified") {
+          whHtml =
+            '<div><strong style="color:#065f46">' + formatNum(r.received_qty) + ' ' + esc(r.unit) + '</strong></div>' +
+            _fgHoBetsChipsHtml(r.bets, r.unit) +
+            (r.wh_notes ? '<div style="font-size:0.7rem;color:#475569;margin-top:0.2rem">' + esc(r.wh_notes) + '</div>' : '') +
+            gudangActorHtml(r.received_by, r.received_name, r.received_role, "Terima");
+        } else {
+          whHtml = '<span style="font-size:0.74rem;color:#64748b">Belum diterima gudang</span>' +
+            _fgHoBetsChipsHtml(r.bets, r.unit);
+        }
+        var stHtml = "";
+        if (r.state === "notified") {
+          stHtml = '<span class="fg-ho-pill mkt">✓ Sudah Info Marketing</span>' +
+            '<div style="font-size:0.68rem;color:#475569;margin-top:0.2rem">' + esc(_fgHoTsShort(r.notified_at)) + '</div>' +
+            gudangActorHtml(r.notified_by, r.notified_name, r.notified_role, "Info") +
+            (r.shipped_qty > 0 ? '<div style="font-size:0.68rem;color:#0369a1;margin-top:0.18rem;font-weight:600">Instruksi kirim: ' + formatNum(r.shipped_qty) + ' · Sisa: ' + formatNum(r.rem_qty) + '</div>' : '');
+        } else if (r.state === "recv") {
+          stHtml = '<span class="fg-ho-pill recv">Diterima Gudang · Belum Info Mkt</span>' +
+            '<div style="font-size:0.68rem;color:#64748b;margin-top:0.2rem">Diterima ' + esc(_fgHoTsShort(r.received_at)) + '</div>';
+        } else if (r.state === "prod_submit") {
+          stHtml = '<span class="fg-ho-pill prod">Produksi Sudah Serahkan</span>' +
+            '<div style="font-size:0.68rem;color:#64748b;margin-top:0.2rem">' + esc(_fgHoTsShort(r.submitted_at)) + '</div>';
+        } else {
+          stHtml = '<span class="fg-ho-pill wait">Output Produksi Tersedia</span>';
+        }
+
+        var actHtml = "";
+        if (r.state === "wait" || r.state === "prod_submit") {
+          actHtml = '<button type="button" class="btn-odoo" onclick="openFgHandoverModal(' + esc(JSON.stringify(r.key)) + ')">Terima Serah Terima</button>';
+        } else if (r.state === "recv" && !r.notified_mkt) {
+          actHtml =
+            '<div style="display:flex;gap:0.35rem;justify-content:flex-end;flex-wrap:wrap">' +
+              '<button type="button" class="btn-odoo" onclick="notifyFgHoToMarketing([' + esc(JSON.stringify(r.key)) + '])">Infokan ke Marketing</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="openFgHandoverModal(' + esc(JSON.stringify(r.key)) + ')">Edit</button>' +
+            '</div>';
+        } else {
+          actHtml =
+            '<div style="display:flex;gap:0.35rem;justify-content:flex-end;flex-wrap:wrap">' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="openFgHandoverModal(' + esc(JSON.stringify(r.key)) + ')">Edit Terima</button>' +
+            '</div>';
+        }
+        return '<tr>' +
+          '<td><input type="checkbox" class="gd-fgho-cb" data-hokey="' + esc(r.key) + '"' + (canBulkNotify ? '' : ' disabled') + ' onchange="syncGdFgHoBulkBtn()" /></td>' +
+          '<td style="white-space:nowrap"><strong>' + esc(r.report_date) + '</strong><div style="font-size:0.72rem;color:#64748b">Shift ' + esc(r.shift) + '</div></td>' +
+          '<td><strong>' + esc(prodLabel) + '</strong></td>' +
+          '<td>' + (r.customer_name ? ('<strong>' + esc(r.customer_name) + '</strong><div style="font-size:0.72rem;color:#64748b">' + esc(r.no_so || "—") + '</div>') : ('<strong>' + esc(r.no_so || "—") + '</strong>')) + '</td>' +
+          '<td style="text-align:right"><strong>' + formatNum(r.prod_qty) + ' ' + esc(r.unit) + '</strong><div style="margin-top:0.18rem">' + srcBadge + '</div>' +
+            (r.from_who ? '<div style="font-size:0.68rem;color:#475569;margin-top:0.15rem">Serah: ' + esc(r.from_who) + '</div>' : '') + '</td>' +
+          '<td>' + whHtml + '</td>' +
+          '<td>' + stHtml + '</td>' +
+          '<td style="text-align:right">' + actHtml + '</td>' +
+        '</tr>';
+      }).join("");
+    }
+
+    function toggleAllGdFgHo(checked) {
+      document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:not(:disabled)").forEach(function(cb) {
+        cb.checked = !!checked;
+      });
+      syncGdFgHoBulkBtn();
+    }
+    function syncGdFgHoBulkBtn() {
+      var cbs = document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:checked");
+      var btn = $("btnGdFgHoBulkNotify");
+      if (btn) {
+        btn.disabled = !cbs.length;
+        btn.textContent = "Infokan Terpilih ke Mkt (" + cbs.length + ")";
+      }
+    }
+    async function bulkNotifyFgHoMarketing() {
+      var keys = [];
+      document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:checked").forEach(function(cb) {
+        var k = cb.getAttribute("data-hokey");
+        if (k) keys.push(k);
+      });
+      if (!keys.length) return toast("Pilih minimal 1 item yang sudah diterima Gudang", true);
+      await notifyFgHoToMarketing(keys);
+    }
+
+    function _fgHoBuildBetRow(bet, defUnit) {
+      bet = bet || {};
+      var u = String(bet.unit || defUnit || "pcs").trim() || "pcs";
+      var qVal = (bet.qty != null && Number(bet.qty) > 0) ? formatInputNum(bet.qty, true) : "";
+      var tr = document.createElement("tr");
+      tr.className = "fgho-bet-row";
+      tr.innerHTML =
+        '<td><input type="text" class="fgho-b-no" placeholder="Nomor bets" value="' + esc(bet.no || "") + '" autocomplete="off" /></td>' +
+        '<td><input type="text" class="fgho-b-qty input-thousand" inputmode="decimal" placeholder="0" value="' + esc(qVal) + '" /></td>' +
+        '<td>' + (typeof unitSelectHtml === "function" ? unitSelectHtml(u, "fgho-b-unit") : '<input class="fgho-b-unit" value="' + esc(u) + '" />') + '</td>' +
+        '<td style="text-align:center"><button type="button" class="ol-del" onclick="this.closest(\'tr\').remove();syncFgHoModalTotals()" title="Hapus baris">&times;</button></td>';
+      var qInp = tr.querySelector(".fgho-b-qty");
+      if (qInp) {
+        try { bindThousandInput(qInp, true); } catch (e) {}
+        qInp.addEventListener("input", syncFgHoModalTotals);
+        qInp.addEventListener("change", syncFgHoModalTotals);
+      }
+      var uSel = tr.querySelector(".fgho-b-unit");
+      if (uSel) uSel.addEventListener("change", syncFgHoModalTotals);
+      return tr;
+    }
+    function addFgHoBetRow(bet) {
+      var tb = $("fgHoBetsBody");
+      if (!tb) return;
+      var k = ($("fgHoKey") && $("fgHoKey").value) || "";
+      var row = (fgHoGudangRows || []).find(function(x) { return x.key === k; });
+      var defU = (row && row.unit) || "pcs";
+      var nextIdx = tb.querySelectorAll("tr.fgho-bet-row").length + 1;
+      tb.appendChild(_fgHoBuildBetRow(bet || { no: "Bet " + nextIdx, qty: "", unit: defU }, defU));
+      syncFgHoModalTotals();
+    }
+    function syncFgHoModalTotals() {
+      var tot = 0;
+      var unit = "pcs";
+      document.querySelectorAll("#fgHoBetsBody tr.fgho-bet-row").forEach(function(tr) {
+        var q = parseInputNum((tr.querySelector(".fgho-b-qty") && tr.querySelector(".fgho-b-qty").value) || 0);
+        var u = (tr.querySelector(".fgho-b-unit") && tr.querySelector(".fgho-b-unit").value) || "";
+        if (u) unit = u;
+        tot += q;
+      });
+      if ($("fgHoTotalRecv")) $("fgHoTotalRecv").textContent = formatNum(tot) + " " + unit;
+    }
+    function syncFgHoModalFooter() {
+      var chk = $("fgHoAlsoNotify");
+      var btn = $("fgHoSubmitBtn");
+      if (btn) {
+        btn.textContent = (chk && chk.checked) ? "Terima & Info Marketing" : "Simpan Terima Gudang";
+      }
+    }
+    function openFgHandoverModal(hoKey) {
+      var r = (fgHoGudangRows || []).find(function(x) { return x.key === hoKey; });
+      if (!r) return toast("Data serah terima tidak ditemukan", true);
+      if ($("fgHoKey")) $("fgHoKey").value = r.key;
+      var prodLbl = (typeof shipProductDisplay === "function" ? shipProductDisplay(r.product_id) : r.product_id);
+      if ($("fgHoSubtitle")) $("fgHoSubtitle").textContent = prodLbl + " · Produksi " + r.report_date + " Shift " + r.shift;
+      if ($("fgHoSummaryStrip")) {
+        $("fgHoSummaryStrip").innerHTML =
+          '<div><div class="lbl">Produk FG</div><div class="val">' + esc(prodLbl) + '</div></div>' +
+          '<div><div class="lbl">Customer / SO</div><div class="val">' + esc(r.customer_name || "—") + (r.no_so ? (' · ' + esc(r.no_so)) : '') + '</div></div>' +
+          '<div><div class="lbl">Tanggal &amp; Shift</div><div class="val">' + esc(r.report_date) + ' · Shift ' + esc(r.shift) + '</div></div>' +
+          '<div><div class="lbl">Output Produksi (' + (r.has_korlap ? 'Korlap' : 'OP') + ')</div><div class="val" style="color:#065f46">' + formatNum(r.prod_qty) + ' ' + esc(r.unit) + '</div></div>';
+      }
+      if ($("fgHoFromWho")) $("fgHoFromWho").value = r.from_who || r.default_from_who || "";
+      if ($("fgHoNotes")) $("fgHoNotes").value = r.wh_notes || "";
+      if ($("fgHoAlsoNotify")) $("fgHoAlsoNotify").checked = (r.state === "recv") ? false : true;
+      var tb = $("fgHoBetsBody");
+      if (tb) {
+        tb.innerHTML = "";
+        var seedBets = (r.bets && r.bets.length) ? r.bets : [{ no: "Bet 1", qty: r.prod_qty, unit: r.unit }];
+        seedBets.forEach(function(b) { tb.appendChild(_fgHoBuildBetRow(b, r.unit)); });
+      }
+      syncFgHoModalTotals();
+      syncFgHoModalFooter();
+      var m = $("fgHandoverModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+    }
+    function closeFgHandoverModal() {
+      var m = $("fgHandoverModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+    }
+    async function saveFgHandoverModal() {
+      if (!sb) return;
+      var hoKey = ($("fgHoKey") && $("fgHoKey").value) || "";
+      var r = (fgHoGudangRows || []).find(function(x) { return x.key === hoKey; });
+      if (!r) return toast("Item serah terima tidak ditemukan", true);
+      var fromWho = (($("fgHoFromWho") && $("fgHoFromWho").value) || "").trim() || r.default_from_who || "Produksi";
+      var whNotes = (($("fgHoNotes") && $("fgHoNotes").value) || "").trim();
+      var alsoNotify = !!($("fgHoAlsoNotify") && $("fgHoAlsoNotify").checked);
+
+      var bets = [];
+      var rows = document.querySelectorAll("#fgHoBetsBody tr.fgho-bet-row");
+      for (var i = 0; i < rows.length; i++) {
+        var tr = rows[i];
+        var bNo = ((tr.querySelector(".fgho-b-no") && tr.querySelector(".fgho-b-no").value) || "").trim();
+        var bQty = parseInputNum((tr.querySelector(".fgho-b-qty") && tr.querySelector(".fgho-b-qty").value) || 0);
+        var bUnit = ((tr.querySelector(".fgho-b-unit") && tr.querySelector(".fgho-b-unit").value) || r.unit || "pcs").trim() || "pcs";
+        if (!bNo && !(bQty > 0)) continue;
+        if (!bNo) {
+          toast("Isi No. Bets pada baris #" + (i + 1), true);
+          return;
+        }
+        if (!(bQty > 0)) {
+          toast("Qty No. Bets " + bNo + " harus > 0", true);
+          return;
+        }
+        bets.push({ no: bNo, qty: bQty, unit: bUnit });
+      }
+      if (!bets.length) return toast("Minimal 1 baris No. Bets & Qty Diterima > 0", true);
+      var totRecv = bets.reduce(function(s, b) { return s + (Number(b.qty) || 0); }, 0);
+      var unitUse = bets[0].unit || r.unit || "pcs";
+      var me = _fgHoActorMe();
+      var nowIso = new Date().toISOString();
+      var state = alsoNotify ? "notified" : "recv";
+      var action = alsoNotify ? "receive_and_notify" : "receive_wh";
+
+      var afterPayload = {
+        key: r.key,
+        report_date: r.report_date,
+        product_id: r.product_id,
+        no_so: r.no_so || "",
+        order_id: r.order_id || "",
+        customer_name: r.customer_name || "",
+        shift: String(r.shift || "1"),
+        unit: unitUse,
+        prod_qty: r.prod_qty || 0,
+        received_qty: totRecv,
+        bets: bets,
+        state: state,
+        from_who: fromWho,
+        submitted_by: r.submitted_by || "",
+        submitted_name: r.submitted_name || fromWho,
+        submitted_role: r.submitted_role || "",
+        submitted_at: r.submitted_at || nowIso,
+        received_by: me.email,
+        received_name: me.name,
+        received_role: me.role,
+        received_at: nowIso,
+        wh_notes: whNotes,
+        notified_mkt: alsoNotify,
+        notified_by: alsoNotify ? me.email : "",
+        notified_name: alsoNotify ? me.name : "",
+        notified_role: alsoNotify ? me.role : "",
+        notified_at: alsoNotify ? nowIso : ""
+      };
+
+      await writeAudit({
+        module: "fg_handover",
+        action: action,
+        ref_id: r.key,
+        summary: (alsoNotify ? "Gudang terima & info Marketing · " : "Gudang terima serah terima FG · ") +
+          r.product_id + " · " + formatNum(totRecv) + " " + unitUse +
+          (r.no_so ? (" · SO " + r.no_so) : "") +
+          " · bets: " + bets.map(function(b) { return b.no + "(" + b.qty + ")"; }).join(", "),
+        after: afterPayload
+      });
+      _fgHoNotifCache = null;
+      try { invalidatePagesByTable("audit_logs"); } catch (eI) {}
+      closeFgHandoverModal();
+      toast(alsoNotify
+        ? ("Serah terima dikonfirmasi & diinfokan ke Marketing (" + formatNum(totRecv) + " " + unitUse + ")")
+        : ("Serah terima disimpan (" + formatNum(totRecv) + " " + unitUse + ")"));
+      await loadGudangFgHandover();
+      try { loadInboxNotifs(true); } catch (eN) {}
+    }
+
+    async function notifyFgHoToMarketing(hoKeys) {
+      if (!sb || !hoKeys || !hoKeys.length) return;
+      var me = _fgHoActorMe();
+      var nowIso = new Date().toISOString();
+      var count = 0;
+      for (var i = 0; i < hoKeys.length; i++) {
+        var k = hoKeys[i];
+        var r = (fgHoGudangRows || []).find(function(x) { return x.key === k; });
+        if (!r || r.state !== "recv") continue;
+        var afterPayload = {
+          key: r.key,
+          report_date: r.report_date,
+          product_id: r.product_id,
+          no_so: r.no_so || "",
+          order_id: r.order_id || "",
+          customer_name: r.customer_name || "",
+          shift: String(r.shift || "1"),
+          unit: r.unit || "pcs",
+          prod_qty: r.prod_qty || 0,
+          received_qty: r.received_qty || r.prod_qty || 0,
+          bets: r.bets || [],
+          state: "notified",
+          from_who: r.from_who || r.default_from_who || "",
+          submitted_by: r.submitted_by || "",
+          submitted_name: r.submitted_name || r.from_who || "",
+          submitted_role: r.submitted_role || "",
+          submitted_at: r.submitted_at || "",
+          received_by: r.received_by || me.email,
+          received_name: r.received_name || me.name,
+          received_role: r.received_role || me.role,
+          received_at: r.received_at || nowIso,
+          wh_notes: r.wh_notes || "",
+          notified_mkt: true,
+          notified_by: me.email,
+          notified_name: me.name,
+          notified_role: me.role,
+          notified_at: nowIso
+        };
+        await writeAudit({
+          module: "fg_handover",
+          action: "notify_mkt",
+          ref_id: r.key,
+          summary: "Gudang info Marketing siap kirim · " + r.product_id + " · " + formatNum(afterPayload.received_qty) + " " + afterPayload.unit + (r.no_so ? (" · SO " + r.no_so) : ""),
+          after: afterPayload
+        });
+        count++;
+      }
+      if (!count) return toast("Tidak ada item berstatus Diterima Gudang untuk diinfokan", true);
+      _fgHoNotifCache = null;
+      try { invalidatePagesByTable("audit_logs"); } catch (eI) {}
+      toast("Diinfokan ke Marketing (" + count + " item siap instruksi kirim)");
+      await loadGudangFgHandover();
+      try { loadInboxNotifs(true); } catch (eN) {}
+    }
+
+    async function loadMktFgHandover() {
+      if (!sb) return;
+      if ($("mktFgHoFrom") && !$("mktFgHoFrom").value) $("mktFgHoFrom").value = _fgHoDaysAgoStr(6);
+      if ($("mktFgHoTo") && !$("mktFgHoTo").value) $("mktFgHoTo").value = todayStr();
+      var fromD = ($("mktFgHoFrom") && $("mktFgHoFrom").value) || _fgHoDaysAgoStr(6);
+      var toD = ($("mktFgHoTo") && $("mktFgHoTo").value) || todayStr();
+      var body = $("mktFgHoBody");
+      if (body) body.innerHTML = '<tr><td colspan="9" class="empty">Memuat info serah terima dari Gudang…</td></tr>';
+      try {
+        fgHoMktRows = await fetchFgHandoverQueue({ fromDate: fromD, toDate: toD });
+        renderMktFgHandover();
+      } catch (e) {
+        console.warn("loadMktFgHandover", e);
+        if (body) body.innerHTML = '<tr><td colspan="9" class="empty">' + esc(e.message || e) + "</td></tr>";
+      }
+    }
+
+    function setMktFgHoFilter(val) {
+      var sel = $("mktFgHoFilter");
+      if (!sel) return;
+      sel.value = val || "siap";
+      renderMktFgHandover();
+    }
+
+    function renderMktFgHandover() {
+      var body = $("mktFgHoBody");
+      if (!body) return;
+      var flt = ($("mktFgHoFilter") && $("mktFgHoFilter").value) || "siap";
+      var q = (($("mktFgHoSearch") && $("mktFgHoSearch").value) || "").toLowerCase().trim();
+      var all = fgHoMktRows || [];
+
+      var kpi = { siapSku: 0, siapQty: 0, recvQty: 0, doneSku: 0, waitSku: 0 };
+      all.forEach(function(r) {
+        if (r.notified_mkt) {
+          kpi.recvQty += Number(r.received_qty) || 0;
+          if (r.rem_qty > 0) {
+            kpi.siapSku++;
+            kpi.siapQty += Number(r.rem_qty) || 0;
+          } else {
+            kpi.doneSku++;
+          }
+        } else {
+          kpi.waitSku++;
+        }
+      });
+
+      var tabBadge = $("mktFgHoTabBadge");
+      if (tabBadge) {
+        tabBadge.textContent = formatNum(kpi.siapSku);
+        tabBadge.style.display = kpi.siapSku > 0 ? "inline-flex" : "none";
+      }
+      var kpiBar = $("mktFgHoKpi");
+      if (kpiBar) {
+        kpiBar.innerHTML =
+          '<button type="button" class="mkt-kpi-card' + (flt === "siap" ? " is-active" : "") + '" onclick="setMktFgHoFilter(\'siap\')"><div class="label">Siap Instruksi Kirim</div><div class="value">' + formatNum(kpi.siapSku) + '</div></button>' +
+          '<div class="mkt-kpi-card" style="cursor:default"><div class="label">Total Sisa Siap Kirim</div><div class="value">' + formatNum(kpi.siapQty) + '</div></div>' +
+          '<button type="button" class="mkt-kpi-card' + (flt === "notified_all" ? " is-active" : "") + '" onclick="setMktFgHoFilter(\'notified_all\')"><div class="label">Semua Info Gudang</div><div class="value">' + formatNum(kpi.siapSku + kpi.doneSku) + '</div></button>' +
+          '<div class="mkt-kpi-card" style="cursor:default"><div class="label">Qty Diterima Gudang</div><div class="value">' + formatNum(kpi.recvQty) + '</div></div>' +
+          '<button type="button" class="mkt-kpi-card' + (flt === "unnotified" ? " is-active" : "") + '" onclick="setMktFgHoFilter(\'unnotified\')"><div class="label">Menunggu Terima / Info</div><div class="value">' + formatNum(kpi.waitSku) + '</div></button>';
+      }
+
+      var list = all.filter(function(r) {
+        if (flt === "siap" && !(r.notified_mkt && r.rem_qty > 0)) return false;
+        if (flt === "notified_all" && !r.notified_mkt) return false;
+        if (flt === "unnotified" && r.notified_mkt) return false;
+        if (q) {
+          var betTxt = (r.bets || []).map(function(b) { return b.no; }).join(" ");
+          var blob = [r.report_date, r.product_id, productNameOnly(r.product_id), r.no_so, r.customer_name, betTxt, r.notified_name, r.received_name, r.from_who].join(" ").toLowerCase();
+          if (blob.indexOf(q) < 0) return false;
+        }
+        return true;
+      });
+
+      if ($("mktFgHoCheckAll")) $("mktFgHoCheckAll").checked = false;
+      syncMktFgHoBulkBtn();
+
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="9" class="empty">Belum ada info barang siap kirim dari Gudang pada filter ini</td></tr>';
+        return;
+      }
+
+      body.innerHTML = list.map(function(r) {
+        var canShip = r.notified_mkt && r.rem_qty > 0;
+        var prodLbl = (typeof shipProductDisplay === "function" ? shipProductDisplay(r.product_id) : r.product_id);
+        var infoTs = r.notified_at ? _fgHoTsShort(r.notified_at) : (r.received_at ? _fgHoTsShort(r.received_at) : "—");
+        var betsToShow = (r.rem_bets && r.rem_bets.length && r.shipped_qty > 0) ? r.rem_bets : r.bets;
+        var recvDisplay = r.received_qty > 0 ? r.received_qty : r.prod_qty;
+
+        var stActorHtml = "";
+        if (r.notified_mkt) {
+          stActorHtml = '<span class="fg-ho-pill mkt">✓ Siap Kirim (Info Gudang)</span>' +
+            (r.wh_notes ? '<div style="font-size:0.7rem;color:#475569;margin-top:0.2rem">' + esc(r.wh_notes) + '</div>' : '') +
+            gudangActorHtml(r.notified_by || r.received_by, r.notified_name || r.received_name, r.notified_role || r.received_role, "Gudang") +
+            (r.from_who ? '<div style="font-size:0.66rem;color:#64748b;margin-top:0.15rem">Produksi: ' + esc(r.from_who) + '</div>' : '');
+        } else if (r.state === "recv") {
+          stActorHtml = '<span class="fg-ho-pill recv">Diterima Gudang (Belum Info Mkt)</span>' +
+            gudangActorHtml(r.received_by, r.received_name, r.received_role, "Gudang");
+        } else if (r.state === "prod_submit") {
+          stActorHtml = '<span class="fg-ho-pill prod">Produksi Serahkan (Menunggu Gudang)</span>' +
+            (r.from_who ? '<div style="font-size:0.66rem;color:#64748b;margin-top:0.15rem">Produksi: ' + esc(r.from_who) + '</div>' : '');
+        } else {
+          stActorHtml = '<span class="fg-ho-pill wait">Output Produksi (' + formatNum(r.prod_qty) + ') · Belum Serah Terima</span>';
+        }
+
+        var shipRefsHtml = (r.ship_refs && r.ship_refs.length)
+          ? '<div style="font-size:0.68rem;color:#475569;margin-top:0.18rem">' + r.ship_refs.map(function(sr) {
+              return esc(sr.ship_id) + ' (' + formatNum(sr.qty) + ')';
+            }).join(", ") + '</div>'
+          : '';
+
+        var actHtml = "";
+        if (canShip) {
+          actHtml = '<button type="button" class="btn-odoo" onclick="mktShipFromHandover([' + esc(JSON.stringify(r.key)) + '])">+ Instruksi Kirim Hari Ini</button>';
+        } else if (r.notified_mkt && r.rem_qty <= 0) {
+          actHtml = '<span class="fg-ho-pill mkt">✓ Sudah Diinstruksikan</span>';
+        } else {
+          actHtml = '<span style="font-size:0.72rem;color:#94a3b8">Tunggu Gudang</span>';
+        }
+
+        return '<tr>' +
+          '<td><input type="checkbox" class="mkt-fgho-cb" data-hokey="' + esc(r.key) + '"' + (canShip ? '' : ' disabled') + ' onchange="syncMktFgHoBulkBtn()" /></td>' +
+          '<td style="white-space:nowrap"><strong>' + esc(infoTs) + '</strong><div style="font-size:0.71rem;color:#64748b">Prod: ' + esc(r.report_date) + ' · S' + esc(r.shift) + '</div></td>' +
+          '<td><strong>' + esc(prodLbl) + '</strong></td>' +
+          '<td>' + (r.customer_name ? ('<strong>' + esc(r.customer_name) + '</strong><div style="font-size:0.72rem;color:#64748b">' + esc(r.no_so || "—") + '</div>') : ('<strong>' + esc(r.no_so || "—") + '</strong>')) + '</td>' +
+          '<td style="text-align:right"><strong>' + formatNum(recvDisplay) + ' ' + esc(r.unit) + '</strong>' +
+            (!r.notified_mkt ? '<div style="font-size:0.66rem;color:#64748b">(output produksi)</div>' : '') + '</td>' +
+          '<td>' + _fgHoBetsChipsHtml(betsToShow, r.unit) + '</td>' +
+          '<td style="text-align:right"><strong style="color:' + (r.rem_qty > 0 ? '#065f46' : '#64748b') + '">' + formatNum(r.rem_qty) + ' ' + esc(r.unit) + '</strong>' + shipRefsHtml + '</td>' +
+          '<td>' + stActorHtml + '</td>' +
+          '<td style="text-align:right">' + actHtml + '</td>' +
+        '</tr>';
+      }).join("");
+    }
+
+    function toggleAllMktFgHo(checked) {
+      document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:not(:disabled)").forEach(function(cb) {
+        cb.checked = !!checked;
+      });
+      syncMktFgHoBulkBtn();
+    }
+    function syncMktFgHoBulkBtn() {
+      var cbs = document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:checked");
+      var btn = $("btnMktFgHoBulk");
+      if (btn) {
+        btn.disabled = !cbs.length;
+        btn.textContent = "+ Instruksi Kirim Terpilih (" + cbs.length + ")";
+      }
+    }
+    function mktShipSelectedHandovers() {
+      var keys = [];
+      document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:checked").forEach(function(cb) {
+        var k = cb.getAttribute("data-hokey");
+        if (k) keys.push(k);
+      });
+      if (!keys.length) return toast("Centang minimal 1 produk siap kirim dari Info Gudang", true);
+      mktShipFromHandover(keys);
+    }
+    async function mktShipFromHandover(hoKeys) {
+      var items = [];
+      (hoKeys || []).forEach(function(k) {
+        var r = (fgHoMktRows || []).find(function(x) { return x.key === k; });
+        if (r && r.rem_qty > 0) items.push(r);
+      });
+      if (!items.length) return toast("Tidak ada sisa qty siap kirim pada item terpilih", true);
+      await openShipRequestFromHandovers(items);
+    }
+
+    async function openShipRequestFromHandovers(items) {
+      if (!items || !items.length) return;
+      window.__shipEditRawNotes = "";
+      if ($("shipReqId")) $("shipReqId").value = "";
+      if ($("shipReqDate")) $("shipReqDate").value = todayStr();
+      var first = items[0];
+      var wantSo = first.no_so || "";
+      var wantOrderId = first.order_id || "";
+      var wantCust = first.customer_name || "";
+      if ($("shipReqCustomer")) $("shipReqCustomer").value = wantCust;
+      if ($("shipReqSo")) $("shipReqSo").value = wantSo;
+      if ($("shipReqNotes")) $("shipReqNotes").value = "";
+      if ($("shipReqLines")) $("shipReqLines").innerHTML = "";
+      if ($("shipReqTitle")) $("shipReqTitle").textContent = "Instruksi kirim hari ini · Info Gudang";
+      if ($("shipReqSubmitBtn")) $("shipReqSubmitBtn").textContent = "Kirim ke gudang";
+
+      items.forEach(function(it) {
+        var betsUse = (it.rem_bets && it.rem_bets.length) ? it.rem_bets : [{ no: "Bet 1", qty: it.rem_qty, unit: it.unit }];
+        addShipReqLine({
+          product_id: it.product_id,
+          unit: it.unit || shipDefaultUnitForProduct(it.product_id),
+          bets: betsUse.map(function(b) {
+            return {
+              no: b.no || "",
+              qty: b.qty > 0 ? b.qty : "",
+              reportQty: b.qty > 0 ? b.qty : 0,
+              source: "Serah Terima Gudang " + (it.report_date || "")
+            };
+          })
+        });
+      });
+
+      if ($("shipReportAutoHint")) {
+        $("shipReportAutoHint").innerHTML = '<span style="color:#047857;font-weight:600">✓ Diisi otomatis dari Serah Terima Gudang (' + items.length + ' item · No. Bets &amp; Sisa terverifikasi)</span>';
+      }
+
+      try {
+        fillShipSoSelect(first.product_id || "").then(function() {
+          var sel = $("shipReqSoSelect");
+          if (sel && (wantOrderId || wantSo)) {
+            for (var i = 0; i < sel.options.length; i++) {
+              if ((wantOrderId && String(sel.options[i].value || "") === wantOrderId) ||
+                  (wantSo && String(sel.options[i].dataset.noso || "") === wantSo)) {
+                sel.selectedIndex = i;
+                onShipSoChange();
+                break;
+              }
+            }
+          }
+          if (wantCust && $("shipReqCustomer") && !$("shipReqCustomer").value) {
+            $("shipReqCustomer").value = wantCust;
+          }
+        });
+      } catch (eSo) {}
+
+      var m = $("shipRequestModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+      syncShipLinesTotals();
+    }
+
 </script>
 
   <div id="appConfirmModal" class="modal-bg" style="z-index:100200;display:none">
@@ -35151,6 +36754,59 @@ function closeOtModal() {
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closePrManualModal()">Batal</button>
         <button class="btn btn-primary" type="button" onclick="savePrManual()">Kirim ke Purchase</button>
+      </div>
+    </div>
+  </div>
+  <div id="fgHandoverModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100182" onclick="if(event.target===this)closeFgHandoverModal()">
+    <div class="modal modal-sheet" style="max-width:580px;width:94vw;max-height:90vh;overflow:auto">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 style="margin:0">Terima Serah Terima FG</h2>
+        <p id="fgHoSubtitle" style="margin:0.3rem 0 0;font-size:0.78rem;color:var(--text-muted)">Verifikasi fisik barang dari Produksi beserta rincian No. Bets sebelum diinfokan ke Marketing.</p>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="fgHoKey" />
+        <div id="fgHoSummaryStrip" class="fg-ho-summary"></div>
+        <div class="field" style="margin-bottom:0.75rem">
+          <label>Diserahkan oleh (Produksi / Korlap)</label>
+          <input id="fgHoFromWho" placeholder="Nama penanggung jawab produksi" autocomplete="off" />
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;gap:0.5rem;flex-wrap:wrap">
+          <strong style="font-size:0.83rem;color:#0f172a">Rincian No. Bets &amp; Qty Fisik Diterima Gudang <span style="color:#b91c1c">*</span></strong>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addFgHoBetRow()">+ Tambah Bets</button>
+        </div>
+        <div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:0.5rem">
+          <table class="fg-ho-bets-table">
+            <thead>
+              <tr>
+                <th>No. Bets</th>
+                <th style="width:125px">Qty Diterima</th>
+                <th style="width:92px">Satuan</th>
+                <th style="width:36px"></th>
+              </tr>
+            </thead>
+            <tbody id="fgHoBetsBody"></tbody>
+          </table>
+          <div style="padding:0.45rem 0.65rem;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:0.8rem">
+            <span style="color:#64748b">Total Diterima Gudang</span>
+            <strong id="fgHoTotalRecv" style="color:#065f46;font-variant-numeric:tabular-nums">0 pcs</strong>
+          </div>
+        </div>
+        <div class="field" style="margin-top:0.65rem">
+          <label>Catatan Gudang / Keterangan Marketing (opsional)</label>
+          <input id="fgHoNotes" placeholder="Mis. pallet 2 siap angkut, kondisi dus utuh" autocomplete="off" />
+        </div>
+        <label class="fg-ho-notify-box">
+          <input type="checkbox" id="fgHoAlsoNotify" checked onchange="syncFgHoModalFooter()" />
+          <div>
+            <div style="font-size:0.81rem;font-weight:700;color:#065f46">Langsung infokan ke Marketing setelah diterima</div>
+            <div style="font-size:0.72rem;color:#047857;margin-top:0.1rem">Barang otomatis tampil di halaman Marketing · tab <strong>Info Gudang (Siap Kirim)</strong> agar bisa langsung diinstruksikan kirim hari ini.</div>
+          </div>
+        </label>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeFgHandoverModal()">Batal</button>
+        <button type="button" class="btn-odoo" id="fgHoSubmitBtn" onclick="saveFgHandoverModal()">Terima &amp; Info Marketing</button>
       </div>
     </div>
   </div>
