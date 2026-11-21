@@ -6041,6 +6041,173 @@
       color: #64748b;
       font-size: 0.6rem;
     }
+    .ops-bulk-panel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.7rem 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    .ops-bulk-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .ops-bulk-checkall {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #0f172a;
+      cursor: pointer;
+      user-select: none;
+    }
+    .ops-bulk-checkall input {
+      width: 15px;
+      height: 15px;
+      accent-color: #0d9f6e;
+      cursor: pointer;
+    }
+    .ops-bulk-count {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #065f46;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      padding: 0.14rem 0.48rem;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+    }
+    .ops-bulk-row {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+    .ops-bulk-row .search-combo {
+      flex: 1;
+      min-width: 210px;
+    }
+    .ops-bulk-row input[type="text"],
+    .ops-bulk-row input:not([type]),
+    .ops-bulk-row input[type="search"],
+    .ops-bulk-row input[type="date"] {
+      padding: 0.44rem 0.65rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      font-size: 0.82rem;
+      background: #fff;
+      color: #0f172a;
+    }
+    .ops-bulk-row input:focus {
+      outline: none;
+      border-color: #0d9f6e;
+      box-shadow: 0 0 0 2px rgba(13, 159, 110, 0.14);
+    }
+    .ops-bulk-extra {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.45rem;
+      font-size: 0.75rem;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+    }
+    .ops-bulk-extra input {
+      width: 14px;
+      height: 14px;
+      accent-color: #0d9f6e;
+      cursor: pointer;
+    }
+    .ops-bulk-move-row {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      margin-top: 0.55rem;
+      padding-top: 0.55rem;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .ops-pick-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .ops-pick-card {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.72rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .ops-pick-card.is-checked {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+    .ops-pick-cb {
+      width: 16px;
+      height: 16px;
+      accent-color: #0d9f6e;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .ops-pick-main {
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+    }
+    .ops-pick-top {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .ops-pick-so {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.08rem 0.4rem;
+      border-radius: 6px;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .ops-pick-so.empty {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+    .ops-pick-meta {
+      font-size: 0.74rem;
+      color: #475569;
+      margin-top: 0.16rem;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .fz-so-add {
+      display: inline-block;
+      margin-left: 0.25rem;
+      font-size: 0.64rem;
+      font-weight: 700;
+      color: #0d9f6e;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      padding: 0.05rem 0.34rem;
+      border-radius: 5px;
+      vertical-align: middle;
+    }
+    #opsPlanPickerModal .search-combo-list,
+    #opsProductModal .search-combo-list,
+    #planBulkSoModal .search-combo-list {
+      z-index: 460 !important;
+      max-height: 220px;
+      overflow-y: auto;
+    }
     </style>
 </head>
 <body>
@@ -6669,6 +6836,7 @@
             <span id="planBulkCount" style="font-size:0.85rem;font-weight:600;color:#065f46">0 terpilih</span>
             <button type="button" class="btn btn-ghost btn-sm" onclick="planSelectAllPage(true)">Pilih halaman</button>
             <button type="button" class="btn btn-ghost btn-sm" onclick="planSelectAllPage(false)">Batal pilih</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openPlanBulkSoModal()">Atur No. SO</button>
             <button type="button" class="btn btn-ghost btn-sm" onclick="bulkCancelPlans()">Batalkan (cancelled)</button>
             <button type="button" class="btn btn-danger btn-sm" onclick="bulkDeletePlans()">Hapus permanen</button>
           </div>
@@ -8716,12 +8884,33 @@
   </div>
 
   <div id="opsPlanPickerModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:480px">
+    <div class="modal modal-sheet" style="max-width:560px">
       <div class="sheet-handle"></div>
       <div class="sheet-head"><h2>Pilih plan</h2></div>
       <div class="sheet-body" id="opsPlanPickerBody"></div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeOpsPlanPicker()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="planBulkSoModal" class="modal-bg" style="z-index:100165">
+    <div class="modal modal-sheet" style="max-width:480px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2>Atur No. SO Massal</h2>
+        <p id="planBulkSoSub" style="margin:0.3rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+      </div>
+      <div class="sheet-body">
+        <div class="field" style="margin-bottom:0.5rem">
+          <label style="font-size:0.78rem">Pilih No. SO (kosongkan untuk melepas SO)</label>
+          <input id="planBulkSoInp" placeholder="Ketik no SO / customer..." autocomplete="off" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--border);border-radius:10px;font-size:0.85rem" />
+        </div>
+        <p style="font-size:0.73rem;color:var(--text-muted);margin:0">Semua plan terpilih akan langsung terhubung ke No. SO yang dipilih dan otomatis dikelompokkan di Plan Grid.</p>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closePlanBulkSoModal()">Batal</button>
+        <button class="btn btn-primary" type="button" id="btnSavePlanBulkSo" onclick="savePlanBulkSo()">Terapkan No. SO</button>
       </div>
     </div>
   </div>
@@ -17919,6 +18108,28 @@ function fillOperatorList(selectedEmail) {
           });
         }
       } catch (ePh) {}
+      var roleNow = (typeof currentRole === "function" ? currentRole() : "") || "";
+      var canEditSo = roleNow === "admin" || roleNow === "ppic";
+      var rowPlanIds = (typeof opsGetRowPlanIds === "function") ? opsGetRowPlanIds(opsMenuCtx) : [];
+      opsMenuCtx._rowPlanIds = rowPlanIds;
+      var soBox = $("opsMenuSoBox");
+      if (soBox) {
+        if (canEditSo && rowPlanIds.length > 0) {
+          soBox.style.display = "block";
+          if ($("opsMenuSoCount")) $("opsMenuSoCount").textContent = rowPlanIds.length + " plan di baris ini";
+          if ($("btnOpsMenuSaveSo")) $("btnOpsMenuSaveSo").textContent = "Terapkan ke " + rowPlanIds.length + " plan";
+          var soInp = $("opsMenuSoInp");
+          if (soInp) {
+            soInp.value = opsMenuCtx.no_so ? (opsMenuCtx.no_so + (opsMenuCtx.customer ? " · " + opsMenuCtx.customer : "")) : "";
+            soInp.dataset.scId = opsMenuCtx.order_id || "";
+            if (typeof opsBindSoComboForProduct === "function") {
+              opsBindSoComboForProduct(soInp, opsMenuCtx.product_id);
+            }
+          }
+        } else {
+          soBox.style.display = "none";
+        }
+      }
       var m = $("opsProductModal");
       if (m) {
         m.classList.add("show");
@@ -19361,6 +19572,7 @@ function fillOperatorList(selectedEmail) {
       });
       head += '</tr></thead><tbody>';
 
+      const _opsCanEdit = (typeof currentRole === "function") && (currentRole() === "admin" || currentRole() === "ppic");
       let body = "";
       list.forEach(g => {
         const pname = (products.find(p => p.product_id === g.product_id) || {}).name || "";
@@ -19375,9 +19587,12 @@ function fillOperatorList(selectedEmail) {
             var oidSafe = String(g.order_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
             var nosoSafe = String(g.no_so || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
             var pidSafe = String(g.product_id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            var soCellHtml = g.no_so
+              ? esc(g.no_so)
+              : (_opsCanEdit ? '<span style="color:#94a3b8">—</span><span class="fz-so-add">+ SO</span>' : "—");
             body += '<td class="fz fz-prod" rowspan="3" style="cursor:pointer" title="Klik untuk aksi SO/PO" onclick="event.stopPropagation();openOpsProductMenu(\'' + pidSafe + '\',\'' + nosoSafe + '\',\'' + oidSafe + '\')"><strong>[' + esc(g.product_id) + ']</strong><div style="font-size:0.62rem;color:var(--text-muted);font-weight:400;white-space:normal">' + esc(pname) + '</div><div style="font-size:0.6rem;color:#16a34a;margin-top:0.15rem">Aksi ▾</div></td>';
             body += '<td class="fz fz-cust" rowspan="3">' + esc(g.customer || "—") + '</td>';
-            body += '<td class="fz fz-so" rowspan="3" style="cursor:pointer" title="Klik aksi SO" onclick="event.stopPropagation();openOpsProductMenu(\'' + pidSafe + '\',\'' + nosoSafe + '\',\'' + oidSafe + '\')">' + esc(g.no_so || "—") + '</td>';
+            body += '<td class="fz fz-so" rowspan="3" style="cursor:pointer" title="Klik untuk atur No. SO / aksi baris ini" onclick="event.stopPropagation();openOpsProductMenu(\'' + pidSafe + '\',\'' + nosoSafe + '\',\'' + oidSafe + '\')">' + soCellHtml + '</td>';
             body += '<td class="sc-tgl" rowspan="3">' + esc(g.order_date || "—") + '</td>';
             body += '<td class="sc-po" rowspan="3" title="Sisa masuk bulan = PO ' + formatNum(g.po_qty_orig || g.po_qty) + ' − Actual sebelum bulan ini ' + formatNum(g.act_life || 0) + '">' + formatNum(g.po_qty) + '</td>';
             body += '<td class="sc-pl" rowspan="3">' + formatNum(g.plan_total) + '</td>';
@@ -26606,54 +26821,506 @@ function fillOperatorList(selectedEmail) {
     }
 
 
+    function opsGetRowPlanIds(g) {
+      var seen = {};
+      var out = [];
+      if (!g || !g.planIdsByDay) return out;
+      Object.keys(g.planIdsByDay).forEach(function(d) {
+        (g.planIdsByDay[d] || []).forEach(function(id) {
+          var s = String(id || "").trim();
+          if (s && !seen[s]) { seen[s] = true; out.push(s); }
+        });
+      });
+      return out;
+    }
+
+    function scItemsPickSoForProduct(productId) {
+      productId = String(productId || "").trim();
+      var base = (allOrders || []).filter(function(o) {
+        var st = String(o.status || "").toLowerCase();
+        return st !== "cancelled" && st !== "canceled";
+      });
+      var idx = productId ? (__soByProduct[productId] || null) : null;
+      var matched = [];
+      var rest = [];
+      base.forEach(function(o) {
+        var isMatch = false;
+        if (productId) {
+          isMatch = idx ? !!idx[o.order_id] : (typeof orderHasProduct === "function" && orderHasProduct(o, productId));
+        }
+        if (isMatch) matched.push(o);
+        else rest.push(o);
+      });
+      var ordered = productId ? matched.concat(rest) : base;
+      return ordered.map(function(o) {
+        var lines = o.lines || o.order_lines || [];
+        var n = lines.length;
+        var isMatch = productId ? (idx ? !!idx[o.order_id] : (typeof orderHasProduct === "function" && orderHasProduct(o, productId))) : false;
+        var lineQty = "";
+        if (productId && isMatch) {
+          var meta = idx && idx[o.order_id];
+          var L = lines.find(function(x) { return String(x.product_id) === productId; });
+          if (L) lineQty = " · qty " + formatNum(L.qty || 0) + " " + (L.unit || "");
+          else if (meta) lineQty = " · qty " + formatNum(meta.qty || 0) + " " + (meta.unit || "");
+        }
+        var label = (o.no_so || o.order_id) + " · " + (o.customer_name || "-") + (n ? " (" + n + " item)" : "");
+        var subParts = [];
+        if (productId && isMatch) subParts.push("✓ memuat " + productId + lineQty);
+        if (o.status) subParts.push(o.status);
+        if (o.order_date) subParts.push(String(o.order_date).slice(0, 10));
+        return {
+          id: o.order_id,
+          label: label,
+          sub: subParts.join(" · "),
+          search: [o.order_id, o.no_so, o.customer_name, o.status, isMatch ? productId : ""].join(" ")
+        };
+      });
+    }
+
+    async function opsBindSoComboForProduct(inputEl, productId) {
+      if (!inputEl) return;
+      try { await ensureOrdersLoadedForSoCheck(); } catch (e0) {}
+      if (productId) {
+        try { await ensureSoProductIndex(productId); } catch (e1) {}
+      }
+      inputEl.dataset.scBound = "";
+      if (typeof attachSearchCombo === "function") {
+        attachSearchCombo(inputEl, function() { return scItemsPickSoForProduct(productId); }, {
+          valueMode: "id-name",
+          allowFree: true,
+          placeholder: productId ? "Ketik No. SO / customer (" + productId + ")..." : "Ketik No. SO / customer...",
+          onPick: function(id, label, input) {
+            if (input) {
+              input.dataset.scId = id || "";
+              input.value = label || id || "";
+            }
+          }
+        });
+      }
+    }
+
+    function opsResolveSoFromInput(inputEl) {
+      var typed = (inputEl && inputEl.value || "").trim();
+      var scId = (inputEl && inputEl.dataset && inputEl.dataset.scId || "").trim();
+      if (!typed) return { empty: true, order_id: "", no_so: "", order: null };
+      var list = allOrders || [];
+      var ord = null;
+      if (scId) {
+        ord = list.find(function(o) { return String(o.order_id) === scId; }) || null;
+        // pastikan teks input memang merujuk ke order tsb jika user mengedit manual
+        if (ord) {
+          var noSoStr = String(ord.no_so || ord.order_id || "");
+          if (typed !== noSoStr && typed.indexOf(noSoStr) !== 0 && typed.indexOf(String(ord.order_id)) < 0) {
+            ord = null;
+          }
+        }
+      }
+      if (!ord) {
+        var head = typed.split("·")[0].trim();
+        ord = list.find(function(o) {
+          return String(o.order_id) === typed || String(o.no_so || "") === typed ||
+            String(o.order_id) === head || String(o.no_so || "") === head ||
+            (o.no_so && typed.indexOf(o.no_so) === 0);
+        }) || null;
+      }
+      if (ord) {
+        return {
+          empty: false,
+          order_id: ord.order_id || "",
+          no_so: ord.no_so || ord.order_id || "",
+          order: ord
+        };
+      }
+      return {
+        empty: false,
+        order_id: "",
+        no_so: typed.split("·")[0].trim(),
+        order: null
+      };
+    }
+
+    async function opsApplySoToPlanIds(planIds, inputEl, opts) {
+      opts = opts || {};
+      if (!sb) return false;
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      if (role !== "admin" && role !== "ppic" && !(opts.allowKorlap && role === "korlap")) {
+        toast("Atur No. SO hanya untuk Admin / PPIC", true);
+        return false;
+      }
+      var seen = {};
+      var ids = [];
+      (planIds || []).forEach(function(id) {
+        var s = String(id || "").trim();
+        if (s && !seen[s]) { seen[s] = true; ids.push(s); }
+      });
+      if (!ids.length) {
+        toast("Pilih minimal 1 plan dulu", true);
+        return false;
+      }
+      try { await ensureOrdersLoadedForSoCheck(); } catch (e0) {}
+      var resolved = opsResolveSoFromInput(inputEl);
+      var newOrderId = resolved.order_id || "";
+      var newNoSo = resolved.no_so || "";
+
+      if (resolved.empty) {
+        var okClear = await appConfirm("Kosongkan No. SO dari " + ids.length + " plan terpilih?", "Lepas No. SO");
+        if (!okClear) return false;
+      } else {
+        if (resolved.order) {
+          try { await fetchOrderProductIds(resolved.order); } catch (eF) {}
+        }
+        // Validasi produk terhadap SO terpilih
+        var prodList = [];
+        if (opts.rowProductId) {
+          prodList.push(String(opts.rowProductId));
+        } else {
+          var pMap = {};
+          var cache = (typeof plans !== "undefined" && Array.isArray(plans)) ? plans : [];
+          var missing = [];
+          ids.forEach(function(id) {
+            var hit = cache.find(function(x) { return String(x.plan_id) === id; });
+            if (hit) {
+              var rp = (typeof resolveOpsRowProductId === "function" ? resolveOpsRowProductId(hit) : "") || hit.product_id;
+              if (rp) pMap[String(rp)] = true;
+            } else {
+              missing.push(id);
+            }
+          });
+          if (missing.length) {
+            for (var mi = 0; mi < missing.length; mi += 80) {
+              var mChunk = missing.slice(mi, mi + 80);
+              try {
+                var { data: mRows } = await sb.from("plans").select("plan_id,product_id,machine_id").in("plan_id", mChunk);
+                (mRows || []).forEach(function(mr) {
+                  var rp2 = (typeof resolveOpsRowProductId === "function" ? resolveOpsRowProductId(mr) : "") || mr.product_id;
+                  if (rp2) pMap[String(rp2)] = true;
+                });
+              } catch (eM) {}
+            }
+          }
+          prodList = Object.keys(pMap);
+        }
+        var warnMsgs = [];
+        for (var pi = 0; pi < prodList.length; pi++) {
+          var chk = (typeof validatePlanProductAgainstSo === "function")
+            ? validatePlanProductAgainstSo(prodList[pi], newNoSo, newOrderId)
+            : { ok: true };
+          if (!chk.ok && chk.message) warnMsgs.push(chk.message);
+        }
+        if (warnMsgs.length) {
+          var okForce = await appConfirm(
+            warnMsgs.slice(0, 2).join("\n\n") +
+            (warnMsgs.length > 2 ? "\n\n(dan " + (warnMsgs.length - 2) + " produk lain)" : "") +
+            "\n\nTetap terapkan No. SO \"" + newNoSo + "\" ke " + ids.length + " plan?",
+            "Produk tidak sesuai SO"
+          );
+          if (!okForce) return false;
+        }
+      }
+
+      var nowIso = new Date().toISOString();
+      var okCount = 0;
+      var failCount = 0;
+      var lastErr = "";
+      for (var i = 0; i < ids.length; i += 80) {
+        var chunk = ids.slice(i, i + 80);
+        var { error } = await sb.from("plans").update({
+          order_id: newOrderId,
+          no_so: newNoSo,
+          updated_at: nowIso
+        }).in("plan_id", chunk);
+        if (error) {
+          failCount += chunk.length;
+          lastErr = error.message || "Gagal update";
+        } else {
+          okCount += chunk.length;
+          if (typeof plans !== "undefined" && Array.isArray(plans)) {
+            plans.forEach(function(p) {
+              if (chunk.indexOf(String(p.plan_id)) >= 0) {
+                p.order_id = newOrderId;
+                p.no_so = newNoSo;
+                p.updated_at = nowIso;
+              }
+            });
+          }
+        }
+      }
+      if (failCount && !okCount) {
+        toast("Gagal menyimpan No. SO: " + lastErr, true);
+        return false;
+      }
+      try {
+        await writeAudit({
+          module: "plan",
+          action: "assign_so",
+          ref_id: ids.slice(0, 5).join(","),
+          summary: (resolved.empty ? "Lepas No. SO dari " : ("Atur No. SO " + newNoSo + " ke ")) + okCount + " plan"
+        });
+      } catch (eA) {}
+      toast((resolved.empty ? "No. SO dilepas dari " : ("No. SO " + newNoSo + " diterapkan ke ")) + okCount + " plan" + (failCount ? " (" + failCount + " gagal)" : ""));
+      try {
+        if ($("page-plans") && !$("page-plans").hidden && typeof loadPlans === "function") await loadPlans();
+        if ($("page-plan-ops") && !$("page-plan-ops").hidden && typeof loadOperasional === "function") await loadOperasional();
+        else if (typeof loadOperasional === "function" && (opts.refreshGrid !== false)) await loadOperasional();
+      } catch (eR) {}
+      return true;
+    }
+
+    async function opsBulkMovePlanDates(planIds, newDate) {
+      if (!sb || !newDate) return false;
+      var seen = {};
+      var ids = [];
+      (planIds || []).forEach(function(id) {
+        var s = String(id || "").trim();
+        if (s && !seen[s]) { seen[s] = true; ids.push(s); }
+      });
+      if (!ids.length) {
+        toast("Pilih minimal 1 plan dulu", true);
+        return false;
+      }
+      var nowIso = new Date().toISOString();
+      var okCount = 0;
+      var failCount = 0;
+      for (var i = 0; i < ids.length; i += 80) {
+        var chunk = ids.slice(i, i + 80);
+        var { error } = await sb.from("plans").update({
+          plan_date: newDate,
+          updated_at: nowIso
+        }).in("plan_id", chunk);
+        if (error) failCount += chunk.length;
+        else okCount += chunk.length;
+      }
+      if (!okCount) {
+        toast("Gagal memindahkan tanggal plan", true);
+        return false;
+      }
+      try {
+        await writeAudit({
+          module: "plan",
+          action: "move_date",
+          ref_id: ids.slice(0, 5).join(","),
+          summary: "Pindah tanggal " + okCount + " plan ke " + newDate
+        });
+      } catch (eA) {}
+      toast(okCount + " plan dipindah ke " + newDate + (failCount ? " (" + failCount + " gagal)" : ""));
+      try {
+        if (typeof loadPlans === "function") await loadPlans();
+        if (typeof loadOperasional === "function") await loadOperasional();
+      } catch (eR) {}
+      return true;
+    }
+
+    async function saveOpsMenuSo() {
+      if (!opsMenuCtx) return;
+      var rowIds = opsMenuCtx._rowPlanIds || opsGetRowPlanIds(opsMenuCtx);
+      if (!rowIds.length) return toast("Tidak ada plan di baris ini", true);
+      var btn = $("btnOpsMenuSaveSo");
+      if (btn) btn.disabled = true;
+      try {
+        var ok = await opsApplySoToPlanIds(rowIds, $("opsMenuSoInp"), { rowProductId: opsMenuCtx.product_id });
+        if (ok) closeOpsProductMenu();
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function openPlanBulkSoModal() {
+      if (!canBulkPlanAction()) return toast("Tidak diizinkan", true);
+      var ids = Object.keys(planSelectedIds || {});
+      if (!ids.length) return toast("Pilih minimal 1 plan dulu", true);
+      if ($("planBulkSoSub")) $("planBulkSoSub").textContent = ids.length + " plan terpilih akan diperbarui No. SO-nya sekaligus.";
+      var inp = $("planBulkSoInp");
+      if (inp) {
+        inp.value = "";
+        inp.dataset.scId = "";
+        opsBindSoComboForProduct(inp, "");
+      }
+      var m = $("planBulkSoModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+      setTimeout(function() { if (inp) inp.focus(); }, 60);
+    }
+    function closePlanBulkSoModal() {
+      var m = $("planBulkSoModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+    }
+    async function savePlanBulkSo() {
+      var ids = Object.keys(planSelectedIds || {});
+      if (!ids.length) return closePlanBulkSoModal();
+      var btn = $("btnSavePlanBulkSo");
+      if (btn) btn.disabled = true;
+      try {
+        var ok = await opsApplySoToPlanIds(ids, $("planBulkSoInp"), { allowKorlap: true });
+        if (ok) {
+          planSelectedIds = {};
+          if (typeof updatePlanBulkBar === "function") updatePlanBulkBar();
+          closePlanBulkSoModal();
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     async function openOpsPlanPicker(day, g, planIds) {
       planIds = planIds || [];
       var cache = (typeof plans !== "undefined" && Array.isArray(plans)) ? plans : [];
       var rows = cache.filter(function(p) { return planIds.indexOf(p.plan_id) >= 0; });
       if (rows.length < planIds.length && sb) {
         try {
-          var { data } = await sb.from("plans").select("*").in("plan_id", planIds.slice(0, 50));
+          var { data } = await sb.from("plans").select("*").in("plan_id", planIds.slice(0, 80));
           if (data && data.length) rows = data;
         } catch (eF) { console.warn(eF); }
       }
       var list = rows.length ? rows : planIds.map(function(id) { return { plan_id: id }; });
-      var html = '<p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">' +
-        esc(g.product_id) + " · " + esc(day) + " · " + list.length + " plan</p><div style=\"display:flex;flex-direction:column;gap:0.5rem\">";
+      var allRowIds = opsGetRowPlanIds(g);
+      var otherRowIds = allRowIds.filter(function(id) { return planIds.indexOf(id) < 0; });
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      var canEdit = role === "admin" || role === "ppic";
+      var curSoDefault = (g && g.no_so) ? (g.no_so + (g.customer ? " · " + g.customer : "")) : "";
+
+      var html = '<p style="font-size:0.84rem;color:var(--text-muted);margin:0 0 0.65rem">' +
+        '<strong>' + esc((g && g.product_id) || "-") + '</strong> · ' + esc(day) + ' · ' + list.length + ' plan' +
+        (g && g.no_so ? (' · SO: <strong>' + esc(g.no_so) + '</strong>') : ' · <span style="color:#b45309;font-weight:600">Belum ada No. SO</span>') +
+        '</p>';
+
+      if (canEdit) {
+        html += '<div class="ops-bulk-panel">' +
+          '<div class="ops-bulk-head">' +
+            '<label class="ops-bulk-checkall"><input type="checkbox" id="opsPickCheckAll" checked /> Pilih semua (' + list.length + ')</label>' +
+            '<span class="ops-bulk-count" id="opsPickSelCount">' + list.length + ' dipilih</span>' +
+          '</div>' +
+          '<div class="ops-bulk-row">' +
+            '<input id="opsBulkSoInp" value="' + esc(curSoDefault) + '" data-sc-id="' + esc((g && g.order_id) || "") + '" placeholder="Ketik No. SO / customer..." autocomplete="off" />' +
+            '<button type="button" class="btn btn-primary btn-sm" id="btnOpsBulkApplySo">Terapkan SO (' + list.length + ')</button>' +
+          '</div>';
+        if (otherRowIds.length > 0) {
+          html += '<label class="ops-bulk-extra">' +
+            '<input type="checkbox" id="opsPickIncludeAllRow" />' +
+            '<span>Juga terapkan ke <strong>' + otherRowIds.length + ' plan lain</strong> di baris ini (total ' + (list.length + otherRowIds.length) + ' plan sebulan)</span>' +
+          '</label>';
+        }
+        html += '<div class="ops-bulk-move-row">' +
+            '<span style="font-size:0.75rem;color:#475569;font-weight:600">Pindah tanggal:</span>' +
+            '<input type="date" id="opsBulkMoveDate" value="' + esc(day) + '" />' +
+            '<button type="button" class="btn btn-ghost btn-sm" id="btnOpsBulkMoveDate">Pindah (' + list.length + ')</button>' +
+          '</div>' +
+        '</div>';
+      }
+
+      html += '<div class="ops-pick-list">';
       list.forEach(function(p) {
-        html += '<div style="border:1px solid var(--border);border-radius:12px;padding:0.65rem;margin-bottom:0.45rem">' +
-          '<button type="button" class="btn btn-ghost" style="justify-content:flex-start;text-align:left;width:100%" data-pid="' +
-          esc(p.plan_id) + '"><strong>' + esc(p.plan_id) + '</strong><br/><span style="font-size:0.75rem">' +
-          "Shift " + esc(p.shift || "-") + " · " + esc(p.machine_id || "") + " · target " + formatNum(p.target_qty) +
-          " · " + esc(p.assigned_operator || "(belum assign)") + " · " + esc(p.status || "") +
-          "</span></button>" +
-          '<div style="display:flex;gap:0.35rem;margin-top:0.4rem;align-items:center;flex-wrap:wrap">' +
-          '<input type="date" class="ops-move-date" data-mpid="' + esc(p.plan_id) + '" value="' + esc(day) + '" style="border:1px solid var(--border);border-radius:8px;padding:0.25rem 0.4rem;font-size:0.8rem" />' +
-          '<button type="button" class="btn btn-sm btn-primary ops-move-btn" data-mpid="' + esc(p.plan_id) + '">Pindah tanggal</button>' +
-          "</div></div>";
+        var pSo = p.no_so || (g && g.no_so) || "";
+        html += '<div class="ops-pick-card is-checked" data-card-pid="' + esc(p.plan_id) + '">' +
+          (canEdit ? '<input type="checkbox" class="ops-pick-cb" value="' + esc(p.plan_id) + '" checked />' : '') +
+          '<div class="ops-pick-main" data-pid="' + esc(p.plan_id) + '">' +
+            '<div class="ops-pick-top">' +
+              '<strong style="font-size:0.86rem;color:#0f172a">' + esc(p.plan_id) + '</strong>' +
+              '<span class="ops-pick-so' + (pSo ? "" : " empty") + '">' + esc(pSo || "Tanpa SO") + '</span>' +
+            '</div>' +
+            '<div class="ops-pick-meta">' +
+              'Shift ' + esc(p.shift || "-") + ' · ' + esc(p.machine_id || "-") +
+              ' · target ' + formatNum(p.target_qty || 0) +
+              ' · ' + esc(p.assigned_operator || "(belum assign)") +
+              ' · ' + esc(p.status || "-") +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="btn btn-ghost btn-sm ops-pick-edit" data-pid="' + esc(p.plan_id) + '">Edit</button>' +
+        '</div>';
       });
-      html += "</div>";
+      html += '</div>';
+
       if ($("opsPlanPickerBody")) $("opsPlanPickerBody").innerHTML = html;
       if ($("opsPlanPickerModal")) {
         $("opsPlanPickerModal").classList.add("show");
         document.body.classList.add("modal-open");
       }
+
       var box = $("opsPlanPickerBody") || document;
+      function getSelectedIds() {
+        return Array.from(box.querySelectorAll(".ops-pick-cb:checked")).map(function(cb) { return cb.value; }).filter(Boolean);
+      }
+      function syncPickerUi() {
+        var cbs = Array.from(box.querySelectorAll(".ops-pick-cb"));
+        var sel = getSelectedIds();
+        var incAllEl = $("opsPickIncludeAllRow");
+        var incAll = !!(incAllEl && incAllEl.checked);
+        var soTotal = incAll ? (sel.length + otherRowIds.length) : sel.length;
+        cbs.forEach(function(cb) {
+          var card = cb.closest(".ops-pick-card");
+          if (card) card.classList.toggle("is-checked", !!cb.checked);
+        });
+        if ($("opsPickCheckAll")) $("opsPickCheckAll").checked = cbs.length > 0 && sel.length === cbs.length;
+        if ($("opsPickSelCount")) $("opsPickSelCount").textContent = sel.length + " dipilih";
+        if ($("btnOpsBulkApplySo")) {
+          $("btnOpsBulkApplySo").textContent = "Terapkan SO (" + soTotal + ")";
+          $("btnOpsBulkApplySo").disabled = soTotal === 0;
+        }
+        if ($("btnOpsBulkMoveDate")) {
+          $("btnOpsBulkMoveDate").textContent = "Pindah (" + sel.length + ")";
+          $("btnOpsBulkMoveDate").disabled = sel.length === 0;
+        }
+      }
+      box.querySelectorAll(".ops-pick-cb").forEach(function(cb) {
+        cb.addEventListener("change", syncPickerUi);
+      });
+      if ($("opsPickCheckAll")) {
+        $("opsPickCheckAll").addEventListener("change", function() {
+          var on = !!this.checked;
+          box.querySelectorAll(".ops-pick-cb").forEach(function(cb) { cb.checked = on; });
+          syncPickerUi();
+        });
+      }
+      if ($("opsPickIncludeAllRow")) {
+        $("opsPickIncludeAllRow").addEventListener("change", syncPickerUi);
+      }
+      if ($("opsBulkSoInp")) {
+        opsBindSoComboForProduct($("opsBulkSoInp"), g && g.product_id);
+      }
+      if ($("btnOpsBulkApplySo")) {
+        $("btnOpsBulkApplySo").onclick = async function() {
+          var sel = getSelectedIds();
+          var incAllEl = $("opsPickIncludeAllRow");
+          var targetIds = (incAllEl && incAllEl.checked) ? sel.concat(otherRowIds) : sel;
+          if (!targetIds.length) return toast("Pilih minimal 1 plan dulu", true);
+          var btn = $("btnOpsBulkApplySo");
+          btn.disabled = true;
+          try {
+            var ok = await opsApplySoToPlanIds(targetIds, $("opsBulkSoInp"), { rowProductId: g && g.product_id });
+            if (ok) closeOpsPlanPicker();
+          } finally {
+            syncPickerUi();
+          }
+        };
+      }
+      if ($("btnOpsBulkMoveDate")) {
+        $("btnOpsBulkMoveDate").onclick = async function() {
+          var sel = getSelectedIds();
+          var nd = $("opsBulkMoveDate") && $("opsBulkMoveDate").value;
+          if (!sel.length) return toast("Pilih minimal 1 plan dulu", true);
+          if (!nd) return toast("Pilih tanggal tujuan", true);
+          var btn = $("btnOpsBulkMoveDate");
+          btn.disabled = true;
+          try {
+            var ok = await opsBulkMovePlanDates(sel, nd);
+            if (ok) closeOpsPlanPicker();
+          } finally {
+            syncPickerUi();
+          }
+        };
+      }
       box.querySelectorAll("[data-pid]").forEach(function(btn) {
-        btn.onclick = function() {
+        btn.onclick = function(e) {
+          if (e.target && e.target.classList && e.target.classList.contains("ops-pick-cb")) return;
           closeOpsPlanPicker();
           var pid = btn.getAttribute("data-pid");
           try { editPlanFromGrid([pid], day); } catch (eE) { editPlan(pid); }
-        };
-      });
-      box.querySelectorAll(".ops-move-btn").forEach(function(btn) {
-        btn.onclick = async function(e) {
-          e.stopPropagation();
-          var pid = btn.getAttribute("data-mpid");
-          var inp = box.querySelector('.ops-move-date[data-mpid="' + pid + '"]');
-          var nd = inp && inp.value;
-          if (!nd) return toast("Pilih tanggal", true);
-          await movePlanDate(pid, nd);
-          closeOpsPlanPicker();
         };
       });
     }
@@ -34383,7 +35050,7 @@ function closeOtModal() {
     </div>
   </div>
   <div id="opsProductModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100160">
-    <div class="modal modal-sheet" style="max-width:440px;width:94vw;max-height:90vh;overflow:auto">
+    <div class="modal modal-sheet" style="max-width:480px;width:94vw;max-height:90vh;overflow:auto">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
         <h2 id="opsMenuTitle" style="margin:0;font-size:1.05rem">Produk</h2>
@@ -34391,6 +35058,17 @@ function closeOtModal() {
       </div>
       <div class="sheet-body">
         <div id="opsMenuStats" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;font-size:0.85rem;margin-bottom:0.85rem"></div>
+        <div id="opsMenuSoBox" class="ops-bulk-panel" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem;flex-wrap:wrap">
+            <strong style="font-size:0.82rem;color:#0f172a">Hubungkan / Ubah No. SO</strong>
+            <span id="opsMenuSoCount" class="ops-bulk-count"></span>
+          </div>
+          <div class="ops-bulk-row">
+            <input id="opsMenuSoInp" placeholder="Ketik no SO / customer..." autocomplete="off" />
+            <button type="button" class="btn btn-primary btn-sm" id="btnOpsMenuSaveSo" onclick="saveOpsMenuSo()">Terapkan SO</button>
+          </div>
+          <div style="font-size:0.7rem;color:#64748b;margin-top:0.35rem">Mengubah No. SO langsung untuk semua plan di baris ini. Kosongkan lalu Terapkan untuk melepas SO.</div>
+        </div>
         <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Close hanya <strong>produk ini</strong>. Produk lain di SO tetap aktif.</p>
         <div id="opsCloseForm">
           <div class="field" style="margin-bottom:0.65rem">
