@@ -3756,6 +3756,351 @@
       }
     }
 
+    /* ===== Modern SaaS Redesign: Instruksi Kirim Modal (#shipRequestModal) ===== */
+    #shipRequestModal.modal-bg .modal.modal-sheet.odoo-form-modal {
+      width: min(980px, 95vw) !important;
+      max-width: 980px !important;
+      max-height: min(92vh, 840px) !important;
+      padding: 0 !important;
+      border-radius: 16px !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      overflow: hidden !important;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 900px) {
+      #shipRequestModal .sheet-handle { display: none !important; }
+    }
+    #shipRequestModal .sheet-head { display: none !important; }
+    #shipRequestModal .ot-modal-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.4rem 0.9rem !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      flex-shrink: 0;
+    }
+    #shipRequestModal .ot-modal-kicker {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #0d9f6e;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.15rem;
+    }
+    #shipRequestModal .ot-modal-banner h2 {
+      margin: 0;
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    #shipRequestModal .ot-modal-sub {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.18rem;
+    }
+    #shipRequestModal .ot-banner-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+    #shipRequestModal .ot-close-x {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 1.2rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    #shipRequestModal .ot-close-x:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+    #shipRequestModal .sheet-body {
+      background: #ffffff !important;
+      padding: 1rem 1.4rem 1.35rem !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    #shipRequestModal .odoo-form-grid {
+      gap: 0.5rem 2rem;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    #shipRequestModal .ot-form-col-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 0.4rem 0;
+    }
+    #shipRequestModal .odoo-form-row {
+      grid-template-columns: 7.2rem 1fr;
+      gap: 0.65rem;
+      align-items: center;
+      padding: 0.28rem 0;
+      border-bottom: none;
+    }
+    #shipRequestModal .odoo-form-row label {
+      font-size: 0.78rem;
+      color: #475569;
+      padding-top: 0;
+      font-weight: 600;
+    }
+    #shipRequestModal .odoo-form-row input,
+    #shipRequestModal .odoo-form-row select {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0.45rem 0.68rem !important;
+      font-size: 0.84rem !important;
+      min-height: 36px;
+      color: #0f172a !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #shipRequestModal .odoo-form-row input:hover,
+    #shipRequestModal .odoo-form-row select:hover {
+      border-color: #94a3b8 !important;
+      background: #ffffff !important;
+    }
+    #shipRequestModal .odoo-form-row input:focus,
+    #shipRequestModal .odoo-form-row select:focus {
+      background: #ffffff !important;
+      border-color: #0d9f6e !important;
+      box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.14) !important;
+    }
+    #shipRequestModal .ot-notebook-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.5rem;
+      margin: 0.2rem 0 0.75rem;
+    }
+    #shipRequestModal .ot-lines-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+      overflow: visible;
+    }
+    #shipRequestModal #shipLinesTable {
+      width: 100%;
+      margin-top: 0;
+      border-collapse: collapse;
+    }
+    @media (min-width: 721px) {
+      #shipRequestModal #shipLinesTable { table-layout: fixed; }
+      #shipRequestModal #shipLinesTable .col-num { width: 34px; }
+      #shipRequestModal #shipLinesTable .col-prod { width: auto; }
+      #shipRequestModal #shipLinesTable .col-bets { width: 158px; }
+      #shipRequestModal #shipLinesTable .col-qty { width: 104px; }
+      #shipRequestModal #shipLinesTable .col-unit { width: 92px; }
+      #shipRequestModal #shipLinesTable .col-total { width: 146px; }
+      #shipRequestModal #shipLinesTable .col-act { width: 68px; }
+    }
+    #shipRequestModal #shipLinesTable thead th {
+      background: #f8fafc;
+      color: #475569;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.55rem 0.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+    #shipRequestModal #shipLinesTable thead th:first-child { border-top-left-radius: 10px; }
+    #shipRequestModal #shipLinesTable thead th:last-child { border-top-right-radius: 10px; }
+    #shipRequestModal #shipLinesTable thead th.ship-col-qty,
+    #shipRequestModal #shipLinesTable thead th.ship-col-total {
+      text-align: right;
+    }
+    #shipRequestModal #shipLinesTable tbody td {
+      padding: 0.42rem 0.42rem !important;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    #shipRequestModal #shipLinesTable tbody tr:last-child td {
+      border-bottom: none;
+    }
+    #shipRequestModal #shipLinesTable input,
+    #shipRequestModal #shipLinesTable select {
+      width: 100% !important;
+      min-width: 0 !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 6px !important;
+      padding: 0.36rem 0.5rem !important;
+      font-size: 0.82rem !important;
+      min-height: 33px;
+      color: #0f172a !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      font-variant-numeric: tabular-nums;
+    }
+    #shipRequestModal #shipLinesTable input.sl-bet-qty {
+      text-align: right;
+      font-weight: 600;
+    }
+    #shipRequestModal #shipLinesTable input:focus,
+    #shipRequestModal #shipLinesTable select:focus {
+      border-color: #0d9f6e !important;
+      box-shadow: 0 0 0 2px rgba(13, 159, 110, 0.14) !important;
+    }
+    #shipRequestModal .search-combo-list {
+      z-index: 420 !important;
+      max-height: 220px;
+    }
+    #shipRequestModal .ship-row-total {
+      text-align: right;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #0f172a;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      line-height: 1.25;
+    }
+    #shipRequestModal .ship-row-sisa {
+      font-size: 0.67rem;
+      font-weight: 600;
+      color: #b45309;
+      white-space: nowrap;
+      margin-top: 0.1rem;
+    }
+    #shipRequestModal .ship-row-src {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #047857;
+      white-space: nowrap;
+      margin-top: 0.08rem;
+    }
+    #shipRequestModal .ship-split-btn {
+      width: 26px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #047857;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #shipRequestModal .ship-split-btn:hover {
+      background: #ecfdf5;
+      border-color: #6ee7b7;
+    }
+    #shipRequestModal .ot-totals-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem 1.25rem;
+      flex-wrap: wrap;
+      padding: 0.62rem 0.9rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+      font-size: 0.82rem;
+      color: #475569;
+      font-variant-numeric: tabular-nums;
+    }
+    #shipRequestModal .sheet-foot {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      padding: 0.75rem 1.4rem !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      backdrop-filter: none !important;
+    }
+    #shipRequestModal .sheet-foot .ot-foot-hint {
+      font-size: 0.74rem;
+      color: #64748b;
+    }
+    #shipRequestModal .sheet-foot .ot-foot-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+    #shipRequestModal .sheet-foot .btn,
+    #shipRequestModal .sheet-foot .btn-odoo {
+      flex: 0 0 auto !important;
+      min-height: 38px !important;
+      padding: 0.45rem 1.05rem !important;
+      font-size: 0.84rem !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      white-space: nowrap;
+    }
+    @media (max-width: 720px) {
+      #shipRequestModal.modal-bg .modal.modal-sheet.odoo-form-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 18px 18px 0 0 !important;
+      }
+      #shipRequestModal .ot-modal-banner,
+      #shipRequestModal .sheet-body,
+      #shipRequestModal .sheet-foot {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+      #shipRequestModal .ot-foot-hint { display: none; }
+      #shipRequestModal .odoo-form-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+      #shipRequestModal #shipLinesTable colgroup,
+      #shipRequestModal #shipLinesTable thead { display: none; }
+      #shipRequestModal #shipLinesTable tbody,
+      #shipRequestModal #shipLinesTable tr.ship-line { display: block; width: 100%; }
+      #shipRequestModal #shipLinesTable tr.ship-line {
+        display: grid !important;
+        grid-template-columns: 28px 1fr 1fr 48px;
+        gap: 0.4rem;
+        padding: 0.55rem !important;
+        margin: 0.45rem;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+      }
+      #shipRequestModal #shipLinesTable tr.ship-line td { border: none !important; padding: 0.1rem !important; }
+      #shipRequestModal #shipLinesTable tr.ship-line td:nth-child(2) { grid-column: 2 / 5; }
+      #shipRequestModal #shipLinesTable tr.ship-line td:nth-child(3) { grid-column: 1 / 3; }
+      #shipRequestModal #shipLinesTable tr.ship-line td:nth-child(4) { grid-column: 3 / 4; }
+      #shipRequestModal #shipLinesTable tr.ship-line td:nth-child(5) { grid-column: 4 / 5; }
+      #shipRequestModal #shipLinesTable tr.ship-line td:nth-child(6) { grid-column: 1 / 4; text-align: left; }
+      #shipRequestModal #shipLinesTable tr.ship-line td:nth-child(7) { grid-column: 4 / 5; }
+    }
+
 
 
     #korlapAssignModal.modal-bg .modal {
@@ -15527,7 +15872,7 @@ function fillOperatorList(selectedEmail) {
       try {
         var pids = list.map(function(x) { return x.product_id; });
         var { data: ships } = await sb.from("ship_requests")
-          .select("ship_id,status,no_so,created_at")
+          .select("ship_id,status,no_so,request_date,created_at")
           .neq("status", "cancelled")
           .order("created_at", { ascending: false })
           .limit(300);
@@ -15542,14 +15887,20 @@ function fillOperatorList(selectedEmail) {
               .in("ship_id", sch);
             (slines || []).forEach(function(L) {
               if (pids.indexOf(L.product_id) < 0) return;
+              var meta = shipMeta[L.ship_id] || {};
+              var qLine = Number(L.qty) || 0;
               if (!shippedMap[L.product_id]) {
-                var meta = shipMeta[L.ship_id] || {};
                 shippedMap[L.product_id] = {
                   ship_id: L.ship_id,
                   status: meta.status || "requested",
                   no_so: meta.no_so || "",
-                  qty: Number(L.qty) || 0
+                  qty: qLine,
+                  totalQty: qLine,
+                  count: 1
                 };
+              } else {
+                shippedMap[L.product_id].totalQty += qLine;
+                shippedMap[L.product_id].count += 1;
               }
             });
           }
@@ -15610,16 +15961,22 @@ function fillOperatorList(selectedEmail) {
         var nos0 = nosArr[0] || "";
         var st = x.stock;
         var sh = x.ship;
+        var sisaYest = sh ? Math.max(0, (Number(x.actual) || 0) - (Number(sh.totalQty) || 0)) : (Number(x.actual) || 0);
         var actionHtml = "";
         if (sh) {
           var kirimBtn = (sh.status === "pending")
             ? ' <button type="button" class="btn btn-primary btn-sm" style="margin-top:0.25rem" onclick="confirmShipNow(' + esc(JSON.stringify(sh.ship_id)) + ')">Kirim</button>'
             : "";
+          var sisaBtn = sisaYest > 0
+            ? '<div style="font-size:0.68rem;color:#b45309;font-weight:600;margin-top:0.2rem">Sisa di gudang: ' + formatNum(sisaYest) + '</div>' +
+              '<button type="button" class="btn btn-primary btn-sm" style="margin-top:0.2rem" onclick="openShipRequestModal(' + esc(JSON.stringify(String(x.product_id))) + ',' + sisaYest + ',' + esc(JSON.stringify(nos0)) + ')">+ Kirim Sisa (' + formatNum(sisaYest) + ')</button>'
+            : "";
           actionHtml =
             shipStatusPill(sh.status) +
-            '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">' + esc(sh.ship_id) + "</div>" +
+            '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">' + esc(sh.ship_id) +
+              (sh.count > 1 ? (' (+' + (sh.count - 1) + ' lagi)') : "") + "</div>" +
             '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem" onclick="openShipDetail(' + esc(JSON.stringify(sh.ship_id)) + ')">Detail</button>' +
-            kirimBtn;
+            kirimBtn + sisaBtn;
         } else {
           actionHtml =
             '<span class="pill" style="background:#f1f5f9;color:#64748b">Belum</span> ' +
@@ -15633,8 +15990,8 @@ function fillOperatorList(selectedEmail) {
           ? "<strong>" + esc(x.customer) + "</strong><div style='font-size:0.72rem;color:var(--text-muted)'>" + esc(nos) + "</div>"
           : "<strong>" + esc(nos) + "</strong>";
         return "<tr>" +
-          '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(x.actual)) + '" data-noso="' + esc(nos0) + '"' +
-            (sh ? " disabled" : "") + " /></td>" +
+          '<td><input type="checkbox" class="mkt-yest-cb" data-pid="' + esc(x.product_id) + '" data-qty="' + esc(String(sisaYest)) + '" data-noso="' + esc(nos0) + '"' +
+            (sisaYest <= 0 ? " disabled" : "") + " /></td>" +
           "<td><strong>" + prod + "</strong></td>" +
           "<td style='text-align:right'><strong>" + formatNum(x.actual) + "</strong></td>" +
           "<td style='font-size:0.78rem'>" + cust + "</td>" +
@@ -15798,9 +16155,15 @@ function fillOperatorList(selectedEmail) {
           if (name.indexOf(l.product_id) === 0) name = name.replace(l.product_id, "").replace(/^[\s·\-]+/, "");
           var label = esc(l.product_id) + (name ? " - " + esc(name) : "");
           var betsHtml = doRenderBetsPills(meta, l.product_id, r.status === "pending");
+          var sisaItem = (meta.sisaGudang || []).find(function(sx) {
+            return String(sx.product_id || "").trim().toUpperCase() === String(l.product_id || "").trim().toUpperCase();
+          });
+          var sisaHtml = (sisaItem && Number(sisaItem.sisa) > 0)
+            ? '<div style="font-size:0.68rem;color:#b45309;font-weight:600;margin-top:0.15rem">Sisa di gudang (kirim berikutnya): ' + formatNum(sisaItem.sisa) + " " + esc(sisaItem.unit || l.unit || "pcs") + "</div>"
+            : "";
           return "<div style='margin-bottom:0.28rem'>" +
             "<div style='display:flex;justify-content:space-between;gap:0.75rem'><span>" + label + "</span><strong style='white-space:nowrap'>" + formatNum(l.qty) + " " + esc(l.unit || "") + "</strong></div>" +
-            betsHtml +
+            betsHtml + sisaHtml +
             "</div>";
         }).join("");
         var cust = r.customer_name || "";
@@ -16423,6 +16786,508 @@ function fillOperatorList(selectedEmail) {
       closeMktAksiModal();
       openShipRequestModal(pid, qty, noSo);
     }
+    function shipProductDisplay(pid) {
+      pid = String(pid || "").trim();
+      if (!pid) return "";
+      var p = (products || []).find(function(x) { return String(x.product_id).trim().toUpperCase() === pid.toUpperCase(); });
+      if (!p) return pid;
+      var code = String(p.product_id || pid).trim();
+      var name = String(p.name || "").trim();
+      if (name && name.toUpperCase().indexOf(code.toUpperCase()) === 0) {
+        name = name.slice(code.length).replace(/^[\s·\-—]+/, "").trim();
+      }
+      if (!name || name.toUpperCase() === code.toUpperCase()) return code;
+      return code + " - " + name;
+    }
+    function shipDefaultUnitForProduct(pid) {
+      pid = String(pid || "").trim();
+      if (!pid) return "pcs";
+      var p = (products || []).find(function(x) { return String(x.product_id).trim().toUpperCase() === pid.toUpperCase(); });
+      return (p && p.unit) ? String(p.unit).trim() : "pcs";
+    }
+    function _shipExtractBatchFromNotes(txt) {
+      var s = String(txt || "").trim();
+      if (!s) return "";
+      var m = s.match(/(?:no\.?\s*bets|bets|batch|lot)\s*[:#=\-]?\s*([A-Za-z0-9._\-\/]+)/i);
+      if (m && m[1]) return String(m[1]).trim();
+      return "";
+    }
+    async function fetchReportBetsForProduct(productId, opts) {
+      opts = opts || {};
+      var pid = resolveProductId(productId) || String(productId || "").trim();
+      if (!pid || !sb) return { items: [], source: "", reportDate: "", totalAvail: 0, totalReport: 0 };
+      var wantSo = fgkNormSoKey(opts.noSo || "");
+      var excludeShipId = String(opts.excludeShipId || "").trim();
+      var defUnit = shipDefaultUnitForProduct(pid);
+      var rawEntries = [];
+      var source = "";
+      var reportDate = "";
+
+      // 1) Cek laporan Korlap (fg_korlap_reports) terlebih dahulu
+      try {
+        var { data: fgRows } = await sb.from("fg_korlap_reports")
+          .select("report_date,product_id,no_so,shift,output_qty,bets,unit,notes,updated_at")
+          .eq("product_id", pid)
+          .order("report_date", { ascending: false })
+          .order("updated_at", { ascending: false })
+          .limit(25);
+        var fList = (fgRows || []).filter(function(r) { return fgkHasReported(r); });
+        if (fList.length) {
+          var pool = fList;
+          if (wantSo) {
+            var soMatched = fList.filter(function(r) { return fgkNormSoKey(r.no_so) === wantSo; });
+            if (soMatched.length) pool = soMatched;
+          }
+          var latestDate = String(pool[0].report_date || "").slice(0, 10);
+          var latestRows = pool.filter(function(r) { return String(r.report_date || "").slice(0, 10) === latestDate; });
+          reportDate = latestDate;
+          source = "Korlap";
+          latestRows.forEach(function(r) {
+            var rUnit = String(r.unit || defUnit || "pcs").trim() || "pcs";
+            var bets = [];
+            if (r.bets) {
+              try { bets = typeof r.bets === "string" ? JSON.parse(r.bets) : (r.bets || []); } catch (eB) { bets = []; }
+            }
+            var noteFallback = _shipExtractBatchFromNotes(r.notes);
+            if (Array.isArray(bets) && bets.length) {
+              bets.forEach(function(b, idx) {
+                var q = Number(b && b.qty) || 0;
+                if (!(q > 0)) return;
+                var bNo = String((b && (b.no || b.batch_no || b.kode_bets || b.no_bets || b.notes)) || "").trim();
+                if (!bNo) bNo = noteFallback || ("Bet " + ((b && b.bet_no) || (idx + 1)));
+                rawEntries.push({ no: bNo, qty: q, unit: rUnit, source: "Korlap", report_date: latestDate });
+              });
+            } else if (Number(r.output_qty) > 0) {
+              rawEntries.push({
+                no: noteFallback || "Bet 1",
+                qty: Number(r.output_qty) || 0,
+                unit: rUnit,
+                source: "Korlap",
+                report_date: latestDate
+              });
+            }
+          });
+        }
+      } catch (eKl) { console.warn("fetchReportBets Korlap:", eKl); }
+
+      // 2) Fallback: Laporan Operator (reports + plans) jika belum ada data Korlap
+      if (!rawEntries.length) {
+        try {
+          var { data: pls } = await sb.from("plans")
+            .select("plan_id,plan_date,product_id,machine_id,no_so,unit,shift")
+            .eq("product_id", pid)
+            .order("plan_date", { ascending: false })
+            .limit(35);
+          var pList = pls || [];
+          var fgPls = pList.filter(function(p) { return isFgMachine(p.machine_id); });
+          if (fgPls.length) pList = fgPls;
+          if (wantSo) {
+            var pSo = pList.filter(function(p) { return fgkNormSoKey(p.no_so) === wantSo; });
+            if (pSo.length) pList = pSo;
+          }
+          if (pList.length) {
+            var pIds = pList.map(function(p) { return p.plan_id; }).filter(Boolean);
+            var { data: reps } = await sb.from("reports")
+              .select("report_id,plan_id,actual_qty,notes,report_date,created_at")
+              .in("plan_id", pIds.slice(0, 35))
+              .gt("actual_qty", 0)
+              .order("report_date", { ascending: false })
+              .limit(35);
+            if (reps && reps.length) {
+              var pMap = {};
+              pList.forEach(function(p) { pMap[p.plan_id] = p; });
+              var topDate = String(reps[0].report_date || (pMap[reps[0].plan_id] && pMap[reps[0].plan_id].plan_date) || "").slice(0, 10);
+              reportDate = topDate;
+              source = "Operator";
+              reps.forEach(function(rep) {
+                var pl = pMap[rep.plan_id] || {};
+                var rDate = String(rep.report_date || pl.plan_date || "").slice(0, 10);
+                if (topDate && rDate !== topDate) return;
+                var q = Number(rep.actual_qty) || 0;
+                if (!(q > 0)) return;
+                var bNo = _shipExtractBatchFromNotes(rep.notes);
+                rawEntries.push({
+                  no: bNo,
+                  qty: q,
+                  unit: String(pl.unit || defUnit || "pcs").trim() || "pcs",
+                  source: "Operator",
+                  report_date: rDate
+                });
+              });
+            }
+          }
+        } catch (eOp) { console.warn("fetchReportBets Operator:", eOp); }
+      }
+
+      if (!rawEntries.length) {
+        return { items: [], source: "", reportDate: "", totalAvail: 0, totalReport: 0 };
+      }
+
+      // 3) Hitung qty yang sudah pernah diinstruksikan untuk produk/bets ini (agar sisa menjadi qty kirim berikutnya)
+      var usedByBet = {};
+      var usedTotal = 0;
+      try {
+        var ships = (shipReqList && shipReqList.length) ? shipReqList : null;
+        if (!ships && sb) {
+          var { data: sData } = await sb.from("ship_requests")
+            .select("ship_id,status,request_date,no_so,notes,created_at")
+            .neq("status", "cancelled")
+            .order("created_at", { ascending: false })
+            .limit(120);
+          ships = sData || [];
+          var sIds = ships.map(function(s) { return s.ship_id; }).filter(Boolean);
+          if (sIds.length) {
+            var { data: sLines } = await sb.from("ship_request_lines").select("*").in("ship_id", sIds.slice(0, 80));
+            var byS = {};
+            (sLines || []).forEach(function(l) {
+              if (!byS[l.ship_id]) byS[l.ship_id] = [];
+              byS[l.ship_id].push(l);
+            });
+            ships.forEach(function(s) { s.ship_request_lines = byS[s.ship_id] || []; });
+          }
+        }
+        (ships || []).forEach(function(s) {
+          if (!s || s.status === "cancelled") return;
+          if (excludeShipId && s.ship_id === excludeShipId) return;
+          var sDate = String(s.request_date || String(s.created_at || "").slice(0, 10)).slice(0, 10);
+          if (reportDate && sDate && sDate < reportDate) return;
+          if (wantSo && s.no_so && fgkNormSoKey(s.no_so) !== wantSo) return;
+          var sMeta = doParseTags(s.notes);
+          var mItem = doBetsFindItem(sMeta.betsMkt, pid);
+          if (mItem && mItem.bets && mItem.bets.length) {
+            mItem.bets.forEach(function(b) {
+              var bq = Number(b.qty) || 0;
+              var bk = String(b.no || "").trim().toUpperCase();
+              if (bk) usedByBet[bk] = (usedByBet[bk] || 0) + bq;
+              usedTotal += bq;
+            });
+          } else {
+            (s.ship_request_lines || []).forEach(function(l) {
+              if (String(l.product_id || "").trim().toUpperCase() === pid.toUpperCase()) {
+                usedTotal += Number(l.qty) || 0;
+              }
+            });
+          }
+        });
+      } catch (eUsed) { console.warn("fetchReportBets used:", eUsed); }
+
+      var totalReport = rawEntries.reduce(function(s, it) { return s + (Number(it.qty) || 0); }, 0);
+      var unbatchedRem = Math.max(0, usedTotal);
+      var outItems = [];
+      rawEntries.forEach(function(it) {
+        var repQ = Number(it.qty) || 0;
+        var bk = String(it.no || "").trim().toUpperCase();
+        var usedHere = 0;
+        if (bk && usedByBet[bk] > 0) {
+          usedHere = Math.min(repQ, usedByBet[bk]);
+          usedByBet[bk] -= usedHere;
+          unbatchedRem = Math.max(0, unbatchedRem - usedHere);
+        } else if (unbatchedRem > 0) {
+          usedHere = Math.min(repQ, unbatchedRem);
+          unbatchedRem -= usedHere;
+        }
+        var avail = Math.max(0, repQ - usedHere);
+        outItems.push({
+          no: it.no || "",
+          qty: avail,
+          reportQty: repQ,
+          unit: it.unit || defUnit || "pcs",
+          source: it.source || source,
+          report_date: it.report_date || reportDate
+        });
+      });
+
+      var positiveItems = outItems.filter(function(it) { return it.qty > 0; });
+      var totalAvail = positiveItems.reduce(function(s, it) { return s + (Number(it.qty) || 0); }, 0);
+      return {
+        items: positiveItems.length ? positiveItems : outItems,
+        source: source,
+        reportDate: reportDate,
+        totalAvail: totalAvail,
+        totalReport: totalReport
+      };
+    }
+
+    function _shipEnsureLinesOrderNums() {
+      var rows = document.querySelectorAll("#shipReqLines tr.ship-line");
+      rows.forEach(function(tr, idx) {
+        var numEl = tr.querySelector(".ot-line-num");
+        if (numEl) numEl.textContent = String(idx + 1);
+      });
+    }
+    function syncShipLinesTotals() {
+      var rows = Array.prototype.slice.call(document.querySelectorAll("#shipReqLines tr.ship-line"));
+      var byProd = {};
+      var byUnit = {};
+      var sisaByProd = {};
+      rows.forEach(function(tr) {
+        var pidInp = tr.querySelector(".sl-pid");
+        var rawPid = ((pidInp && (pidInp.dataset.scId || pidInp.value)) || "").trim();
+        var pid = (resolveProductId(rawPid) || rawPid).trim();
+        var qty = parseInputNum((tr.querySelector(".sl-bet-qty") && tr.querySelector(".sl-bet-qty").value) || 0);
+        var unit = ((tr.querySelector(".sl-unit") && tr.querySelector(".sl-unit").value) || "pcs").trim() || "pcs";
+        var repQty = Number((tr.querySelector(".sl-bet-qty") && tr.querySelector(".sl-bet-qty").dataset.reportQty) || 0) || 0;
+        var pk = pid ? pid.toUpperCase() : ("__ROW_" + rows.indexOf(tr));
+        if (!byProd[pk]) byProd[pk] = { total: 0, count: 0, unit: unit, reportSum: 0 };
+        byProd[pk].total += qty;
+        byProd[pk].count += 1;
+        byProd[pk].unit = unit;
+        if (repQty > 0) byProd[pk].reportSum += repQty;
+        if (qty > 0) {
+          byUnit[unit] = (byUnit[unit] || 0) + qty;
+        }
+      });
+
+      rows.forEach(function(tr) {
+        var pidInp = tr.querySelector(".sl-pid");
+        var rawPid = ((pidInp && (pidInp.dataset.scId || pidInp.value)) || "").trim();
+        var pid = (resolveProductId(rawPid) || rawPid).trim();
+        var qtyEl = tr.querySelector(".sl-bet-qty");
+        var qty = parseInputNum((qtyEl && qtyEl.value) || 0);
+        var unit = ((tr.querySelector(".sl-unit") && tr.querySelector(".sl-unit").value) || "pcs").trim() || "pcs";
+        var repQty = Number((qtyEl && qtyEl.dataset.reportQty) || 0) || 0;
+        var srcTxt = (qtyEl && qtyEl.dataset.reportSrc) || "";
+        var pk = pid ? pid.toUpperCase() : ("__ROW_" + rows.indexOf(tr));
+        var prodMeta = byProd[pk] || { total: qty, count: 1 };
+        var totCell = tr.querySelector(".ship-row-total-cell");
+        if (totCell) {
+          var mainVal = qty > 0 ? (formatNum(qty) + " " + esc(unit)) : "—";
+          var splitHint = (prodMeta.count > 1)
+            ? ('<div style="font-size:0.66rem;color:#475569;font-weight:600">Total produk: ' + formatNum(prodMeta.total) + " " + esc(unit) + "</div>")
+            : "";
+          var sisaHere = repQty > qty ? (repQty - qty) : 0;
+          if (sisaHere > 0 && pid) sisaByProd[pk] = (sisaByProd[pk] || 0) + sisaHere;
+          var sisaHint = sisaHere > 0
+            ? ('<div class="ship-row-sisa">Sisa ke gudang: ' + formatNum(sisaHere) + " " + esc(unit) + "</div>")
+            : (srcTxt ? ('<div class="ship-row-src">Dari ' + esc(srcTxt) + "</div>") : "");
+          totCell.innerHTML = '<div class="ship-row-total">' + mainVal + "</div>" + splitHint + sisaHint;
+        }
+      });
+
+      var bar = $("shipReqTotalsBar");
+      if (bar) {
+        var unitParts = Object.keys(byUnit).map(function(u) { return "<strong>" + formatNum(byUnit[u]) + " " + esc(u) + "</strong>"; });
+        var totalTxt = unitParts.length ? unitParts.join(" + ") : "<strong>0 pcs</strong>";
+        var totalSisa = Object.keys(sisaByProd).reduce(function(s, k) { return s + sisaByProd[k]; }, 0);
+        var prodCount = Object.keys(byProd).filter(function(k) { return k.indexOf("__ROW_") !== 0; }).length;
+        bar.innerHTML =
+          '<div>' +
+            (totalSisa > 0
+              ? '<span style="font-size:0.75rem;color:#b45309;font-weight:600">Sisa di gudang untuk pengiriman berikutnya: ' + formatNum(totalSisa) + "</span>"
+              : '<span style="font-size:0.74rem;color:#64748b">' + rows.length + " baris · " + (prodCount || rows.length) + " produk</span>") +
+          "</div>" +
+          '<div style="display:flex;align-items:center;gap:0.45rem">' +
+            '<span style="color:#64748b">Total Pengiriman:</span> ' + totalTxt +
+          "</div>";
+      }
+      _shipEnsureLinesOrderNums();
+    }
+
+    function _shipCreateLineTr(opts) {
+      opts = opts || {};
+      var pid = String(opts.product_id || "").trim();
+      var dispVal = pid ? shipProductDisplay(pid) : "";
+      var unit = String(opts.unit || (pid ? shipDefaultUnitForProduct(pid) : "pcs") || "pcs").trim() || "pcs";
+      var betNo = String(opts.no_bets || opts.no || "").trim();
+      var qtyVal = (opts.qty != null && opts.qty !== "" && Number(opts.qty) > 0) ? formatInputNum(opts.qty, true) : "";
+      var repQty = (opts.reportQty != null && Number(opts.reportQty) > 0) ? Number(opts.reportQty) : 0;
+      var repSrc = String(opts.source || "").trim();
+
+      var tr = document.createElement("tr");
+      tr.className = "ship-line";
+      tr.innerHTML =
+        '<td class="col-num"><span class="ot-line-num">1</span></td>' +
+        '<td class="col-prod"><div class="search-combo"><input class="sl-pid" type="text" placeholder="Cari kode / nama produk…" value="' + esc(dispVal) + '" data-sc-id="' + esc(pid) + '" autocomplete="off" /></div></td>' +
+        '<td class="col-bets"><input class="sl-bet-no" type="text" placeholder="No. Bets (wajib)" value="' + esc(betNo) + '" autocomplete="off" /></td>' +
+        '<td class="col-qty"><input class="sl-bet-qty input-thousand" type="text" inputmode="decimal" placeholder="0" value="' + esc(qtyVal) + '" data-report-qty="' + (repQty > 0 ? String(repQty) : "") + '" data-report-src="' + esc(repSrc) + '" /></td>' +
+        '<td class="col-unit">' + unitSelectHtml(unit, "sl-unit") + '</td>' +
+        '<td class="col-total ship-row-total-cell"></td>' +
+        '<td class="col-act"><div style="display:flex;align-items:center;justify-content:flex-end;gap:0.25rem">' +
+          '<button type="button" class="ship-split-btn" title="Split No. Bets untuk produk ini" onclick="shipSplitLine(this)">+</button>' +
+          '<button type="button" class="ol-del" title="Hapus baris" onclick="shipRemoveLine(this)">&times;</button>' +
+        '</div></td>';
+
+      var qtyInp = tr.querySelector(".sl-bet-qty");
+      if (qtyInp) {
+        try { bindThousandInput(qtyInp, true); } catch (eB) {}
+        qtyInp.addEventListener("input", syncShipLinesTotals);
+        qtyInp.addEventListener("change", syncShipLinesTotals);
+      }
+      var unitSel = tr.querySelector(".sl-unit");
+      if (unitSel) unitSel.addEventListener("change", syncShipLinesTotals);
+      var pidInp = tr.querySelector(".sl-pid");
+      if (pidInp) {
+        attachSearchCombo(pidInp, function() {
+          var allP = (products || []).filter(function(p) { return isFgProduct(p); });
+          var base = allP.length ? allP : (products || []);
+          return base.map(function(p) {
+            var disp = shipProductDisplay(p.product_id);
+            return {
+              id: p.product_id,
+              label: disp,
+              sub: p.unit ? ("Satuan: " + p.unit) : (p.category || ""),
+              search: [p.product_id, p.name, disp].join(" ")
+            };
+          });
+        }, {
+          valueMode: "label",
+          placeholder: "Cari kode / nama produk…",
+          onPick: function(id, label, input) {
+            input.value = shipProductDisplay(id) || label || id;
+            input.dataset.scId = id || "";
+            shipOnProductPicked(tr, id);
+          }
+        });
+      }
+      return tr;
+    }
+
+    async function shipOnProductPicked(tr, pid) {
+      if (!tr || !pid) return;
+      var unitSel = tr.querySelector(".sl-unit");
+      if (unitSel) ensureUnitSelectValue(unitSel, shipDefaultUnitForProduct(pid));
+      syncShipLinesTotals();
+
+      var soSel = $("shipReqSoSelect");
+      if (soSel && !soSel.value) {
+        try { fillShipSoSelect(pid); } catch (eF) {}
+      }
+
+      var noSo = (($("shipReqSo") && $("shipReqSo").value) || "").trim();
+      var editShipId = (($("shipReqId") && $("shipReqId").value) || "").trim();
+      if ($("shipReportAutoHint")) $("shipReportAutoHint").textContent = "Mengecek laporan Korlap/Operator…";
+      var rep = await fetchReportBetsForProduct(pid, { noSo: noSo, excludeShipId: editShipId });
+      if (rep && rep.items && rep.items.length) {
+        var first = rep.items[0];
+        var betNoEl = tr.querySelector(".sl-bet-no");
+        var qtyEl = tr.querySelector(".sl-bet-qty");
+        if (betNoEl && first.no) betNoEl.value = first.no;
+        if (qtyEl) {
+          qtyEl.value = first.qty > 0 ? formatInputNum(first.qty, true) : "";
+          qtyEl.dataset.reportQty = first.qty > 0 ? String(first.qty) : (first.reportQty > 0 ? String(first.reportQty) : "");
+          qtyEl.dataset.reportSrc = rep.source ? (rep.source + (rep.reportDate ? " " + rep.reportDate : "")) : "";
+        }
+        if (unitSel && first.unit) ensureUnitSelectValue(unitSel, first.unit);
+        // Jika laporan Korlap punya >1 bet untuk produk ini, otomatis tambahkan baris split
+        var prevNode = tr;
+        for (var i = 1; i < rep.items.length; i++) {
+          var it = rep.items[i];
+          var extraTr = _shipCreateLineTr({
+            product_id: pid,
+            no_bets: it.no,
+            qty: it.qty > 0 ? it.qty : "",
+            reportQty: it.qty > 0 ? it.qty : it.reportQty,
+            source: rep.source ? (rep.source + (rep.reportDate ? " " + rep.reportDate : "")) : "",
+            unit: it.unit || (unitSel && unitSel.value) || "pcs"
+          });
+          prevNode.insertAdjacentElement("afterend", extraTr);
+          prevNode = extraTr;
+        }
+        if ($("shipReportAutoHint")) {
+          $("shipReportAutoHint").innerHTML = '<span style="color:#047857;font-weight:600">✓ Auto-isi dari laporan ' + esc(rep.source) + (rep.reportDate ? (" (" + esc(rep.reportDate) + ")") : "") + "</span>";
+        }
+      } else if ($("shipReportAutoHint")) {
+        $("shipReportAutoHint").textContent = "Belum ada laporan bets untuk produk ini — isi manual.";
+      }
+      syncShipLinesTotals();
+    }
+
+    function shipSplitLine(btn) {
+      var tr = btn && btn.closest("tr.ship-line");
+      if (!tr) return;
+      var pidInp = tr.querySelector(".sl-pid");
+      var pid = ((pidInp && (pidInp.dataset.scId || resolveProductId(pidInp.value))) || "").trim();
+      var unit = ((tr.querySelector(".sl-unit") && tr.querySelector(".sl-unit").value) || "pcs").trim() || "pcs";
+      var newTr = _shipCreateLineTr({ product_id: pid, unit: unit, no_bets: "", qty: "" });
+      tr.insertAdjacentElement("afterend", newTr);
+      syncShipLinesTotals();
+      var betInp = newTr.querySelector(".sl-bet-no");
+      if (betInp) betInp.focus();
+    }
+
+    function shipRemoveLine(btn) {
+      var box = $("shipReqLines");
+      var tr = btn && btn.closest("tr.ship-line");
+      if (!box || !tr) return;
+      var rows = box.querySelectorAll("tr.ship-line");
+      if (rows.length <= 1) {
+        toast("Minimal 1 baris produk pengiriman", true);
+        return;
+      }
+      tr.remove();
+      syncShipLinesTotals();
+    }
+
+    function addShipReqLine(line) {
+      line = line || {};
+      var box = $("shipReqLines");
+      if (!box) return;
+      var bets = (line.bets && line.bets.length)
+        ? line.bets
+        : [{ no: line.no_bets || "", qty: (line.qty != null && line.qty !== "") ? line.qty : "", reportQty: line.reportQty || 0, source: line.source || "" }];
+      bets.forEach(function(b) {
+        var tr = _shipCreateLineTr({
+          product_id: line.product_id || "",
+          unit: line.unit || (line.product_id ? shipDefaultUnitForProduct(line.product_id) : "pcs"),
+          no_bets: b.no || "",
+          qty: (b.qty != null && b.qty !== "") ? b.qty : "",
+          reportQty: b.reportQty || 0,
+          source: b.source || line.source || ""
+        });
+        box.appendChild(tr);
+      });
+      syncShipLinesTotals();
+    }
+
+    function shipCollectLines() {
+      var box = $("shipReqLines");
+      if (!box) return { error: "Daftar produk tidak ditemukan", items: [], sisaList: [] };
+      var rows = box.querySelectorAll("tr.ship-line");
+      var byPid = {};
+      var order = [];
+      for (var i = 0; i < rows.length; i++) {
+        var tr = rows[i];
+        var pidInp = tr.querySelector(".sl-pid");
+        var rawPid = ((pidInp && (pidInp.dataset.scId || pidInp.value)) || "").trim();
+        var pid = (resolveProductId(rawPid) || rawPid).trim();
+        var noEl = tr.querySelector(".sl-bet-no");
+        var qtyEl = tr.querySelector(".sl-bet-qty");
+        var unitSel = tr.querySelector(".sl-unit");
+        var bNo = ((noEl && noEl.value) || "").trim();
+        var bQty = parseInputNum((qtyEl && qtyEl.value) || 0);
+        var repQty = Number((qtyEl && qtyEl.dataset.reportQty) || 0) || 0;
+        var unit = ((unitSel && unitSel.value) || "pcs").trim() || "pcs";
+
+        if (!pid) {
+          if (bNo || bQty > 0) {
+            return { error: "Pilih / isi Produk terlebih dahulu di baris #" + (i + 1), focusEl: pidInp, items: [], sisaList: [] };
+          }
+          continue;
+        }
+        if (!bNo) {
+          return { error: "Wajib isi No. Bets untuk produk " + shipProductDisplay(pid), focusEl: noEl, items: [], sisaList: [] };
+        }
+        if (!(bQty > 0)) {
+          return { error: "Qty kirim No. Bets " + bNo + " (" + pid + ") harus > 0", focusEl: qtyEl, items: [], sisaList: [] };
+        }
+        var key = pid.toUpperCase();
+        if (!byPid[key]) {
+          byPid[key] = { product_id: pid, unit: unit, bets: [], totalQty: 0, reportQtyTotal: 0 };
+          order.push(key);
+        }
+        byPid[key].unit = unit;
+        byPid[key].bets.push({ no: bNo, qty: bQty });
+        byPid[key].totalQty += bQty;
+        if (repQty > 0) byPid[key].reportQtyTotal += repQty;
+      }
+      var items = order.map(function(k) { return byPid[k]; });
+      var sisaList = items.map(function(it) {
+        var sisa = it.reportQtyTotal > it.totalQty ? (it.reportQtyTotal - it.totalQty) : 0;
+        return sisa > 0 ? { product_id: it.product_id, sisa: sisa, unit: it.unit, reportQty: it.reportQtyTotal, shipQty: it.totalQty } : null;
+      }).filter(Boolean);
+      return { error: "", items: items, sisaList: sisaList };
+    }
+
     async function openShipRequestModal(productId, qty, noSo, customer, editShipId) {
       window.__shipEditRawNotes = "";
       if ($("shipReqId")) $("shipReqId").value = editShipId || "";
@@ -16431,10 +17296,11 @@ function fillOperatorList(selectedEmail) {
       if ($("shipReqSo")) $("shipReqSo").value = noSo || "";
       if ($("shipReqNotes")) $("shipReqNotes").value = "";
       if ($("shipReqLines")) $("shipReqLines").innerHTML = "";
-      if ($("shipReqTitle")) $("shipReqTitle").textContent = editShipId ? ("Lengkapi / Edit Bets · " + editShipId) : "Instruksi kirim ke gudang";
+      if ($("shipReportAutoHint")) $("shipReportAutoHint").textContent = "";
+      if ($("shipReqTitle")) $("shipReqTitle").textContent = editShipId ? ("Edit Instruksi Kirim · " + editShipId) : "Instruksi kirim ke gudang";
       if ($("shipReqSubmitBtn")) $("shipReqSubmitBtn").textContent = editShipId ? "Simpan Bets & Kirim ke Gudang" : "Kirim ke gudang";
 
-      var firstPid = productId || "";
+      var firstPid = productId ? (resolveProductId(productId) || String(productId).trim()) : "";
       var wantSo = (noSo || "").trim();
       var wantOrderId = "";
 
@@ -16460,25 +17326,75 @@ function fillOperatorList(selectedEmail) {
           }
           if (erLines.length) {
             firstPid = firstPid || erLines[0].product_id || "";
-            erLines.forEach(function(l) {
+            for (var li = 0; li < erLines.length; li++) {
+              var l = erLines[li];
               var mktItem = (erMeta.betsMkt || []).find(function(x) {
                 return String(x.product_id || "").trim().toUpperCase() === String(l.product_id || "").trim().toUpperCase();
               });
-              addShipReqLine({
-                product_id: l.product_id,
-                qty: l.qty,
-                unit: l.unit || "pcs",
-                bets: mktItem && mktItem.bets ? mktItem.bets : [{ no: "", qty: l.qty || "" }]
-              });
-            });
+              if (mktItem && mktItem.bets && mktItem.bets.length) {
+                addShipReqLine({
+                  product_id: l.product_id,
+                  qty: l.qty,
+                  unit: l.unit || shipDefaultUnitForProduct(l.product_id),
+                  bets: mktItem.bets
+                });
+              } else {
+                var repE = await fetchReportBetsForProduct(l.product_id, { noSo: wantSo, excludeShipId: editShipId });
+                var useBets = (repE && repE.items && repE.items.length)
+                  ? repE.items.map(function(bi) { return { no: bi.no, qty: bi.qty > 0 ? bi.qty : (l.qty || ""), reportQty: bi.qty > 0 ? bi.qty : bi.reportQty, source: repE.source }; })
+                  : [{ no: "", qty: l.qty || "" }];
+                addShipReqLine({
+                  product_id: l.product_id,
+                  qty: l.qty,
+                  unit: l.unit || shipDefaultUnitForProduct(l.product_id),
+                  bets: useBets,
+                  source: repE && repE.source ? repE.source : ""
+                });
+                if (repE && repE.source && $("shipReportAutoHint")) {
+                  $("shipReportAutoHint").innerHTML = '<span style="color:#047857;font-weight:600">✓ Auto-isi dari laporan ' + esc(repE.source) + "</span>";
+                }
+              }
+            }
           } else {
             addShipReqLine(null);
           }
         } else {
           addShipReqLine(null);
         }
+      } else if (firstPid) {
+        var repNew = await fetchReportBetsForProduct(firstPid, { noSo: wantSo });
+        var defU = shipDefaultUnitForProduct(firstPid);
+        var passedQ = (qty != null && qty !== "" && Number(qty) > 0) ? Number(qty) : 0;
+        if (repNew && repNew.items && repNew.items.length) {
+          var hasAvail = repNew.totalAvail > 0;
+          var lineBets = repNew.items.map(function(bi, idx) {
+            var qUse = hasAvail ? bi.qty : (idx === 0 ? passedQ : 0);
+            var rUse = hasAvail ? bi.qty : Math.max(bi.reportQty || 0, passedQ);
+            return {
+              no: bi.no || "",
+              qty: qUse > 0 ? qUse : "",
+              reportQty: rUse,
+              source: repNew.source + (repNew.reportDate ? (" " + repNew.reportDate) : "")
+            };
+          });
+          addShipReqLine({
+            product_id: firstPid,
+            unit: (repNew.items[0] && repNew.items[0].unit) || defU,
+            bets: lineBets
+          });
+          if ($("shipReportAutoHint")) {
+            $("shipReportAutoHint").innerHTML = '<span style="color:#047857;font-weight:600">✓ Auto-isi dari laporan ' + esc(repNew.source) + (repNew.reportDate ? (" (" + esc(repNew.reportDate) + ")") : "") + "</span>";
+          }
+        } else {
+          addShipReqLine({
+            product_id: firstPid,
+            qty: passedQ > 0 ? passedQ : "",
+            unit: defU,
+            bets: [{ no: "", qty: passedQ > 0 ? passedQ : "", reportQty: passedQ > 0 ? passedQ : 0 }]
+          });
+        }
       } else {
-        addShipReqLine(productId ? { product_id: productId, qty: qty || "", unit: "pcs", bets: [{ no: "", qty: qty || "" }] } : null);
+        addShipReqLine(null);
       }
 
       // filter SO ke produk yang diinstruksikan
@@ -16506,6 +17422,7 @@ function fillOperatorList(selectedEmail) {
         m.style.display = "flex";
       }
       document.body.classList.add("modal-open");
+      syncShipLinesTotals();
     }
     function closeShipRequestModal() {
       var m = $("shipRequestModal");
@@ -16523,14 +17440,15 @@ function fillOperatorList(selectedEmail) {
       if (!filterProductId) {
         try {
           var first = document.querySelector("#shipReqLines .sl-pid");
-          if (first && first.value) filterProductId = resolveProductId(first.value) || String(first.value).split("—")[0].trim();
+          if (first && (first.dataset.scId || first.value)) {
+            filterProductId = first.dataset.scId || resolveProductId(first.value) || String(first.value).split(" - ")[0].trim();
+          }
         } catch (e0) {}
       }
       sel.innerHTML = '<option value="">Memuat SO…</option>';
       var orders = [];
       try {
         if (filterProductId) {
-          // SO yang punya line produk ini
           var { data: ols, error: eL } = await sb.from("order_lines")
             .select("order_id,product_id,qty")
             .eq("product_id", filterProductId)
@@ -16587,7 +17505,6 @@ function fillOperatorList(selectedEmail) {
         opt.textContent = (o.no_so || o.order_id) + " · " + (o.customer_name || "");
         sel.appendChild(opt);
       });
-      // opsi tampilkan semua SO jika sedang filter produk
       if (filterProductId) {
         var optAll = document.createElement("option");
         optAll.value = "__all__";
@@ -16596,7 +17513,6 @@ function fillOperatorList(selectedEmail) {
         sel.onchange = function() {
           if (sel.value === "__all__") {
             fillShipSoSelect("").then(function() {
-              // restore onchange
               sel.onchange = onShipSoChange;
             });
             return;
@@ -16614,21 +17530,6 @@ function fillOperatorList(selectedEmail) {
       if ($("shipReqCustomer") && opt.dataset.customer) $("shipReqCustomer").value = opt.dataset.customer;
       if ($("shipReqSo") && opt.dataset.noso) $("shipReqSo").value = opt.dataset.noso;
     }
-    function addShipReqLine(line) {
-      line = line || {};
-      var box = $("shipReqLines");
-      if (!box) return;
-      var bets = (line.bets && line.bets.length)
-        ? line.bets
-        : [{ no: line.no_bets || "", qty: (line.qty != null && line.qty !== "") ? line.qty : "" }];
-      box.insertAdjacentHTML("beforeend", doBuildBetsProdCardHtml({
-        product_id: line.product_id || "",
-        unit: line.unit || "pcs",
-        bets: bets,
-        editableProduct: true
-      }));
-      try { bindAllThousandInputs(); } catch (e) {}
-    }
     async function saveShipRequest() {
       if (!sb) return;
       var editShipId = (($("shipReqId") && $("shipReqId").value) || "").trim();
@@ -16639,7 +17540,7 @@ function fillOperatorList(selectedEmail) {
       var notesInput = (($("shipReqNotes") && $("shipReqNotes").value) || "").trim();
       var request_date = (($("shipReqDate") && $("shipReqDate").value) || todayStr());
 
-      var collected = doCollectBetsCards("shipReqLines", true);
+      var collected = shipCollectLines();
       if (collected.error) {
         toast(collected.error, true);
         if (collected.focusEl) collected.focusEl.focus();
@@ -16654,17 +17555,20 @@ function fillOperatorList(selectedEmail) {
       var cleanBetsArr = betsArr.map(function(it) {
         return { product_id: it.product_id, unit: it.unit || "pcs", bets: it.bets };
       });
+      var sisaEncoded = doEncodeSisaTag(collected.sisaList || []);
       var nowIso = new Date().toISOString();
       var ship_id = editShipId || ("SHIP-" + Date.now().toString(36).toUpperCase());
 
-      // Pertahankan tag non-bets jika edit, bersihkan REJECT_GUDANG jika kirim ulang, lalu tulis BETS_MKT
+      // Pertahankan tag non-bets jika edit, bersihkan REJECT_GUDANG jika kirim ulang, lalu tulis BETS_MKT & SISA_GUDANG
       var baseNotes = notesInput;
       if (editShipId && window.__shipEditRawNotes) {
         var oldTags = String(window.__shipEditRawNotes).match(/\[[A-Z0-9_]+:[^\]]*\]/g) || [];
-        var keepTags = oldTags.filter(function(t) { return !/^\[(BETS_MKT|REJECT_GUDANG):/i.test(t); });
+        var keepTags = oldTags.filter(function(t) { return !/^\[(BETS_MKT|SISA_GUDANG|REJECT_GUDANG):/i.test(t); });
         if (keepTags.length) baseNotes = (baseNotes ? baseNotes + " " : "") + keepTags.join(" ");
       }
-      var finalNotes = doWriteTags(baseNotes, { BETS_MKT: doEncodeBetsTag(cleanBetsArr) });
+      var tagUpdates = { BETS_MKT: doEncodeBetsTag(cleanBetsArr) };
+      if (sisaEncoded) tagUpdates.SISA_GUDANG = sisaEncoded;
+      var finalNotes = doWriteTags(baseNotes, tagUpdates);
 
       if (editShipId) {
         var updPayload = {
@@ -16707,15 +17611,16 @@ function fillOperatorList(selectedEmail) {
       var { error: e2 } = await sb.from("ship_request_lines").insert(lineRows);
       if (e2) return toast(e2.message, true);
 
-      // Sinkronkan ke Delivery Order (buat baru jika belum ada, atau update bets & line jika DO masih draft/ready)
+      // Sinkronkan ke Delivery Order (buat baru jika belum ada, atau update bets, sisa gudang, & line jika DO masih draft/ready)
       try {
         var exDo = await _findExistingDoForShip(ship_id);
         if (exDo && exDo.delivery_id) {
           var exMeta = doParseTags(exDo.notes);
+          var doTagUpdates = { BETS_MKT: doEncodeBetsTag(cleanBetsArr), SISA_GUDANG: sisaEncoded || "" };
           var newDoNotes = doWriteTags(
             (notesInput ? ("Dari instruksi " + ship_id + " · " + notesInput) : ("Dari instruksi " + ship_id)) + " " +
             (String(exDo.notes || "").match(/\[[A-Z0-9_]+:[^\]]*\]/g) || []).join(" "),
-            { BETS_MKT: doEncodeBetsTag(cleanBetsArr) }
+            doTagUpdates
           );
           var doUpd = {
             customer_name: customer || exDo.customer_name || "",
@@ -16736,7 +17641,10 @@ function fillOperatorList(selectedEmail) {
         }
       } catch (eDoNew) { console.warn(eDoNew); }
 
-      toast("Instruksi kirim " + ship_id + " (+ No. Bets) dikirim ke Gudang & masuk Delivery Order");
+      var sisaMsg = (collected.sisaList && collected.sisaList.length)
+        ? (" · Sisa ke gudang: " + collected.sisaList.map(function(s) { return s.product_id + " " + formatNum(s.sisa) + " " + s.unit; }).join(", "))
+        : "";
+      toast("Instruksi kirim " + ship_id + " dikirim ke Gudang" + sisaMsg);
       window.__shipEditRawNotes = "";
       closeShipRequestModal();
       try { loadShipRequests(); } catch (e) {}
@@ -20493,6 +21401,29 @@ function fillOperatorList(selectedEmail) {
         }).filter(function(it) { return it.product_id && it.bets.length; });
       } catch (e) { return []; }
     }
+    function doEncodeSisaTag(arr) {
+      if (!Array.isArray(arr) || !arr.length) return "";
+      var clean = arr.filter(function(x) { return x && x.product_id && Number(x.sisa) > 0; }).map(function(x) {
+        return {
+          product_id: String(x.product_id).trim(),
+          sisa: Number(x.sisa) || 0,
+          unit: String(x.unit || "pcs").trim() || "pcs",
+          reportQty: Number(x.reportQty) || 0,
+          shipQty: Number(x.shipQty) || 0
+        };
+      });
+      if (!clean.length) return "";
+      try { return encodeURIComponent(JSON.stringify(clean)); } catch (e) { return ""; }
+    }
+    function doDecodeSisaTag(raw) {
+      var s = String(raw || "").trim();
+      if (!s) return [];
+      try {
+        var decoded = s.charAt(0) === "%" || s.indexOf("%5B") >= 0 ? decodeURIComponent(s) : s;
+        var parsed = JSON.parse(decoded);
+        return Array.isArray(parsed) ? parsed.filter(function(x) { return x && x.product_id && Number(x.sisa) > 0; }) : [];
+      } catch (e) { return []; }
+    }
     function doParseTags(notes) {
       var s = String(notes || "");
       function pick(key) {
@@ -20529,6 +21460,7 @@ function fillOperatorList(selectedEmail) {
         resubmitAt: pick("RESUBMIT_AT"),
         betsMkt: doDecodeBetsTag(pick("BETS_MKT")),
         betsAct: doDecodeBetsTag(pick("BETS_ACT")),
+        sisaGudang: doDecodeSisaTag(pick("SISA_GUDANG")),
         betsFixNote: pick("BETS_FIX_NOTE"),
         betsFixAt: pick("BETS_FIX_AT"),
         betsFixBy: pick("BETS_FIX_BY"),
@@ -21159,11 +22091,17 @@ function fillOperatorList(selectedEmail) {
           var pName = productNameOnly(l.product_id) || "";
           if (pName.indexOf(l.product_id) === 0) pName = pName.replace(l.product_id, "").replace(/^[\s·\-]+/, "");
           var betsPills = doRenderBetsPills(meta, l.product_id, false);
+          var sisaItem = (meta.sisaGudang || []).find(function(sx) {
+            return String(sx.product_id || "").trim().toUpperCase() === String(l.product_id || "").trim().toUpperCase();
+          });
+          var sisaNote = (sisaItem && Number(sisaItem.sisa) > 0)
+            ? '<div style="font-size:0.66rem;color:#b45309;font-weight:600;margin-top:0.12rem">Sisa di gudang: ' + formatNum(sisaItem.sisa) + " " + esc(sisaItem.unit || l.unit || "pcs") + " (kirim berikutnya)</div>"
+            : "";
           return '<div style="margin-bottom:0.25rem">' +
             '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.6rem;font-size:0.75rem;line-height:1.35">' +
               '<span style="color:#0f172a"><strong>' + esc(l.product_id || "—") + '</strong>' + (pName ? (' <span style="color:var(--text-muted)">· ' + esc(pName) + "</span>") : "") + "</span>" +
               '<strong style="white-space:nowrap;color:#047857">' + formatNum(l.qty) + " " + esc(l.unit || "pcs") + "</strong></div>" +
-            betsPills +
+            betsPills + sisaNote +
           '</div>';
         }).join("");
         if (dLines.length > 4) {
@@ -33095,32 +34033,73 @@ function closeOtModal() {
       </div>
     </div>
   </div>
-  <div id="shipRequestModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100170">
-    <div class="modal modal-sheet" style="max-width:580px;width:94vw;max-height:90vh;overflow:auto">
+  <div id="shipRequestModal" class="modal-bg" style="display:none;z-index:100170">
+    <div class="modal modal-sheet odoo-form-modal">
       <div class="sheet-handle"></div>
-      <div class="sheet-head">
-        <h2 id="shipReqTitle" style="margin:0">Instruksi kirim ke gudang</h2>
-        <p style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)">Wajib isi <strong>No. Bets</strong> per produk (1 produk bisa split ke beberapa bets). Gudang akan menerima rincian ini.</p>
+      <div class="ot-modal-banner">
+        <div>
+          <div class="ot-modal-kicker">Sales · Instruksi Kirim FG</div>
+          <h2 id="shipReqTitle">Instruksi kirim ke gudang</h2>
+          <div class="ot-modal-sub" id="shipReqSub">Auto-isi No. Bets &amp; Qty dari laporan Korlap / Operator jika ada · sisa qty tersimpan di gudang untuk kirim berikutnya</div>
+        </div>
+        <div class="ot-banner-right">
+          <button type="button" class="ot-close-x" onclick="closeShipRequestModal()" aria-label="Tutup">&times;</button>
+        </div>
       </div>
       <div class="sheet-body">
         <input type="hidden" id="shipReqId" />
-        <div class="field"><label>Tanggal minta kirim</label><input type="date" id="shipReqDate" /></div>
-        <div class="field"><label>SO (difilter produk yang dikirim — boleh kosong)</label>
-          <select id="shipReqSoSelect" onchange="onShipSoChange()" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)"></select>
+        <div class="odoo-form-grid">
+          <div>
+            <div class="ot-form-col-title">Info Pengiriman</div>
+            <div class="odoo-form-row"><label>Tanggal kirim</label><input type="date" id="shipReqDate" /></div>
+            <div class="odoo-form-row"><label>No SO</label><input id="shipReqSo" placeholder="Auto dari SO / ketik manual" /></div>
+            <div class="odoo-form-row"><label>Customer</label><input id="shipReqCustomer" placeholder="Auto dari SO" /></div>
+          </div>
+          <div>
+            <div class="ot-form-col-title">Referensi SO &amp; Catatan</div>
+            <div class="odoo-form-row"><label>Pilih SO</label><select id="shipReqSoSelect" onchange="onShipSoChange()"></select></div>
+            <div class="odoo-form-row"><label>Catatan gudang</label><input id="shipReqNotes" placeholder="Alamat / ekspedisi / prioritas" /></div>
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
-          <div class="field"><label>No SO</label><input id="shipReqSo" placeholder="Auto / ketik manual" /></div>
-          <div class="field"><label>Customer</label><input id="shipReqCustomer" placeholder="Auto dari SO" /></div>
-        </div>
-        <div class="field"><label>Catatan untuk gudang</label><input id="shipReqNotes" placeholder="Alamat / ekspedisi / prioritas" /></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.75rem 0 0.4rem">
-          <strong style="font-size:0.85rem">Produk FG &amp; Nomor Bets <span style="color:#b91c1c">*</span></strong>
+        <div class="ot-notebook-bar">
+          <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap">
+            <strong style="font-size:0.84rem;color:#0f172a">Daftar Produk &amp; Nomor Bets <span style="color:#b91c1c">*</span></strong>
+            <span id="shipReportAutoHint" style="font-size:0.74rem;color:#64748b"></span>
+          </div>
           <button type="button" class="btn btn-ghost btn-sm" onclick="addShipReqLine()">+ Tambah Produk</button>
         </div>
-        <div id="shipReqLines"></div>
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+        <div class="ot-lines-card">
+          <table class="odoo-lines-table" id="shipLinesTable">
+            <colgroup>
+              <col class="col-num" />
+              <col class="col-prod" />
+              <col class="col-bets" />
+              <col class="col-qty" />
+              <col class="col-unit" />
+              <col class="col-total" />
+              <col class="col-act" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Produk (Kode - Nama)</th>
+                <th>No. Bets</th>
+                <th class="ship-col-qty">Qty</th>
+                <th>Satuan</th>
+                <th class="ship-col-total">Total Pengiriman</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="shipReqLines"></tbody>
+          </table>
+          <div class="ot-totals-bar" id="shipReqTotalsBar"></div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <span class="ot-foot-hint">Qty bisa diedit; sisa dari hasil laporan otomatis masuk data gudang untuk pengiriman berikutnya.</span>
+        <div class="ot-foot-actions">
           <button type="button" class="btn btn-ghost" onclick="closeShipRequestModal()">Batal</button>
-          <button type="button" class="btn btn-primary" id="shipReqSubmitBtn" onclick="saveShipRequest()">Kirim ke gudang</button>
+          <button type="button" class="btn-odoo" id="shipReqSubmitBtn" onclick="saveShipRequest()">Kirim ke gudang</button>
         </div>
       </div>
     </div>
