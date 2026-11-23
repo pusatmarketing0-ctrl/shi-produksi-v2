@@ -34934,7 +34934,7 @@ function closeOtModal() {
     }
     function otDrivePreviewUrl(url) {
       var id = otDriveFileId(url);
-      if (id) return "https://drive.google.com/uc?export=view&id=" + id;
+      if (id) return "https://drive.google.com/thumbnail?id=" + id + "&sz=w1600";
       return url || "";
     }
     function otDriveEmbedUrl(url) {
@@ -36202,7 +36202,7 @@ function closeOtModal() {
       var plansList = [];
       try {
         var { data: pls } = await sb.from("plans")
-          .select("plan_id,plan_date,product_id,machine_id,no_so,order_id,target_qty,unit,status,shift,operator")
+          .select("plan_id,plan_date,product_id,machine_id,no_so,order_id,target_qty,unit,status,shift,assigned_operator")
           .gte("plan_date", fromDate)
           .lte("plan_date", toDate)
           .neq("status", "cancelled")
@@ -36280,7 +36280,7 @@ function closeOtModal() {
           var q = Number(r.actual_qty) || 0;
           if (q > 0) {
             b.op_qty += q;
-            var actorEmail = r.reported_by || p.operator || "";
+            var actorEmail = r.reported_by || p.assigned_operator || "";
             if (actorEmail) b.op_actors[actorEmail] = true;
             var bNo = (typeof _shipExtractBatchFromNotes === "function") ? _shipExtractBatchFromNotes(r.notes) : "";
             b.op_bets.push({ no: bNo || "", qty: q, unit: b.unit });
