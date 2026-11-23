@@ -37191,6 +37191,104 @@ function closeOtModal() {
       return d + " " + mNames[m - 1] + " " + y;
     }
 
+    function _shipFormDdMmYyyy(dateStr) {
+      var s = String(dateStr || todayStr()).slice(0, 10);
+      var p = s.split("-");
+      if (p.length !== 3) return s;
+      return p[2].padStart(2, "0") + "-" + p[1].padStart(2, "0") + "-" + p[0];
+    }
+
+    function _shipFormReadLocalSeqMap() {
+      try {
+        var raw = localStorage.getItem("shi_ship_form_seq_v1");
+        return raw ? (JSON.parse(raw) || {}) : {};
+      } catch (e) { return {}; }
+    }
+
+    function _shipFormCommitSeqLocal(noFormStr) {
+      var m = String(noFormStr || "").trim().match(/^(\d{2}-\d{2}-\d{4})\/(\d+)$/);
+      if (!m) return;
+      var dmy = m[1];
+      var num = parseInt(m[2], 10);
+      if (!num || isNaN(num)) return;
+      try {
+        var map = _shipFormReadLocalSeqMap();
+        var prev = parseInt(map[dmy] || "0", 10) || 0;
+        if (num > prev) {
+          map[dmy] = num;
+          localStorage.setItem("shi_ship_form_seq_v1", JSON.stringify(map));
+        }
+      } catch (e) {}
+    }
+
+    function _shipFormNextSeqSync(dateStr, extraMax) {
+      var dmy = _shipFormDdMmYyyy(dateStr);
+      var maxSeq = parseInt(extraMax || "0", 10) || 0;
+      var localMap = _shipFormReadLocalSeqMap();
+      var localMax = parseInt(localMap[dmy] || "0", 10) || 0;
+      if (localMax > maxSeq) maxSeq = localMax;
+      var re = new RegExp("\\[NO_FORM:" + dmy.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&") + "\\/(\\d+)\\]", "g");
+      (shipReqList || []).forEach(function(r) {
+        var notes = String((r && r.notes) || "");
+        var m;
+        re.lastIndex = 0;
+        while ((m = re.exec(notes)) !== null) {
+          var n = parseInt(m[1], 10) || 0;
+          if (n > maxSeq) maxSeq = n;
+        }
+      });
+      return dmy + "/" + String(maxSeq + 1).padStart(4, "0");
+    }
+
+    async function _shipFormNextSeqAsync(dateStr) {
+      var dmy = _shipFormDdMmYyyy(dateStr);
+      var remoteMax = 0;
+      if (sb) {
+        try {
+          var { data } = await sb.from("ship_requests")
+            .select("notes")
+            .ilike("notes", "%[NO_FORM:" + dmy + "/%")
+            .limit(200);
+          var re = new RegExp("\\[NO_FORM:" + dmy.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&") + "\\/(\\d+)\\]", "g");
+          (data || []).forEach(function(row) {
+            var notes = String((row && row.notes) || "");
+            var m;
+            re.lastIndex = 0;
+            while ((m = re.exec(notes)) !== null) {
+              var n = parseInt(m[1], 10) || 0;
+              if (n > remoteMax) remoteMax = n;
+            }
+          });
+        } catch (e) { console.warn(e); }
+      }
+      return _shipFormNextSeqSync(dateStr, remoteMax);
+    }
+
+    async function onShipPrintDateChange() {
+      var dateInp = $("shipPrintDateInp");
+      var noInp = $("shipPrintNoForm");
+      var newDate = (dateInp && dateInp.value) || todayStr();
+      if (noInp) {
+        var cur = (noInp.value || "").trim();
+        var isAuto = noInp.dataset.auto === "1" || !cur || /^\d{2}-\d{2}-\d{4}\/\d{4}$/.test(cur);
+        if (isAuto) {
+          noInp.value = await _shipFormNextSeqAsync(newDate);
+          noInp.dataset.auto = "1";
+        }
+      }
+      renderShipFormPrintPreview();
+    }
+
+    async function regenShipFormNumber() {
+      var dateVal = ($("shipPrintDateInp") && $("shipPrintDateInp").value) || todayStr();
+      var nextNo = await _shipFormNextSeqAsync(dateVal);
+      if ($("shipPrintNoForm")) {
+        $("shipPrintNoForm").value = nextNo;
+        $("shipPrintNoForm").dataset.auto = "1";
+      }
+      renderShipFormPrintPreview();
+    }
+
     function onShipPrintCheckChange(cb) {
       if (!cb) return;
       var id = cb.getAttribute("data-shipid");
@@ -37285,9 +37383,12 @@ function closeOtModal() {
 
       var rows = [];
       var datesSet = {};
+      var savedFormNos = {};
       reqs.forEach(function(r) {
         var d = String(r.request_date || todayStr()).slice(0, 10);
         if (d) datesSet[d] = true;
+        var nfMatch = String(r.notes || "").match(/\[NO_FORM:([^\]]+)\]/);
+        if (nfMatch && nfMatch[1]) savedFormNos[nfMatch[1].trim()] = true;
         var meta = doParseTags(r.notes);
         var lines = r.ship_request_lines || [];
         lines.forEach(function(l) {
@@ -37328,6 +37429,13 @@ function closeOtModal() {
       var dates = Object.keys(datesSet).sort();
       var primaryDate = dates[dates.length - 1] || todayStr();
 
+      var savedList = Object.keys(savedFormNos);
+      var allShareSaved = savedList.length === 1 && reqs.every(function(r) {
+        var m = String(r.notes || "").match(/\[NO_FORM:([^\]]+)\]/);
+        return m && m[1].trim() === savedList[0];
+      });
+      var initialNoForm = allShareSaved ? savedList[0] : await _shipFormNextSeqAsync(primaryDate);
+
       window.__shipPrintState = {
         reqs: reqs,
         rows: rows,
@@ -37335,7 +37443,8 @@ function closeOtModal() {
       };
 
       if ($("shipPrintNoForm")) {
-        $("shipPrintNoForm").value = reqs.length === 1 ? (reqs[0].ship_id || "") : "";
+        $("shipPrintNoForm").value = initialNoForm;
+        $("shipPrintNoForm").dataset.auto = allShareSaved ? "0" : "1";
       }
       if ($("shipPrintDateInp")) {
         $("shipPrintDateInp").value = primaryDate;
@@ -37504,6 +37613,23 @@ function closeOtModal() {
       if (!wrap || !host || !wrap.innerHTML.trim()) {
         return toast("Preview form belum siap", true);
       }
+
+      var noForm = (($("shipPrintNoForm") && $("shipPrintNoForm").value) || "").trim();
+      if (noForm) {
+        _shipFormCommitSeqLocal(noForm);
+        var st = window.__shipPrintState;
+        if (st && Array.isArray(st.reqs) && sb) {
+          st.reqs.forEach(function(r) {
+            if (!r || !r.ship_id) return;
+            var updatedNotes = doWriteTags(r.notes, { NO_FORM: noForm });
+            r.notes = updatedNotes;
+            var cached = (shipReqList || []).find(function(x) { return x.ship_id === r.ship_id; });
+            if (cached) cached.notes = updatedNotes;
+            sb.from("ship_requests").update({ notes: updatedNotes }).eq("ship_id", r.ship_id).then(function() {}, function() {});
+          });
+        }
+      }
+
       host.innerHTML = wrap.innerHTML;
       document.body.classList.add("printing-ship-form");
 
@@ -37583,8 +37709,8 @@ function closeOtModal() {
       </div>
       <div class="sheet-body" style="overflow:auto">
         <div class="a5-print-toolbar">
-          <label>Tgl: <input type="date" id="shipPrintDateInp" onchange="renderShipFormPrintPreview()" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.25rem 0.45rem;font-size:0.78rem;background:#fff" /></label>
-          <label>No. Form: <input type="text" id="shipPrintNoForm" placeholder="Kosongkan utk garis tulis" oninput="renderShipFormPrintPreview()" style="width:140px" /></label>
+          <label>Tgl: <input type="date" id="shipPrintDateInp" onchange="onShipPrintDateChange()" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.25rem 0.45rem;font-size:0.78rem;background:#fff" /></label>
+          <label>No. Form: <input type="text" id="shipPrintNoForm" placeholder="dd-mm-yyyy/0001" oninput="this.dataset.auto='0';renderShipFormPrintPreview()" style="width:150px" /><button type="button" class="btn btn-ghost btn-sm" onclick="regenShipFormNumber()" title="Buat nomor urut otomatis berikutnya" style="padding:0.2rem 0.45rem;font-size:0.74rem">↻</button></label>
           <label><input type="checkbox" id="shipPrintWithBets" checked onchange="renderShipFormPrintPreview()" /> Tampilkan Bets</label>
           <label><input type="checkbox" id="shipPrintWithCode" onchange="renderShipFormPrintPreview()" /> Kode produk</label>
           <label>Min. baris:
