@@ -3412,41 +3412,139 @@
         padding: 0.25rem 0.5rem;
       }
     }
-    /* Glassy senada di form SO (#orderModal) */
-    #orderModal.modal-bg .modal {
-      background: rgba(248, 252, 250, 0.72) !important;
-      backdrop-filter: blur(18px) saturate(1.15);
-      -webkit-backdrop-filter: blur(18px) saturate(1.15);
-      border: 1px solid rgba(255,255,255,0.55);
-      box-shadow: 0 20px 50px rgba(15,40,30,0.12);
+    /* ===== Modern SaaS Redesign: Sales Order Modal (#orderModal) — selaras Order Trading ===== */
+    #orderModal.modal-bg .modal.modal-sheet.odoo-form-modal {
+      width: min(1000px, 95vw) !important;
+      max-width: 1000px !important;
+      max-height: min(92vh, 840px) !important;
+      padding: 0 !important;
+      border-radius: 16px !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      overflow: hidden !important;
+      display: flex;
+      flex-direction: column;
     }
-    #orderModal .sheet-foot {
-      background: rgba(255,255,255,0.45) !important;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(255,255,255,0.5);
+    #orderModal .ot-modal-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.4rem 0.9rem !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      flex-shrink: 0;
+    }
+    #orderModal .ot-modal-kicker {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #0d9f6e;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.15rem;
+    }
+    #orderModal .ot-modal-banner h2 {
+      margin: 0;
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    #orderModal .ot-banner-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+    #orderModal .ot-close-x {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 1.2rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #orderModal .ot-close-x:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+    #orderModal .sheet-body {
+      background: #ffffff !important;
+      padding: 1rem 1.4rem 1.35rem !important;
+    }
+    #orderModal .odoo-form-grid {
+      gap: 0.5rem 2rem;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    #orderModal .odoo-form-row {
+      grid-template-columns: 7rem 1fr;
+      gap: 0.65rem;
+      align-items: center;
+      padding: 0.28rem 0;
+      border-bottom: none;
+    }
+    #orderModal .odoo-form-row label {
+      font-size: 0.78rem;
+      color: #475569;
+      padding-top: 0;
+      font-weight: 600;
     }
     #orderModal .odoo-form-row input,
     #orderModal .odoo-form-row select {
-      background: rgba(255,255,255,0.42) !important;
-      border: 1px solid rgba(255,255,255,0.65) !important;
-      border-radius: 12px !important;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0.45rem 0.68rem !important;
+      font-size: 0.84rem !important;
+      min-height: 36px;
+      color: #0f172a !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
-    #orderModal .odoo-form-row input:focus {
-      background: rgba(255,255,255,0.7) !important;
-      border-color: rgba(13,159,110,0.4) !important;
-      box-shadow: 0 0 0 2px rgba(13,159,110,0.12);
+    #orderModal .odoo-form-row input:focus,
+    #orderModal .odoo-form-row select:focus {
+      background: #ffffff !important;
+      border-color: #0d9f6e !important;
+      box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.14) !important;
     }
-    #orderModal .odoo-lines-table input {
-      background: rgba(255,255,255,0.42) !important;
-      border: 1px solid rgba(255,255,255,0.6) !important;
-      border-radius: 10px !important;
+    #orderModal .ot-lines-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+      overflow: hidden;
     }
-    #orderModal .sheet-body {
-      background: transparent !important;
+    #orderModal .odoo-lines-table {
+      margin-top: 0;
+    }
+    #orderModal .odoo-lines-table input,
+    #orderModal .odoo-lines-table select {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 6px !important;
+      padding: 0.36rem 0.5rem !important;
+      font-size: 0.82rem !important;
+      min-height: 32px;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+    #orderModal .sheet-foot {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      padding: 0.75rem 1.4rem !important;
+      backdrop-filter: none !important;
     }
 
     /* ===== Modern SaaS Redesign: Order Trading Modal (#otModal) ===== */
@@ -6941,6 +7039,339 @@
         print-color-adjust: exact !important;
       }
     }
+    /* ===== Global Modern SaaS Modals (Order Trading Style) ===== */
+    .modal-bg,
+    .app-confirm-bg {
+      background: rgba(15, 23, 42, 0.48) !important;
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+    }
+    .modal,
+    .modal.modal-sheet,
+    .app-confirm-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 16px !important;
+      box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      color: #0f172a;
+    }
+    @media (min-width: 900px) {
+      .modal .sheet-handle { display: none !important; }
+    }
+    .modal .sheet-handle {
+      background: #cbd5e1 !important;
+      margin: 0.55rem auto 0.2rem !important;
+    }
+    .modal.modal-sheet {
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      max-height: min(92vh, 840px) !important;
+    }
+    .modal.modal-sheet > .sheet-head {
+      padding: 1rem 1.35rem 0.9rem !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      margin: 0 !important;
+      flex-shrink: 0 !important;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .modal.modal-sheet > .sheet-head h2 {
+      margin: 0 !important;
+      font-size: 1.12rem !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      letter-spacing: -0.02em !important;
+      line-height: 1.25 !important;
+    }
+    .modal.modal-sheet > .sheet-head p {
+      margin: 0.22rem 0 0 !important;
+      font-size: 0.78rem !important;
+      color: #64748b !important;
+    }
+    .modal.modal-sheet > .sheet-body {
+      background: #ffffff !important;
+      padding: 1rem 1.35rem 1.25rem !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+    }
+    .modal.modal-sheet > .sheet-foot {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      padding: 0.75rem 1.35rem !important;
+      margin: 0 !important;
+      display: flex !important;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      flex-shrink: 0 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .modal:not(.modal-sheet) {
+      padding: 1.25rem 1.35rem !important;
+      overflow-x: hidden !important;
+    }
+    .modal:not(.modal-sheet) > h2:first-child {
+      margin: -0.15rem -1.35rem 0.95rem !important;
+      padding: 0 1.35rem 0.8rem !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      font-size: 1.12rem !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      letter-spacing: -0.02em !important;
+    }
+    .modal:not(.modal-sheet) > .modal-actions {
+      margin: 1.1rem -1.35rem -1.25rem !important;
+      padding: 0.75rem 1.35rem !important;
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      border-radius: 0 0 16px 16px !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      position: static !important;
+    }
+    .modal .ot-close-x {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 1.15rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .modal .ot-close-x:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+    .modal .field {
+      margin-bottom: 0.8rem;
+    }
+    .modal .field label {
+      display: block;
+      font-size: 0.76rem !important;
+      font-weight: 600 !important;
+      color: #475569 !important;
+      margin-bottom: 0.32rem !important;
+      letter-spacing: 0.01em;
+    }
+    .modal input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.ot-subtotal),
+    .modal select,
+    .modal textarea,
+    .sheet-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.ot-subtotal),
+    .sheet-body select,
+    .sheet-body textarea {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0.46rem 0.7rem !important;
+      font-size: 0.84rem !important;
+      color: #0f172a !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+    }
+    .modal input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.ot-subtotal):hover,
+    .modal select:hover,
+    .modal textarea:hover {
+      border-color: #94a3b8 !important;
+      background: #ffffff !important;
+    }
+    .modal input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.ot-subtotal):focus,
+    .modal select:focus,
+    .modal textarea:focus {
+      background: #ffffff !important;
+      border-color: #0d9f6e !important;
+      box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.14) !important;
+      outline: none !important;
+    }
+    .modal input:disabled,
+    .modal input[readonly],
+    .modal select:disabled {
+      background: #f8fafc !important;
+      color: #475569 !important;
+      border-color: #e2e8f0 !important;
+    }
+    .modal .odoo-lines-table input:not([type="checkbox"]):not([type="radio"]):not(.ot-subtotal),
+    .modal .odoo-lines-table select {
+      border-radius: 6px !important;
+      padding: 0.36rem 0.5rem !important;
+      font-size: 0.82rem !important;
+      min-height: 32px;
+      border-color: #e2e8f0 !important;
+      box-shadow: none !important;
+    }
+    .modal .sheet-foot .btn,
+    .modal .sheet-foot .btn-odoo,
+    .modal .modal-actions .btn,
+    .modal .modal-actions .btn-odoo,
+    .app-confirm-actions .btn {
+      flex: 0 0 auto !important;
+      min-height: 38px !important;
+      padding: 0.45rem 1.05rem !important;
+      font-size: 0.84rem !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      white-space: nowrap;
+    }
+    .modal .btn-ghost,
+    .app-confirm-card .btn-ghost {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #334155 !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .modal .btn-ghost:hover,
+    .app-confirm-card .btn-ghost:hover {
+      background: #f8fafc !important;
+      border-color: #94a3b8 !important;
+      color: #0f172a !important;
+    }
+    .modal .btn-primary:not(#appConfirmOk):not([style*="background:"]),
+    .modal .btn-odoo:not([style*="background:"]),
+    .app-confirm-card .btn-primary {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      border: 1px solid #059669 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.22) !important;
+    }
+    .modal .btn-primary:not(#appConfirmOk):not([style*="background:"]):hover,
+    .modal .btn-odoo:not([style*="background:"]):hover {
+      filter: brightness(1.03);
+      box-shadow: 0 6px 16px rgba(5, 150, 105, 0.28) !important;
+    }
+    .modal .ord-line,
+    .modal .pp-step,
+    .modal .po-line-card,
+    .modal .pr-line-card,
+    .modal .ops-bulk-panel {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+    .modal .table-wrap {
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      background: #ffffff !important;
+      box-shadow: none !important;
+    }
+    .modal .table-wrap table thead th,
+    .modal .odoo-lines-table thead th {
+      background: #f8fafc !important;
+      color: #475569 !important;
+      font-size: 0.71rem !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .modal .search-combo-list {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 10px !important;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16) !important;
+      backdrop-filter: none !important;
+    }
+    #moreSheet .more-sheet {
+      background: #ffffff !important;
+      border-top: 1px solid #e2e8f0 !important;
+      box-shadow: 0 -16px 48px rgba(15, 23, 42, 0.18) !important;
+    }
+    #moreSheet .more-item {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+    }
+    #profileModal .sheet-head { display: none !important; }
+    #profileModal .modal-sheet { padding: 0 !important; }
+    #otFilePreviewModal .modal { padding: 0 !important; }
+    #appConfirmModal .modal,
+    #appPromptModal .modal {
+      padding: 0 !important;
+      overflow: hidden !important;
+      background: #ffffff !important;
+    }
+    .saas-dialog-body {
+      padding: 1.25rem 1.35rem 1.05rem;
+      background: #ffffff;
+    }
+    .saas-dialog-foot {
+      padding: 0.75rem 1.35rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .saas-dialog-foot .btn {
+      flex: 0 0 auto !important;
+      min-height: 36px !important;
+      padding: 0.42rem 1rem !important;
+      border-radius: 8px !important;
+      font-size: 0.84rem !important;
+      font-weight: 600 !important;
+    }
+    @media (max-width: 899px) {
+      .modal.modal-sheet,
+      .modal-bg.show .modal.modal-sheet {
+        padding: 0 !important;
+        border-radius: 18px 18px 0 0 !important;
+      }
+      .modal.modal-sheet > .sheet-head {
+        padding: 0.85rem 1rem 0.75rem !important;
+      }
+      .modal.modal-sheet > .sheet-body {
+        padding: 0.85rem 1rem 1rem !important;
+      }
+      .modal.modal-sheet > .sheet-foot {
+        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom)) !important;
+      }
+      .modal:not(.modal-sheet),
+      .modal-bg.show .modal:not(.modal-sheet) {
+        padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)) !important;
+        border-radius: 18px 18px 0 0 !important;
+      }
+      .modal:not(.modal-sheet) > h2:first-child {
+        margin: -0.25rem -1rem 0.85rem !important;
+        padding: 0 1rem 0.7rem !important;
+      }
+      .modal:not(.modal-sheet) > .modal-actions {
+        margin: 0.9rem -1rem calc(-1rem - env(safe-area-inset-bottom)) !important;
+        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom)) !important;
+        border-radius: 0 !important;
+      }
+      #appConfirmModal .modal,
+      #appPromptModal .modal,
+      #otFilePreviewModal .modal,
+      #profileModal .modal-sheet {
+        padding: 0 !important;
+      }
+    }
     </style>
 </head>
 <body>
@@ -9568,14 +9999,14 @@
         </div>
         <div id="bomNeedSummary" style="margin:0.65rem 0;padding:0.65rem 0.75rem;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;font-size:0.82rem;line-height:1.45"></div>
 
-        <h3 style="margin:0.85rem 0 0.4rem;font-size:0.9rem;color:#065f46">A. Bahan Baku</h3>
-        <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <h3 style="margin:0.85rem 0 0.4rem;font-size:0.84rem;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:0.03em">A. Bahan Baku</h3>
+        <div class="table-wrap" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
           <table class="data-table" style="font-size:0.8rem">
-            <thead><tr style="background:#166534;color:#fff">
+            <thead><tr style="background:#ecfdf5;color:#065f46">
               <th>No</th><th>Nama</th><th>Rasio %</th><th>/ PO</th><th>Satuan</th><th></th>
             </tr></thead>
             <tbody id="bomBakuBody"></tbody>
-            <tfoot><tr style="background:#fef3c7;font-weight:700">
+            <tfoot><tr style="background:#f8fafc;font-weight:700;border-top:1px solid #e2e8f0">
               <td colspan="2">Total</td>
               <td id="bomBakuRasioTot">0%</td>
               <td id="bomBakuPoTot">0</td>
@@ -9586,14 +10017,14 @@
         </div>
         <button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.4rem" onclick="bomAddLine('baku')">+ Bahan baku</button>
 
-        <h3 style="margin:1rem 0 0.4rem;font-size:0.9rem;color:#9a3412">B. Bahan Kemas</h3>
-        <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <h3 style="margin:1rem 0 0.4rem;font-size:0.84rem;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:0.03em">B. Bahan Kemas</h3>
+        <div class="table-wrap" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
           <table class="data-table" style="font-size:0.8rem">
-            <thead><tr style="background:#9a3412;color:#fff">
+            <thead><tr style="background:#fff7ed;color:#9a3412">
               <th>No</th><th>Nama</th><th>Rasio</th><th>/ pcs (×PO)</th><th>Satuan</th><th></th>
             </tr></thead>
             <tbody id="bomKemasBody"></tbody>
-            <tfoot><tr style="background:#ffedd5;font-weight:700">
+            <tfoot><tr style="background:#f8fafc;font-weight:700;border-top:1px solid #e2e8f0">
               <td colspan="3">Total baris</td>
               <td id="bomKemasPoTot">0</td>
               <td></td><td></td>
@@ -9699,7 +10130,13 @@
   <div id="korlapAssignModal" class="modal-bg">
     <div class="modal modal-sheet odoo-form-modal" style="max-width:min(1280px,96vw);width:min(1280px,96vw);max-height:92vh;display:flex;flex-direction:column">
       <div class="sheet-handle"></div>
-      <div class="sheet-head"><h2>Assign operator (Korlap)</h2></div>
+      <div class="sheet-head">
+        <div>
+          <h2>Assign operator (Korlap)</h2>
+          <p>Pilih tanggal lalu isi operator per baris atau tempel massal</p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeKorlapAssign()" aria-label="Tutup">&times;</button>
+      </div>
       <div class="sheet-body" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column">
         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
           Pilih tanggal. Plan berstatus <strong>draft / open tanpa operator</strong> bisa diisi operator massal.
@@ -10168,10 +10605,13 @@
   <div id="orderModal" class="modal-bg">
     <div class="modal modal-sheet odoo-form-modal">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <div class="sheet-head" style="padding-bottom:0.25rem">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
-          <h2 class="odoo-form-title" id="orderModalTitle">Sales Order</h2>
-          <select id="ordStatus" style="border:1px solid #e2e8f0;border-radius:8px;padding:0.35rem 0.6rem;font-size:0.82rem;font-weight:600;color:#065f46;background:#ecfdf5">
+      <div class="ot-modal-banner">
+        <div>
+          <div class="ot-modal-kicker">Sales · Sales Order (Odoo)</div>
+          <h2 id="orderModalTitle">Sales Order</h2>
+        </div>
+        <div class="ot-banner-right">
+          <select id="ordStatus" style="border:1px solid #a7f3d0 !important;border-radius:8px !important;padding:0.35rem 0.65rem !important;font-size:0.8rem !important;font-weight:600;color:#065f46 !important;background:#ecfdf5 !important;min-height:34px">
             <option value="draft">Quotation</option>
             <option value="confirmed">Locked / Confirmed</option>
             <option value="in_production">In Production</option>
@@ -10180,9 +10620,10 @@
             <option value="closed">Closed</option>
             <option value="cancelled">Cancelled</option>
           </select>
+          <button type="button" class="ot-close-x" onclick="closeOrderModal()" aria-label="Tutup">&times;</button>
         </div>
       </div>
-      <div class="sheet-body" style="padding-top:0.25rem">
+      <div class="sheet-body">
         <input type="hidden" id="ordEditId" />
         <div class="odoo-form-grid">
           <div>
@@ -10198,14 +10639,14 @@
             <div class="odoo-form-row"><label>Salesperson</label><input id="ordSalesperson" placeholder="auto dari login" autocomplete="off" /></div>
           </div>
         </div>
-        <div class="odoo-tabs">
-          <button type="button" class="odoo-tab active" id="ordTabLines">Order Lines</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0;margin:0.2rem 0 0.75rem">
+          <div class="odoo-tabs" style="border-bottom:none;margin:0">
+            <button type="button" class="odoo-tab active" id="ordTabLines">Order Lines</button>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addOrderLineRow()">+ Tambah Produk</button>
         </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:0.35rem">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="addOrderLineRow()">+ Add a product</button>
-        </div>
-        <div style="overflow:auto">
-          <table class="odoo-lines-table">
+        <div class="ot-lines-card" style="overflow-x:auto">
+          <table class="odoo-lines-table" style="margin-top:0">
             <thead>
               <tr>
                 <th style="min-width:12rem">Product</th>
@@ -10271,10 +10712,11 @@
   <div id="planModal" class="modal-bg">
     <div class="modal modal-sheet plan-form-modal" style="max-width:560px">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <div class="sheet-head" style="padding-bottom:0.35rem">
-        <h2 id="planModalTitle" style="margin:0">Buat plan</h2>
+      <div class="sheet-head">
+        <h2 id="planModalTitle">Buat plan</h2>
+        <button type="button" class="ot-close-x" onclick="closePlanModal()" aria-label="Tutup">&times;</button>
       </div>
-      <div class="sheet-body" style="padding-top:0.35rem">
+      <div class="sheet-body">
         <div class="plan-form-grid">
           <div class="field"><label>Tanggal</label><input id="plDate" type="date" /></div>
           <div class="field"><label>Shift</label>
@@ -10515,11 +10957,18 @@
   </div>
 
   <div id="reportModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:480px">
-      <h2 id="reportModalTitle">Isi laporan</h2>
-      <p id="reportModalSub" style="font-size:0.8rem;color:var(--text-muted);margin:-0.35rem 0 1rem"></p>
-      <input type="hidden" id="rpPlanId" />
-      <input type="hidden" id="rpReportId" />
+    <div class="modal modal-sheet" style="max-width:500px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div>
+          <h2 id="reportModalTitle">Isi laporan</h2>
+          <p id="reportModalSub"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeReportModal()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="rpPlanId" />
+        <input type="hidden" id="rpReportId" />
       <div id="rpEvalBox" style="margin-bottom:0.75rem;padding:0.65rem 0.75rem;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.8rem">
         <div style="font-weight:700;color:#047857;margin-bottom:0.25rem">Target penilaian</div>
         <div id="rpEvalText">—</div>
@@ -10597,8 +11046,9 @@
         <div id="rpAdjPreview" style="margin-top:0.5rem;padding:0.55rem 0.65rem;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.78rem;display:none"></div>
       </div>
       <div class="field"><label>Catatan laporan</label><input id="rpNotes" placeholder="opsional — terpisah dari catatan kendala" /></div>
-      <p id="rpHint" style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem"></p>
-      <div class="modal-actions" style="display:flex;flex-wrap:wrap;gap:0.45rem;justify-content:flex-end;align-items:center">
+      <p id="rpHint" style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.25rem"></p>
+      </div>
+      <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeReportModal()">Batal</button>
         <button class="btn btn-ghost" type="button" id="btnOpenRevRequest" style="display:none;border-color:#fdba74;color:#c2410c" onclick="openRevRequestModal()">Minta revisi</button>
         <button class="btn btn-primary" type="button" id="btnSaveReport">Simpan laporan</button>
@@ -37722,15 +38172,17 @@ function closeOtModal() {
 </script>
 
   <div id="appConfirmModal" class="modal-bg" style="z-index:100200;display:none">
-    <div class="modal" style="max-width:380px;width:92vw;padding:1.25rem 1.2rem;border-radius:18px">
-      <div style="display:flex;gap:0.75rem;align-items:flex-start">
-        <div id="appConfirmIcon" style="width:40px;height:40px;border-radius:12px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem">⚠</div>
-        <div style="flex:1;min-width:0">
-          <div id="appConfirmTitle" style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">Konfirmasi</div>
-          <div id="appConfirmMsg" style="font-size:0.875rem;color:var(--text-muted);line-height:1.45">Yakin?</div>
+    <div class="modal" style="max-width:400px;width:92vw">
+      <div class="saas-dialog-body">
+        <div style="display:flex;gap:0.75rem;align-items:flex-start">
+          <div id="appConfirmIcon" style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem">⚠</div>
+          <div style="flex:1;min-width:0">
+            <div id="appConfirmTitle" style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:0.25rem">Konfirmasi</div>
+            <div id="appConfirmMsg" style="font-size:0.85rem;color:#475569;line-height:1.45">Yakin?</div>
+          </div>
         </div>
       </div>
-      <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.1rem">
+      <div class="saas-dialog-foot">
         <button type="button" class="btn btn-ghost" id="appConfirmCancel">Batal</button>
         <button type="button" class="btn btn-primary" id="appConfirmOk" style="background:#dc2626;border-color:#dc2626">Hapus</button>
       </div>
@@ -37739,32 +38191,35 @@ function closeOtModal() {
 
 
   <div id="shipDetailModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100175">
-    <div class="modal modal-sheet" style="max-width:440px;width:94vw">
+    <div class="modal modal-sheet" style="max-width:500px;width:94vw">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 id="shipDetailTitle" style="margin:0">Detail kirim</h2>
-        <p id="shipDetailSub" style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+        <div>
+          <h2 id="shipDetailTitle">Detail kirim</h2>
+          <p id="shipDetailSub"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeShipDetail()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body">
         <div id="shipDetailBody"></div>
-        <div id="shipDetailActions" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem;justify-content:flex-end"></div>
       </div>
+      <div id="shipDetailActions" class="sheet-foot"></div>
     </div>
   </div>
   <div id="shipFormPrintModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100190">
-    <div class="modal modal-sheet" style="max-width:720px;width:96vw;max-height:94vh;display:flex;flex-direction:column">
+    <div class="modal modal-sheet" style="max-width:740px;width:96vw;max-height:94vh">
       <div class="sheet-handle"></div>
-      <div class="sheet-head" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap">
+      <div class="sheet-head" style="align-items:center;flex-wrap:wrap">
         <div>
-          <h2 style="margin:0;font-size:1.05rem">Cetak Form Permintaan &amp; Konfirmasi Pengiriman (A5)</h2>
-          <p id="shipPrintInfoBadge" style="margin:0.2rem 0 0;font-size:0.76rem;color:var(--text-muted)"></p>
+          <h2>Cetak Form Permintaan &amp; Konfirmasi Pengiriman (A5)</h2>
+          <p id="shipPrintInfoBadge"></p>
         </div>
         <div style="display:flex;gap:0.45rem;align-items:center">
           <button type="button" class="btn-odoo" onclick="printShipFormNow()">🖨️ Cetak / Simpan PDF (A5)</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="closeShipFormPrint()">Tutup</button>
+          <button type="button" class="ot-close-x" onclick="closeShipFormPrint()" aria-label="Tutup">&times;</button>
         </div>
       </div>
-      <div class="sheet-body" style="overflow:auto">
+      <div class="sheet-body">
         <div class="a5-print-toolbar">
           <label>Tgl: <input type="date" id="shipPrintDateInp" onchange="onShipPrintDateChange()" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.25rem 0.45rem;font-size:0.78rem;background:#fff" /></label>
           <label>No. Form: <input type="text" id="shipPrintNoForm" placeholder="dd-mm-yyyy/0001" oninput="this.dataset.auto='0';renderShipFormPrintPreview()" style="width:150px" /><button type="button" class="btn btn-ghost btn-sm" onclick="regenShipFormNumber()" title="Buat nomor urut otomatis berikutnya" style="padding:0.2rem 0.45rem;font-size:0.74rem">↻</button></label>
@@ -37784,20 +38239,23 @@ function closeOtModal() {
     </div>
   </div>
   <div id="pickModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100180">
-    <div class="modal modal-sheet" style="max-width:640px;width:94vw;max-height:92vh;overflow:auto">
+    <div class="modal modal-sheet" style="max-width:660px;width:94vw;max-height:92vh">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 id="pickModalTitle" style="margin:0">Pick komponen</h2>
-        <p id="pickModalSub" style="margin:0.3rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+        <div>
+          <h2 id="pickModalTitle">Pick komponen</h2>
+          <p id="pickModalSub"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closePickModal()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body">
         <input type="hidden" id="pickEditId" />
         <input type="hidden" id="pickParentId" />
-        <div id="pickLockBanner" style="display:none;margin-bottom:0.55rem;padding:0.55rem 0.75rem;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;font-size:0.82rem;color:#065f46">
+        <div id="pickLockBanner" style="display:none;margin-bottom:0.55rem;padding:0.55rem 0.75rem;border-radius:10px;background:#ecfdf5;border:1px solid #a7f3d0;font-size:0.82rem;color:#065f46">
           <strong>Terkunci</strong> setelah validasi gudang. Hanya admin yang bisa buka kunci.
           <button type="button" class="btn btn-ghost btn-sm" id="btnPickUnlock" style="margin-left:0.5rem;display:none" onclick="unlockPick()">Buka kunci</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem">
           <div class="field"><label>No Pick Odoo</label><input id="pickNoOdoo" placeholder="PICK/2026/001" /></div>
           <div class="field"><label>Tgl kebutuhan (Shipping)</label><input id="pickNeedDate" type="date" title="Shipping Date Odoo — kapan bahan dibutuhkan" /></div>
           <div class="field"><label>No SO</label>
@@ -37821,7 +38279,7 @@ function closeOtModal() {
               <button type="button" class="btn btn-ghost btn-sm" id="btnPickPhotoClear" style="display:none" onclick="clearPickPhoto()">Hapus foto</button>
             </div>
             <div id="pickPhotoPrev" style="margin-top:0.4rem;display:none">
-              <img id="pickPhotoImg" alt="Preview" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid var(--border);object-fit:cover" />
+              <img id="pickPhotoImg" alt="Preview" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid #e2e8f0;object-fit:cover" />
             </div>
           </div>
         </div>
@@ -37839,7 +38297,7 @@ function closeOtModal() {
         </div>
         <p style="font-size:0.72rem;color:var(--text-muted);margin:0 0 0.35rem">Import PDF Picking Operations Odoo (SHI/PC/…) — qty 0 diabaikan, bahan sama digabung.</p>
         <div id="pickLines"></div>
-        <div id="pickHandoverBox" style="display:none;margin-top:0.75rem;padding:0.65rem;border:1px dashed #86efac;border-radius:12px;background:#f0fdf4">
+        <div id="pickHandoverBox" style="display:none;margin-top:0.75rem;padding:0.65rem;border:1px dashed #86efac;border-radius:10px;background:#f0fdf4">
           <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.35rem">Serah terima</div>
           <div class="field">
             <label>Foto form bertanda tangan</label>
@@ -37852,30 +38310,35 @@ function closeOtModal() {
               <button type="button" class="btn btn-ghost btn-sm" id="btnPickHandoverPhotoClear" style="display:none" onclick="clearPickHandoverPhoto()">Hapus foto</button>
             </div>
             <div id="pickHandoverPhotoPrev" style="margin-top:0.4rem;display:none">
-              <img id="pickHandoverPhotoImg" alt="Preview serah terima" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid var(--border);object-fit:cover" />
+              <img id="pickHandoverPhotoImg" alt="Preview serah terima" style="max-width:100%;max-height:140px;border-radius:10px;border:1px solid #e2e8f0;object-fit:cover" />
             </div>
           </div>
         </div>
-        <div id="pickActions" style="display:flex;flex-wrap:wrap;gap:0.45rem;justify-content:flex-end;margin-top:1rem"></div>
       </div>
+      <div id="pickActions" class="sheet-foot"></div>
     </div>
   </div>
   <div id="mktAksiModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100175">
-    <div class="modal modal-sheet" style="max-width:380px;width:92vw">
+    <div class="modal modal-sheet" style="max-width:400px;width:92vw">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 style="margin:0">Aksi perintah marketing</h2>
-        <p id="mktAksiInfo" style="margin:0.35rem 0 0;font-size:0.8rem;color:var(--text-muted)"></p>
+        <div>
+          <h2>Aksi perintah marketing</h2>
+          <p id="mktAksiInfo"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeMktAksiModal()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body">
         <input type="hidden" id="mktAksiPid" />
         <input type="hidden" id="mktAksiQty" />
         <input type="hidden" id="mktAksiSo" />
         <div style="display:flex;flex-direction:column;gap:0.55rem">
-          <button type="button" class="btn" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;font-weight:700" onclick="mktAksiPending()">Pending</button>
-          <button type="button" class="btn btn-primary" onclick="mktAksiKirim()">Kirim</button>
-          <button type="button" class="btn btn-ghost" onclick="closeMktAksiModal()">Batal</button>
+          <button type="button" class="btn" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;font-weight:700;min-height:42px;border-radius:8px" onclick="mktAksiPending()">Pending</button>
+          <button type="button" class="btn btn-primary" style="min-height:42px;border-radius:8px" onclick="mktAksiKirim()">Kirim</button>
         </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeMktAksiModal()">Batal</button>
       </div>
     </div>
   </div>
@@ -37952,15 +38415,18 @@ function closeOtModal() {
     </div>
   </div>
   <div id="opsProductModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100160">
-    <div class="modal modal-sheet" style="max-width:480px;width:94vw;max-height:90vh;overflow:auto">
+    <div class="modal modal-sheet" style="max-width:500px;width:94vw;max-height:90vh">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 id="opsMenuTitle" style="margin:0;font-size:1.05rem">Produk</h2>
-        <p id="opsMenuSub" style="margin:0.35rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+        <div>
+          <h2 id="opsMenuTitle">Produk</h2>
+          <p id="opsMenuSub"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeOpsProductMenu()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body">
-        <div id="opsMenuStats" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;font-size:0.85rem;margin-bottom:0.85rem"></div>
-        <div id="opsMenuSoBox" class="ops-bulk-panel" style="display:none">
+        <div id="opsMenuStats" style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem;font-size:0.85rem;margin-bottom:0.85rem"></div>
+        <div id="opsMenuSoBox" class="ops-bulk-panel" style="display:none;padding:0.75rem;margin-bottom:0.8rem">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem;flex-wrap:wrap">
             <strong style="font-size:0.82rem;color:#0f172a">Hubungkan / Ubah No. SO</strong>
             <span id="opsMenuSoCount" class="ops-bulk-count"></span>
@@ -37973,9 +38439,9 @@ function closeOtModal() {
         </div>
         <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.75rem">Close hanya <strong>produk ini</strong>. Produk lain di SO tetap aktif.</p>
         <div id="opsCloseForm">
-          <div class="field" style="margin-bottom:0.65rem">
-            <label style="font-size:0.75rem">Kategori close</label>
-            <select id="opsCloseCat" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)">
+          <div class="field">
+            <label>Kategori close</label>
+            <select id="opsCloseCat">
               <option value="">— Pilih kategori —</option>
               <option value="selesai_normal">Selesai normal (qty terpenuhi)</option>
               <option value="potong_order">Potong order customer</option>
@@ -37985,38 +38451,39 @@ function closeOtModal() {
               <option value="lainnya">Lainnya</option>
             </select>
           </div>
-          <div class="field" style="margin-bottom:0.65rem">
-            <label style="font-size:0.75rem">Alasan / catatan</label>
-            <input id="opsCloseReason" placeholder="Wajib jika qty kurang atau kategori potong/reject" style="width:100%;padding:0.5rem;border-radius:10px;border:1px solid var(--border)" />
+          <div class="field">
+            <label>Alasan / catatan</label>
+            <input id="opsCloseReason" placeholder="Wajib jika qty kurang atau kategori potong/reject" />
           </div>
-          <div class="field" style="margin-bottom:0.65rem">
-            <label style="font-size:0.75rem">Foto bukti (opsional, disarankan jika potong/reject)</label>
+          <div class="field" style="margin-bottom:0">
+            <label>Foto bukti (opsional, disarankan jika potong/reject)</label>
             <input type="file" id="opsClosePhoto" accept="image/*,.pdf" capture="environment" style="width:100%;font-size:0.8rem" />
             <div id="opsClosePhotoPrev" style="margin-top:0.4rem;font-size:0.72rem;color:var(--text-muted)"></div>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem">
-          <button type="button" class="btn btn-primary" id="btnOpsClose" onclick="opsCloseOrder(false)">Close produk ini</button>
-          <button type="button" class="btn btn-ghost" id="btnOpsReopen" style="display:none" onclick="opsCloseOrder(true)">Buka kembali produk</button>
-          <button type="button" class="btn btn-ghost" onclick="closeOpsProductMenu()">Batal</button>
-        </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeOpsProductMenu()">Batal</button>
+        <button type="button" class="btn btn-ghost" id="btnOpsReopen" style="display:none" onclick="opsCloseOrder(true)">Buka kembali produk</button>
+        <button type="button" class="btn btn-primary" id="btnOpsClose" onclick="opsCloseOrder(false)">Close produk ini</button>
       </div>
     </div>
   </div>
   <div id="productMoveModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100150">
-    <div class="modal modal-sheet" style="max-width:720px;width:94vw;max-height:88vh;display:flex;flex-direction:column">
+    <div class="modal modal-sheet" style="max-width:740px;width:94vw;max-height:88vh">
       <div class="sheet-handle"></div>
-      <div class="sheet-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+      <div class="sheet-head">
         <div>
-          <h2 id="pmTitle" style="margin:0;font-size:1.05rem">Produk</h2>
-          <p id="pmSub" style="margin:0.25rem 0 0;font-size:0.78rem;color:var(--text-muted)">History pergerakan</p>
+          <h2 id="pmTitle">Produk</h2>
+          <p id="pmSub">History pergerakan</p>
         </div>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="closeProductMove()">Tutup</button>
+        <button type="button" class="ot-close-x" onclick="closeProductMove()" aria-label="Tutup">&times;</button>
       </div>
-      <div style="padding:0 1rem 0.5rem;font-size:0.85rem">
-        Saldo akhir: <strong id="pmSaldo">—</strong>
-      </div>
-      <div class="sheet-body" style="overflow:auto;flex:1;padding-top:0">
+      <div class="sheet-body">
+        <div style="margin-bottom:0.65rem;padding:0.5rem 0.75rem;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;font-size:0.84rem;display:flex;justify-content:space-between;align-items:center">
+          <span style="color:#475569;font-weight:600">Saldo akhir</span>
+          <strong id="pmSaldo" style="color:#0f172a">—</strong>
+        </div>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
@@ -38032,6 +38499,9 @@ function closeOtModal() {
             <tbody id="pmBody"><tr><td colspan="6" class="empty">—</td></tr></tbody>
           </table>
         </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeProductMove()">Tutup</button>
       </div>
     </div>
   </div>
@@ -38057,11 +38527,14 @@ function closeOtModal() {
     </div>
   </div>
   <div id="fgHandoverModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100182" onclick="if(event.target===this)closeFgHandoverModal()">
-    <div class="modal modal-sheet" style="max-width:580px;width:94vw;max-height:90vh;overflow:auto">
+    <div class="modal modal-sheet" style="max-width:600px;width:94vw;max-height:90vh">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 style="margin:0">Terima Serah Terima FG</h2>
-        <p id="fgHoSubtitle" style="margin:0.3rem 0 0;font-size:0.78rem;color:var(--text-muted)">Verifikasi fisik barang dari Produksi beserta rincian No. Bets sebelum diinfokan ke Marketing.</p>
+        <div>
+          <h2>Terima Serah Terima FG</h2>
+          <p id="fgHoSubtitle">Verifikasi fisik barang dari Produksi beserta rincian No. Bets sebelum diinfokan ke Marketing.</p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeFgHandoverModal()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body">
         <input type="hidden" id="fgHoKey" />
@@ -38110,11 +38583,14 @@ function closeOtModal() {
     </div>
   </div>
   <div id="doStageModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100185">
-    <div class="modal modal-sheet" style="max-width:560px;width:94vw;max-height:90vh;overflow:auto">
+    <div class="modal modal-sheet" style="max-width:580px;width:94vw;max-height:90vh">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 id="doStageTitle" style="margin:0">Proses DO</h2>
-        <p id="doStageSub" style="margin:0.35rem 0 0;font-size:0.8rem;color:var(--text-muted)"></p>
+        <div>
+          <h2 id="doStageTitle">Proses DO</h2>
+          <p id="doStageSub"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeDoStageModal()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body" id="doStageBody"></div>
       <div class="sheet-foot">
@@ -38124,11 +38600,14 @@ function closeOtModal() {
     </div>
   </div>
   <div id="doTimelineModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100188" onclick="if(event.target===this)closeDoTimelineModal()">
-    <div class="modal modal-sheet" style="max-width:500px;width:94vw;max-height:88vh;overflow:auto">
+    <div class="modal modal-sheet" style="max-width:520px;width:94vw;max-height:88vh">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 id="doTlTitle" style="margin:0;font-size:1.02rem">Detail SLA &amp; Tahap</h2>
-        <p id="doTlSub" style="margin:0.3rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+        <div>
+          <h2 id="doTlTitle">Detail SLA &amp; Tahap</h2>
+          <p id="doTlSub"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeDoTimelineModal()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body" id="doTlBody"></div>
       <div class="sheet-foot">
@@ -38137,30 +38616,36 @@ function closeOtModal() {
     </div>
   </div>
   <div id="shipDoModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100180">
-    <div class="modal modal-sheet" style="max-width:400px;width:92vw">
+    <div class="modal modal-sheet" style="max-width:420px;width:92vw">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <h2 style="margin:0">Kirim DO</h2>
-        <p id="shipDoInfo" style="margin:0.35rem 0 0;font-size:0.8rem;color:var(--text-muted)"></p>
+        <div>
+          <h2>Kirim DO</h2>
+          <p id="shipDoInfo"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeShipDoModal()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body">
         <input type="hidden" id="shipDoId" />
-        <div class="field">
+        <div class="field" style="margin-bottom:0">
           <label>No. DO Odoo <span style="color:#b91c1c">(wajib saat kirim)</span></label>
           <input id="shipDoOdooNo" placeholder="Contoh: WH/OUT/2026/00123" autocomplete="off" />
           <p id="shipDoHint" style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0">Isi nomor DO resmi dari Odoo (cukup 1x di sini) sebelum status jadi shipped.</p>
         </div>
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
-          <button type="button" class="btn btn-ghost" onclick="closeShipDoModal()">Batal</button>
-          <button type="button" class="btn btn-primary" onclick="confirmShipDo()">Konfirmasi kirim</button>
-        </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeShipDoModal()">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="confirmShipDo()">Konfirmasi kirim</button>
       </div>
     </div>
   </div>
   <div id="deliveryModal" class="modal-bg">
     <div class="modal modal-sheet" style="max-width:560px">
       <div class="sheet-handle"></div>
-      <div class="sheet-head"><h2 id="doModalTitle">DO baru</h2></div>
+      <div class="sheet-head">
+        <h2 id="doModalTitle">DO baru</h2>
+        <button type="button" class="ot-close-x" onclick="closeDeliveryModal()" aria-label="Tutup">&times;</button>
+      </div>
       <div class="sheet-body">
         <input type="hidden" id="doEditId" />
         <input type="hidden" id="doShipRef" />
@@ -38182,7 +38667,7 @@ function closeOtModal() {
           <input id="doOdooNo" placeholder="Opsional saat Ready · diisi 1x saat Kirim" autocomplete="off" />
         </div>
         <div class="field"><label>Catatan</label><input id="doNotes" /></div>
-        <div style="font-weight:700;margin:0.75rem 0 0.35rem">Baris produk (FG)</div>
+        <div style="font-weight:700;margin:0.75rem 0 0.35rem;font-size:0.84rem;color:#0f172a">Baris produk (FG)</div>
         <div id="doLines"></div>
         <button type="button" class="btn btn-ghost btn-sm" onclick="addDoLine()">+ Baris</button>
       </div>
@@ -38193,11 +38678,13 @@ function closeOtModal() {
     </div>
   </div>
   <div id="appPromptModal" class="modal-bg" style="z-index:100210;display:none">
-    <div class="modal" style="max-width:380px;width:92vw;padding:1.25rem 1.2rem;border-radius:18px">
-      <div id="appPromptTitle" style="font-weight:700;font-size:1rem;margin-bottom:0.35rem">Input</div>
-      <div id="appPromptMsg" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;line-height:1.45"></div>
-      <input id="appPromptInput" type="text" inputmode="decimal" style="width:100%;box-sizing:border-box;margin-bottom:1rem" />
-      <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+    <div class="modal" style="max-width:400px;width:92vw">
+      <div class="saas-dialog-body">
+        <div id="appPromptTitle" style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:0.35rem">Input</div>
+        <div id="appPromptMsg" style="font-size:0.85rem;color:#475569;margin-bottom:0.75rem;line-height:1.45"></div>
+        <input id="appPromptInput" type="text" inputmode="decimal" style="width:100%;box-sizing:border-box" />
+      </div>
+      <div class="saas-dialog-foot">
         <button type="button" class="btn btn-ghost" id="appPromptCancel">Batal</button>
         <button type="button" class="btn btn-primary" id="appPromptOk">Simpan</button>
       </div>
