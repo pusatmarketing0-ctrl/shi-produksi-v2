@@ -11185,11 +11185,14 @@
       return list;
     }
     function attachSearchCombo(input, getItems, opts) {
-      if (!input || input.dataset.scBound === "1") return;
+      if (!input) return;
       opts = opts || {};
+      input._scGetItems = getItems;
+      input._scOpts = opts;
+      if (!input.placeholder || opts.placeholder) input.placeholder = opts.placeholder || "Ketik untuk mencari...";
+      if (input.dataset.scBound === "1") return;
       input.dataset.scBound = "1";
       input.setAttribute("autocomplete", "off");
-      if (!input.placeholder) input.placeholder = opts.placeholder || "Ketik untuk mencari...";
 
       let wrap = input.closest(".search-combo");
       if (!wrap) {
@@ -11207,7 +11210,7 @@
 
       function filter(q) {
         q = String(q || "").toLowerCase().trim();
-        let items = (typeof getItems === "function" ? getItems() : []) || [];
+        let items = (typeof input._scGetItems === "function" ? input._scGetItems() : []) || [];
         if (q) items = items.filter(function(it) {
           return String(it.search || it.label || it.id).toLowerCase().indexOf(q) >= 0;
         });
@@ -11221,10 +11224,11 @@
         return items.slice(0, 50);
       }
       function render(q) {
+        const curOpts = input._scOpts || {};
         const items = filter(q);
         if (!items.length) {
-          list.innerHTML = '<div class="search-combo-empty">Tidak ada hasil' +
-            (opts.allowFree !== false ? " — Enter untuk pakai teks ini" : "") + "</div>";
+          var emptyMsg = curOpts.emptyText || ("Tidak ada hasil" + (curOpts.allowFree !== false ? " — Enter untuk pakai teks ini" : ""));
+          list.innerHTML = '<div class="search-combo-empty">' + esc(emptyMsg) + "</div>";
         } else {
           list.innerHTML = items.map(function(it, i) {
             return '<div class="search-combo-item' + (i === 0 ? " active" : "") + '" data-id="' + esc(it.id) + '" data-label="' + esc(it.label) + '">' +
@@ -11242,15 +11246,16 @@
         });
       }
       function pick(id, label) {
+        const curOpts = input._scOpts || {};
         // Create new from search
-        if (id === "__create__" && typeof opts.onCreate === "function") {
+        if (id === "__create__" && typeof curOpts.onCreate === "function") {
           list.classList.remove("show");
           var raw = String(label || input.value || "").replace(/^\+\s*Buat baru:\s*/i, "").trim();
           try {
-            Promise.resolve(opts.onCreate(raw, input)).then(function(res) {
+            Promise.resolve(curOpts.onCreate(raw, input)).then(function(res) {
               if (res && res.id) {
-                if (opts.valueMode === "label") input.value = res.label || res.id;
-                else if (opts.valueMode === "id-name" && res.label) input.value = res.id + " — " + res.label;
+                if (curOpts.valueMode === "label") input.value = res.label || res.id;
+                else if (curOpts.valueMode === "id-name" && res.label) input.value = res.id + " — " + res.label;
                 else input.value = res.id;
                 input.dataset.scId = res.id;
               } else if (raw) {
@@ -11266,17 +11271,17 @@
           return;
         }
         // value format: id (resolve* handles pure id) or "id — name"
-        if (opts.valueMode === "label") {
+        if (curOpts.valueMode === "label") {
           input.value = label || id || "";
-        } else if (opts.valueMode === "id-name" && label && label !== id) {
+        } else if (curOpts.valueMode === "id-name" && label && label !== id) {
           input.value = id + " — " + label;
         } else {
           input.value = id || label || "";
         }
         input.dataset.scId = id || "";
         list.classList.remove("show");
-        if (typeof opts.onPick === "function") {
-          try { opts.onPick(id, label, input); } catch (e) {}
+        if (typeof curOpts.onPick === "function") {
+          try { curOpts.onPick(id, label, input); } catch (e) {}
         }
         try {
           input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -27682,61 +27687,72 @@ function fillOperatorList(selectedEmail) {
       return out;
     }
 
-    function scItemsPickSoForProduct(productId) {
-      productId = String(productId || "").trim();
+    function scItemsPickSoForProduct(productIds) {
+      var pidList = Array.isArray(productIds)
+        ? productIds.map(function(x) { return String(x || "").trim(); }).filter(Boolean)
+        : (String(productIds || "").trim() ? [String(productIds || "").trim()] : []);
       var base = (allOrders || []).filter(function(o) {
         var st = String(o.status || "").toLowerCase();
         return st !== "cancelled" && st !== "canceled";
       });
-      var idx = productId ? (__soByProduct[productId] || null) : null;
       var matched = [];
-      var rest = [];
-      base.forEach(function(o) {
-        var isMatch = false;
-        if (productId) {
-          isMatch = idx ? !!idx[o.order_id] : (typeof orderHasProduct === "function" && orderHasProduct(o, productId));
-        }
-        if (isMatch) matched.push(o);
-        else rest.push(o);
-      });
-      var ordered = productId ? matched.concat(rest) : base;
-      return ordered.map(function(o) {
+      if (pidList.length) {
+        base.forEach(function(o) {
+          var hitPids = [];
+          pidList.forEach(function(pid) {
+            var idx = __soByProduct[pid] || null;
+            var ok = idx ? !!idx[o.order_id] : (typeof orderHasProduct === "function" && orderHasProduct(o, pid));
+            if (ok) hitPids.push(pid);
+          });
+          if (hitPids.length) matched.push({ order: o, hitPids: hitPids });
+        });
+      } else {
+        matched = base.map(function(o) { return { order: o, hitPids: [] }; });
+      }
+      return matched.map(function(entry) {
+        var o = entry.order;
+        var hitPids = entry.hitPids;
         var lines = o.lines || o.order_lines || [];
         var n = lines.length;
-        var isMatch = productId ? (idx ? !!idx[o.order_id] : (typeof orderHasProduct === "function" && orderHasProduct(o, productId))) : false;
-        var lineQty = "";
-        if (productId && isMatch) {
+        var lineDesc = [];
+        hitPids.forEach(function(pid) {
+          var idx = __soByProduct[pid] || null;
           var meta = idx && idx[o.order_id];
-          var L = lines.find(function(x) { return String(x.product_id) === productId; });
-          if (L) lineQty = " · qty " + formatNum(L.qty || 0) + " " + (L.unit || "");
-          else if (meta) lineQty = " · qty " + formatNum(meta.qty || 0) + " " + (meta.unit || "");
-        }
+          var L = lines.find(function(x) { return String(x.product_id) === pid; });
+          var q = L ? (L.qty || 0) : (meta ? (meta.qty || 0) : 0);
+          var u = L ? (L.unit || "") : (meta ? (meta.unit || "") : "");
+          lineDesc.push("✓ memuat " + pid + (q ? (" · qty " + formatNum(q) + (u ? " " + u : "")) : ""));
+        });
         var label = (o.no_so || o.order_id) + " · " + (o.customer_name || "-") + (n ? " (" + n + " item)" : "");
         var subParts = [];
-        if (productId && isMatch) subParts.push("✓ memuat " + productId + lineQty);
+        if (lineDesc.length) subParts.push(lineDesc.join(", "));
         if (o.status) subParts.push(o.status);
         if (o.order_date) subParts.push(String(o.order_date).slice(0, 10));
         return {
           id: o.order_id,
           label: label,
           sub: subParts.join(" · "),
-          search: [o.order_id, o.no_so, o.customer_name, o.status, isMatch ? productId : ""].join(" ")
+          search: [o.order_id, o.no_so, o.customer_name, o.status].concat(hitPids).join(" ")
         };
       });
     }
 
-    async function opsBindSoComboForProduct(inputEl, productId) {
+    async function opsBindSoComboForProduct(inputEl, productIds) {
       if (!inputEl) return;
+      var pidList = Array.isArray(productIds)
+        ? productIds.map(function(x) { return String(x || "").trim(); }).filter(Boolean)
+        : (String(productIds || "").trim() ? [String(productIds || "").trim()] : []);
       try { await ensureOrdersLoadedForSoCheck(); } catch (e0) {}
-      if (productId) {
-        try { await ensureSoProductIndex(productId); } catch (e1) {}
+      for (var i = 0; i < pidList.length; i++) {
+        try { await ensureSoProductIndex(pidList[i]); } catch (e1) {}
       }
-      inputEl.dataset.scBound = "";
+      var pidLabel = pidList.length === 1 ? pidList[0] : (pidList.length > 1 ? pidList.join(", ") : "");
       if (typeof attachSearchCombo === "function") {
-        attachSearchCombo(inputEl, function() { return scItemsPickSoForProduct(productId); }, {
+        attachSearchCombo(inputEl, function() { return scItemsPickSoForProduct(pidList); }, {
           valueMode: "id-name",
           allowFree: true,
-          placeholder: productId ? "Ketik No. SO / customer (" + productId + ")..." : "Ketik No. SO / customer...",
+          placeholder: pidLabel ? "Cari SO yang memuat " + pidLabel + "..." : "Ketik No. SO / customer...",
+          emptyText: pidLabel ? ("Tidak ada SO yang memuat " + pidLabel) : "Tidak ada SO yang sesuai",
           onPick: function(id, label, input) {
             if (input) {
               input.dataset.scId = id || "";
@@ -27976,12 +27992,24 @@ function fillOperatorList(selectedEmail) {
       if (!canBulkPlanAction()) return toast("Tidak diizinkan", true);
       var ids = Object.keys(planSelectedIds || {});
       if (!ids.length) return toast("Pilih minimal 1 plan dulu", true);
-      if ($("planBulkSoSub")) $("planBulkSoSub").textContent = ids.length + " plan terpilih akan diperbarui No. SO-nya sekaligus.";
+      var selRows = (typeof plans !== "undefined" && Array.isArray(plans))
+        ? plans.filter(function(p) { return ids.indexOf(p.plan_id) >= 0; })
+        : [];
+      var pidSet = {};
+      selRows.forEach(function(p) {
+        if (p && p.product_id) pidSet[String(p.product_id).trim()] = true;
+      });
+      var selPids = Object.keys(pidSet);
+      if ($("planBulkSoSub")) {
+        $("planBulkSoSub").textContent = ids.length + " plan terpilih" +
+          (selPids.length ? (" (khusus SO memuat " + selPids.join(", ") + ")") : "") +
+          " akan diperbarui No. SO-nya sekaligus.";
+      }
       var inp = $("planBulkSoInp");
       if (inp) {
         inp.value = "";
         inp.dataset.scId = "";
-        opsBindSoComboForProduct(inp, "");
+        opsBindSoComboForProduct(inp, selPids);
       }
       var m = $("planBulkSoModal");
       if (m) {
