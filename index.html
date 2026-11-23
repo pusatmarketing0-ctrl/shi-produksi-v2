@@ -6628,13 +6628,13 @@
     }
     .a5-print-sheet {
       width: 148mm;
-      min-height: 196mm;
+      min-height: 200mm;
       background: #ffffff;
       color: #0f172a;
-      padding: 9mm 10mm 8mm;
+      padding: 8mm 9.5mm 7mm;
       box-sizing: border-box;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
-      font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+      font-family: "Inter", Arial, Helvetica, "Segoe UI", sans-serif;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -6645,154 +6645,273 @@
       page-break-after: auto;
       break-after: auto;
     }
-    .a5-doc-title {
-      font-size: 13.5pt;
-      font-weight: 800;
-      letter-spacing: 0.01em;
-      color: #0f172a;
-      margin: 0;
-      line-height: 1.2;
-      text-transform: uppercase;
-    }
-    .a5-doc-sub {
-      font-size: 9pt;
-      color: #475569;
-      margin: 2px 0 0;
-      font-weight: 500;
-    }
-    .a5-doc-rule {
-      height: 2.2px;
-      background: #0f172a;
-      margin: 7px 0 9px;
-      border: none;
-    }
-    .a5-meta-row {
+    .a5-brand-bar {
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
-      gap: 12px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .a5-brand-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .a5-brand-logo {
+      height: 28px;
+      width: auto;
+      max-width: 64px;
+      object-fit: contain;
+      display: block;
+      flex-shrink: 0;
+    }
+    .a5-brand-co {
       font-size: 9pt;
-      margin-bottom: 9px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+    }
+    .a5-brand-dept {
+      font-size: 7pt;
+      color: #64748b;
+      margin-top: 1px;
+      font-weight: 500;
+    }
+    .a5-brand-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .a5-flow-pill {
+      display: inline-block;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 7pt;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .a5-doc-code {
+      font-size: 6.6pt;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .a5-doc-title {
+      font-size: 11.8pt;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #0f172a;
+      margin: 2px 0 0;
+      line-height: 1.22;
+      text-transform: uppercase;
+    }
+    .a5-doc-rule {
+      height: 2.5px;
+      background: linear-gradient(90deg, #0d9f6e 0%, #0d9f6e 26%, #0f172a 26%, #0f172a 100%);
+      margin: 5px 0 8px;
+      border: none;
+      border-radius: 2px;
+    }
+    .a5-meta-card {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 6px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+      font-size: 8.3pt;
       color: #0f172a;
     }
-    .a5-meta-left {
+    .a5-meta-item {
       display: flex;
       align-items: baseline;
-      gap: 6px;
-      font-weight: 700;
+      gap: 5px;
+      min-width: 0;
     }
-    .a5-meta-right {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
+    .a5-meta-lbl {
+      color: #64748b;
+      font-weight: 600;
+      white-space: nowrap;
+      font-size: 7.8pt;
+    }
+    .a5-meta-val {
       font-weight: 700;
+      color: #0f172a;
+      flex: 1;
+      min-width: 0;
     }
     .a5-noform-line {
       display: inline-block;
-      min-width: 96px;
-      border-bottom: 1.2px solid #475569;
+      width: 100%;
+      min-width: 82px;
+      border-bottom: 1px solid #64748b;
       text-align: left;
-      padding: 0 3px 1px;
+      padding: 0 2px 1px;
       font-weight: 700;
-      min-height: 13px;
+      min-height: 12px;
+    }
+    .a5-table-wrap {
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      overflow: hidden;
+      margin-bottom: 8px;
     }
     .a5-table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
-      font-size: 8.5pt;
-      margin-bottom: 9px;
+      font-size: 8.2pt;
+      margin: 0;
     }
     .a5-table th,
     .a5-table td {
-      border: 1px solid #cbd5e1;
-      padding: 4.5px 5.5px;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 4.5px 5px;
       vertical-align: middle;
       color: #0f172a;
       word-wrap: break-word;
     }
+    .a5-table th:last-child,
+    .a5-table td:last-child {
+      border-right: none;
+    }
+    .a5-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .a5-table tbody tr:nth-child(even) td {
+      background: #fafcff;
+    }
     .a5-table th {
-      background: #f1f5f9;
+      background: #f1f5f9 !important;
+      color: #1e293b !important;
       font-weight: 700;
       text-align: center;
-      line-height: 1.22;
-      font-size: 8.2pt;
+      line-height: 1.2;
+      font-size: 7.7pt;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+      border-bottom: 1.5px solid #cbd5e1;
+      padding: 5.5px 4px;
+    }
+    .a5-table th.a5-th-left {
+      text-align: left;
+      padding-left: 6px;
     }
     .a5-table td.a5-c-no {
       text-align: center;
-      color: #334155;
+      color: #64748b;
+      font-size: 7.8pt;
       height: 22px;
     }
     .a5-table td.a5-c-prod {
       text-align: left;
       line-height: 1.25;
       font-weight: 500;
+      padding-left: 6px;
     }
     .a5-table td.a5-c-bets {
       text-align: center;
-      font-size: 7.8pt;
-      color: #1e293b;
+      font-size: 7.6pt;
+      color: #334155;
       font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
     .a5-table td.a5-c-qty {
       text-align: center;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
+      color: #0f172a;
     }
     .a5-note-box {
       background: #f8fafc;
-      border-left: 3px solid #0f172a;
-      padding: 7px 10px;
-      margin: 4px 0 10px;
-      font-size: 8pt;
-      line-height: 1.42;
-      color: #1e293b;
+      border: 1px solid #e2e8f0;
+      border-left: 3.5px solid #0d9f6e;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin: 2px 0 8px;
+      font-size: 7.6pt;
+      line-height: 1.4;
+      color: #334155;
     }
     .a5-note-title {
       font-weight: 700;
       color: #0f172a;
-      margin-bottom: 3px;
-      font-size: 8.2pt;
+      margin-bottom: 2px;
+      font-size: 7.9pt;
     }
     .a5-note-box ul {
       margin: 0;
-      padding-left: 16px;
+      padding-left: 15px;
     }
     .a5-note-box li {
-      margin-bottom: 2px;
+      margin-bottom: 1.5px;
+    }
+    .a5-sheet-bottom {
+      margin-top: auto;
+      padding-top: 4px;
     }
     .a5-sign-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 28px;
-      margin: 6px 14px 8px;
+      gap: 14px;
+      margin: 0 0 8px;
+    }
+    .a5-sign-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 7px 12px 8px;
       text-align: center;
-      font-size: 8.5pt;
-      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .a5-sign-role-top {
+      font-size: 8pt;
       font-weight: 700;
-      margin-bottom: 34px;
+      color: #334155;
+    }
+    .a5-sign-space {
+      height: 54px;
     }
     .a5-sign-line {
-      border-top: 1.2px solid #334155;
-      padding-top: 3px;
-      font-size: 8pt;
-      color: #475569;
+      border-top: 1.1px solid #475569;
+      padding-top: 4px;
+      margin: 0 6px;
+    }
+    .a5-sign-dept {
+      font-size: 8.2pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .a5-sign-sub {
+      font-size: 6.7pt;
+      color: #64748b;
+      margin-top: 1px;
     }
     .a5-doc-foot {
-      border-top: 1px solid #cbd5e1;
+      border-top: 1px solid #e2e8f0;
       padding-top: 4px;
-      margin-top: 4px;
+      margin-top: 2px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 7.5pt;
+      font-size: 7pt;
       color: #64748b;
     }
     @page {
       size: A5 portrait;
-      margin: 7mm 8mm;
+      margin: 6.5mm 7.5mm;
     }
     @media print {
       body.printing-ship-form {
@@ -37259,6 +37378,11 @@ function closeOtModal() {
       }
       var totalPages = chunks.length;
       var dateLong = _shipFormLongDateId(dateVal);
+      var logoEl = document.querySelector(".topbar-left .mark img, .login-mark img, img[alt='SHI']");
+      var logoSrc = logoEl ? logoEl.getAttribute("src") : "";
+      var logoHtml = logoSrc
+        ? '<img class="a5-brand-logo" src="' + esc(logoSrc) + '" alt="Logo SHI" />'
+        : "";
 
       var sheetsHtml = chunks.map(function(chunk, pageIdx) {
         var startNo = pageIdx * maxPerPage;
@@ -37294,34 +37418,48 @@ function closeOtModal() {
 
         return '<div class="a5-print-sheet">' +
           '<div class="a5-sheet-top">' +
-            '<h1 class="a5-doc-title">FORM PERMINTAAN &amp; KONFIRMASI PENGIRIMAN</h1>' +
-            '<div class="a5-doc-sub">Bagian Marketing &rarr; Gudang</div>' +
-            '<hr class="a5-doc-rule" />' +
-            '<div class="a5-meta-row">' +
-              '<div class="a5-meta-left"><span>Tanggal</span><span>: ' + esc(dateLong) + "</span></div>" +
-              '<div class="a5-meta-right"><span>No. Form</span><span>: ' + noFormHtml + "</span></div>" +
+            '<div class="a5-brand-bar">' +
+              '<div class="a5-brand-left">' +
+                logoHtml +
+                "<div>" +
+                  '<div class="a5-brand-co">PT. Sentra Herbal Internasional</div>' +
+                  '<div class="a5-brand-dept">Divisi Operasional &amp; Logistik Pengiriman</div>' +
+                "</div>" +
+              "</div>" +
+              '<div class="a5-brand-right">' +
+                '<span class="a5-flow-pill">Marketing &rarr; Gudang</span>' +
+                '<span class="a5-doc-code">Form Pengiriman Barang (A5)</span>' +
+              "</div>" +
             "</div>" +
-            '<table class="a5-table">' +
-              "<colgroup>" +
-                '<col style="width:7%" />' +
-                '<col style="width:35%" />' +
-                '<col style="width:12%" />' +
-                '<col style="width:15%" />' +
-                '<col style="width:12%" />' +
-                '<col style="width:19%" />' +
-              "</colgroup>" +
-              "<thead>" +
-                "<tr>" +
-                  "<th>No</th>" +
-                  "<th>Nama Produk</th>" +
-                  "<th>Bets</th>" +
-                  "<th>Qty Req<br/>Marketing</th>" +
-                  "<th>Qty<br/>Kirim</th>" +
-                  "<th>Keterangan</th>" +
-                "</tr>" +
-              "</thead>" +
-              "<tbody>" + trHtml + "</tbody>" +
-            "</table>" +
+            '<h1 class="a5-doc-title">FORM PERMINTAAN &amp; KONFIRMASI PENGIRIMAN</h1>' +
+            '<div class="a5-doc-rule"></div>' +
+            '<div class="a5-meta-card">' +
+              '<div class="a5-meta-item"><span class="a5-meta-lbl">Tanggal</span><span class="a5-meta-val">: ' + esc(dateLong) + "</span></div>" +
+              '<div class="a5-meta-item"><span class="a5-meta-lbl">No. Form</span><span class="a5-meta-val">: ' + noFormHtml + "</span></div>" +
+            "</div>" +
+            '<div class="a5-table-wrap">' +
+              '<table class="a5-table">' +
+                "<colgroup>" +
+                  '<col style="width:6%" />' +
+                  '<col style="width:33%" />' +
+                  '<col style="width:14%" />' +
+                  '<col style="width:16%" />' +
+                  '<col style="width:12%" />' +
+                  '<col style="width:19%" />' +
+                "</colgroup>" +
+                "<thead>" +
+                  "<tr>" +
+                    "<th>No</th>" +
+                    '<th class="a5-th-left">Nama Produk</th>' +
+                    "<th>No. Bets</th>" +
+                    "<th>Qty Req<br/>Marketing</th>" +
+                    "<th>Qty<br/>Kirim</th>" +
+                    "<th>Keterangan</th>" +
+                  "</tr>" +
+                "</thead>" +
+                "<tbody>" + trHtml + "</tbody>" +
+              "</table>" +
+            "</div>" +
             '<div class="a5-note-box">' +
               '<div class="a5-note-title">Catatan Penting:</div>' +
               "<ul>" +
@@ -37329,20 +37467,30 @@ function closeOtModal() {
                 "<li>Apabila masih ada stok barang dari kemarin yang mengendap dan belum diproses, mohon dicatat pada kolom <strong>Keterangan</strong> (atau baris tambahan) untuk di-<em>follow up</em> Marketing.</li>" +
               "</ul>" +
             "</div>" +
+          "</div>" +
+          '<div class="a5-sheet-bottom">' +
             '<div class="a5-sign-grid">' +
-              "<div>" +
+              '<div class="a5-sign-box">' +
                 '<div class="a5-sign-role-top">Dibuat Oleh,</div>' +
-                '<div class="a5-sign-line">Marketing</div>' +
+                '<div class="a5-sign-space"></div>' +
+                '<div class="a5-sign-line">' +
+                  '<div class="a5-sign-dept">Bagian Marketing</div>' +
+                  '<div class="a5-sign-sub">Nama &amp; Tanda Tangan</div>' +
+                "</div>" +
               "</div>" +
-              "<div>" +
+              '<div class="a5-sign-box">' +
                 '<div class="a5-sign-role-top">Diproses Oleh,</div>' +
-                '<div class="a5-sign-line">Gudang</div>' +
+                '<div class="a5-sign-space"></div>' +
+                '<div class="a5-sign-line">' +
+                  '<div class="a5-sign-dept">Bagian Gudang</div>' +
+                  '<div class="a5-sign-sub">Nama &amp; Tanda Tangan</div>' +
+                "</div>" +
               "</div>" +
             "</div>" +
-          "</div>" +
-          '<div class="a5-doc-foot">' +
-            "<span>Form Pengiriman Barang (A5)</span>" +
-            "<span>Page " + (pageIdx + 1) + " of " + totalPages + "</span>" +
+            '<div class="a5-doc-foot">' +
+              "<span>PT. Sentra Herbal Internasional · Form Permintaan &amp; Konfirmasi Pengiriman</span>" +
+              "<span>Halaman " + (pageIdx + 1) + " dari " + totalPages + "</span>" +
+            "</div>" +
           "</div>" +
         "</div>";
       }).join("");
