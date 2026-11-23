@@ -6681,6 +6681,54 @@
       cursor: pointer;
       flex-shrink: 0;
     }
+    .fg-ho-photo-box {
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 0.7rem 0.8rem;
+      margin-top: 0.55rem;
+    }
+    .fg-ho-photo-box.has-photo {
+      border-style: solid;
+      border-color: #a7f3d0;
+      background: #f0fdf4;
+    }
+    .fg-ho-photo-prev {
+      margin-top: 0.55rem;
+      display: none;
+      align-items: center;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+    }
+    .fg-ho-photo-prev img {
+      width: 112px;
+      height: 84px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      cursor: zoom-in;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+    .fg-ho-photo-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-top: 0.22rem;
+      padding: 0.18rem 0.5rem;
+      font-size: 0.69rem;
+      font-weight: 700;
+      color: #0369a1;
+      background: #eff6ff;
+      border: 1px solid #bae6fd;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .fg-ho-photo-chip:hover {
+      background: #dbeafe;
+      border-color: #7dd3fc;
+    }
     /* ===== Form Permintaan & Konfirmasi Pengiriman (A5 Printable) ===== */
     #shipFormPrintHost { display: none; }
     .a5-preview-stage {
@@ -33638,20 +33686,36 @@ var id = await newPickId();
         return '<span class="pill" style="background:#fee2e2;color:#991b1b">Selisih</span>' +
           (r.variance_reason ? '<div style="font-size:0.68rem;color:#991b1b;margin-top:0.2rem;line-height:1.3">' + esc(r.variance_reason) + '</div>' : '');
       }
+      function fgkPhotoBtnHtml(ho) {
+        if (!ho) return "";
+        var pUrl = ho.wh_photo_url || ho.prod_photo_url || "";
+        var parts = [];
+        if (ho.prod_odoo_no) {
+          parts.push('<div style="font-size:0.65rem;color:#475569;margin-top:0.15rem">Odoo: <strong>' + esc(ho.prod_odoo_no) + '</strong></div>');
+        }
+        if (pUrl) {
+          parts.push('<div><button type="button" class="fg-ho-photo-chip" data-fgk-photo="' + esc(pUrl) + '">📷 Form Odoo</button></div>');
+        }
+        return parts.join("");
+      }
       function fgkHandoverHtml(r) {
         var qtyOut = r.has_korlap ? (Number(r.korlap_qty) || 0) : (Number(r.op_qty) || 0);
         var ho = r.ho;
         if (ho && ho.state === "notified") {
           return '<span class="fg-ho-pill mkt">✓ Info Marketing</span>' +
-            '<div style="font-size:0.66rem;color:#475569;margin-top:0.15rem">Gudang: ' + esc(ho.received_name || "—") + ' (' + formatNum(ho.received_qty) + ')</div>';
+            '<div style="font-size:0.66rem;color:#475569;margin-top:0.15rem">Gudang: ' + esc(ho.received_name || "—") + ' (' + formatNum(ho.received_qty) + ')</div>' +
+            fgkPhotoBtnHtml(ho);
         }
         if (ho && ho.state === "recv") {
           return '<span class="fg-ho-pill recv">✓ Diterima Gudang</span>' +
-            '<div style="font-size:0.66rem;color:#475569;margin-top:0.15rem">' + esc(ho.received_name || "Gudang") + ' · ' + formatNum(ho.received_qty) + ' ' + esc(r.unit || "pcs") + '</div>';
+            '<div style="font-size:0.66rem;color:#475569;margin-top:0.15rem">' + esc(ho.received_name || "Gudang") + ' · ' + formatNum(ho.received_qty) + ' ' + esc(r.unit || "pcs") + '</div>' +
+            fgkPhotoBtnHtml(ho);
         }
         if (ho && ho.state === "prod_submit") {
           return '<span class="fg-ho-pill prod">Menunggu Terima Gudang</span>' +
-            '<div style="font-size:0.66rem;color:#64748b;margin-top:0.15rem">Diserahkan: ' + esc(ho.submitted_name || ho.from_who || "Produksi") + '</div>';
+            '<div style="font-size:0.66rem;color:#64748b;margin-top:0.15rem">Diserahkan: ' + esc(ho.submitted_name || ho.from_who || "Produksi") + '</div>' +
+            fgkPhotoBtnHtml(ho) +
+            '<div style="margin-top:0.2rem"><button type="button" class="btn btn-ghost btn-sm" style="padding:0.14rem 0.48rem;font-size:0.68rem" data-fgk-ho="' + esc(r.key) + '">' + (ho.prod_photo_url ? 'Edit / Ganti Foto' : '+ Foto Form Odoo') + '</button></div>';
         }
         if (qtyOut > 0) {
           return '<button type="button" class="btn btn-sm" style="background:#ecfdf5;color:#047857;border:1px solid #6ee7b7;font-weight:700" data-fgk-ho="' + esc(r.key) + '">Serahkan ke Gudang</button>';
@@ -33700,7 +33764,15 @@ var id = await newPickId();
         body.querySelectorAll("[data-fgk-ho]").forEach(function(btn) {
           btn.onclick = function(ev) {
             ev.stopPropagation();
-            if (typeof submitFgHandoverFromProd === "function") submitFgHandoverFromProd(btn.getAttribute("data-fgk-ho"));
+            if (typeof openFgProdSubmitModal === "function") openFgProdSubmitModal(btn.getAttribute("data-fgk-ho"));
+            else if (typeof submitFgHandoverFromProd === "function") submitFgHandoverFromProd(btn.getAttribute("data-fgk-ho"));
+          };
+        });
+        body.querySelectorAll("[data-fgk-photo]").forEach(function(btn) {
+          btn.onclick = function(ev) {
+            ev.stopPropagation();
+            var u = btn.getAttribute("data-fgk-photo");
+            if (u && typeof openPickImgLightbox === "function") openPickImgLightbox(u);
           };
         });
       }
@@ -33721,7 +33793,15 @@ var id = await newPickId();
         cards.querySelectorAll("[data-fgk-ho]").forEach(function(btn) {
           btn.onclick = function(ev) {
             ev.stopPropagation();
-            if (typeof submitFgHandoverFromProd === "function") submitFgHandoverFromProd(btn.getAttribute("data-fgk-ho"));
+            if (typeof openFgProdSubmitModal === "function") openFgProdSubmitModal(btn.getAttribute("data-fgk-ho"));
+            else if (typeof submitFgHandoverFromProd === "function") submitFgHandoverFromProd(btn.getAttribute("data-fgk-ho"));
+          };
+        });
+        cards.querySelectorAll("[data-fgk-photo]").forEach(function(btn) {
+          btn.onclick = function(ev) {
+            ev.stopPropagation();
+            var u = btn.getAttribute("data-fgk-photo");
+            if (u && typeof openPickImgLightbox === "function") openPickImgLightbox(u);
           };
         });
       }
@@ -36629,6 +36709,10 @@ function closeOtModal() {
             received_role: ad.received_role || ((act === "receive_wh" || act === "receive_and_notify") ? (lg.user_role || "") : ""),
             received_at: ad.received_at || ((act === "receive_wh" || act === "receive_and_notify") ? (lg.created_at || "") : ""),
             wh_notes: ad.wh_notes || "",
+            prod_odoo_no: ad.prod_odoo_no || "",
+            prod_photo_url: ad.prod_photo_url || "",
+            prod_notes: ad.prod_notes || "",
+            wh_photo_url: ad.wh_photo_url || "",
             notified_mkt: !!(ad.notified_mkt || state === "notified"),
             notified_by: ad.notified_by || ((act === "notify_mkt" || act === "receive_and_notify") ? (lg.user_email || "") : ""),
             notified_name: ad.notified_name || ((act === "notify_mkt" || act === "receive_and_notify") ? (lg.user_name || "") : ""),
@@ -36861,6 +36945,10 @@ function closeOtModal() {
           r.received_role = h.received_role || "";
           r.received_at = h.received_at || "";
           r.wh_notes = h.wh_notes || "";
+          r.prod_odoo_no = h.prod_odoo_no || "";
+          r.prod_photo_url = h.prod_photo_url || "";
+          r.prod_notes = h.prod_notes || "";
+          r.wh_photo_url = h.wh_photo_url || "";
           r.notified_mkt = !!h.notified_mkt;
           r.notified_by = h.notified_by || "";
           r.notified_name = _fgHoResolveDisplayName(h.notified_by, h.notified_name);
@@ -36881,6 +36969,10 @@ function closeOtModal() {
           r.received_role = "";
           r.received_at = "";
           r.wh_notes = "";
+          r.prod_odoo_no = "";
+          r.prod_photo_url = "";
+          r.prod_notes = "";
+          r.wh_photo_url = "";
           r.notified_mkt = false;
           r.notified_by = "";
           r.notified_name = "";
@@ -37011,13 +37103,223 @@ function closeOtModal() {
       try { updateGudangOverviewCards(); } catch (e) {}
     }
 
-    async function submitFgHandoverFromProd(fgkKey) {
-      if (!sb) return;
+    var _fgHoUploadPromises = {};
+    async function _fgHoCompressImageFile(file) {
+      var dataUrl = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() { resolve(String(reader.result || "")); };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      if (!/^data:image\//i.test(dataUrl)) return { dataUrl: dataUrl, mimeType: file.type || "image/jpeg" };
+      try {
+        var img = await new Promise(function(resolve, reject) {
+          var im = new Image();
+          im.onload = function() { resolve(im); };
+          im.onerror = reject;
+          im.src = dataUrl;
+        });
+        var w = img.naturalWidth || img.width || 0;
+        var h = img.naturalHeight || img.height || 0;
+        var maxDim = 1600;
+        if (w > 0 && h > 0 && (w > maxDim || h > maxDim || file.size > 1100 * 1024)) {
+          var ratio = Math.min(1, maxDim / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * ratio));
+          var ch = Math.max(1, Math.round(h * ratio));
+          var canvas = document.createElement("canvas");
+          canvas.width = cw;
+          canvas.height = ch;
+          var ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, cw, ch);
+            ctx.drawImage(img, 0, 0, cw, ch);
+            var compressed = canvas.toDataURL("image/jpeg", 0.82);
+            if (compressed && compressed.length < dataUrl.length) {
+              return { dataUrl: compressed, mimeType: "image/jpeg" };
+            }
+          }
+        }
+      } catch (eCmp) {}
+      return { dataUrl: dataUrl, mimeType: file.type || "image/jpeg" };
+    }
+    function _fgHoSetPhotoPreview(prefix, url) {
+      var hidden = $(prefix);
+      var prev = $(prefix + "Prev");
+      var img = $(prefix + "Img");
+      var clr = $(prefix + "ClearBtn");
+      var box = $(prefix + "Box");
+      if (hidden) hidden.value = url || "";
+      if (!url) {
+        if (prev) prev.style.display = "none";
+        if (img) { img.removeAttribute("src"); img.onclick = null; }
+        if (clr) clr.style.display = "none";
+        if (box) box.classList.remove("has-photo");
+        return;
+      }
+      if (img) {
+        var showSrc = (typeof toPickPreviewUrl === "function") ? toPickPreviewUrl(url) : url;
+        img.src = showSrc;
+        img.title = "Klik untuk perbesar foto Form Odoo";
+        img.onclick = function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          var curVal = (hidden && hidden.value) || url;
+          if (typeof openPickImgLightbox === "function") openPickImgLightbox(curVal);
+        };
+        img.onerror = function() {
+          if (showSrc !== url && String(url).indexOf("data:") === 0) img.src = url;
+        };
+      }
+      if (prev) prev.style.display = "flex";
+      if (clr) clr.style.display = "inline-flex";
+      if (box) box.classList.add("has-photo");
+    }
+    function clearFgHoPhoto(prefix) {
+      var fileInp = $(prefix + "File");
+      var st = $(prefix + "Status");
+      if (fileInp) fileInp.value = "";
+      if (st) st.textContent = "";
+      _fgHoSetPhotoPreview(prefix, "");
+    }
+    async function handleFgHoPhotoSelected(prefix, file, refKey, kind) {
+      if (!file) return;
+      if (!/^image\//i.test(file.type || "")) return toast("Pilih file foto / gambar Form Odoo", true);
+      if (file.size > 15 * 1024 * 1024) return toast("Ukuran foto maksimal 15 MB", true);
+      var st = $(prefix + "Status");
+      if (st) st.textContent = "Memproses foto…";
+      var job = (async function() {
+        var prep = await _fgHoCompressImageFile(file);
+        var dataUrl = prep.dataUrl;
+        _fgHoSetPhotoPreview(prefix, dataUrl);
+        try {
+          var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
+          if (base && dataUrl.indexOf("base64,") >= 0) {
+            if (st) st.textContent = "Mengupload ke Google Drive…";
+            var b64 = String(dataUrl).split("base64,")[1] || "";
+            var res = await fetch(base, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({
+                ot_id: refKey || "fg-handover",
+                kind: kind || "fg_handover_odoo",
+                fileName: (file.name || ("form-odoo-" + Date.now() + ".jpg")).replace(/\.[^.]+$/, "") + ".jpg",
+                mimeType: prep.mimeType || "image/jpeg",
+                base64: b64
+              })
+            });
+            var txt = await res.text();
+            var data = {};
+            try { data = JSON.parse(txt); } catch (eJ) {}
+            if (data && data.ok && data.url) {
+              if ($(prefix)) $(prefix).value = data.url;
+              var img = $(prefix + "Img");
+              if (img) {
+                img.onclick = function(ev) {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  if (typeof openPickImgLightbox === "function") openPickImgLightbox(data.url);
+                };
+              }
+              if (st) st.innerHTML = '<span style="color:#047857;font-weight:700">✓ Foto tersimpan di Drive</span>';
+              toast("Foto Form Odoo tersimpan di Drive");
+              return data.url;
+            }
+          }
+        } catch (eUp) {
+          console.warn("fgHo drive upload", eUp);
+        }
+        if (st) st.innerHTML = '<span style="color:#b45309;font-weight:600">✓ Foto siap disimpan (lokal)</span>';
+        return dataUrl;
+      })();
+      _fgHoUploadPromises[prefix] = job;
+      try {
+        await job;
+      } finally {
+        if (_fgHoUploadPromises[prefix] === job) delete _fgHoUploadPromises[prefix];
+      }
+    }
+
+    function openFgProdSubmitModal(fgkKey) {
       var r = (fgkRows || []).find(function(x) { return x.key === fgkKey; });
       if (!r) return toast("Data output FG tidak ditemukan", true);
-      var d = r.report_date || ($("fgkDate") && $("fgkDate").value) || todayStr();
       var qtyOut = r.has_korlap ? (Number(r.korlap_qty) || 0) : (Number(r.op_qty) || 0);
       if (!(qtyOut > 0)) return toast("Output FG masih 0 — laporkan hasil dulu sebelum serah terima", true);
+      var d = r.report_date || ($("fgkDate") && $("fgkDate").value) || todayStr();
+      var ho = r.ho || {};
+      var prodLbl = (typeof shipProductDisplay === "function" ? shipProductDisplay(r.product_id) : r.product_id);
+      var bets = (r.bets && r.bets.length)
+        ? r.bets.map(function(b, idx) {
+            return {
+              no: String((b && (b.no || b.notes)) || "").trim() || ("Bet " + ((b && b.bet_no) || (idx + 1))),
+              qty: Number(b && b.qty) || 0,
+              unit: r.unit || "pcs"
+            };
+          }).filter(function(b) { return b.qty > 0; })
+        : [{ no: "Bet 1", qty: qtyOut, unit: r.unit || "pcs" }];
+
+      if ($("fgPsKey")) $("fgPsKey").value = r.key;
+      if ($("fgPsSubtitle")) $("fgPsSubtitle").textContent = prodLbl + " · " + d + " · Shift " + r.shift;
+      if ($("fgPsSummaryStrip")) {
+        $("fgPsSummaryStrip").innerHTML =
+          '<div><div class="lbl">Produk FG</div><div class="val">' + esc(prodLbl) + '</div></div>' +
+          '<div><div class="lbl">No. SO</div><div class="val">' + esc(r.no_so || "—") + '</div></div>' +
+          '<div><div class="lbl">Tanggal &amp; Shift</div><div class="val">' + esc(d) + ' · Shift ' + esc(r.shift) + '</div></div>' +
+          '<div><div class="lbl">Total Diserahkan (' + (r.has_korlap ? 'Korlap' : 'OP') + ')</div><div class="val" style="color:#065f46">' + formatNum(qtyOut) + ' ' + esc(r.unit || "pcs") + ' (' + bets.length + ' bet)</div></div>';
+      }
+      if ($("fgPsOdooNo")) $("fgPsOdooNo").value = ho.prod_odoo_no || "";
+      if ($("fgPsNotes")) $("fgPsNotes").value = ho.prod_notes || "";
+      if ($("fgPsPhotoFile")) $("fgPsPhotoFile").value = "";
+      if ($("fgPsPhotoStatus")) $("fgPsPhotoStatus").textContent = "";
+      _fgHoSetPhotoPreview("fgPsPhoto", ho.prod_photo_url || "");
+      var fInp = $("fgPsPhotoFile");
+      if (fInp && fInp.dataset.bound !== "1") {
+        fInp.dataset.bound = "1";
+        fInp.addEventListener("change", function() {
+          var f = fInp.files && fInp.files[0];
+          if (f) handleFgHoPhotoSelected("fgPsPhoto", f, ($("fgPsKey") && $("fgPsKey").value) || "fg-prod", "fg_handover_prod_odoo");
+        });
+      }
+      var m = $("fgProdSubmitModal");
+      if (m) {
+        m.classList.add("show");
+        m.style.display = "flex";
+      }
+      document.body.classList.add("modal-open");
+    }
+    function closeFgProdSubmitModal() {
+      var m = $("fgProdSubmitModal");
+      if (m) {
+        m.classList.remove("show");
+        m.style.display = "none";
+      }
+      document.body.classList.remove("modal-open");
+    }
+    async function saveFgProdSubmitModal() {
+      var fgkKey = ($("fgPsKey") && $("fgPsKey").value) || "";
+      if (_fgHoUploadPromises["fgPsPhoto"]) {
+        toast("Menunggu upload foto Form Odoo selesai…");
+        try { await _fgHoUploadPromises["fgPsPhoto"]; } catch (eW) {}
+      }
+      var odooNo = (($("fgPsOdooNo") && $("fgPsOdooNo").value) || "").trim();
+      var photoUrl = (($("fgPsPhoto") && $("fgPsPhoto").value) || "").trim();
+      var prodNotes = (($("fgPsNotes") && $("fgPsNotes").value) || "").trim();
+      var ok = await submitFgHandoverFromProd(fgkKey, {
+        prod_odoo_no: odooNo,
+        prod_photo_url: photoUrl,
+        prod_notes: prodNotes
+      });
+      if (ok) closeFgProdSubmitModal();
+    }
+
+    async function submitFgHandoverFromProd(fgkKey, extra) {
+      if (!sb) return false;
+      extra = extra || {};
+      var r = (fgkRows || []).find(function(x) { return x.key === fgkKey; });
+      if (!r) { toast("Data output FG tidak ditemukan", true); return false; }
+      var d = r.report_date || ($("fgkDate") && $("fgkDate").value) || todayStr();
+      var qtyOut = r.has_korlap ? (Number(r.korlap_qty) || 0) : (Number(r.op_qty) || 0);
+      if (!(qtyOut > 0)) { toast("Output FG masih 0 — laporkan hasil dulu sebelum serah terima", true); return false; }
       var me = _fgHoActorMe();
       var bets = (r.bets && r.bets.length)
         ? r.bets.map(function(b, idx) {
@@ -37030,6 +37332,9 @@ function closeOtModal() {
         : [{ no: "Bet 1", qty: qtyOut, unit: r.unit || "pcs" }];
       var hoKey = _fgHoMakeKey(d, r.product_id, r.no_so, r.shift);
       var nowIso = new Date().toISOString();
+      var prodOdooNo = String(extra.prod_odoo_no != null ? extra.prod_odoo_no : ((r.ho && r.ho.prod_odoo_no) || "")).trim();
+      var prodPhotoUrl = String(extra.prod_photo_url != null ? extra.prod_photo_url : ((r.ho && r.ho.prod_photo_url) || "")).trim();
+      var prodNotes = String(extra.prod_notes != null ? extra.prod_notes : ((r.ho && r.ho.prod_notes) || "")).trim();
       var afterPayload = {
         key: hoKey,
         report_date: d,
@@ -37047,13 +37352,20 @@ function closeOtModal() {
         submitted_name: me.name,
         submitted_role: me.role,
         submitted_at: nowIso,
+        prod_odoo_no: prodOdooNo,
+        prod_photo_url: prodPhotoUrl,
+        prod_notes: prodNotes,
+        wh_photo_url: (r.ho && r.ho.wh_photo_url) || "",
         notified_mkt: false
       };
       await writeAudit({
         module: "fg_handover",
         action: "submit_prod",
         ref_id: hoKey,
-        summary: "Produksi serahkan FG ke Gudang · " + r.product_id + " · " + formatNum(qtyOut) + " " + (r.unit || "pcs") + (r.no_so ? " · SO " + r.no_so : ""),
+        summary: "Produksi serahkan FG ke Gudang · " + r.product_id + " · " + formatNum(qtyOut) + " " + (r.unit || "pcs") +
+          (r.no_so ? " · SO " + r.no_so : "") +
+          (prodOdooNo ? " · Form Odoo " + prodOdooNo : "") +
+          (prodPhotoUrl ? " · +Foto Odoo" : ""),
         after: afterPayload
       });
       _fgHoNotifCache = null;
@@ -37061,6 +37373,7 @@ function closeOtModal() {
       toast("Diserahkan ke Gudang · menunggu konfirmasi terima Gudang");
       await loadFgKorlap();
       try { loadInboxNotifs(true); } catch (eN) {}
+      return true;
     }
 
     function _fgHoSyncSummaryFromRows(rows) {
@@ -37128,16 +37441,24 @@ function closeOtModal() {
         var srcBadge = r.has_korlap
           ? '<span style="font-size:0.66rem;font-weight:700;color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;padding:0.08rem 0.35rem;border-radius:5px">Korlap</span>'
           : '<span style="font-size:0.66rem;font-weight:700;color:#0369a1;background:#eff6ff;border:1px solid #bae6fd;padding:0.08rem 0.35rem;border-radius:5px">OP</span>';
+        var whPhotoUrl = r.wh_photo_url || "";
+        var prodPhotoUrl = r.prod_photo_url || "";
+        var bestPhotoUrl = whPhotoUrl || prodPhotoUrl;
         var whHtml = "";
         if (r.state === "recv" || r.state === "notified") {
           whHtml =
             '<div><strong style="color:#065f46">' + formatNum(r.received_qty) + ' ' + esc(r.unit) + '</strong></div>' +
             _fgHoBetsChipsHtml(r.bets, r.unit) +
+            (r.prod_odoo_no ? '<div style="font-size:0.68rem;color:#475569;margin-top:0.18rem">Form Odoo: <strong>' + esc(r.prod_odoo_no) + '</strong></div>' : '') +
+            (bestPhotoUrl ? '<div><button type="button" class="fg-ho-photo-chip" onclick="openPickImgLightbox(' + esc(JSON.stringify(bestPhotoUrl)) + ')">📷 Foto Form Odoo</button></div>' : '') +
             (r.wh_notes ? '<div style="font-size:0.7rem;color:#475569;margin-top:0.2rem">' + esc(r.wh_notes) + '</div>' : '') +
             gudangActorHtml(r.received_by, r.received_name, r.received_role, "Terima");
         } else {
           whHtml = '<span style="font-size:0.74rem;color:#64748b">Belum diterima gudang</span>' +
-            _fgHoBetsChipsHtml(r.bets, r.unit);
+            _fgHoBetsChipsHtml(r.bets, r.unit) +
+            (r.prod_odoo_no ? '<div style="font-size:0.68rem;color:#475569;margin-top:0.18rem">Form Odoo: <strong>' + esc(r.prod_odoo_no) + '</strong></div>' : '') +
+            (prodPhotoUrl ? '<div><button type="button" class="fg-ho-photo-chip" onclick="openPickImgLightbox(' + esc(JSON.stringify(prodPhotoUrl)) + ')">📷 Foto Form Odoo (Produksi)</button></div>' : '') +
+            (r.prod_notes ? '<div style="font-size:0.7rem;color:#475569;margin-top:0.18rem">' + esc(r.prod_notes) + '</div>' : '');
         }
         var stHtml = "";
         if (r.state === "notified") {
@@ -37271,8 +37592,47 @@ function closeOtModal() {
           '<div><div class="lbl">Output Produksi (' + (r.has_korlap ? 'Korlap' : 'OP') + ')</div><div class="val" style="color:#065f46">' + formatNum(r.prod_qty) + ' ' + esc(r.unit) + '</div></div>';
       }
       if ($("fgHoFromWho")) $("fgHoFromWho").value = r.from_who || r.default_from_who || "";
+      if ($("fgHoOdooNo")) $("fgHoOdooNo").value = r.prod_odoo_no || "";
       if ($("fgHoNotes")) $("fgHoNotes").value = r.wh_notes || "";
       if ($("fgHoAlsoNotify")) $("fgHoAlsoNotify").checked = (r.state === "recv") ? false : true;
+      var prodCard = $("fgHoProdPhotoCard");
+      if (prodCard) {
+        if (r.prod_photo_url || r.prod_odoo_no || r.prod_notes) {
+          prodCard.style.display = "block";
+          var pImg = $("fgHoProdPhotoImg");
+          var pWrap = $("fgHoProdPhotoWrap");
+          if (r.prod_photo_url && pImg && pWrap) {
+            pWrap.style.display = "flex";
+            pImg.src = (typeof toPickPreviewUrl === "function") ? toPickPreviewUrl(r.prod_photo_url) : r.prod_photo_url;
+            pImg.onclick = function(ev) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              if (typeof openPickImgLightbox === "function") openPickImgLightbox(r.prod_photo_url);
+            };
+          } else if (pWrap) {
+            pWrap.style.display = "none";
+          }
+          if ($("fgHoProdPhotoMeta")) {
+            $("fgHoProdPhotoMeta").innerHTML =
+              (r.prod_odoo_no ? ('<div>No. Form Odoo: <strong>' + esc(r.prod_odoo_no) + '</strong></div>') : '') +
+              (r.prod_notes ? ('<div style="color:#475569;margin-top:0.15rem">' + esc(r.prod_notes) + '</div>') : '') +
+              (r.prod_photo_url ? '<div style="color:#0369a1;font-size:0.72rem;margin-top:0.2rem">Klik thumbnail di kiri untuk perbesar form Odoo dari Produksi</div>' : '');
+          }
+        } else {
+          prodCard.style.display = "none";
+        }
+      }
+      if ($("fgHoWhPhotoFile")) $("fgHoWhPhotoFile").value = "";
+      if ($("fgHoWhPhotoStatus")) $("fgHoWhPhotoStatus").textContent = "";
+      _fgHoSetPhotoPreview("fgHoWhPhoto", r.wh_photo_url || "");
+      var whFInp = $("fgHoWhPhotoFile");
+      if (whFInp && whFInp.dataset.bound !== "1") {
+        whFInp.dataset.bound = "1";
+        whFInp.addEventListener("change", function() {
+          var f = whFInp.files && whFInp.files[0];
+          if (f) handleFgHoPhotoSelected("fgHoWhPhoto", f, ($("fgHoKey") && $("fgHoKey").value) || "fg-wh", "fg_handover_wh_odoo");
+        });
+      }
       var tb = $("fgHoBetsBody");
       if (tb) {
         tb.innerHTML = "";
@@ -37298,10 +37658,16 @@ function closeOtModal() {
     }
     async function saveFgHandoverModal() {
       if (!sb) return;
+      if (_fgHoUploadPromises["fgHoWhPhoto"]) {
+        toast("Menunggu upload foto Form Odoo selesai…");
+        try { await _fgHoUploadPromises["fgHoWhPhoto"]; } catch (eW) {}
+      }
       var hoKey = ($("fgHoKey") && $("fgHoKey").value) || "";
       var r = (fgHoGudangRows || []).find(function(x) { return x.key === hoKey; });
       if (!r) return toast("Item serah terima tidak ditemukan", true);
       var fromWho = (($("fgHoFromWho") && $("fgHoFromWho").value) || "").trim() || r.default_from_who || "Produksi";
+      var odooNo = (($("fgHoOdooNo") && $("fgHoOdooNo").value) || "").trim() || r.prod_odoo_no || "";
+      var whPhotoUrl = (($("fgHoWhPhoto") && $("fgHoWhPhoto").value) || "").trim();
       var whNotes = (($("fgHoNotes") && $("fgHoNotes").value) || "").trim();
       var alsoNotify = !!($("fgHoAlsoNotify") && $("fgHoAlsoNotify").checked);
 
@@ -37349,6 +37715,10 @@ function closeOtModal() {
         submitted_name: r.submitted_name || fromWho,
         submitted_role: r.submitted_role || "",
         submitted_at: r.submitted_at || nowIso,
+        prod_odoo_no: odooNo,
+        prod_photo_url: r.prod_photo_url || "",
+        prod_notes: r.prod_notes || "",
+        wh_photo_url: whPhotoUrl,
         received_by: me.email,
         received_name: me.name,
         received_role: me.role,
@@ -37408,6 +37778,10 @@ function closeOtModal() {
           submitted_name: r.submitted_name || r.from_who || "",
           submitted_role: r.submitted_role || "",
           submitted_at: r.submitted_at || "",
+          prod_odoo_no: r.prod_odoo_no || "",
+          prod_photo_url: r.prod_photo_url || "",
+          prod_notes: r.prod_notes || "",
+          wh_photo_url: r.wh_photo_url || "",
           received_by: r.received_by || me.email,
           received_name: r.received_name || me.name,
           received_role: r.received_role || me.role,
@@ -37524,17 +37898,25 @@ function closeOtModal() {
         var betsToShow = (r.rem_bets && r.rem_bets.length && r.shipped_qty > 0) ? r.rem_bets : r.bets;
         var recvDisplay = r.received_qty > 0 ? r.received_qty : r.prod_qty;
 
+        var mktBestPhoto = r.wh_photo_url || r.prod_photo_url || "";
+        var mktPhotoHtml =
+          (r.prod_odoo_no ? '<div style="font-size:0.66rem;color:#475569;margin-top:0.15rem">Form Odoo: <strong>' + esc(r.prod_odoo_no) + '</strong></div>' : '') +
+          (mktBestPhoto ? '<div><button type="button" class="fg-ho-photo-chip" onclick="openPickImgLightbox(' + esc(JSON.stringify(mktBestPhoto)) + ')">📷 Foto Form Odoo</button></div>' : '');
+
         var stActorHtml = "";
         if (r.notified_mkt) {
           stActorHtml = '<span class="fg-ho-pill mkt">✓ Siap Kirim (Info Gudang)</span>' +
             (r.wh_notes ? '<div style="font-size:0.7rem;color:#475569;margin-top:0.2rem">' + esc(r.wh_notes) + '</div>' : '') +
+            mktPhotoHtml +
             gudangActorHtml(r.notified_by || r.received_by, r.notified_name || r.received_name, r.notified_role || r.received_role, "Gudang") +
             (r.from_who ? '<div style="font-size:0.66rem;color:#64748b;margin-top:0.15rem">Produksi: ' + esc(r.from_who) + '</div>' : '');
         } else if (r.state === "recv") {
           stActorHtml = '<span class="fg-ho-pill recv">Diterima Gudang (Belum Info Mkt)</span>' +
+            mktPhotoHtml +
             gudangActorHtml(r.received_by, r.received_name, r.received_role, "Gudang");
         } else if (r.state === "prod_submit") {
           stActorHtml = '<span class="fg-ho-pill prod">Produksi Serahkan (Menunggu Gudang)</span>' +
+            mktPhotoHtml +
             (r.from_who ? '<div style="font-size:0.66rem;color:#64748b;margin-top:0.15rem">Produksi: ' + esc(r.from_who) + '</div>' : '');
         } else {
           stActorHtml = '<span class="fg-ho-pill wait">Output Produksi (' + formatNum(r.prod_qty) + ') · Belum Serah Terima</span>';
@@ -38526,6 +38908,58 @@ function closeOtModal() {
       </div>
     </div>
   </div>
+  <div id="fgProdSubmitModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100181" onclick="if(event.target===this)closeFgProdSubmitModal()">
+    <div class="modal modal-sheet" style="max-width:540px;width:94vw;max-height:90vh">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div>
+          <h2>Serahkan FG ke Gudang</h2>
+          <p id="fgPsSubtitle">Lampirkan foto Form Odoo serah terima sebelum barang diterima Gudang.</p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="closeFgProdSubmitModal()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="fgPsKey" />
+        <div id="fgPsSummaryStrip" class="fg-ho-summary"></div>
+        <div class="field" style="margin-bottom:0.75rem">
+          <label>No. Form Odoo Serah Terima (opsional)</label>
+          <input id="fgPsOdooNo" placeholder="Mis. SHI/INT/2026/00123" autocomplete="off" />
+        </div>
+        <div id="fgPsPhotoBox" class="fg-ho-photo-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
+            <div>
+              <strong style="font-size:0.83rem;color:#0f172a">Foto Form Odoo Serah Terima</strong>
+              <div style="font-size:0.72rem;color:#64748b;margin-top:0.1rem">Ambil foto langsung dari kamera atau pilih gambar dari galeri.</div>
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              <label class="btn btn-primary btn-sm" style="margin:0;cursor:pointer">
+                📷 Foto / Upload
+                <input type="file" id="fgPsPhotoFile" accept="image/*" capture="environment" hidden />
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" id="fgPsPhotoClearBtn" style="display:none" onclick="clearFgHoPhoto('fgPsPhoto')">Hapus</button>
+            </div>
+          </div>
+          <input type="hidden" id="fgPsPhoto" value="" />
+          <div id="fgPsPhotoPrev" class="fg-ho-photo-prev">
+            <img id="fgPsPhotoImg" alt="Preview Form Odoo" />
+            <div style="font-size:0.75rem;color:#334155">
+              <div style="font-weight:700">Preview Form Odoo</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:0.1rem">Klik gambar untuk perbesar</div>
+            </div>
+          </div>
+          <div id="fgPsPhotoStatus" style="font-size:0.74rem;color:#475569;margin-top:0.35rem"></div>
+        </div>
+        <div class="field" style="margin-top:0.75rem;margin-bottom:0">
+          <label>Catatan untuk Gudang (opsional)</label>
+          <input id="fgPsNotes" placeholder="Mis. 2 palet di area staging, dus lengkap" autocomplete="off" />
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="closeFgProdSubmitModal()">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="saveFgProdSubmitModal()">Serahkan ke Gudang</button>
+      </div>
+    </div>
+  </div>
   <div id="fgHandoverModal" class="modal-bg" style="display:none;align-items:center;justify-content:center;z-index:100182" onclick="if(event.target===this)closeFgHandoverModal()">
     <div class="modal modal-sheet" style="max-width:600px;width:94vw;max-height:90vh">
       <div class="sheet-handle"></div>
@@ -38539,9 +38973,24 @@ function closeOtModal() {
       <div class="sheet-body">
         <input type="hidden" id="fgHoKey" />
         <div id="fgHoSummaryStrip" class="fg-ho-summary"></div>
-        <div class="field" style="margin-bottom:0.75rem">
-          <label>Diserahkan oleh (Produksi / Korlap)</label>
-          <input id="fgHoFromWho" placeholder="Nama penanggung jawab produksi" autocomplete="off" />
+        <div id="fgHoProdPhotoCard" class="fg-ho-photo-box has-photo" style="display:none;margin-bottom:0.75rem;background:#eff6ff;border-color:#bae6fd">
+          <div style="font-size:0.78rem;font-weight:700;color:#0369a1;margin-bottom:0.35rem">📄 Form Odoo dari Produksi</div>
+          <div style="display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap">
+            <div id="fgHoProdPhotoWrap" style="display:none;align-items:center">
+              <img id="fgHoProdPhotoImg" alt="Form Odoo Produksi" style="width:96px;height:72px;object-fit:cover;border-radius:8px;border:1px solid #93c5fd;cursor:zoom-in;background:#fff" />
+            </div>
+            <div id="fgHoProdPhotoMeta" style="font-size:0.76rem;color:#0f172a;flex:1;min-width:180px"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;margin-bottom:0.65rem">
+          <div class="field" style="margin-bottom:0">
+            <label>Diserahkan oleh (Produksi / Korlap)</label>
+            <input id="fgHoFromWho" placeholder="Nama penanggung jawab produksi" autocomplete="off" />
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>No. Form Odoo (opsional)</label>
+            <input id="fgHoOdooNo" placeholder="Mis. SHI/INT/2026/00123" autocomplete="off" />
+          </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;gap:0.5rem;flex-wrap:wrap">
           <strong style="font-size:0.83rem;color:#0f172a">Rincian No. Bets &amp; Qty Fisik Diterima Gudang <span style="color:#b91c1c">*</span></strong>
@@ -38563,6 +39012,30 @@ function closeOtModal() {
             <span style="color:#64748b">Total Diterima Gudang</span>
             <strong id="fgHoTotalRecv" style="color:#065f46;font-variant-numeric:tabular-nums">0 pcs</strong>
           </div>
+        </div>
+        <div id="fgHoWhPhotoBox" class="fg-ho-photo-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
+            <div>
+              <strong style="font-size:0.82rem;color:#0f172a">Foto Form Odoo Bertanda Tangan / Bukti Terima (opsional)</strong>
+              <div style="font-size:0.71rem;color:#64748b;margin-top:0.08rem">Opsional jika Gudang ingin memfoto form Odoo setelah ditandatangani.</div>
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              <label class="btn btn-ghost btn-sm" style="margin:0;cursor:pointer">
+                📷 Foto / Upload
+                <input type="file" id="fgHoWhPhotoFile" accept="image/*" capture="environment" hidden />
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" id="fgHoWhPhotoClearBtn" style="display:none" onclick="clearFgHoPhoto('fgHoWhPhoto')">Hapus</button>
+            </div>
+          </div>
+          <input type="hidden" id="fgHoWhPhoto" value="" />
+          <div id="fgHoWhPhotoPrev" class="fg-ho-photo-prev">
+            <img id="fgHoWhPhotoImg" alt="Preview Form Odoo Gudang" />
+            <div style="font-size:0.74rem;color:#334155">
+              <div style="font-weight:700">Foto Bukti Terima Gudang</div>
+              <div style="color:#64748b;font-size:0.71rem;margin-top:0.1rem">Klik gambar untuk perbesar</div>
+            </div>
+          </div>
+          <div id="fgHoWhPhotoStatus" style="font-size:0.73rem;color:#475569;margin-top:0.35rem"></div>
         </div>
         <div class="field" style="margin-top:0.65rem">
           <label>Catatan Gudang / Keterangan Marketing (opsional)</label>
