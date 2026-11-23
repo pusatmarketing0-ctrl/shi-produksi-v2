@@ -8035,7 +8035,12 @@
                     <option value="shipped">Terkirim</option>
                     <option value="cancelled">Batal</option>
                   </select>
-                  <input type="search" id="shipSearch" class="odoo-search-inp" placeholder="Cari customer / SO / produk / SHIP…" oninput="renderShipRequests()" />
+                  <select id="shipPrintFilter" class="odoo-select-inp" autocomplete="off" onchange="renderShipRequests()">
+                    <option value="" selected>Semua cetak</option>
+                    <option value="unprinted">Belum dicetak</option>
+                    <option value="printed">Sudah dicetak</option>
+                  </select>
+                  <input type="search" id="shipSearch" class="odoo-search-inp" placeholder="Cari customer / SO / produk / No. Form…" oninput="renderShipRequests()" />
                   <button type="button" class="btn btn-ghost btn-sm" id="btnMktPrintShipForm" onclick="printSelectedShipForms()">🖨️ Cetak Form (A5)</button>
                   <button type="button" class="btn btn-ghost btn-sm" onclick="exportShipRequests()">Export</button>
                   <button type="button" class="btn btn-ghost btn-sm" onclick="loadShipRequests()">Refresh</button>
@@ -17233,6 +17238,7 @@ function fillOperatorList(selectedEmail) {
     }
     function renderShipRequests() {
       var stf = ($("shipReqStatusFilter") && $("shipReqStatusFilter").value) || "";
+      var prf = ($("shipPrintFilter") && $("shipPrintFilter").value) || "";
       var q = (($("shipSearch") && $("shipSearch").value) || "").toLowerCase().trim();
       var from = ($("shipFrom") && $("shipFrom").value) || "";
       var to = ($("shipTo") && $("shipTo").value) || "";
@@ -17272,12 +17278,17 @@ function fillOperatorList(selectedEmail) {
         var d = String(r.request_date || "").slice(0, 10);
         if (from && d && d < from) return false;
         if (to && d && d > to) return false;
+        var metaQ = (prf || q) ? doParseTags(r.notes) : null;
+        if (prf) {
+          var isPr = !!(metaQ.noForm || metaQ.formPrintedAt);
+          if (prf === "printed" && !isPr) return false;
+          if (prf === "unprinted" && (isPr || r.status === "cancelled")) return false;
+        }
         if (q) {
-          var metaQ = doParseTags(r.notes);
           var prod = (r.ship_request_lines || []).map(function(l) {
             return (l.product_id || "") + " " + (productNameOnly(l.product_id) || "") + " " + (productLabel(l.product_id) || "");
           }).join(" ");
-          var blob = ((r.ship_id || "") + " " + (r.customer_name || "") + " " + (r.no_so || "") + " " + (metaQ.cleanNotes || "") + " " + doBetsSearchBlob(metaQ) + " " + prod).toLowerCase();
+          var blob = ((r.ship_id || "") + " " + (r.customer_name || "") + " " + (r.no_so || "") + " " + (metaQ.noForm || "") + " " + (metaQ.cleanNotes || "") + " " + doBetsSearchBlob(metaQ) + " " + prod).toLowerCase();
           if (blob.indexOf(q) < 0) return false;
         }
         return true;
@@ -17295,9 +17306,16 @@ function fillOperatorList(selectedEmail) {
         var meta = doParseTags(r.notes);
         var rejectM = String(r.notes || "").match(/\[REJECT_GUDANG:([^\]]*)\]/);
         var isRej = r.status === "pending" && !!rejectM;
+        var isPrinted = !!(meta.noForm || meta.formPrintedAt);
+        var printTip = isPrinted
+          ? "Sudah dicetak" + (meta.noForm ? " (" + meta.noForm + ")" : "") + (meta.formPrintedAt ? " pada " + meta.formPrintedAt : "") + (meta.formPrintedBy ? " oleh " + meta.formPrintedBy : "") + " — klik untuk cetak ulang"
+          : "Belum dicetak — klik untuk cetak Form Permintaan & Konfirmasi Pengiriman (A5)";
         var acts = "";
         acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipDetail(\'' + r.ship_id + '\')">Detail</button> ';
-        acts += '<button type="button" class="btn btn-ghost btn-sm" onclick="openShipFormPrint([\'' + esc(r.ship_id) + '\'])" title="Cetak Form Permintaan & Konfirmasi Pengiriman (A5)">Cetak</button> ';
+        acts += '<button type="button" class="btn btn-ghost btn-sm"' +
+          (isPrinted ? '' : ' style="border-color:#0d9f6e;color:#047857;font-weight:600"') +
+          ' onclick="openShipFormPrint([\'' + esc(r.ship_id) + '\'])" title="' + esc(printTip) + '">' +
+          (isPrinted ? 'Cetak Ulang' : 'Cetak') + '</button> ';
         if ((role === "marketing" || role === "admin") && isRej) {
           acts += '<button type="button" class="btn btn-primary btn-sm" onclick="openDoResubmitByShip(\'' + r.ship_id + '\')">Ajukan Ulang</button> ';
         } else if ((role === "marketing" || role === "admin") && r.status === "pending") {
@@ -17336,6 +17354,19 @@ function fillOperatorList(selectedEmail) {
           : (so ? "<strong>" + esc(so) + "</strong>" : "<span style='color:#94a3b8'>—</span>");
         var fromYest = String(r.request_date || "").slice(0, 10) === yest || /output|kemarin|pending marketing/i.test(String(r.notes || ""));
         var badge = fromYest ? ' <span class="pill" style="background:#ecfdf5;color:#047857;font-size:0.62rem">dari output kemarin</span>' : "";
+        var printBadge = "";
+        if (r.status !== "cancelled") {
+          if (isPrinted) {
+            var actorShort = meta.formPrintedBy ? String(meta.formPrintedBy).split("@")[0] : "";
+            var subMeta = [meta.formPrintedAt, actorShort].filter(Boolean).join(" · ");
+            printBadge = '<div style="margin-top:0.22rem">' +
+              '<span class="pill" title="' + esc(printTip) + '" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:0.64rem;font-weight:700;padding:0.1rem 0.42rem">✓ Form ' + esc(meta.noForm || "tercetak") + '</span>' +
+              (subMeta ? '<div style="font-size:0.64rem;color:var(--text-muted);margin-top:0.12rem">' + esc(subMeta) + '</div>' : '') +
+              '</div>';
+          } else {
+            printBadge = '<div style="margin-top:0.22rem"><span class="pill" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:0.63rem;font-weight:600;padding:0.1rem 0.42rem">Belum dicetak</span></div>';
+          }
+        }
         var note = meta.cleanNotes || "";
         var statusCell = isRej
           ? '<span class="pill" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5">Ditolak Gudang</span>' +
@@ -17346,7 +17377,7 @@ function fillOperatorList(selectedEmail) {
           : '<td style="text-align:center"><input type="checkbox" class="ship-print-cb" data-shipid="' + esc(r.ship_id) + '"' + (window.__shipPrintChecked[r.ship_id] ? " checked" : "") + ' onchange="onShipPrintCheckChange(this)" title="Centang untuk gabung cetak A5" /></td>';
         return "<tr>" +
           cbCell +
-          "<td><strong>" + esc(r.ship_id) + "</strong>" + badge + "</td>" +
+          "<td><strong>" + esc(r.ship_id) + "</strong>" + badge + printBadge + "</td>" +
           "<td>" + esc(String(r.request_date || "").slice(0, 10)) + "</td>" +
           "<td>" + custHtml + "</td>" +
           "<td>" + statusCell + "</td>" +
@@ -17763,12 +17794,23 @@ function fillOperatorList(selectedEmail) {
         $("shipDetailSub").textContent =
           (r.customer_name || "—") + " · SO " + (r.no_so || "—") + " · " + String(r.request_date || "").slice(0, 10);
       }
+      var isDetPrinted = !!(meta.noForm || meta.formPrintedAt);
+      var printInfoHtml = isDetPrinted
+        ? '<div style="margin-top:0.75rem;padding:0.5rem 0.7rem;border-radius:8px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:0.78rem"><strong>✓ Form A5 sudah dicetak</strong>' +
+          (meta.noForm ? ' · No. Form: <strong>' + esc(meta.noForm) + '</strong>' : '') +
+          (meta.formPrintedAt ? ' · ' + esc(meta.formPrintedAt) : '') +
+          (meta.formPrintedBy ? ' oleh ' + esc(meta.formPrintedBy) : '') +
+          '</div>'
+        : (r.status !== "cancelled"
+          ? '<div style="margin-top:0.75rem;padding:0.45rem 0.7rem;border-radius:8px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:0.76rem">Form A5 belum pernah dicetak untuk instruksi ini.</div>'
+          : '');
       if ($("shipDetailBody")) $("shipDetailBody").innerHTML = linesHtml +
+        printInfoHtml +
         (meta.cleanNotes ? '<p style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">Catatan: ' + esc(meta.cleanNotes) + "</p>" : "");
       if ($("shipDetailActions")) {
         var acts = "";
         var role = currentRole();
-        acts += '<button type="button" class="btn btn-ghost" style="border-color:#0d9f6e;color:#047857;font-weight:600" onclick="openShipFormPrint([\'' + esc(r.ship_id) + '\'])">🖨️ Cetak Form (A5)</button>';
+        acts += '<button type="button" class="btn btn-ghost" style="border-color:#0d9f6e;color:#047857;font-weight:600" onclick="openShipFormPrint([\'' + esc(r.ship_id) + '\'])">🖨️ ' + (isDetPrinted ? 'Cetak Ulang Form (A5)' : 'Cetak Form (A5)') + '</button>';
         if (nextStatus === "picked" || (r.status === "requested" && (role === "gudang" || role === "admin"))) {
           acts += ' <button type="button" class="btn btn-primary" onclick="confirmPickedToDo(\'' + r.ship_id + '\')">Konfirmasi Picked → Delivery Order</button>';
         }
@@ -22750,6 +22792,9 @@ function fillOperatorList(selectedEmail) {
         betsFixNote: pick("BETS_FIX_NOTE"),
         betsFixAt: pick("BETS_FIX_AT"),
         betsFixBy: pick("BETS_FIX_BY"),
+        noForm: pick("NO_FORM"),
+        formPrintedAt: pick("FORM_PRINTED_AT"),
+        formPrintedBy: pick("FORM_PRINTED_BY"),
         doOdooNote: doOdooNote,
         cleanNotes: clean
       };
@@ -33701,6 +33746,7 @@ var id = await newPickId();
           window.__mktFilterInited = true;
           if ($("mktYestFilter")) $("mktYestFilter").value = "";
           if ($("shipReqStatusFilter")) $("shipReqStatusFilter").value = "";
+          if ($("shipPrintFilter")) $("shipPrintFilter").value = "";
           if ($("shipFrom")) $("shipFrom").value = "";
           if ($("shipTo")) $("shipTo").value = "";
         }
@@ -37615,19 +37661,29 @@ function closeOtModal() {
       }
 
       var noForm = (($("shipPrintNoForm") && $("shipPrintNoForm").value) || "").trim();
-      if (noForm) {
-        _shipFormCommitSeqLocal(noForm);
-        var st = window.__shipPrintState;
-        if (st && Array.isArray(st.reqs) && sb) {
-          st.reqs.forEach(function(r) {
-            if (!r || !r.ship_id) return;
-            var updatedNotes = doWriteTags(r.notes, { NO_FORM: noForm });
-            r.notes = updatedNotes;
-            var cached = (shipReqList || []).find(function(x) { return x.ship_id === r.ship_id; });
-            if (cached) cached.notes = updatedNotes;
+      if (noForm) _shipFormCommitSeqLocal(noForm);
+      var nowD = new Date();
+      var pad2 = function(n) { return String(n).padStart(2, "0"); };
+      var printedAt = todayStr() + " " + pad2(nowD.getHours()) + ":" + pad2(nowD.getMinutes());
+      var printedBy = (typeof currentProfile !== "undefined" && currentProfile && (currentProfile.full_name || currentProfile.name)) ||
+        (typeof currentUser !== "undefined" && currentUser && currentUser.email) || "";
+      var st = window.__shipPrintState;
+      if (st && Array.isArray(st.reqs)) {
+        st.reqs.forEach(function(r) {
+          if (!r || !r.ship_id) return;
+          var patch = { FORM_PRINTED_AT: printedAt };
+          if (noForm) patch.NO_FORM = noForm;
+          if (printedBy) patch.FORM_PRINTED_BY = printedBy;
+          var updatedNotes = doWriteTags(r.notes, patch);
+          r.notes = updatedNotes;
+          var cached = (shipReqList || []).find(function(x) { return x.ship_id === r.ship_id; });
+          if (cached) cached.notes = updatedNotes;
+          if (window.__shipPrintChecked) delete window.__shipPrintChecked[r.ship_id];
+          if (sb) {
             sb.from("ship_requests").update({ notes: updatedNotes }).eq("ship_id", r.ship_id).then(function() {}, function() {});
-          });
-        }
+          }
+        });
+        try { renderShipRequests(); } catch (eR) {}
       }
 
       host.innerHTML = wrap.innerHTML;
@@ -37640,6 +37696,7 @@ function closeOtModal() {
         document.body.classList.remove("printing-ship-form");
         host.innerHTML = "";
         window.removeEventListener("afterprint", cleanup);
+        try { renderShipRequests(); } catch (eR2) {}
       }
       window.addEventListener("afterprint", cleanup);
       setTimeout(cleanup, 60000);
