@@ -2337,17 +2337,17 @@
       margin-bottom: 0.35rem;
       letter-spacing: 0.01em;
     }
-    .field input,
+    .field input:not([type="checkbox"]):not([type="radio"]),
     .field select,
     .field textarea,
-    .modal input,
+    .modal input:not([type="checkbox"]):not([type="radio"]),
     .modal select,
     .modal textarea,
-    .sheet-body input,
+    .sheet-body input:not([type="checkbox"]):not([type="radio"]),
     .sheet-body select,
     .sheet-body textarea,
-    .auth-card input,
-    #authScreen input {
+    .auth-card input:not([type="checkbox"]):not([type="radio"]),
+    #authScreen input:not([type="checkbox"]):not([type="radio"]) {
       width: 100%;
       background: rgba(255, 255, 255, 0.42) !important;
       border: 1px solid rgba(255, 255, 255, 0.65) !important;
@@ -2361,13 +2361,29 @@
       color: var(--text);
       transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
     }
-    .field input:focus,
+    .modal input[type="checkbox"],
+    .modal input[type="radio"],
+    .sheet-body input[type="checkbox"],
+    .sheet-body input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      padding: 0 !important;
+      margin: 0;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      accent-color: #0d9f6e;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .field input:not([type="checkbox"]):not([type="radio"]):focus,
     .field select:focus,
     .field textarea:focus,
-    .modal input:focus,
+    .modal input:not([type="checkbox"]):not([type="radio"]):focus,
     .modal select:focus,
     .modal textarea:focus,
-    .sheet-body input:focus,
+    .sheet-body input:not([type="checkbox"]):not([type="radio"]):focus,
     .sheet-body select:focus,
     .auth-card input:focus {
       background: rgba(255, 255, 255, 0.78) !important;
@@ -6201,6 +6217,260 @@
       border-radius: 5px;
       vertical-align: middle;
     }
+    /* ===== Modern SaaS Redesign: Pilih & Kelola Plan Grid (#opsPlanPickerModal) ===== */
+    #opsPlanPickerModal.modal-bg .modal.modal-sheet.odoo-form-modal {
+      width: min(920px, 95vw) !important;
+      max-width: 920px !important;
+      max-height: min(90vh, 820px) !important;
+      padding: 0 !important;
+      border-radius: 16px !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      overflow: hidden !important;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 900px) {
+      #opsPlanPickerModal .sheet-handle { display: none !important; }
+    }
+    #opsPlanPickerModal .sheet-head { display: none !important; }
+    #opsPlanPickerModal .ot-modal-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.4rem 0.9rem !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      flex-shrink: 0;
+    }
+    #opsPlanPickerModal .ot-modal-kicker {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #0d9f6e;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.15rem;
+    }
+    #opsPlanPickerModal .ot-modal-banner h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    #opsPlanPickerModal .ot-modal-sub {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.18rem;
+    }
+    #opsPlanPickerModal .ot-banner-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+    #opsPlanPickerModal .ot-close-x {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 1.2rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    #opsPlanPickerModal .ot-close-x:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+    #opsPlanPickerModal .sheet-body {
+      background: #ffffff !important;
+      padding: 1rem 1.4rem 1.25rem !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    #opsPlanPickerModal .odoo-form-grid {
+      gap: 0.6rem 1.75rem;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    #opsPlanPickerModal .ot-form-col-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 0.45rem 0;
+    }
+    #opsPlanPickerModal .ops-ot-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #opsPlanPickerModal .ops-ot-inline .search-combo {
+      flex: 1;
+      min-width: 0;
+    }
+    #opsPlanPickerModal .ops-ot-inline input:not([type="checkbox"]) {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0.45rem 0.68rem !important;
+      font-size: 0.84rem !important;
+      min-height: 36px;
+      color: #0f172a !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #opsPlanPickerModal .ops-ot-inline input:not([type="checkbox"]):focus {
+      border-color: #0d9f6e !important;
+      box-shadow: 0 0 0 3px rgba(13, 159, 110, 0.14) !important;
+      outline: none;
+    }
+    #opsPlanPickerModal .ops-ot-inline .btn,
+    #opsPlanPickerModal .ops-ot-inline .btn-odoo {
+      flex: 0 0 auto;
+      min-height: 36px !important;
+      padding: 0.4rem 0.9rem !important;
+      font-size: 0.8rem !important;
+      border-radius: 8px !important;
+      white-space: nowrap;
+    }
+    #opsPlanPickerModal .ot-notebook-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.45rem;
+      margin: 0.15rem 0 0.7rem;
+    }
+    #opsPlanPickerModal .ot-lines-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+      overflow-x: auto;
+    }
+    .ops-picker-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
+      font-size: 0.81rem;
+    }
+    .ops-picker-table thead th {
+      background: #f8fafc;
+      color: #475569;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.55rem 0.6rem;
+      border-bottom: 1px solid #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .ops-picker-table thead th.col-num,
+    .ops-picker-table tbody td.col-num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .ops-picker-table tbody tr {
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+    .ops-picker-table tbody tr:hover {
+      background: #f8fafc;
+    }
+    .ops-picker-table tbody tr.is-checked {
+      background: #f0fdf4;
+    }
+    .ops-picker-table tbody tr.is-checked:hover {
+      background: #ecfdf5;
+    }
+    .ops-picker-table tbody td {
+      padding: 0.5rem 0.6rem !important;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+    .ops-picker-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .ops-picker-table tbody td.col-op {
+      white-space: normal;
+      max-width: 210px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #475569;
+      font-size: 0.76rem;
+    }
+    .ops-picker-table .ops-pick-cb {
+      width: 16px !important;
+      height: 16px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .ops-picker-st {
+      display: inline-block;
+      padding: 0.1rem 0.42rem;
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .ops-picker-st.open { background: #ecfdf5; color: #047857; }
+    .ops-picker-st.done { background: #dbeafe; color: #1e40af; }
+    .ops-picker-st.in_progress { background: #fef3c7; color: #b45309; }
+    #opsPlanPickerModal .sheet-foot {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      padding: 0.72rem 1.4rem !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      backdrop-filter: none !important;
+    }
+    #opsPlanPickerModal .sheet-foot .ot-foot-hint {
+      font-size: 0.74rem;
+      color: #64748b;
+    }
+    #opsPlanPickerModal .sheet-foot .btn {
+      flex: 0 0 auto !important;
+      min-height: 36px !important;
+      padding: 0.4rem 1.05rem !important;
+      border-radius: 8px !important;
+    }
+    @media (max-width: 720px) {
+      #opsPlanPickerModal.modal-bg .modal.modal-sheet.odoo-form-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 18px 18px 0 0 !important;
+      }
+      #opsPlanPickerModal .ot-modal-banner,
+      #opsPlanPickerModal .sheet-body,
+      #opsPlanPickerModal .sheet-foot {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+      #opsPlanPickerModal .ot-foot-hint { display: none; }
+    }
     #opsPlanPickerModal .search-combo-list,
     #opsProductModal .search-combo-list,
     #planBulkSoModal .search-combo-list {
@@ -9335,11 +9605,22 @@
   </div>
 
   <div id="opsPlanPickerModal" class="modal-bg">
-    <div class="modal modal-sheet" style="max-width:560px">
+    <div class="modal modal-sheet odoo-form-modal">
       <div class="sheet-handle"></div>
-      <div class="sheet-head"><h2>Pilih plan</h2></div>
+      <div class="ot-modal-banner">
+        <div>
+          <div class="ot-modal-kicker">Plan Grid · Kelola &amp; Edit Plan</div>
+          <h2 id="opsPlanPickerTitle">Pilih plan</h2>
+          <div class="ot-modal-sub" id="opsPlanPickerSub">—</div>
+        </div>
+        <div class="ot-banner-right">
+          <span class="ops-bulk-count" id="opsPickSelCount">0 dipilih</span>
+          <button type="button" class="ot-close-x" onclick="closeOpsPlanPicker()" aria-label="Tutup">&times;</button>
+        </div>
+      </div>
       <div class="sheet-body" id="opsPlanPickerBody"></div>
       <div class="sheet-foot">
+        <span class="ot-foot-hint">Centang plan untuk atur No. SO / pindah tanggal sekaligus, atau klik Edit per baris.</span>
         <button class="btn btn-ghost" type="button" onclick="closeOpsPlanPicker()">Tutup</button>
       </div>
     </div>
@@ -27751,80 +28032,104 @@ function fillOperatorList(selectedEmail) {
       var role = (typeof currentRole === "function" ? currentRole() : "") || "";
       var canEdit = role === "admin" || role === "ppic";
       var curSoDefault = (g && g.no_so) ? (g.no_so + (g.customer ? " · " + g.customer : "")) : "";
+      var prodTitle = ((g && g.product_id) || "-") + (typeof productNameOnly === "function" && g && g.product_id && productNameOnly(g.product_id) ? (" · " + productNameOnly(g.product_id)) : "");
 
-      var html = '<p style="font-size:0.84rem;color:var(--text-muted);margin:0 0 0.65rem">' +
-        '<strong>' + esc((g && g.product_id) || "-") + '</strong> · ' + esc(day) + ' · ' + list.length + ' plan' +
-        (g && g.no_so ? (' · SO: <strong>' + esc(g.no_so) + '</strong>') : ' · <span style="color:#b45309;font-weight:600">Belum ada No. SO</span>') +
-        '</p>';
+      if ($("opsPlanPickerTitle")) $("opsPlanPickerTitle").textContent = "Pilih & Kelola Plan (" + list.length + ")";
+      if ($("opsPlanPickerSub")) {
+        $("opsPlanPickerSub").innerHTML =
+          '<strong>' + esc(prodTitle) + '</strong> · Tanggal: <strong>' + esc(day) + '</strong>' +
+          (g && g.no_so ? (' · SO: <strong>' + esc(g.no_so) + '</strong>') : ' · <span style="color:#b45309;font-weight:600">Belum ada No. SO</span>');
+      }
+      if ($("opsPickSelCount")) $("opsPickSelCount").textContent = list.length + " dari " + list.length + " dipilih";
 
+      var html = "";
       if (canEdit) {
-        html += '<div class="ops-bulk-panel">' +
-          '<div class="ops-bulk-head">' +
-            '<label class="ops-bulk-checkall"><input type="checkbox" id="opsPickCheckAll" checked /> Pilih semua (' + list.length + ')</label>' +
-            '<span class="ops-bulk-count" id="opsPickSelCount">' + list.length + ' dipilih</span>' +
-          '</div>' +
-          '<div class="ops-bulk-row">' +
-            '<input id="opsBulkSoInp" value="' + esc(curSoDefault) + '" data-sc-id="' + esc((g && g.order_id) || "") + '" placeholder="Ketik No. SO / customer..." autocomplete="off" />' +
-            '<button type="button" class="btn btn-primary btn-sm" id="btnOpsBulkApplySo">Terapkan SO (' + list.length + ')</button>' +
-          '</div>';
+        html += '<div class="odoo-form-grid">' +
+          '<div>' +
+            '<div class="ot-form-col-title">Atur No. SO Massal</div>' +
+            '<div class="ops-ot-inline">' +
+              '<input id="opsBulkSoInp" value="' + esc(curSoDefault) + '" data-sc-id="' + esc((g && g.order_id) || "") + '" placeholder="Ketik No. SO / customer..." autocomplete="off" />' +
+              '<button type="button" class="btn-odoo" id="btnOpsBulkApplySo">Terapkan SO (' + list.length + ')</button>' +
+            '</div>';
         if (otherRowIds.length > 0) {
           html += '<label class="ops-bulk-extra">' +
             '<input type="checkbox" id="opsPickIncludeAllRow" />' +
             '<span>Juga terapkan ke <strong>' + otherRowIds.length + ' plan lain</strong> di baris ini (total ' + (list.length + otherRowIds.length) + ' plan sebulan)</span>' +
           '</label>';
         }
-        html += '<div class="ops-bulk-move-row">' +
-            '<span style="font-size:0.75rem;color:#475569;font-weight:600">Pindah tanggal:</span>' +
-            '<input type="date" id="opsBulkMoveDate" value="' + esc(day) + '" />' +
-            '<button type="button" class="btn btn-ghost btn-sm" id="btnOpsBulkMoveDate">Pindah (' + list.length + ')</button>' +
+        html += '</div>' +
+          '<div>' +
+            '<div class="ot-form-col-title">Pindah Tanggal Massal</div>' +
+            '<div class="ops-ot-inline">' +
+              '<input type="date" id="opsBulkMoveDate" value="' + esc(day) + '" />' +
+              '<button type="button" class="btn btn-ghost" id="btnOpsBulkMoveDate">Pindah (' + list.length + ')</button>' +
+            '</div>' +
           '</div>' +
         '</div>';
       }
 
-      html += '<div class="ops-pick-list">';
+      html += '<div class="ot-notebook-bar">' +
+        '<strong style="font-size:0.84rem;color:#0f172a">Daftar Plan pada Tanggal ' + esc(day) + '</strong>' +
+        '<span style="font-size:0.74rem;color:#64748b">Klik baris / tombol Edit untuk ubah detail 1 plan</span>' +
+      '</div>';
+
+      html += '<div class="ot-lines-card">' +
+        '<table class="ops-picker-table">' +
+          '<thead><tr>' +
+            (canEdit ? '<th style="width:36px;text-align:center"><input type="checkbox" class="ops-pick-cb" id="opsPickCheckAll" checked title="Pilih semua plan" /></th>' : '') +
+            '<th>No. Plan</th>' +
+            '<th>No. SO</th>' +
+            '<th>Shift · Mesin</th>' +
+            '<th class="col-num">Target</th>' +
+            '<th>Operator</th>' +
+            '<th>Status</th>' +
+            '<th style="text-align:right">Aksi</th>' +
+          '</tr></thead>' +
+          '<tbody>';
+
       list.forEach(function(p) {
         var pSo = p.no_so || (g && g.no_so) || "";
-        html += '<div class="ops-pick-card is-checked" data-card-pid="' + esc(p.plan_id) + '">' +
-          (canEdit ? '<input type="checkbox" class="ops-pick-cb" value="' + esc(p.plan_id) + '" checked />' : '') +
-          '<div class="ops-pick-main" data-pid="' + esc(p.plan_id) + '">' +
-            '<div class="ops-pick-top">' +
-              '<strong style="font-size:0.86rem;color:#0f172a">' + esc(p.plan_id) + '</strong>' +
-              '<span class="ops-pick-so' + (pSo ? "" : " empty") + '">' + esc(pSo || "Tanpa SO") + '</span>' +
-            '</div>' +
-            '<div class="ops-pick-meta">' +
-              'Shift ' + esc(p.shift || "-") + ' · ' + esc(p.machine_id || "-") +
-              ' · target ' + formatNum(p.target_qty || 0) +
-              ' · ' + esc(p.assigned_operator || "(belum assign)") +
-              ' · ' + esc(p.status || "-") +
-            '</div>' +
-          '</div>' +
-          '<button type="button" class="btn btn-ghost btn-sm ops-pick-edit" data-pid="' + esc(p.plan_id) + '">Edit</button>' +
-        '</div>';
+        var st = String(p.status || "open").toLowerCase();
+        var stCls = st === "done" ? "done" : (st === "in_progress" ? "in_progress" : "open");
+        html += '<tr class="is-checked" data-card-pid="' + esc(p.plan_id) + '">' +
+          (canEdit ? '<td style="text-align:center"><input type="checkbox" class="ops-pick-cb" value="' + esc(p.plan_id) + '" checked /></td>' : '') +
+          '<td><strong>' + esc(p.plan_id) + '</strong></td>' +
+          '<td><span class="ops-pick-so' + (pSo ? "" : " empty") + '">' + esc(pSo || "Tanpa SO") + '</span></td>' +
+          '<td>Shift ' + esc(p.shift || "-") + ' · ' + esc(p.machine_id || "-") + '</td>' +
+          '<td class="col-num"><strong>' + formatNum(p.target_qty || 0) + '</strong></td>' +
+          '<td class="col-op" title="' + esc(p.assigned_operator || "") + '">' + esc(p.assigned_operator || "—") + '</td>' +
+          '<td><span class="ops-picker-st ' + stCls + '">' + esc(p.status || "-") + '</span></td>' +
+          '<td style="text-align:right"><button type="button" class="btn btn-ghost btn-sm ops-pick-edit" data-pid="' + esc(p.plan_id) + '">Edit</button></td>' +
+        '</tr>';
       });
-      html += '</div>';
+      html += '</tbody></table></div>';
 
       if ($("opsPlanPickerBody")) $("opsPlanPickerBody").innerHTML = html;
       if ($("opsPlanPickerModal")) {
         $("opsPlanPickerModal").classList.add("show");
+        $("opsPlanPickerModal").style.display = "flex";
         document.body.classList.add("modal-open");
       }
 
       var box = $("opsPlanPickerBody") || document;
       function getSelectedIds() {
-        return Array.from(box.querySelectorAll(".ops-pick-cb:checked")).map(function(cb) { return cb.value; }).filter(Boolean);
+        return Array.from(box.querySelectorAll("tbody .ops-pick-cb:checked")).map(function(cb) { return cb.value; }).filter(Boolean);
       }
       function syncPickerUi() {
-        var cbs = Array.from(box.querySelectorAll(".ops-pick-cb"));
+        var cbs = Array.from(box.querySelectorAll("tbody .ops-pick-cb"));
         var sel = getSelectedIds();
         var incAllEl = $("opsPickIncludeAllRow");
         var incAll = !!(incAllEl && incAllEl.checked);
         var soTotal = incAll ? (sel.length + otherRowIds.length) : sel.length;
         cbs.forEach(function(cb) {
-          var card = cb.closest(".ops-pick-card");
-          if (card) card.classList.toggle("is-checked", !!cb.checked);
+          var row = cb.closest("tr");
+          if (row) row.classList.toggle("is-checked", !!cb.checked);
         });
-        if ($("opsPickCheckAll")) $("opsPickCheckAll").checked = cbs.length > 0 && sel.length === cbs.length;
-        if ($("opsPickSelCount")) $("opsPickSelCount").textContent = sel.length + " dipilih";
+        if ($("opsPickCheckAll")) {
+          $("opsPickCheckAll").checked = cbs.length > 0 && sel.length === cbs.length;
+          $("opsPickCheckAll").indeterminate = sel.length > 0 && sel.length < cbs.length;
+        }
+        if ($("opsPickSelCount")) $("opsPickSelCount").textContent = sel.length + " dari " + list.length + " dipilih";
         if ($("btnOpsBulkApplySo")) {
           $("btnOpsBulkApplySo").textContent = "Terapkan SO (" + soTotal + ")";
           $("btnOpsBulkApplySo").disabled = soTotal === 0;
@@ -27834,13 +28139,14 @@ function fillOperatorList(selectedEmail) {
           $("btnOpsBulkMoveDate").disabled = sel.length === 0;
         }
       }
-      box.querySelectorAll(".ops-pick-cb").forEach(function(cb) {
+      box.querySelectorAll("tbody .ops-pick-cb").forEach(function(cb) {
         cb.addEventListener("change", syncPickerUi);
+        cb.addEventListener("click", function(e) { e.stopPropagation(); });
       });
       if ($("opsPickCheckAll")) {
         $("opsPickCheckAll").addEventListener("change", function() {
           var on = !!this.checked;
-          box.querySelectorAll(".ops-pick-cb").forEach(function(cb) { cb.checked = on; });
+          box.querySelectorAll("tbody .ops-pick-cb").forEach(function(cb) { cb.checked = on; });
           syncPickerUi();
         });
       }
@@ -27882,9 +28188,17 @@ function fillOperatorList(selectedEmail) {
           }
         };
       }
-      box.querySelectorAll("[data-pid]").forEach(function(btn) {
+      box.querySelectorAll("tr[data-card-pid]").forEach(function(tr) {
+        tr.onclick = function(e) {
+          if (e.target && (e.target.classList.contains("ops-pick-cb") || e.target.closest("td:first-child"))) return;
+          closeOpsPlanPicker();
+          var pid = tr.getAttribute("data-card-pid");
+          try { editPlanFromGrid([pid], day); } catch (eE) { editPlan(pid); }
+        };
+      });
+      box.querySelectorAll(".ops-pick-edit[data-pid]").forEach(function(btn) {
         btn.onclick = function(e) {
-          if (e.target && e.target.classList && e.target.classList.contains("ops-pick-cb")) return;
+          e.stopPropagation();
           closeOpsPlanPicker();
           var pid = btn.getAttribute("data-pid");
           try { editPlanFromGrid([pid], day); } catch (eE) { editPlan(pid); }
@@ -27892,7 +28206,10 @@ function fillOperatorList(selectedEmail) {
       });
     }
     function closeOpsPlanPicker() {
-      if ($("opsPlanPickerModal")) $("opsPlanPickerModal").classList.remove("show");
+      if ($("opsPlanPickerModal")) {
+        $("opsPlanPickerModal").classList.remove("show");
+        $("opsPlanPickerModal").style.display = "none";
+      }
       document.body.classList.remove("modal-open");
     }
 
