@@ -7419,10 +7419,146 @@
       #profileModal .modal-sheet {
         padding: 0 !important;
       }
+      /* ===== Odoo & Modul Terbaru: Mobile Responsive Rules ===== */
+      .odoo-inv-top {
+        padding: 0.75rem 0.85rem 0;
+        border-radius: 12px;
+      }
+      .odoo-inv-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.55rem;
+        padding-bottom: 0.65rem;
+      }
+      .odoo-inv-title { font-size: 1.1rem; }
+      .odoo-inv-actions { width: 100%; }
+      .odoo-inv-actions .btn-odoo,
+      .odoo-inv-actions .btn-odoo-teal,
+      .odoo-inv-actions .btn {
+        flex: 1 1 auto;
+        min-height: 40px;
+        text-align: center;
+        justify-content: center;
+      }
+      .odoo-inv-tabs {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .odoo-inv-tabs::-webkit-scrollbar { display: none; }
+      .odoo-ctrl-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.55rem;
+        padding: 0.7rem 0.8rem;
+      }
+      .odoo-facet-group {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.25rem;
+        scrollbar-width: none;
+      }
+      .odoo-facet-group::-webkit-scrollbar { display: none; }
+      .odoo-facet {
+        flex-shrink: 0;
+        min-height: 34px;
+        padding: 0.35rem 0.7rem;
+      }
+      .odoo-ctrl-right {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.45rem;
+      }
+      .odoo-search-inp,
+      .odoo-select-inp {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        min-height: 42px;
+        font-size: 16px !important;
+        box-sizing: border-box;
+      }
+      .odoo-ctrl-right .btn-odoo,
+      .odoo-ctrl-right .btn-odoo-teal,
+      .odoo-ctrl-right .btn {
+        width: 100%;
+        min-height: 40px;
+        justify-content: center;
+      }
+      #mktStokKpi {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+      .fg-ho-2col {
+        grid-template-columns: 1fr !important;
+      }
+      .m-card-odoo-acts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.65rem;
+        padding-top: 0.6rem;
+        border-top: 1px solid #f1f5f9;
+      }
+      .m-card-odoo-acts .btn,
+      .m-card-odoo-acts .btn-odoo,
+      .m-card-odoo-acts .btn-odoo-teal {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .mobile-nav button .mnav-badge {
+        position: absolute;
+        top: 5px;
+        right: 14%;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        border-radius: 999px;
+        background: #e11d48;
+        color: #fff;
+        font-size: 0.58rem;
+        font-weight: 800;
+        line-height: 16px;
+        text-align: center;
+      }
+    }
+    .pwa-update-bar {
+      position: fixed;
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: calc(4.8rem + env(safe-area-inset-bottom));
+      z-index: 260;
+      max-width: 460px;
+      margin: 0 auto;
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 0.7rem 0.9rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.35);
+    }
+    .pwa-update-bar.show { display: flex; }
+    @media (min-width: 900px) {
+      .pwa-update-bar { bottom: 1.25rem; right: 1.25rem; left: auto; }
     }
     </style>
 </head>
 <body>
+  <div id="pwaUpdateBar" class="pwa-update-bar" role="status" aria-live="polite">
+    <div style="font-size:0.8rem;line-height:1.35">
+      <strong style="display:block;color:#6ee7b7">Pembaruan aplikasi tersedia</strong>
+      <span style="color:#cbd5e1;font-size:0.74rem">Muat ulang untuk memakai tampilan &amp; perbaikan terbaru.</span>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btnPwaReloadNow" onclick="forceAppUpdate()" style="flex-shrink:0">Muat Ulang</button>
+  </div>
   <div id="pwaBar" class="pwa-bar" role="dialog" aria-label="Pasang aplikasi">
     <div class="pwa-txt">📥 Pasang aplikasi di HP<small>Jadi shortcut seperti app biasa — gratis</small></div>
     <button type="button" class="btn btn-ghost btn-sm" id="pwaDismiss">Nanti</button>
@@ -8404,7 +8540,8 @@
               <div style="padding:0.75rem 1rem 0.25rem">
                 <div id="mktFgHoKpi"></div>
               </div>
-              <div class="table-wrap">
+              <div id="mktFgHoCards" class="mobile-cards mobile-only" style="padding:0.75rem"></div>
+              <div class="table-wrap desk-only-table">
                 <table class="odoo-list">
                   <thead>
                     <tr>
@@ -9485,7 +9622,8 @@
                   <button type="button" class="btn btn-ghost btn-sm" onclick="loadGudangFgHandover()">Refresh</button>
                 </div>
               </div>
-              <div class="table-wrap">
+              <div id="gdFgHoCards" class="mobile-cards mobile-only" style="padding:0.75rem"></div>
+              <div class="table-wrap desk-only-table">
                 <table class="odoo-list">
                   <thead>
                     <tr>
@@ -9808,7 +9946,8 @@
                 <input type="search" id="doSearch" class="odoo-search-inp" placeholder="Cari DO / produk / Odoo / SO / customer / resi..." oninput="renderDeliveries()" />
               </div>
             </div>
-            <div class="table-wrap">
+            <div id="doCards" class="mobile-cards mobile-only" style="padding:0.75rem"></div>
+            <div class="table-wrap desk-only-table">
               <table class="odoo-list do-table" id="doTable">
                 <thead><tr>
                   <th>DO &amp; Instruksi</th><th>Tanggal</th><th>Customer / SO</th><th>Produk &amp; Qty</th><th>DO Odoo &amp; Invoice</th><th>Tahap &amp; SLA</th><th style="text-align:right">Aksi</th>
@@ -10331,6 +10470,15 @@
         <div class="field"><label>Email</label><input id="profileEmail" disabled autocomplete="username" /></div>
         <div class="field"><label>Role sistem</label><input id="profileRole" disabled /></div>
         <div class="prof-actions">
+          <button type="button" class="prof-action" id="btnCheckAppUpdate" onclick="forceAppUpdate(true)">
+            <span class="prof-action-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </span>
+            <span class="prof-action-text">
+              <strong>Perbarui aplikasi</strong>
+              <span id="appBuildVersionLabel">Bersihkan cache &amp; muat versi terbaru</span>
+            </span>
+          </button>
           <button type="button" class="prof-action" id="btnInstallApp">
             <span class="prof-action-ico">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -14734,14 +14882,14 @@ function fillOperatorList(selectedEmail) {
       return rolesAttr.split(",").map(s => s.trim()).includes(role);
     }
 
-    /** Konfigurasi bottom nav mobile per role (max ~4 + Lainnya) */
+    /** Konfigurasi bottom nav mobile per role (max 4 + Lainnya) */
     var MOBILE_NAV = {
       operator: {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
           { page: "reports", label: "Lapor", ico: "ico-report" },
           { page: "absences", label: "Cuti", ico: "ico-leave" },
-          { page: "revisions", label: "Revisi target", ico: "ico-edit" }
+          { page: "revisions", label: "Revisi", ico: "ico-edit" }
         ],
         more: [
           { group: "Saya", items: [
@@ -14756,18 +14904,22 @@ function fillOperatorList(selectedEmail) {
       gudang: {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
+          { page: "gudang", label: "Serah FG", ico: "ico-fg", tab: "fg_handover" },
           { page: "gudang", label: "Terima", ico: "ico-inbox", tab: "terima" },
-          { page: "gudang", label: "Kirim", ico: "ico-out", tab: "kirim" },
-          { page: "operasional", label: "Grid", ico: "ico-grid" }
+          { page: "delivery", label: "DO Kirim", ico: "ico-truck" }
         ],
         more: [
-          { group: "Gudang", items: [
-            { page: "gudang", label: "Stok", ico: "ico-box", tab: "stok" },
-            { page: "gudang", label: "Mutasi", ico: "ico-out", tab: "mutasi" },
-            { page: "gudang", label: "Terima barang", ico: "ico-inbox", tab: "terima" },
-            { page: "gudang", label: "Instruksi kirim", ico: "ico-out", tab: "kirim" },
-            { page: "delivery", label: "Delivery Order", ico: "ico-truck" },
-            { page: "pick-wh", label: "Pick gudang", ico: "ico-inbox" },
+          { group: "Gudang & Serah Terima", items: [
+            { page: "gudang", label: "Stok (On Hand)", ico: "ico-box", tab: "stok" },
+            { page: "gudang", label: "Serah Terima FG", ico: "ico-fg", tab: "fg_handover" },
+            { page: "gudang", label: "Terima Barang (PO)", ico: "ico-inbox", tab: "terima" },
+            { page: "gudang", label: "Antrian Kirim", ico: "ico-out", tab: "kirim" },
+            { page: "gudang", label: "Mutasi / Koreksi", ico: "ico-edit", tab: "mutasi" }
+          ]},
+          { group: "Logistik & Lainnya", items: [
+            { page: "delivery", label: "Delivery Order (DO)", ico: "ico-truck" },
+            { page: "pick-wh", label: "Pick Bahan Gudang", ico: "ico-inbox" },
+            { page: "vendors", label: "Vendor / Supplier", ico: "ico-truck" },
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
@@ -14777,19 +14929,24 @@ function fillOperatorList(selectedEmail) {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
           { page: "order-trading", label: "OT", ico: "ico-ot" },
-          { page: "orders", label: "SO", ico: "ico-so" },
-          { page: "marketing", label: "Mkt", ico: "ico-mkt" }
+          { page: "marketing", label: "Info Gudang", ico: "ico-mkt", tab: "infogudang" },
+          { page: "delivery", label: "DO Kirim", ico: "ico-truck" }
         ],
         more: [
-          { group: "Order", items: [
+          { group: "Penjualan & Pengiriman", items: [
             { page: "order-trading", label: "Order Trading", ico: "ico-ot" },
-            { page: "orders", label: "Sales Order", ico: "ico-so" },
-            { page: "marketing", label: "Dashboard Mkt", ico: "ico-mkt" }
+            { page: "orders", label: "Sales Order (Odoo)", ico: "ico-so" },
+            { page: "marketing", label: "Info Gudang (Siap)", ico: "ico-fg", tab: "infogudang" },
+            { page: "marketing", label: "Instruksi Kirim", ico: "ico-mkt", tab: "kirim" },
+            { page: "marketing", label: "Output FG Kemarin", ico: "ico-report", tab: "kemarin" },
+            { page: "marketing", label: "Stok Finish Good", ico: "ico-box", tab: "stok" },
+            { page: "delivery", label: "Delivery Order (DO)", ico: "ico-truck" }
           ]},
-          { group: "Operasional", items: [
+          { group: "Operasional & Master", items: [
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
-            { page: "plans", label: "Plan", ico: "ico-plan" },
-            { page: "delivery", label: "Pengiriman / DO", ico: "ico-truck" },
+            { page: "plans", label: "Plan Harian", ico: "ico-plan" },
+            { page: "customers", label: "Customer", ico: "ico-user" },
+            { page: "export-data", label: "Export Data", ico: "ico-out" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -14798,11 +14955,17 @@ function fillOperatorList(selectedEmail) {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
           { page: "order-trading", label: "OT", ico: "ico-ot" },
-          { page: "operasional", label: "Grid", ico: "ico-grid" },
-          { page: "orders", label: "SO", ico: "ico-so" }
+          { page: "delivery", label: "DO / Inv", ico: "ico-truck" },
+          { page: "operasional", label: "Grid", ico: "ico-grid" }
         ],
         more: [
-          { group: "Usulan", items: [
+          { group: "Penjualan & Invoice", items: [
+            { page: "order-trading", label: "Order Trading", ico: "ico-ot" },
+            { page: "delivery", label: "Delivery Order (DO)", ico: "ico-truck" },
+            { page: "customers", label: "Customer", ico: "ico-user" }
+          ]},
+          { group: "Operasional & Usulan", items: [
+            { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -14815,26 +14978,41 @@ function fillOperatorList(selectedEmail) {
           { page: "pr-ppic", label: "PR", ico: "ico-pr" }
         ],
         more: [
-          { group: "Operasional", items: [
+          { group: "Produksi & Lapangan", items: [
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "plans", label: "Plan produksi", ico: "ico-plan" },
+            { page: "korlap", label: "Monitor Per Jam", ico: "ico-rank" },
+            { page: "fg-korlap", label: "Output FG Korlap", ico: "ico-fg" },
+            { page: "wip", label: "Stok WIP", ico: "ico-box" },
+            { page: "reports", label: "Laporan OP", ico: "ico-report" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
-            { page: "reports", label: "Laporan OP", ico: "ico-report" },
-            { page: "fg-korlap", label: "FG Korlap", ico: "ico-fg" },
-            { page: "absences", label: "Cuti / absensi", ico: "ico-leave" },
+            { page: "absences", label: "Cuti / Ijin", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
           ]},
-          { group: "Order", items: [
-            { page: "pick-prod", label: "Minta bahan", ico: "ico-inbox" },
-            { page: "orders", label: "Sales Order", ico: "ico-so" },
+          { group: "Penjualan & Pengiriman", items: [
             { page: "order-trading", label: "Order Trading", ico: "ico-ot" },
-            { page: "pr-ppic", label: "Permintaan beli", ico: "ico-pr" }
+            { page: "orders", label: "Sales Order", ico: "ico-so" },
+            { page: "marketing", label: "Instruksi Kirim (FG)", ico: "ico-mkt", tab: "infogudang" },
+            { page: "delivery", label: "Delivery Order (DO)", ico: "ico-truck" }
           ]},
-          { group: "Master", items: [
+          { group: "Pengadaan & Gudang", items: [
+            { page: "pr-ppic", label: "Permintaan Beli (PR)", ico: "ico-pr" },
+            { page: "qc", label: "Quality Control (QC)", ico: "ico-qc" },
+            { page: "gudang", label: "Stok & Terima Gudang", ico: "ico-box", tab: "stok" },
+            { page: "gudang", label: "Serah Terima FG", ico: "ico-fg", tab: "fg_handover" },
+            { page: "pick-prod", label: "Minta Bahan (Prod)", ico: "ico-inbox" }
+          ]},
+          { group: "Master & Sistem", items: [
             { page: "products", label: "Produk", ico: "ico-box" },
-            { page: "routes", label: "Product routes", ico: "ico-grid" },
+            { page: "machines", label: "Proses & Mesin", ico: "ico-grid" },
+            { page: "bom", label: "BOM / Formula", ico: "ico-box" },
+            { page: "routes", label: "Rute Produksi", ico: "ico-grid" },
+            { page: "customers", label: "Customer", ico: "ico-user" },
+            { page: "vendors", label: "Vendor / Supplier", ico: "ico-truck" },
             { page: "accounts", label: "Data akun", ico: "ico-user" },
+            { page: "audit", label: "Riwayat Aktivitas", ico: "ico-report" },
+            { page: "export-data", label: "Export Data", ico: "ico-out" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -14842,15 +15020,15 @@ function fillOperatorList(selectedEmail) {
       purchasing: {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
-          { page: "purchasing", label: "PO", ico: "ico-cart" },
-          { page: "operasional", label: "Grid", ico: "ico-grid" },
-          { page: "pr-ppic", label: "PR", ico: "ico-pr" }
+          { page: "purchasing", label: "Inbox PR", ico: "ico-pr", tab: "inbox" },
+          { page: "purchasing", label: "PO", ico: "ico-cart", tab: "po" },
+          { page: "operasional", label: "Grid", ico: "ico-grid" }
         ],
         more: [
           { group: "Procurement", items: [
-            { page: "purchasing", label: "Purchase Order", ico: "ico-cart" },
-            { page: "pr-ppic", label: "Permintaan beli", ico: "ico-pr" },
-            { page: "orders", label: "Sales Order", ico: "ico-so" },
+            { page: "purchasing", label: "Inbox PR (Buat PO)", ico: "ico-pr", tab: "inbox" },
+            { page: "purchasing", label: "Purchase Order (PO)", ico: "ico-cart", tab: "po" },
+            { page: "vendors", label: "Vendor / Supplier", ico: "ico-truck" },
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
@@ -14859,12 +15037,14 @@ function fillOperatorList(selectedEmail) {
       qc: {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
-          { page: "qc", label: "QC", ico: "ico-qc" },
+          { page: "qc", label: "Antrian QC", ico: "ico-qc", tab: "antrian" },
+          { page: "qc", label: "Riwayat QC", ico: "ico-report", tab: "riwayat" },
           { page: "operasional", label: "Grid", ico: "ico-grid" }
         ],
         more: [
-          { group: "QC", items: [
-            { page: "qc", label: "Inbox QC", ico: "ico-qc" },
+          { group: "QC & Operasional", items: [
+            { page: "qc", label: "Antrian QC", ico: "ico-qc", tab: "antrian" },
+            { page: "qc", label: "Riwayat QC", ico: "ico-report", tab: "riwayat" },
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
@@ -14873,26 +15053,30 @@ function fillOperatorList(selectedEmail) {
       korlap: {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
-          { page: "operasional", label: "Grid", ico: "ico-grid" },
-          { page: "ranking", label: "Rank", ico: "ico-rank" },
-            { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
+          { page: "fg-korlap", label: "FG Korlap", ico: "ico-fg" },
+          { page: "korlap", label: "Per Jam", ico: "ico-rank" },
           { page: "reports", label: "Lapor", ico: "ico-report" }
         ],
         more: [
-          { group: "Operasional", items: [
-            { page: "operasional", label: "Grid", ico: "ico-grid" },
-            { page: "plans", label: "Plan", ico: "ico-plan" },
+          { group: "Produksi & Lapangan", items: [
+            { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "plans", label: "Plan Harian", ico: "ico-plan" },
+            { page: "korlap", label: "Monitor Per Jam", ico: "ico-rank" },
+            { page: "fg-korlap", label: "Output FG Korlap", ico: "ico-fg" },
+            { page: "reports", label: "Laporan OP", ico: "ico-report" },
+            { page: "wip", label: "Stok WIP", ico: "ico-box" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
-            { page: "reports", label: "Laporan OP", ico: "ico-report" },
-            { page: "fg-korlap", label: "FG Korlap", ico: "ico-fg" },
-            { page: "absences", label: "Cuti operator", ico: "ico-leave" },
+            { page: "absences", label: "Cuti / Ijin", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
           ]},
-          { group: "Lain", items: [
+          { group: "Order, Bahan & Master", items: [
+            { page: "marketing", label: "Instruksi Kirim (FG)", ico: "ico-mkt", tab: "infogudang" },
             { page: "orders", label: "Sales Order", ico: "ico-so" },
             { page: "pick-prod", label: "Minta bahan", ico: "ico-inbox" },
             { page: "products", label: "Produk", ico: "ico-box" },
+            { page: "machines", label: "Proses & Mesin", ico: "ico-grid" },
+            { page: "customers", label: "Customer", ico: "ico-user" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -14901,35 +15085,47 @@ function fillOperatorList(selectedEmail) {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
           { page: "operasional", label: "Grid", ico: "ico-grid" },
-          { page: "orders", label: "SO", ico: "ico-so" },
-          { page: "purchasing", label: "PO", ico: "ico-cart" }
+          { page: "delivery", label: "DO Kirim", ico: "ico-truck" },
+          { page: "order-trading", label: "OT", ico: "ico-ot" }
         ],
         more: [
-          { group: "Operasional", items: [
+          { group: "Produksi & Lapangan", items: [
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
-            { page: "plans", label: "Plan", ico: "ico-plan" },
+            { page: "plans", label: "Plan Harian", ico: "ico-plan" },
+            { page: "korlap", label: "Monitor Per Jam", ico: "ico-rank" },
+            { page: "fg-korlap", label: "Output FG Korlap", ico: "ico-fg" },
+            { page: "reports", label: "Laporan Shift (OP)", ico: "ico-report" },
+            { page: "wip", label: "Stok WIP", ico: "ico-box" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
-            { page: "reports", label: "Laporan", ico: "ico-report" },
-            { page: "marketing", label: "Marketing", ico: "ico-mkt" }
+            { page: "absences", label: "Cuti / Ijin", ico: "ico-leave" },
+            { page: "revisions", label: "Revisi Target", ico: "ico-edit" }
           ]},
-          { group: "Order", items: [
-            { page: "orders", label: "Sales Order", ico: "ico-so" },
+          { group: "Penjualan & Pengiriman", items: [
             { page: "order-trading", label: "Order Trading", ico: "ico-ot" },
-            { page: "delivery", label: "Pengiriman DO", ico: "ico-truck" }
+            { page: "orders", label: "Sales Order", ico: "ico-so" },
+            { page: "marketing", label: "Info Gudang (FG)", ico: "ico-mkt", tab: "infogudang" },
+            { page: "marketing", label: "Instruksi Kirim", ico: "ico-mkt", tab: "kirim" },
+            { page: "delivery", label: "Delivery Order (DO)", ico: "ico-truck" }
           ]},
-          { group: "Supply chain", items: [
-            { page: "pr-ppic", label: "Permintaan beli", ico: "ico-pr" },
-            { page: "purchasing", label: "Purchase / PO", ico: "ico-cart" },
-            { page: "pick-prod", label: "Minta bahan", ico: "ico-inbox" },
-            { page: "pick-wh", label: "Pick gudang", ico: "ico-inbox" },
-            { page: "qc", label: "QC", ico: "ico-qc" },
-            { page: "gudang", label: "Gudang", ico: "ico-box" }
+          { group: "Pengadaan & Gudang", items: [
+            { page: "pr-ppic", label: "Permintaan Beli (PR)", ico: "ico-pr" },
+            { page: "purchasing", label: "Purchasing (PO)", ico: "ico-cart" },
+            { page: "qc", label: "Quality Control (QC)", ico: "ico-qc" },
+            { page: "gudang", label: "Stok Gudang", ico: "ico-box", tab: "stok" },
+            { page: "gudang", label: "Serah Terima FG", ico: "ico-fg", tab: "fg_handover" },
+            { page: "pick-prod", label: "Minta Bahan (Prod)", ico: "ico-inbox" },
+            { page: "pick-wh", label: "Pick Bahan (Gudang)", ico: "ico-inbox" }
           ]},
-          { group: "Master", items: [
+          { group: "Master & Sistem", items: [
             { page: "products", label: "Produk", ico: "ico-box" },
+            { page: "machines", label: "Proses & Mesin", ico: "ico-grid" },
+            { page: "bom", label: "BOM / Formula", ico: "ico-box" },
             { page: "routes", label: "Routes", ico: "ico-grid" },
+            { page: "customers", label: "Customer", ico: "ico-user" },
+            { page: "vendors", label: "Vendor / Supplier", ico: "ico-truck" },
             { page: "accounts", label: "Data akun", ico: "ico-user" },
+            { page: "audit", label: "Riwayat Aktivitas", ico: "ico-report" },
             { page: "export-data", label: "Export data", ico: "ico-out" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
@@ -14939,6 +15135,38 @@ function fillOperatorList(selectedEmail) {
 
     function mnavSvg(icoId) {
       return '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' + icoId + '"/></svg>';
+    }
+    function _getActiveSubTabForPage(page) {
+      if (page === "gudang") return (typeof gudangActiveTab !== "undefined" && gudangActiveTab) ? gudangActiveTab : "stok";
+      if (page === "marketing") {
+        var am = document.querySelector("#mktTabs .mod-tab.active");
+        return (am && am.getAttribute("data-mtab")) || "infogudang";
+      }
+      if (page === "purchasing" || page === "qc") {
+        return (typeof modTabState !== "undefined" && modTabState && modTabState[page]) || "";
+      }
+      return "";
+    }
+    function syncMobileNavActive(curPage, curTab) {
+      var nav = $("mobileNav");
+      if (!nav) return;
+      if (!curPage) {
+        var active = document.querySelector(".page:not([hidden])");
+        curPage = active && active.id ? active.id.replace(/^page-/, "") : "home";
+        if (curPage === "pick") curPage = (typeof pickMode !== "undefined" && pickMode === "wh") ? "pick-wh" : "pick-prod";
+      }
+      if (curTab == null) curTab = _getActiveSubTabForPage(curPage);
+      var anyTabMatched = false;
+      nav.querySelectorAll("button[data-page]").forEach(function(b) {
+        var bp = b.getAttribute("data-page");
+        if (bp === "__more") return;
+        var bt = b.getAttribute("data-tab") || "";
+        var match = (bp === curPage) && (!bt || !curTab || bt === curTab);
+        b.classList.toggle("active", match);
+        if (match) anyTabMatched = true;
+      });
+      var moreBtn = nav.querySelector('button[data-page="__more"]');
+      if (moreBtn) moreBtn.classList.toggle("active", !anyTabMatched && curPage !== "home");
     }
     function buildMobileNav() {
       var nav = $("mobileNav");
@@ -14956,12 +15184,14 @@ function fillOperatorList(selectedEmail) {
       html += '<button type="button" data-page="__more" onclick="openMoreSheet()">' +
         '<span class="mnav-ico">' + mnavSvg("ico-more") + '</span>Lainnya</button>';
       nav.innerHTML = html;
-      var active = document.querySelector(".page:not([hidden])");
-      var cur = active && active.id ? active.id.replace(/^page-/, "") : "home";
-      nav.querySelectorAll("button[data-page]").forEach(function(b) {
-        var bp = b.getAttribute("data-page");
-        b.classList.toggle("active", bp === cur || (bp === "__more" ? false : false));
-      });
+      syncMobileNavActive();
+    }
+    function _applyMobileTargetTab(page, tab) {
+      if (!tab) return;
+      if (page === "gudang") { try { setGudangTab(tab); } catch (e) {} }
+      else if (page === "marketing") { try { setMktTab(tab); } catch (e2) {} }
+      else if (page === "purchasing") { try { setModTab("purchasing", tab); } catch (e3) {} }
+      else if (page === "qc") { try { setQcTab(tab); } catch (e4) {} }
     }
     function mobileNavGo(btn) {
       if (!btn) return;
@@ -14970,9 +15200,8 @@ function fillOperatorList(selectedEmail) {
       if (page === "__more") return openMoreSheet();
       closeMoreSheet();
       goPage(page);
-      if (page === "gudang" && tab) {
-        try { setGudangTab(tab); } catch (e) {}
-      }
+      _applyMobileTargetTab(page, tab);
+      syncMobileNavActive(page, tab || null);
     }
     function openMoreSheet() {
       var role = currentRole() || "admin";
@@ -15005,9 +15234,8 @@ function fillOperatorList(selectedEmail) {
     function moreGo(page, tab) {
       closeMoreSheet();
       goPage(page);
-      if (page === "gudang" && tab) {
-        try { setGudangTab(tab); } catch (e) {}
-      }
+      _applyMobileTargetTab(page, tab);
+      syncMobileNavActive(page, tab || null);
     }
 
     function applyRoleUI() {
@@ -17425,6 +17653,7 @@ function fillOperatorList(selectedEmail) {
       if ($("mktPaneStok")) $("mktPaneStok").hidden = tab !== "stok";
       if ($("mktPaneKemarin")) $("mktPaneKemarin").hidden = tab !== "kemarin";
       if ($("mktPaneKirim")) $("mktPaneKirim").hidden = tab !== "kirim";
+      try { if (typeof syncMobileNavActive === "function") syncMobileNavActive("marketing", tab); } catch (eMn) {}
       if (tab === "infogudang") try { if (typeof loadMktFgHandover === "function") loadMktFgHandover(); } catch (e0) {}
       if (tab === "kemarin") try { loadMktYesterdayFg(); } catch (e) {}
       if (tab === "stok") try { loadMktFgStock(); } catch (eS) {}
@@ -23999,8 +24228,10 @@ function fillOperatorList(selectedEmail) {
         }).join(" ");
         return (d.delivery_id + " " + (d.no_so || "") + " " + (d.customer_name || "") + " " + (d.no_do_odoo || "") + " " + (metaQ.cleanNotes || "") + " " + doBetsSearchBlob(metaQ) + " " + prodStr).toLowerCase().indexOf(q) >= 0;
       });
+      var cardsEl = $("doCards");
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="7" class="empty">Belum ada pengiriman pada tahap ini</td></tr>';
+        if (cardsEl) cardsEl.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada pengiriman pada tahap ini</div></div>';
         pageOf("do", [], "doPager");
         return;
       }
@@ -24011,6 +24242,7 @@ function fillOperatorList(selectedEmail) {
 
       var pageList = pageOf("do", list, "doPager");
       var hlId = window.__highlightDoId || "";
+      var cardRows = [];
       body.innerHTML = pageList.map(function(d) {
         var meta = doParseTags(d.notes);
         var stg = doGetStage(d);
@@ -24135,16 +24367,38 @@ function fillOperatorList(selectedEmail) {
         }
 
         var rowStyle = (hlId && d.delivery_id === hlId) ? " style='background:#ecfdf5'" : (sla.late ? " style='background:#fffafa'" : "");
+        var cardBorder = (hlId && d.delivery_id === hlId) ? "border-color:#10b981;background:#ecfdf5;" : (sla.late ? "border-color:#fca5a5;background:#fffafa;" : "");
+        var timelineHtml = doTimelineHtml(d, stg, meta, sla, detailLines.join(""));
+        cardRows.push(
+          '<div class="m-card" style="' + cardBorder + '">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">' +
+              '<div>' +
+                '<div class="m-title" style="color:#065f46;margin-bottom:0.1rem">' + esc(d.delivery_id) + (shipMatch ? ' <span style="font-size:0.72rem;color:#047857;font-weight:700">· ' + esc(shipMatch[0]) + '</span>' : '') + '</div>' +
+                '<div style="font-size:0.86rem;font-weight:700;color:#0f172a">' + esc(d.customer_name || "—") + '</div>' +
+                '<div class="m-sub" style="margin-bottom:0.35rem">' + esc(String(d.delivery_date || "").slice(0, 10)) + (d.no_so ? ' · SO ' + esc(d.no_so) : '') + '</div>' +
+              '</div>' +
+              '<div style="text-align:right;flex-shrink:0">' + doSlaBadgeHtml(sla) + '</div>' +
+            '</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.55rem 0.65rem;margin-bottom:0.45rem">' + prodHtml + '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.45rem">' +
+              '<div>' + odooLine + '</div><div>' + invLine + '</div>' +
+            '</div>' +
+            (cleanNote ? '<div style="font-size:0.74rem;color:#475569;margin-bottom:0.45rem">' + esc(cleanNote) + '</div>' : '') +
+            '<div style="margin-bottom:0.25rem">' + timelineHtml + '</div>' +
+            (acts ? '<div class="m-card-odoo-acts">' + acts + '</div>' : '') +
+          '</div>'
+        );
         return "<tr" + rowStyle + ">" +
           "<td style='white-space:nowrap'><span class='odoo-num'>" + esc(d.delivery_id) + "</span>" + shipBadge + noteHtml + "</td>" +
           "<td style='white-space:nowrap;font-variant-numeric:tabular-nums;color:#475569'>" + esc(String(d.delivery_date || "").slice(0, 10)) + "</td>" +
           "<td style='min-width:10.5rem'><strong>" + esc(d.customer_name || "—") + "</strong>" + (d.no_so ? "<div style='font-size:0.73rem;color:#64748b;margin-top:0.12rem'>" + esc(d.no_so) + "</div>" : "") + "</td>" +
           "<td style='min-width:14.5rem;max-width:20rem;white-space:normal'>" + prodHtml + "</td>" +
           "<td style='min-width:10rem'>" + odooLine + invLine + "</td>" +
-          "<td>" + doTimelineHtml(d, stg, meta, sla, detailLines.join("")) + "</td>" +
+          "<td>" + timelineHtml + "</td>" +
           "<td style='text-align:right;white-space:nowrap'><div class='do-act-wrap'>" + (acts || "<span style='color:#94a3b8;font-size:0.75rem'>—</span>") + "</div></td>" +
           "</tr>";
       }).join("");
+      if (cardsEl) cardsEl.innerHTML = cardRows.join("");
       if (hlId) {
         setTimeout(function() { if (window.__highlightDoId === hlId) window.__highlightDoId = ""; }, 4000);
       }
@@ -25204,6 +25458,7 @@ function fillOperatorList(selectedEmail) {
         var pane = $("gudang-pane-" + (t === "fg_handover" ? "fg-handover" : t));
         if (pane) pane.hidden = t !== gudangActiveTab;
       });
+      try { if (typeof syncMobileNavActive === "function") syncMobileNavActive("gudang", gudangActiveTab); } catch (eMn) {}
       refreshGudangTab();
     }
     function refreshGudangTab() {
@@ -34312,10 +34567,11 @@ var id = await newPickId();
       var pageDom = page;
       if (page === "pick-prod" || page === "pick-wh" || page === "pick") pageDom = "pick";
       document.querySelectorAll(".page").forEach(el => { el.hidden = el.id !== "page-" + pageDom; });
-      document.querySelectorAll(".nav-item, .mobile-nav button").forEach(el => {
+      document.querySelectorAll(".nav-item").forEach(el => {
         var dp = el.getAttribute("data-page");
         el.classList.toggle("active", dp === page);
       });
+      try { if (typeof syncMobileNavActive === "function") syncMobileNavActive(page); } catch (eMn) {}
       var _nowNav = Date.now();
       var _shouldFetch = function(k, ttlMs) {
         ttlMs = ttlMs || 20000;
@@ -36591,15 +36847,70 @@ function closeOtModal() {
         };
       }
     }
+    var APP_BUILD_TAG = "2026.11.24-mobile-sync";
+    try {
+      if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
+    } catch (eBv) {}
+    function showPwaUpdateBanner(show) {
+      var bar = $("pwaUpdateBar");
+      if (bar) bar.classList.toggle("show", !!show);
+    }
+    async function forceAppUpdate(manual) {
+      try {
+        if (manual && typeof toast === "function") toast("Memeriksa pembaruan aplikasi...");
+        if ("serviceWorker" in navigator) {
+          var regs = await navigator.serviceWorker.getRegistrations();
+          for (var i = 0; i < regs.length; i++) {
+            try {
+              if (regs[i].waiting) regs[i].waiting.postMessage({ type: "SKIP_WAITING" });
+              await regs[i].update();
+            } catch (eU) {}
+          }
+        }
+        if (manual && window.caches && caches.keys) {
+          var keys = await caches.keys();
+          await Promise.all(keys.map(function(k) { return caches.delete(k); }));
+        }
+      } catch (eUpd) {}
+      if (manual) {
+        var u = new URL(location.href);
+        u.searchParams.set("_v", String(Date.now()));
+        location.replace(u.toString());
+      } else {
+        location.reload();
+      }
+    }
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", bindPwaUi);
     } else {
       bindPwaUi();
     }
-    // Service worker
+    // Service worker + auto-update check (untuk PWA HP)
     if ("serviceWorker" in navigator) {
+      var _swRefreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function() {
+        if (_swRefreshing) return;
+        _swRefreshing = true;
+        location.reload();
+      });
       window.addEventListener("load", function() {
-        navigator.serviceWorker.register("./sw.js?v=2").then(function(reg){ try{ reg.update(); }catch(e){} return reg; }).catch(function(err) {
+        navigator.serviceWorker.register("./sw.js?v=3").then(function(reg) {
+          try { reg.update(); } catch (e) {}
+          if (reg.waiting) showPwaUpdateBanner(true);
+          reg.addEventListener("updatefound", function() {
+            var nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener("statechange", function() {
+              if (nw.state === "installed" && navigator.serviceWorker.controller) {
+                showPwaUpdateBanner(true);
+              }
+            });
+          });
+          document.addEventListener("visibilitychange", function() {
+            if (!document.hidden) { try { reg.update(); } catch (e2) {} }
+          });
+          return reg;
+        }).catch(function(err) {
           console.warn("SW register failed", err);
         });
       });
@@ -37505,10 +37816,13 @@ function closeOtModal() {
       });
       if ($("gdFgHoCheckAll")) $("gdFgHoCheckAll").checked = false;
       syncGdFgHoBulkBtn();
+      var cardsEl = $("gdFgHoCards");
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada data serah terima FG untuk filter ini</td></tr>';
+        if (cardsEl) cardsEl.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Tidak ada data serah terima FG untuk filter ini</div></div>';
         return;
       }
+      var cardRows = [];
       body.innerHTML = list.map(function(r) {
         var canBulkNotify = (r.state === "recv" && !r.notified_mkt);
         var prodLabel = (typeof shipProductDisplay === "function" ? shipProductDisplay(r.product_id) : r.product_id);
@@ -37565,6 +37879,24 @@ function closeOtModal() {
               '<button type="button" class="btn btn-ghost btn-sm" onclick="openFgHandoverModal(' + esc(JSON.stringify(r.key)) + ')">Edit Terima</button>' +
             '</div>';
         }
+        cardRows.push(
+          '<div class="m-card">' +
+            '<div style="display:flex;align-items:flex-start;gap:0.55rem">' +
+              (canBulkNotify ? '<input type="checkbox" class="gd-fgho-cb" data-hokey="' + esc(r.key) + '" onchange="syncGdFgHoBulkBtn()" style="margin-top:0.25rem;width:18px;height:18px" />' : '') +
+              '<div style="flex:1;min-width:0">' +
+                '<div class="m-title">' + esc(prodLabel) + '</div>' +
+                '<div class="m-sub">' + esc(r.report_date) + ' · Shift ' + esc(r.shift) + (r.customer_name ? ' · <b>' + esc(r.customer_name) + '</b>' : '') + (r.no_so ? ' · ' + esc(r.no_so) : '') + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="m-row" style="margin-bottom:0.45rem">' +
+              '<span>Produksi: <strong>' + formatNum(r.prod_qty) + ' ' + esc(r.unit) + '</strong> ' + srcBadge + '</span>' +
+              (r.from_who ? '<span>Serah: <strong>' + esc(r.from_who) + '</strong></span>' : '') +
+            '</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.55rem 0.65rem;margin-bottom:0.45rem">' + whHtml + '</div>' +
+            '<div style="margin-bottom:0.3rem">' + stHtml + '</div>' +
+            '<div class="m-card-odoo-acts">' + actHtml + '</div>' +
+          '</div>'
+        );
         return '<tr>' +
           '<td><input type="checkbox" class="gd-fgho-cb" data-hokey="' + esc(r.key) + '"' + (canBulkNotify ? '' : ' disabled') + ' onchange="syncGdFgHoBulkBtn()" /></td>' +
           '<td style="white-space:nowrap"><strong>' + esc(r.report_date) + '</strong><div style="font-size:0.72rem;color:#64748b">Shift ' + esc(r.shift) + '</div></td>' +
@@ -37577,28 +37909,34 @@ function closeOtModal() {
           '<td style="text-align:right">' + actHtml + '</td>' +
         '</tr>';
       }).join("");
+      if (cardsEl) cardsEl.innerHTML = cardRows.join("");
     }
 
     function toggleAllGdFgHo(checked) {
-      document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:not(:disabled)").forEach(function(cb) {
+      document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:not(:disabled), #gdFgHoCards .gd-fgho-cb:not(:disabled)").forEach(function(cb) {
         cb.checked = !!checked;
       });
       syncGdFgHoBulkBtn();
     }
+    function _getCheckedGdFgHoKeys() {
+      var seen = {};
+      var keys = [];
+      document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:checked, #gdFgHoCards .gd-fgho-cb:checked").forEach(function(cb) {
+        var k = cb.getAttribute("data-hokey");
+        if (k && !seen[k]) { seen[k] = true; keys.push(k); }
+      });
+      return keys;
+    }
     function syncGdFgHoBulkBtn() {
-      var cbs = document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:checked");
+      var keys = _getCheckedGdFgHoKeys();
       var btn = $("btnGdFgHoBulkNotify");
       if (btn) {
-        btn.disabled = !cbs.length;
-        btn.textContent = "Infokan Terpilih ke Mkt (" + cbs.length + ")";
+        btn.disabled = !keys.length;
+        btn.textContent = "Infokan Terpilih ke Mkt (" + keys.length + ")";
       }
     }
     async function bulkNotifyFgHoMarketing() {
-      var keys = [];
-      document.querySelectorAll("#gdFgHoBody .gd-fgho-cb:checked").forEach(function(cb) {
-        var k = cb.getAttribute("data-hokey");
-        if (k) keys.push(k);
-      });
+      var keys = _getCheckedGdFgHoKeys();
       if (!keys.length) return toast("Pilih minimal 1 item yang sudah diterima Gudang", true);
       await notifyFgHoToMarketing(keys);
     }
@@ -37960,11 +38298,14 @@ function closeOtModal() {
       if ($("mktFgHoCheckAll")) $("mktFgHoCheckAll").checked = false;
       syncMktFgHoBulkBtn();
 
+      var cardsEl = $("mktFgHoCards");
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="9" class="empty">Belum ada info barang siap kirim dari Gudang pada filter ini</td></tr>';
+        if (cardsEl) cardsEl.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada info barang siap kirim dari Gudang pada filter ini</div></div>';
         return;
       }
 
+      var cardRows = [];
       body.innerHTML = list.map(function(r) {
         var canShip = r.notified_mkt && r.rem_qty > 0;
         var prodLbl = (typeof shipProductDisplay === "function" ? shipProductDisplay(r.product_id) : r.product_id);
@@ -38011,6 +38352,25 @@ function closeOtModal() {
           actHtml = '<span style="font-size:0.72rem;color:#94a3b8">Tunggu Gudang</span>';
         }
 
+        cardRows.push(
+          '<div class="m-card">' +
+            '<div style="display:flex;align-items:flex-start;gap:0.55rem">' +
+              (canShip ? '<input type="checkbox" class="mkt-fgho-cb" data-hokey="' + esc(r.key) + '" onchange="syncMktFgHoBulkBtn()" style="margin-top:0.25rem;width:18px;height:18px" />' : '') +
+              '<div style="flex:1;min-width:0">' +
+                '<div class="m-title">' + esc(prodLbl) + '</div>' +
+                '<div class="m-sub">' + (r.customer_name ? '<b>' + esc(r.customer_name) + '</b> · ' : '') + esc(r.no_so || "—") + ' · Info ' + esc(infoTs) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="m-row" style="margin-bottom:0.45rem">' +
+              '<span>Diterima: <strong>' + formatNum(recvDisplay) + ' ' + esc(r.unit) + '</strong></span>' +
+              '<span>Sisa Siap Kirim: <strong style="color:' + (r.rem_qty > 0 ? '#065f46' : '#64748b') + '">' + formatNum(r.rem_qty) + ' ' + esc(r.unit) + '</strong></span>' +
+            '</div>' +
+            '<div style="margin-bottom:0.45rem">' + _fgHoBetsChipsHtml(betsToShow, r.unit) + shipRefsHtml + '</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.5rem 0.65rem;margin-bottom:0.35rem">' + stActorHtml + '</div>' +
+            '<div class="m-card-odoo-acts">' + actHtml + '</div>' +
+          '</div>'
+        );
+
         return '<tr>' +
           '<td><input type="checkbox" class="mkt-fgho-cb" data-hokey="' + esc(r.key) + '"' + (canShip ? '' : ' disabled') + ' onchange="syncMktFgHoBulkBtn()" /></td>' +
           '<td style="white-space:nowrap"><strong>' + esc(infoTs) + '</strong><div style="font-size:0.71rem;color:#64748b">Prod: ' + esc(r.report_date) + ' · S' + esc(r.shift) + '</div></td>' +
@@ -38024,28 +38384,34 @@ function closeOtModal() {
           '<td style="text-align:right">' + actHtml + '</td>' +
         '</tr>';
       }).join("");
+      if (cardsEl) cardsEl.innerHTML = cardRows.join("");
     }
 
     function toggleAllMktFgHo(checked) {
-      document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:not(:disabled)").forEach(function(cb) {
+      document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:not(:disabled), #mktFgHoCards .mkt-fgho-cb:not(:disabled)").forEach(function(cb) {
         cb.checked = !!checked;
       });
       syncMktFgHoBulkBtn();
     }
+    function _getCheckedMktFgHoKeys() {
+      var seen = {};
+      var keys = [];
+      document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:checked, #mktFgHoCards .mkt-fgho-cb:checked").forEach(function(cb) {
+        var k = cb.getAttribute("data-hokey");
+        if (k && !seen[k]) { seen[k] = true; keys.push(k); }
+      });
+      return keys;
+    }
     function syncMktFgHoBulkBtn() {
-      var cbs = document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:checked");
+      var keys = _getCheckedMktFgHoKeys();
       var btn = $("btnMktFgHoBulk");
       if (btn) {
-        btn.disabled = !cbs.length;
-        btn.textContent = "+ Instruksi Kirim Terpilih (" + cbs.length + ")";
+        btn.disabled = !keys.length;
+        btn.textContent = "+ Instruksi Kirim Terpilih (" + keys.length + ")";
       }
     }
     function mktShipSelectedHandovers() {
-      var keys = [];
-      document.querySelectorAll("#mktFgHoBody .mkt-fgho-cb:checked").forEach(function(cb) {
-        var k = cb.getAttribute("data-hokey");
-        if (k) keys.push(k);
-      });
+      var keys = _getCheckedMktFgHoKeys();
       if (!keys.length) return toast("Centang minimal 1 produk siap kirim dari Info Gudang", true);
       mktShipFromHandover(keys);
     }
@@ -39056,7 +39422,7 @@ function closeOtModal() {
             <div id="fgHoProdPhotoMeta" style="font-size:0.76rem;color:#0f172a;flex:1;min-width:180px"></div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;margin-bottom:0.65rem">
+        <div class="fg-ho-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;margin-bottom:0.65rem">
           <div class="field" style="margin-bottom:0">
             <label>Diserahkan oleh (Produksi / Korlap)</label>
             <input id="fgHoFromWho" placeholder="Nama penanggung jawab produksi" autocomplete="off" />
