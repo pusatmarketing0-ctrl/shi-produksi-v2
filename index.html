@@ -9063,6 +9063,7 @@
                     <option value="">Semua status</option>
                     <option value="need_eta">⚠ Perlu ETA sisa</option>
                     <option value="need_overdue">⚠ ETA terlambat</option>
+                    <option value="qc_reject">✕ Ada Reject QC</option>
                     <option value="draft">draft</option>
                     <option value="ordered">ordered</option>
                     <option value="partial">partial</option>
@@ -9649,6 +9650,7 @@
                 <div class="odoo-facet-group">
                   <select id="gudangFilter" onchange="renderGudangInbox()" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.38rem 0.65rem;font-size:0.8rem;background:#fff">
                     <option value="open">To Process (Belum lengkap)</option>
+                    <option value="rejected">Ditolak QC (Ada Reject)</option>
                     <option value="eta">Scheduled (Ada ETA)</option>
                     <option value="all">All Receipts (Semua)</option>
                   </select>
@@ -9707,6 +9709,8 @@
                       <select id="whProdType">
                         <option value="in_fg">Finisgood (FG) — Masuk</option>
                         <option value="in_sisa">Sisa Bahan Produksi — Masuk</option>
+                        <option value="out_adjust">Penyesuaian Stok — Keluar (Koreksi / Salah Input)</option>
+                        <option value="in_adjust">Penyesuaian Stok — Masuk (Koreksi / Selisih)</option>
                       </select>
                     </div>
                     <div class="odoo-form-row">
@@ -9723,6 +9727,10 @@
                     <div class="odoo-form-row">
                       <label>Source Document (SO)</label>
                       <input id="whProdSo" placeholder="SO/... (opsional)" />
+                    </div>
+                    <div class="odoo-form-row">
+                      <label>Catatan / Alasan</label>
+                      <input id="whProdNote" placeholder="Wajib diisi jika Penyesuaian / Koreksi" />
                     </div>
                   </div>
                 </div>
@@ -11028,7 +11036,7 @@
 
 
   <div id="qcDecideModal" class="modal-bg" style="display:none">
-    <div class="modal modal-sheet" style="max-width:440px">
+    <div class="modal modal-sheet" style="max-width:460px">
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="sheet-head">
         <h2>ACC QC</h2>
@@ -11037,22 +11045,54 @@
       <div class="sheet-body">
         <input type="hidden" id="qcdLineId" />
         <div id="qcdInfo" style="font-size:0.82rem;padding:0.65rem 0.75rem;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;margin-bottom:0.75rem"></div>
+        <div style="display:flex;gap:0.45rem;margin-bottom:0.65rem;flex-wrap:wrap">
+          <button type="button" class="btn btn-ghost btn-sm" style="border-color:#86efac;color:#065f46;background:#f0fdf4" onclick="qcPresetDecide('all_pass')">✓ Lulus Semua</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="border-color:#fca5a5;color:#b91c1c;background:#fef2f2" onclick="qcPresetDecide('all_fail')">✕ Tolak / Reject Semua</button>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.55rem">
           <div class="field"><label>Qty LULUS <span style="color:#b91c1c">*</span></label>
-            <input id="qcdPass" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+            <input id="qcdPass" type="text" class="num-input" inputmode="decimal" placeholder="0" />
           </div>
-          <div class="field"><label>Qty DITOLAK</label>
-            <input id="qcdFail" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+          <div class="field"><label>Qty DITOLAK (Reject)</label>
+            <input id="qcdFail" type="text" class="num-input" inputmode="decimal" placeholder="0" />
           </div>
         </div>
         <p id="qcdHint" style="font-size:0.72rem;color:var(--text-muted);margin:0.25rem 0 0.55rem"></p>
-        <div class="field"><label>Catatan QC</label>
-          <textarea id="qcdNotes" rows="3" placeholder="Kondisi, alasan tolak, dll. (opsional)" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.55rem;font-family:inherit;font-size:0.875rem;resize:vertical"></textarea>
+        <div class="field"><label>Catatan QC <span id="qcdNotesReqHint" style="font-weight:500;color:var(--text-muted)">(isi alasan jika ada reject)</span></label>
+          <textarea id="qcdNotes" rows="3" placeholder="Kondisi, alasan tolak / reject, dll." style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.55rem;font-family:inherit;font-size:0.875rem;resize:vertical"></textarea>
         </div>
       </div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeQcDecideModal()">Batal</button>
         <button class="btn btn-primary" type="button" onclick="saveQcDecide()">Simpan ACC</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="poLineCorrectModal" class="modal-bg" style="display:none;z-index:10050">
+    <div class="modal modal-sheet" style="max-width:500px">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h2>Koreksi / Rollback Penerimaan PO</h2>
+        <p id="plcSub" style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0"></p>
+      </div>
+      <div class="sheet-body">
+        <input type="hidden" id="plcLineId" />
+        <input type="hidden" id="plcSourceCtx" />
+        <div id="plcSummary" style="font-size:0.8rem;padding:0.7rem 0.8rem;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:0.8rem;line-height:1.45"></div>
+        <div class="field">
+          <label>Pilih langkah koreksi yang aman</label>
+          <div id="plcOptions" style="display:flex;flex-direction:column;gap:0.45rem"></div>
+        </div>
+        <div id="plcWarnBox" style="display:none;font-size:0.76rem;padding:0.6rem 0.75rem;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;margin-bottom:0.75rem;line-height:1.4"></div>
+        <div class="field" style="margin-bottom:0">
+          <label>Alasan Koreksi <span style="color:#b91c1c">*</span></label>
+          <textarea id="plcReason" rows="2" placeholder="Contoh: Salah kode barang di PO, seharusnya B8104 · atau salah input qty datang / QC" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:0.55rem;font-family:inherit;font-size:0.85rem;resize:vertical"></textarea>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="closePoLineCorrectModal()">Batal</button>
+        <button class="btn btn-danger" type="button" onclick="runPoLineRollback()">Jalankan Koreksi</button>
       </div>
     </div>
   </div>
@@ -25305,8 +25345,29 @@ function fillOperatorList(selectedEmail) {
       var pid = (($("whProdProduct") && $("whProdProduct").value) || "").trim();
       var qty = parseInputNum($("whProdQty") && $("whProdQty").value);
       var noSo = (($("whProdSo") && $("whProdSo").value) || "").trim();
+      var note = (($("whProdNote") && $("whProdNote").value) || "").trim();
       if (!pid) return toast("Isi kode produk", true);
       if (!(qty > 0)) return toast("Qty tidak valid", true);
+      if ((typ === "out_adjust" || typ === "in_adjust") && !note) {
+        toast("Isi Catatan / Alasan untuk penyesuaian stok", true);
+        if ($("whProdNote")) $("whProdNote").focus();
+        return;
+      }
+      if (typ === "out_adjust") {
+        var stRow = (gudangStockRows || []).find(function(x) { return String(x.product_id) === pid; });
+        var curSaldo = stRow ? (Number(stRow.saldo) || 0) : 0;
+        var okOut = await appConfirm(
+          "Kurangi stok " + pid + " sebesar " + formatNum(qty) + " (saldo saat ini: " + formatNum(curSaldo) + ")?\nAlasan: " + note,
+          "Konfirmasi Penyesuaian Keluar",
+          { danger: true, yesText: "Kurangi Stok", noText: "Batal" }
+        );
+        if (!okOut) return;
+      }
+      var defaultRef = typ === "in_fg"
+        ? "FG dari produksi"
+        : (typ === "in_sisa"
+          ? "Sisa bahan dari produksi"
+          : (typ === "out_adjust" ? "Koreksi stok keluar" : "Koreksi stok masuk"));
       var { error } = await sb.from("warehouse_movements").insert({
         movement_type: typ,
         product_id: pid,
@@ -25314,12 +25375,22 @@ function fillOperatorList(selectedEmail) {
         unit: "pcs",
         no_so: noSo,
         qc_status: "passed",
-        ref_note: typ === "in_fg" ? "FG dari produksi" : "Sisa bahan dari produksi",
+        ref_note: note ? (defaultRef + " — " + note) : defaultRef,
         created_by: (currentUser && currentUser.email) || ""
       });
       if (error) return toast(error.message, true);
-      toast(typ === "in_fg" ? "FG masuk gudang" : "Sisa bahan masuk gudang");
+      try {
+        await writeAudit({
+          module: "gudang",
+          action: "stock_adjust",
+          ref_id: pid,
+          summary: defaultRef + " · " + pid + " · " + formatNum(qty) + (noSo ? (" · SO " + noSo) : "") + (note ? (" · " + note) : "")
+        });
+      } catch (eA) {}
+      toast(typ === "in_fg" ? "FG masuk gudang" : (typ === "in_sisa" ? "Sisa bahan masuk gudang" : "Penyesuaian stok tersimpan"));
       if ($("whProdQty")) $("whProdQty").value = "";
+      if ($("whProdNote")) $("whProdNote").value = "";
+      try { await loadGudangStock(); updateWhMutasiPreview(); } catch (eS) {}
     }
     var gudangActiveTab = "stok";
     var modTabState = { purchasing: "inbox", "pr-ppic": "daftar", qc: "antrian" };
@@ -25754,7 +25825,7 @@ function fillOperatorList(selectedEmail) {
           ? sb.from("audit_logs")
               .select("created_at,user_email,user_name,user_role,action,ref_id,summary")
               .in("ref_id", lineIdStrs.slice(0, 250))
-              .in("action", ["arrive", "qc_form", "qc_acc", "receive_stock"])
+              .in("action", ["arrive", "qc_form", "qc_acc", "receive_stock", "rollback_receive"])
               .order("created_at", { ascending: false })
               .limit(600)
           : Promise.resolve({ data: [] });
@@ -25874,21 +25945,34 @@ function fillOperatorList(selectedEmail) {
     function gudangRowStatus(r) {
       var arrived = Number(r.qty_arrived) || 0;
       var passed = Number(r.qty_qc_passed) || 0;
+      var failed = Number(r.qty_qc_failed) || 0;
       var received = Number(r.qty_received) || 0;
       var qty = Number(r.qty) || 0;
       var formAt = r.qc_form_at;
-      var stLabel = "", stColor = "#64748b";
-      if (arrived <= 0) { stLabel = "Menunggu datang"; stColor = "#a16207"; }
-      else if (!formAt) { stLabel = "Menunggu form QC"; stColor = "#b45309"; }
-      else if ((r.qc_status || "pending") === "pending" || ((r.qc_status || "pending") === "partial" && received < passed)) {
-        if ((r.qc_status || "pending") === "partial" && passed > received) { stLabel = "Validasi stok"; stColor = "#0f766e"; }
-        else if ((r.qc_status || "pending") === "partial") { stLabel = "QC sebagian"; stColor = "#c2410c"; }
-        else { stLabel = "Menunggu ACC QC"; stColor = "#2563eb"; }
-      } else if (received < passed) { stLabel = "Validasi stok"; stColor = "#0f766e"; }
-      else if (arrived < qty) { stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; }
-      else if (arrived > qty) { stLabel = "Datang lebih (+" + formatNum(arrived - qty) + ")"; stColor = "#0369a1"; }
-      else { stLabel = "Selesai"; stColor = "#059669"; }
-      return { stLabel: stLabel, stColor: stColor, arrived: arrived, passed: passed, received: received, qty: qty };
+      var qcSt = String(r.qc_status || "pending");
+      var stLabel = "", stColor = "#64748b", stPill = "progress";
+      if (arrived <= 0) {
+        stLabel = "Menunggu datang"; stColor = "#a16207"; stPill = "progress";
+      } else if (!formAt) {
+        stLabel = "Menunggu form QC"; stColor = "#b45309"; stPill = "progress";
+      } else if (qcSt === "pending" || (qcSt === "partial" && received < passed)) {
+        if (qcSt === "partial" && passed > received) { stLabel = "Validasi stok"; stColor = "#0f766e"; stPill = "quotation"; }
+        else if (qcSt === "partial") { stLabel = failed > 0 ? ("QC sebagian · Tolak " + formatNum(failed)) : "QC sebagian"; stColor = "#c2410c"; stPill = "progress"; }
+        else { stLabel = "Menunggu ACC QC"; stColor = "#2563eb"; stPill = "quotation"; }
+      } else if (received < passed) {
+        stLabel = "Validasi stok"; stColor = "#0f766e"; stPill = "quotation";
+      } else if (qcSt === "failed" || (failed > 0 && passed <= 0)) {
+        stLabel = "Ditolak QC (" + formatNum(failed) + ")"; stColor = "#b91c1c"; stPill = "cancel";
+      } else if (failed > 0 && passed > 0) {
+        stLabel = "Sebagian Ditolak (" + formatNum(failed) + ")"; stColor = "#b91c1c"; stPill = "cancel";
+      } else if (arrived < qty) {
+        stLabel = r.awaiting_eta ? "Datang sebagian · ETA sisa" : "Datang sebagian"; stColor = "#c2410c"; stPill = "progress";
+      } else if (arrived > qty) {
+        stLabel = "Datang lebih (+" + formatNum(arrived - qty) + ")"; stColor = "#0369a1"; stPill = "quotation";
+      } else {
+        stLabel = "Selesai"; stColor = "#059669"; stPill = "locked";
+      }
+      return { stLabel: stLabel, stColor: stColor, stPill: stPill, arrived: arrived, passed: passed, failed: failed, received: received, qty: qty };
     }
 
     function gudangItemRowHtml(r) {
@@ -25909,6 +25993,12 @@ function fillOperatorList(selectedEmail) {
         : (r.qc_form_at && formQty > 0
           ? "<div style='font-size:0.65rem;color:#475569;margin-top:0.1rem'>Diajukan: " + formatNum(formQty) + "</div>"
           : "");
+      var rejectBadge = st.failed > 0
+        ? "<div style='font-size:0.68rem;font-weight:700;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:5px;padding:0.12rem 0.4rem;display:inline-block;margin-top:0.18rem'>✕ Ditolak QC: " + formatNum(st.failed) + "</div>" +
+          (r.replace_eta
+            ? "<div style='font-size:0.65rem;color:#c2410c;margin-top:0.1rem'>ETA Ganti: " + esc(r.replace_eta) + "</div>"
+            : "<div style='font-size:0.65rem;color:#b91c1c;margin-top:0.1rem'>⚠ Belum ada ETA ganti</div>")
+        : "";
       return '<tr class="gudang-item-row">' +
         "<td><strong>" + esc(r.po_id) + "</strong>" +
           (r.no_po_odoo
@@ -25930,6 +26020,7 @@ function fillOperatorList(selectedEmail) {
           arrActor +
         "</td>" +
         "<td>" + formatNum(st.passed) +
+          rejectBadge +
           (r.qc_form_at
             ? "<div style='font-size:0.65rem;color:#b45309;margin-top:0.12rem'>Form " +
               esc(typeof formatDateTimeWib === "function" ? formatDateTimeWib(r.qc_form_at) : String(r.qc_form_at).slice(0,16)) +
@@ -25958,7 +26049,7 @@ function fillOperatorList(selectedEmail) {
             : "") +
           recvActor +
         "</td>" +
-        "<td><span class='odoo-pill " + (st.stColor === "#059669" ? "locked" : (st.stColor === "#2563eb" || st.stColor === "#0f766e" ? "quotation" : "progress")) + "'>" + esc(st.stLabel) + "</span></td>" +
+        "<td><span class='odoo-pill " + st.stPill + "'>" + esc(st.stLabel) + "</span></td>" +
         "<td>" + gudangActionHtml(r) + "</td></tr>";
     }
 
@@ -25972,10 +26063,12 @@ function fillOperatorList(selectedEmail) {
         var received = Number(r.qty_received) || 0;
         var qty = Number(r.qty) || 0;
         var passed = Number(r.qty_qc_passed) || 0;
+        var failed = Number(r.qty_qc_failed) || 0;
         if (f === "open") {
-          if (arrived >= qty && received >= passed && passed > 0) return false;
-          if (arrived >= qty && passed <= 0 && (r.qc_status === "failed")) return false;
+          if (arrived >= qty && received >= passed && passed > 0 && (failed <= 0 || r.replace_eta)) return false;
+          if (arrived >= qty && passed <= 0 && r.qc_status === "failed" && r.replace_eta) return false;
         }
+        if (f === "rejected" && !(failed > 0 || r.qc_status === "failed")) return false;
         if (f === "eta" && !r.eta_date && !r.awaiting_eta) return false;
         if (!q) return true;
         var actorBlob = [
@@ -26056,6 +26149,7 @@ function fillOperatorList(selectedEmail) {
       var formQty = Number(r.qc_form_qty) || 0;
       var doneQc = passed + failed;
       var sisaBlmForm = Math.max(0, arrived - formQty);
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
       var btns = [];
       if (arrived < qty) {
         btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" onclick=\"gudangArrive(" + Number(r.line_id) + ")\">Barang sampai</button>");
@@ -26079,7 +26173,11 @@ function fillOperatorList(selectedEmail) {
       if (sisaStok > 0) {
         btns.push("<button type=\"button\" class=\"btn btn-primary btn-sm\" style=\"margin-top:0.25rem\" onclick=\"gudangReceive(" + Number(r.line_id) + ")\">Validasi stok</button>");
       }
-      if (arrived > 0 || formAt || r.qc_at || received > 0) {
+      if (failed > 0 && !r.replace_eta && (role === "purchasing" || role === "ppic" || role === "admin")) {
+        btns.push("<button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-top:0.25rem;color:#b91c1c;border-color:#fca5a5\" onclick=\"purchaseSetReplaceEta(" + Number(r.line_id) + ")\">Set ETA Ganti</button>");
+      }
+      if (arrived > 0 || formAt || r.qc_at || doneQc > 0 || received > 0) {
+        btns.push("<button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-top:0.25rem;font-size:0.68rem;padding:0.14rem 0.42rem;color:#b45309;border-color:#fcd34d\" onclick=\"openPoLineCorrectModal(" + Number(r.line_id) + ",'gudang')\">Koreksi / Rollback</button>");
         btns.push("<button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-top:0.25rem;font-size:0.68rem;padding:0.14rem 0.42rem\" onclick=\"openGudangLineLog(" + Number(r.line_id) + ")\">Riwayat Aksi</button>");
       }
       if (!btns.length) return "<span style=\"color:#059669;font-size:0.75rem;font-weight:700\">OK</span>";
@@ -26092,7 +26190,8 @@ function fillOperatorList(selectedEmail) {
         arrive: "Barang Sampai (Gudang)",
         qc_form: "Buat Form QC (Gudang)",
         qc_acc: "ACC / Hasil QC",
-        receive_stock: "Validasi Masuk Stok (Gudang)"
+        receive_stock: "Validasi Masuk Stok (Gudang)",
+        rollback_receive: "Koreksi / Rollback Penerimaan"
       };
       var events = (r.action_logs || []).slice();
       // Pastikan stage ringkas dari row juga tampil jika belum ada di audit_logs
@@ -26620,10 +26719,11 @@ function fillOperatorList(selectedEmail) {
         var st0 = r.qc_status || "pending";
         var fq0 = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
         var dn0 = (Number(r.qty_qc_passed) || 0) + (Number(r.qty_qc_failed) || 0);
+        var fail0 = Number(r.qty_qc_failed) || 0;
         var rem0 = Math.max(0, fq0 - dn0);
         if (rem0 > 1e-9 && st0 !== "passed" && st0 !== "failed") qcW++;
         else if (st0 === "passed" || (st0 === "partial" && (Number(r.qty_qc_passed) || 0) > 0 && !(rem0 > 1e-9))) qcP++;
-        else if (st0 === "failed" || (st0 === "partial" && (Number(r.qty_qc_failed) || 0) > 0 && (Number(r.qty_qc_passed) || 0) <= 0 && !(rem0 > 1e-9))) qcF++;
+        if (st0 === "failed" || fail0 > 0) qcF++;
       });
       if ($("qcOvWait")) $("qcOvWait").textContent = formatNum(qcW);
       if ($("qcOvPass")) $("qcOvPass").textContent = formatNum(qcP);
@@ -26635,6 +26735,7 @@ function fillOperatorList(selectedEmail) {
         var st = r.qc_status || "pending";
         var formQty = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
         var doneQty = (Number(r.qty_qc_passed) || 0) + (Number(r.qty_qc_failed) || 0);
+        var failQtyF = Number(r.qty_qc_failed) || 0;
         var remain = Math.max(0, formQty - doneQty);
         // Antrian: masih ada sisa form yang belum di-ACC
         if (f === "pending") {
@@ -26646,8 +26747,7 @@ function fillOperatorList(selectedEmail) {
           else if (st === "partial" && (Number(r.qty_qc_passed) || 0) > 0 && !(remain > 1e-9)) { /* ok */ }
           else return false;
         } else if (f === "failed") {
-          if (st === "failed") { /* ok */ }
-          else if (st === "partial" && (Number(r.qty_qc_failed) || 0) > 0 && (Number(r.qty_qc_passed) || 0) <= 0 && !(remain > 1e-9)) { /* ok */ }
+          if (st === "failed" || failQtyF > 0) { /* tampilkan full reject maupun partial reject */ }
           else return false;
         } else if (f !== "all" && st !== f) return false;
         if (!q) return true;
@@ -26661,11 +26761,21 @@ function fillOperatorList(selectedEmail) {
       var pageList = pageOf("qc", list, "qcPager");
       body.innerHTML = pageList.map(function(r) {
         var st = r.qc_status || "pending";
-        var color = st === "passed" ? "#059669" : (st === "failed" ? "#b91c1c" : (st === "partial" ? "#c2410c" : "#a16207"));
+        var passN0 = Number(r.qty_qc_passed) || 0;
+        var failN0 = Number(r.qty_qc_failed) || 0;
+        var color = st === "passed" ? "#059669" : ((st === "failed" || (failN0 > 0 && passN0 <= 0)) ? "#b91c1c" : (st === "partial" ? "#c2410c" : "#a16207"));
         var formQtyL = Number(r.qc_form_qty) || Number(r.qty_arrived) || Number(r.qty) || 0;
-        var doneL = (Number(r.qty_qc_passed) || 0) + (Number(r.qty_qc_failed) || 0);
+        var doneL = passN0 + failN0;
         var remainL = Math.max(0, formQtyL - doneL);
-        var label = st === "passed" ? "Lulus" : (st === "failed" ? "Tolak" : (st === "partial" ? (remainL > 1e-9 ? "Sebagian" : "Selesai (sebagian)") : "Pending"));
+        var label = st === "passed"
+          ? "Lulus"
+          : (st === "failed"
+            ? "Ditolak / Reject"
+            : (st === "partial"
+              ? (remainL > 1e-9
+                ? (failN0 > 0 ? ("Sebagian · Tolak " + formatNum(failN0)) : "Sebagian")
+                : (failN0 > 0 ? ("Sebagian Ditolak (" + formatNum(failN0) + ")") : "Selesai (sebagian)"))
+              : "Pending"));
         var pname = "";
         try {
           var p = (products || []).find(function(x) { return String(x.product_id) === String(r.product_id); });
@@ -26727,7 +26837,10 @@ function fillOperatorList(selectedEmail) {
         var canEdit = remainQc > 1e-9 && (st === "pending" || st === "partial");
         var actions = canEdit
           ? '<button type="button" class="btn btn-primary btn-sm" onclick="qcDecide(' + Number(r.line_id) + ',\'passed\')">ACC QC</button>'
-          : '<span style="font-size:0.75rem;color:var(--text-muted)">' + (remainQc > 1e-9 ? "—" : "Selesai") + '</span>';
+          : '<span style="font-size:0.75rem;color:' + (failN > 0 ? '#b91c1c;font-weight:700' : 'var(--text-muted)') + '">' + (remainQc > 1e-9 ? "—" : (st === "failed" ? "Ditolak" : "Selesai")) + '</span>';
+        if ((Number(r.qty_qc_passed) || 0) > 0 || (Number(r.qty_qc_failed) || 0) > 0 || st !== "pending") {
+          actions += ' <button type="button" class="btn btn-ghost btn-sm" style="color:#b45309;border-color:#fcd34d" onclick="openPoLineCorrectModal(' + Number(r.line_id) + ',\'qc\')">Koreksi</button>';
+        }
         if (r.qc_form_photo) {
           actions += ' <button type="button" class="btn btn-ghost btn-sm" data-photo="' + encodeURIComponent(r.qc_form_photo) + '" onclick="window.open(decodeURIComponent(this.getAttribute(\'data-photo\')),\'_blank\')">Foto</button>';
         }
@@ -26737,7 +26850,7 @@ function fillOperatorList(selectedEmail) {
         if (r.qc_notes) noteHtml += "<div style='font-size:0.72rem;color:#0f766e;line-height:1.3;margin-top:0.1rem' title='" + esc(r.qc_notes) + "'>QC: " + esc(r.qc_notes) + "</div>";
         if (!noteHtml) noteHtml = "<span style='color:var(--text-muted)'>—</span>";
         var timeTip = timeBits.join(" · ");
-        var qcPillCls = st === "passed" ? "locked" : (st === "failed" ? "cancel" : (st === "partial" ? (remainL > 1e-9 ? "progress" : "quotation") : "progress"));
+        var qcPillCls = st === "passed" ? "locked" : ((st === "failed" || (failN > 0 && passN <= 0)) ? "cancel" : (st === "partial" ? (failN > 0 ? "progress" : (remainL > 1e-9 ? "progress" : "quotation")) : "progress"));
         return "<tr>" +
           "<td><span class='odoo-num'>" + esc(r.po_id) + "</span></td>" +
           "<td>" + esc(r.no_so || "—") + "</td>" +
@@ -26800,7 +26913,11 @@ function fillOperatorList(selectedEmail) {
       if ($("qcdHint")) {
         $("qcdHint").textContent = "Lulus + Tolak tidak boleh melebihi " + formatNum(pendingQc) + " (belum QC).";
       }
-      // auto-adjust fail when pass changes
+      // auto-adjust fail when pass changes & vice versa
+      try {
+        if ($("qcdPass")) bindThousandInput($("qcdPass"), true);
+        if ($("qcdFail")) bindThousandInput($("qcdFail"), true);
+      } catch (eTh) {}
       if ($("qcdPass")) {
         $("qcdPass").oninput = function() {
           var pass = parseInputNum($("qcdPass").value) || 0;
@@ -26810,6 +26927,16 @@ function fillOperatorList(selectedEmail) {
           }
         };
       }
+      if ($("qcdFail")) {
+        $("qcdFail").oninput = function() {
+          var fail = parseInputNum($("qcdFail").value) || 0;
+          if (fail > pendingQc) fail = pendingQc;
+          if ($("qcdPass") && document.activeElement !== $("qcdPass")) {
+            $("qcdPass").value = formatInputNum(Math.max(0, pendingQc - fail), true);
+          }
+        };
+      }
+      window.__qcdPendingQty = pendingQc;
       var m = $("qcDecideModal");
       if (m) {
         m.style.display = "flex";
@@ -26817,6 +26944,17 @@ function fillOperatorList(selectedEmail) {
         document.body.classList.add("modal-open");
       }
       setTimeout(function() { try { $("qcdPass").focus(); } catch (e) {} }, 50);
+    }
+    function qcPresetDecide(mode) {
+      var pend = Number(window.__qcdPendingQty) || 0;
+      if (mode === "all_fail") {
+        if ($("qcdPass")) $("qcdPass").value = "0";
+        if ($("qcdFail")) $("qcdFail").value = formatInputNum(pend, true);
+        if ($("qcdNotes")) { try { $("qcdNotes").focus(); } catch (e) {} }
+      } else {
+        if ($("qcdPass")) $("qcdPass").value = formatInputNum(pend, true);
+        if ($("qcdFail")) $("qcdFail").value = "0";
+      }
     }
     async function saveQcDecide() {
       if (!sb) return;
@@ -26900,6 +27038,205 @@ function fillOperatorList(selectedEmail) {
       toast(msg);
       try { loadQcInbox(); } catch (e1) {}
       try { loadGudangInbox(); } catch (e2) {}
+    }
+
+    function closePoLineCorrectModal() {
+      var m = $("poLineCorrectModal");
+      if (m) { m.classList.remove("show"); m.style.display = "none"; }
+      if (!document.querySelector(".modal-bg.show")) {
+        document.body.classList.remove("modal-open");
+      }
+    }
+    async function openPoLineCorrectModal(lineId, sourceCtx) {
+      if (!sb || !lineId) return;
+      var role = (typeof currentRole === "function" ? currentRole() : "") || "";
+      if (["admin", "gudang", "qc", "purchasing", "ppic"].indexOf(role) < 0) {
+        return toast("Role Anda tidak memiliki izin koreksi penerimaan PO", true);
+      }
+      var { data: line, error } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      if (error || !line) return toast((error && error.message) || "Baris PO tidak ditemukan", true);
+      var { data: po } = await sb.from("purchase_orders").select("po_id,no_so,no_po_odoo,supplier_name").eq("po_id", line.po_id).maybeSingle();
+      var arrived = Number(line.qty_arrived) || 0;
+      var formQty = Number(line.qc_form_qty) || 0;
+      var passed = Number(line.qty_qc_passed) || 0;
+      var failed = Number(line.qty_qc_failed) || 0;
+      var received = Number(line.qty_received) || 0;
+      var pname = (typeof productNameOnly === "function" ? productNameOnly(line.product_id) : "") || "";
+
+      if ($("plcLineId")) $("plcLineId").value = String(lineId);
+      if ($("plcSourceCtx")) $("plcSourceCtx").value = String(sourceCtx || "gudang");
+      if ($("plcReason")) $("plcReason").value = "";
+      if ($("plcSub")) {
+        $("plcSub").textContent = (line.po_id || "") + (po && po.no_po_odoo ? (" · Odoo " + po.no_po_odoo) : "") + " · " + (line.product_id || "");
+      }
+      if ($("plcSummary")) {
+        $("plcSummary").innerHTML =
+          "<div><strong>" + esc(line.product_id) + "</strong>" + (pname ? (" — " + esc(pname)) : "") + "</div>" +
+          "<div style='color:#475569;margin-top:0.2rem'>PO: <b>" + esc(line.po_id) + "</b>" +
+            (po && po.no_so ? (" · SO: <b>" + esc(po.no_so) + "</b>") : "") +
+            (line.vendor_name ? (" · Vendor: " + esc(line.vendor_name)) : "") +
+          "</div>" +
+          "<div style='display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.45rem'>" +
+            "<span class='odoo-pill quotation'>PO: " + formatNum(line.qty) + "</span>" +
+            "<span class='odoo-pill progress'>Datang: " + formatNum(arrived) + "</span>" +
+            "<span class='odoo-pill quotation'>Form QC: " + formatNum(formQty) + "</span>" +
+            "<span class='odoo-pill locked'>Lulus: " + formatNum(passed) + "</span>" +
+            (failed > 0 ? "<span class='odoo-pill cancel'>Tolak: " + formatNum(failed) + "</span>" : "") +
+            "<span class='odoo-pill " + (received > 0 ? "locked" : "done") + "'>Masuk Stok: " + formatNum(received) + "</span>" +
+          "</div>";
+      }
+
+      var opts = [];
+      if (received > 0) {
+        opts.push({
+          val: "unreceive",
+          title: "Batalkan Validasi Stok Saja",
+          desc: "Reset Masuk Stok ke 0 dan buat jurnal balik keluar (-" + formatNum(received) + " " + (line.unit || "pcs") + ") di stok gudang. Hasil QC tetap ada."
+        });
+      }
+      if (passed > 0 || failed > 0 || (line.qc_status && line.qc_status !== "pending") || line.qc_at) {
+        opts.push({
+          val: "reset_qc",
+          title: "Batalkan ACC QC (Kembali ke Antrian QC)",
+          desc: "Reset hasil ACC Lulus/Tolak QC agar bisa inspeksi ulang." + (received > 0 ? " Sekaligus membalik jurnal stok -" + formatNum(received) + "." : "")
+        });
+      }
+      if (arrived > 0 || line.qc_form_at || passed > 0 || failed > 0 || received > 0) {
+        opts.push({
+          val: "reset_all",
+          title: "Reset Total Penerimaan PO ke 0 (Untuk Ganti Kode Barang / Input Ulang)",
+          desc: "Reset Datang, Form QC, ACC QC, dan Stok ke 0 agar Purchasing bisa ubah kode barang di Edit PO." + (received > 0 ? " Otomatis buat jurnal balik stok -" + formatNum(received) + "." : "")
+        });
+      }
+      var optBox = $("plcOptions");
+      if (optBox) {
+        if (!opts.length) {
+          optBox.innerHTML = '<div style="font-size:0.8rem;color:#64748b">Baris ini belum diproses Gudang/QC, bisa langsung diedit dari menu Purchasing → Edit PO.</div>';
+        } else {
+          var defVal = opts[opts.length - 1].val;
+          if (sourceCtx === "qc" && opts.some(function(o) { return o.val === "reset_qc"; })) defVal = "reset_qc";
+          optBox.innerHTML = opts.map(function(o) {
+            return '<label style="display:flex;gap:0.5rem;align-items:flex-start;border:1px solid #cbd5e1;border-radius:10px;padding:0.55rem 0.65rem;cursor:pointer;background:#fff">' +
+              '<input type="radio" name="plcMode" value="' + esc(o.val) + '"' + (o.val === defVal ? " checked" : "") + ' style="width:auto;margin-top:0.2rem" />' +
+              '<div><div style="font-size:0.82rem;font-weight:700;color:#0f172a">' + esc(o.title) + '</div>' +
+              '<div style="font-size:0.74rem;color:#64748b;line-height:1.35;margin-top:0.1rem">' + esc(o.desc) + '</div></div>' +
+            '</label>';
+          }).join("");
+        }
+      }
+      var wb = $("plcWarnBox");
+      if (wb) {
+        if (received > 0) {
+          wb.style.display = "block";
+          wb.textContent = "Perhatian: Baris ini sudah masuk stok (" + formatNum(received) + " " + (line.unit || "pcs") + "). Sistem akan otomatis mencatat jurnal penyesuaian keluar (out_adjust) untuk menetralkan saldo On Hand " + (line.product_id || "") + ".";
+        } else {
+          wb.style.display = "none";
+        }
+      }
+      var m = $("poLineCorrectModal");
+      if (m) { m.style.display = "flex"; m.classList.add("show"); document.body.classList.add("modal-open"); }
+    }
+    async function runPoLineRollback() {
+      if (!sb) return;
+      var lineId = Number(($("plcLineId") && $("plcLineId").value) || 0);
+      if (!lineId) return;
+      var sel = document.querySelector('input[name="plcMode"]:checked');
+      var mode = sel ? sel.value : "";
+      if (!mode) return toast("Tidak ada tahap yang bisa di-rollback", true);
+      var reason = (($("plcReason") && $("plcReason").value) || "").trim();
+      if (!reason) {
+        toast("Isi Alasan Koreksi terlebih dahulu", true);
+        if ($("plcReason")) $("plcReason").focus();
+        return;
+      }
+      var { data: line, error: e0 } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      if (e0 || !line) return toast((e0 && e0.message) || "Baris PO tidak ditemukan", true);
+      var { data: po } = await sb.from("purchase_orders").select("po_id,no_so").eq("po_id", line.po_id).maybeSingle();
+
+      var ok = await appConfirm(
+        "Yakin jalankan koreksi (" + (mode === "unreceive" ? "Batalkan Validasi Stok" : (mode === "reset_qc" ? "Batalkan ACC QC" : "Reset Total Penerimaan ke 0")) + ") untuk " + (line.product_id || "") + "?\n\nAlasan: " + reason,
+        "Konfirmasi Koreksi Penerimaan",
+        { danger: true, yesText: "Ya, Koreksi", noText: "Batal" }
+      );
+      if (!ok) return;
+
+      var prevReceived = Number(line.qty_received) || 0;
+      if (prevReceived > 0) {
+        var { error: eMov } = await sb.from("warehouse_movements").insert({
+          movement_type: "out_adjust",
+          product_id: line.product_id || "",
+          qty: prevReceived,
+          unit: line.unit || "pcs",
+          po_id: line.po_id || "",
+          no_so: (po && po.no_so) || "",
+          qc_status: "passed",
+          ref_note: "Koreksi/Batal validasi stok line " + lineId + " — " + reason,
+          created_by: (currentUser && currentUser.email) || ""
+        });
+        if (eMov) return toast("Gagal catat jurnal balik stok: " + eMov.message, true);
+      }
+
+      var patch = {};
+      if (mode === "unreceive") {
+        patch = { qty_received: 0, received_at: null, received_by: null };
+      } else if (mode === "reset_qc") {
+        patch = {
+          qty_received: 0, received_at: null, received_by: null,
+          qty_qc_passed: 0, qty_qc_failed: 0, qc_status: "pending", qc_notes: null, qc_at: null, qc_by: null
+        };
+      } else {
+        patch = {
+          qty_arrived: 0, arrived_at: null, arrived_by: null, awaiting_eta: false,
+          qc_form_qty: 0, qc_form_notes: null, qc_form_photo: null, qc_form_at: null, qc_form_by: null,
+          qty_qc_passed: 0, qty_qc_failed: 0, qc_status: "pending", qc_notes: null, qc_at: null, qc_by: null,
+          qty_received: 0, received_at: null, received_by: null
+        };
+      }
+
+      // Toleran jika beberapa kolom opsional belum ada di schema Supabase
+      var { error: eUpd } = await sb.from("purchase_lines").update(patch).eq("id", lineId);
+      if (eUpd) {
+        var msgU = String(eUpd.message || "");
+        var cleanPatch = Object.assign({}, patch);
+        ["arrived_at", "arrived_by", "awaiting_eta", "qc_form_qty", "qc_form_notes", "qc_form_photo", "qc_form_at", "qc_form_by", "qc_at", "qc_by", "received_at", "received_by"].forEach(function(col) {
+          if (msgU.indexOf(col) >= 0) delete cleanPatch[col];
+        });
+        var r2 = await sb.from("purchase_lines").update(cleanPatch).eq("id", lineId);
+        if (r2.error) return toast(r2.error.message, true);
+      }
+
+      try {
+        await writeAudit({
+          module: "gudang",
+          action: "rollback_receive",
+          ref_id: String(lineId),
+          summary: "Rollback (" + mode + ") " + (line.po_id || "") + " · " + (line.product_id || "") +
+            (prevReceived > 0 ? (" · balik stok -" + formatNum(prevReceived)) : "") + " · Alasan: " + reason,
+          before: {
+            product_id: line.product_id,
+            qty_arrived: line.qty_arrived,
+            qty_qc_passed: line.qty_qc_passed,
+            qty_qc_failed: line.qty_qc_failed,
+            qty_received: line.qty_received,
+            qc_status: line.qc_status
+          },
+          after: patch
+        });
+      } catch (eAudR) {}
+
+      var srcCtx = ($("plcSourceCtx") && $("plcSourceCtx").value) || "";
+      closePoLineCorrectModal();
+      toast("Koreksi berhasil" + (prevReceived > 0 ? " · jurnal balik stok -" + formatNum(prevReceived) + " dicatat" : ""));
+      try { await loadGudangInbox(); } catch (e1) {}
+      try { await loadQcInbox(); } catch (e2) {}
+      try { await loadGudangStock(); } catch (e3) {}
+      try { await loadPurchaseOrders(); } catch (e4) {}
+      try {
+        var openPoId = $("poEditId") && $("poEditId").value;
+        if (srcCtx === "po" && openPoId && $("poModal") && $("poModal").classList.contains("show")) {
+          await openPoModal(openPoId);
+        }
+      } catch (e5) {}
     }
 
     /** Purchase: set ETA sisa kiriman (qty datang kurang) ATAU kekurangan QC tolak */
@@ -27098,7 +27435,7 @@ function fillOperatorList(selectedEmail) {
     }
     async function loadPurchaseOrders() {
       if (!sb) return;
-      const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id,awaiting_eta,qty,qty_arrived,product_id,vendor_name,eta_date,replace_eta)").order("po_date", { ascending: false }).limit(200);
+      const { data, error } = await sb.from("purchase_orders").select("*, purchase_lines(id,awaiting_eta,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,qc_status,product_id,vendor_name,eta_date,replace_eta)").order("po_date", { ascending: false }).limit(200);
       const body = $("poBody");
       if (error) {
         if (body) body.innerHTML = '<tr><td colspan="7" class="empty">Jalankan batch4_purchasing.sql + batch4b_po_by_so.sql — ' + esc(error.message) + '</td></tr>';
@@ -27210,8 +27547,14 @@ function fillOperatorList(selectedEmail) {
       function poHasOverdue(p) {
         return (p.purchase_lines || []).some(poLineOverdue);
       }
+      function poHasQcReject(p) {
+        return (p.purchase_lines || []).some(function(l) {
+          return (Number(l.qty_qc_failed) || 0) > 0 || l.qc_status === "failed";
+        });
+      }
       if (st === "need_eta") list = list.filter(poNeedsEta);
       else if (st === "need_overdue") list = list.filter(poHasOverdue);
+      else if (st === "qc_reject") list = list.filter(poHasQcReject);
       else if (st) list = list.filter(p => p.status === st);
       if (q) list = list.filter(p => {
         const lines = p.purchase_lines || [];
@@ -27258,12 +27601,15 @@ function fillOperatorList(selectedEmail) {
         const n = lines.length;
         const needEta = lines.some(function(l) { return l.awaiting_eta || (Number(l.qty_arrived) > 0 && Number(l.qty_arrived) < Number(l.qty)); });
         const overdue = lines.some(poLineOverdue);
+        const failTotal = lines.reduce(function(acc, l) { return acc + (Number(l.qty_qc_failed) || 0); }, 0);
+        const hasReject = failTotal > 0 || lines.some(function(l) { return l.qc_status === "failed"; });
         const odoo = p.no_po_odoo || "";
         var poSt = String(p.status || "").toLowerCase();
         var poPillCls = poSt === "received" ? "locked" : (poSt === "ordered" ? "quotation" : (poSt === "partial" ? "progress" : (poSt === "cancelled" ? "cancel" : "done")));
         return '<tr class="' + (needEta || overdue ? "po-need-eta" : "") + '">' +
           '<td class="mono"><span class="odoo-num">' + esc(p.po_id) + '</span>' +
           (odoo ? '<div style="font-size:0.7rem;color:var(--text-muted)">Odoo: ' + esc(odoo) + '</div>' : '') +
+          (hasReject ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:700">✕ QC Tolak' + (failTotal > 0 ? (' ' + formatNum(failTotal)) : '') + '</div>' : '') +
           (needEta ? '<div style="font-size:0.7rem;color:#c2410c;font-weight:700">Perlu ETA sisa</div>' : '') +
           (overdue ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:700">ETA terlambat</div>' : '') +
           '</td>' +
@@ -27405,6 +27751,9 @@ function fillOperatorList(selectedEmail) {
       var defaultFg = line.for_product_id || (($("poFgSelect") && $("poFgSelect").value) || "");
       var failQty = Number(line.qty_qc_failed) || 0;
       var passQty = Number(line.qty_qc_passed) || 0;
+      var arrivedQty = Number(line.qty_arrived) || 0;
+      var recvQtyNum = Number(line.qty_received) || 0;
+      var hasProcessed = !!(line.id && (arrivedQty > 0 || recvQtyNum > 0 || passQty > 0 || failQty > 0 || line.qc_form_at));
       var lineId = line.id || "";
       var qcBanner = "";
       if (failQty > 0) {
@@ -27414,14 +27763,22 @@ function fillOperatorList(selectedEmail) {
           (lineId ? '<button type="button" class="btn btn-primary btn-sm" onclick="purchaseSetReplaceEta(' + Number(lineId) + ')">Set ETA kekurangan</button>' : '') +
           '</div>';
       }
+      var lockBanner = "";
+      if (hasProcessed) {
+        lockBanner = '<div style="grid-column:1/-1;padding:0.45rem 0.65rem;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;font-size:0.74rem;color:#92400e;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between">' +
+          '<span><strong>Sudah diproses Gudang/QC</strong> (Datang ' + formatNum(arrivedQty) + ' · Lulus ' + formatNum(passQty) + (failQty > 0 ? ' · Tolak ' + formatNum(failQty) : '') + ' · Stok ' + formatNum(recvQtyNum) + '). Kode barang dikunci — gunakan <strong>Koreksi / Rollback</strong> jika ingin ubah kode barang.</span>' +
+          '<button type="button" class="btn btn-ghost btn-sm" style="color:#b45309;border-color:#fcd34d;background:#fff" onclick="openPoLineCorrectModal(' + Number(lineId) + ',\'po\')">Koreksi / Rollback</button>' +
+          '</div>';
+      }
       return (
-        '<div class="po-line po-line-card" style="border:1px solid var(--border);border-radius:14px;padding:0.85rem;margin-bottom:0.75rem;background:#fff">' +
+        '<div class="po-line po-line-card" data-line-id="' + esc(String(lineId)) + '" data-processed="' + (hasProcessed ? "1" : "0") + '" style="border:1px solid var(--border);border-radius:14px;padding:0.85rem;margin-bottom:0.75rem;background:#fff">' +
           '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.65rem 0.75rem">' +
             qcBanner +
-            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Bahan</label>' +
+            lockBanner +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Bahan' + (hasProcessed ? ' <span style="color:#b45309">(terkunci)</span>' : '') + '</label>' +
               '<div class="po-combo" style="width:100%">' +
                 '<input type="hidden" class="pol-pid" value="' + esc(pid) + '" />' +
-                '<input type="text" class="po-combo-input" placeholder="Kode / nama bahan..." value="' + esc(display) + '" autocomplete="off" style="width:100%;box-sizing:border-box" />' +
+                '<input type="text" class="po-combo-input" placeholder="Kode / nama bahan..." value="' + esc(display) + '" autocomplete="off"' + (hasProcessed ? ' readonly title="Rollback penerimaan dulu di Gudang/QC jika ingin ubah kode barang"' : '') + ' style="width:100%;box-sizing:border-box' + (hasProcessed ? ';background:#f8fafc;color:#475569;cursor:not-allowed' : '') + '" />' +
                 '<div class="po-combo-list"></div>' +
               '</div></div>' +
             '<div class="field" style="margin:0"><label style="font-size:0.72rem">Vendor</label>' +
@@ -27440,10 +27797,10 @@ function fillOperatorList(selectedEmail) {
               '<input class="pol-qty num-input" inputmode="decimal" placeholder="0" value="' + qtyVal + '" style="width:100%;box-sizing:border-box" /></div>' +
             '<div class="field" style="margin:0"><label style="font-size:0.72rem">Unit</label>' +
               unitSelectHtml(line.unit || (p && p.unit) || "pcs", "pol-unit", null, "width:100%") + '</div>' +
-            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Diterima</label>' +
-              '<input class="pol-recv num-input" inputmode="decimal" value="' + recvVal + '" style="width:100%;box-sizing:border-box" /></div>' +
+            '<div class="field" style="margin:0"><label style="font-size:0.72rem">Diterima (Stok)</label>' +
+              '<input class="pol-recv num-input" inputmode="decimal" value="' + recvVal + '"' + (hasProcessed ? ' readonly' : '') + ' style="width:100%;box-sizing:border-box' + (hasProcessed ? ';background:#f8fafc;color:#475569' : '') + '" /></div>' +
             '<div class="field" style="margin:0;display:flex;align-items:flex-end">' +
-              '<button type="button" class="btn btn-ghost btn-sm po-del" style="color:#b91c1c;width:100%">Hapus baris</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm po-del" data-locked="' + (hasProcessed ? "1" : "0") + '" style="color:#b91c1c;width:100%">' + (hasProcessed ? 'Terkunci (Rollback dulu)' : 'Hapus baris') + '</button>' +
             '</div>' +
           '</div>' +
         '</div>'
@@ -27537,10 +27894,14 @@ function fillOperatorList(selectedEmail) {
       box.insertAdjacentHTML("beforeend", poLineHtml(line));
       const card = box.querySelector(".po-line-card:last-of-type");
       if (card) {
+        const isLocked = card.getAttribute("data-processed") === "1";
         card.querySelectorAll(".num-input").forEach(function(el) { try { bindThousandInput(el, true); } catch (e) {} });
         const del = card.querySelector(".po-del");
-        if (del) del.onclick = function() { card.remove(); };
-        bindPoProductCombo(card);
+        if (del) del.onclick = function() {
+          if (isLocked) return toast("Baris sudah diproses Gudang/QC. Klik 'Koreksi / Rollback' dulu jika ingin hapus atau ganti kode barang.", true);
+          card.remove();
+        };
+        if (!isLocked) bindPoProductCombo(card);
         const unitInp = card.querySelector(".pol-unit");
         if (unitInp) unitInp.addEventListener("input", function() { unitInp.dataset.touched = "1"; });
       }
@@ -28301,6 +28662,8 @@ function fillOperatorList(selectedEmail) {
       const lines = [];
       header.supplier_name = ($("poSupplier").value || "").trim();
       document.querySelectorAll("#poLines .po-line").forEach(el => {
+        const lineIdAttr = Number(el.getAttribute("data-line-id") || 0);
+        const isProcessed = el.getAttribute("data-processed") === "1";
         const product_id = resolveProductId((el.querySelector(".pol-pid").value || "").trim()) || (el.querySelector(".pol-pid").value || "").trim();
         const qty = parseInputNum(el.querySelector(".pol-qty").value);
         const unit = (el.querySelector(".pol-unit").value || "pcs").trim();
@@ -28311,7 +28674,11 @@ function fillOperatorList(selectedEmail) {
         const eta_date = (el.querySelector(".pol-eta") && el.querySelector(".pol-eta").value) || null;
         if (product_id && qty > 0) {
           if (!vendor_name) return; // skip incomplete - check after
-          lines.push({ po_id, product_id, qty, unit, qty_received, for_product_id, kategori, vendor_name, eta_date });
+          lines.push({
+            _id: lineIdAttr,
+            _processed: isProcessed,
+            po_id, product_id, qty, unit, qty_received, for_product_id, kategori, vendor_name, eta_date
+          });
         }
       });
       var incomplete = false;
@@ -28333,6 +28700,12 @@ function fillOperatorList(selectedEmail) {
           h2.notes = (h2.notes ? h2.notes + " · " : "") + "PO Odoo: " + no_po_odoo;
           ({ error } = await sb.from("purchase_orders").insert(h2));
         }
+        if (error) return toast(error.message, true);
+        var insNew = lines.map(function(l) {
+          var c = Object.assign({}, l); delete c._id; delete c._processed; return c;
+        });
+        const { error: e2 } = await sb.from("purchase_lines").insert(insNew);
+        if (e2) return toast(e2.message, true);
       } else {
         ({ error } = await sb.from("purchase_orders").update(header).eq("po_id", po_id));
         if (error && /no_po_odoo|column/i.test(String(error.message || ""))) {
@@ -28341,11 +28714,49 @@ function fillOperatorList(selectedEmail) {
           h3.notes = (h3.notes ? h3.notes + " · " : "") + "PO Odoo: " + no_po_odoo;
           ({ error } = await sb.from("purchase_orders").update(h3).eq("po_id", po_id));
         }
-        await sb.from("purchase_lines").delete().eq("po_id", po_id);
+        if (error) return toast(error.message, true);
+
+        // Edit aman: update baris yang sudah ada by id (jangan hapus-insert agar qty_arrived / form QC / ACC QC tidak hilang)
+        var { data: existingLines } = await sb.from("purchase_lines")
+          .select("id,qty_arrived,qty_qc_passed,qty_qc_failed,qty_received,qc_form_at")
+          .eq("po_id", po_id);
+        var keptIds = {};
+        var toInsert = [];
+        for (var li = 0; li < lines.length; li++) {
+          var l = lines[li];
+          if (l._id) {
+            keptIds[l._id] = true;
+            var upd = {
+              qty: l.qty,
+              unit: l.unit,
+              for_product_id: l.for_product_id,
+              kategori: l.kategori,
+              vendor_name: l.vendor_name,
+              eta_date: l.eta_date
+            };
+            if (!l._processed) {
+              upd.product_id = l.product_id;
+              upd.qty_received = l.qty_received;
+            }
+            var { error: eUpL } = await sb.from("purchase_lines").update(upd).eq("id", l._id);
+            if (eUpL) return toast(eUpL.message, true);
+          } else {
+            var cNew = Object.assign({}, l); delete cNew._id; delete cNew._processed;
+            toInsert.push(cNew);
+          }
+        }
+        var toDeleteIds = (existingLines || []).filter(function(ex) {
+          var proc = (Number(ex.qty_arrived) || 0) > 0 || (Number(ex.qty_received) || 0) > 0 || (Number(ex.qty_qc_passed) || 0) > 0 || (Number(ex.qty_qc_failed) || 0) > 0 || !!ex.qc_form_at;
+          return !keptIds[ex.id] && !proc;
+        }).map(function(ex) { return ex.id; });
+        if (toDeleteIds.length) {
+          await sb.from("purchase_lines").delete().in("id", toDeleteIds);
+        }
+        if (toInsert.length) {
+          const { error: eIns2 } = await sb.from("purchase_lines").insert(toInsert);
+          if (eIns2) return toast(eIns2.message, true);
+        }
       }
-      if (error) return toast(error.message, true);
-      const { error: e2 } = await sb.from("purchase_lines").insert(lines);
-      if (e2) return toast(e2.message, true);
       toast(isNew ? "PO dibuat" : "PO diperbarui");
       // Tandai PR terkait sudah dilayani (jangan tampil Buat PO lagi)
       try {
@@ -36847,7 +37258,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.24-mobile-sync";
+    var APP_BUILD_TAG = "2026.11.24-qc-rollback";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
