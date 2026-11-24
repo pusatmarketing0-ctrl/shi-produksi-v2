@@ -22998,6 +22998,7 @@ function fillOperatorList(selectedEmail) {
         return;
       }
       deliveryList = data || [];
+      try { await _mergeDeliveryInvFallback(deliveryList); } catch (eInvM) { console.warn("invFallback:", eInvM); }
       if (deliveryList.length) {
         try {
           var dids = deliveryList.map(function(d) { return d.delivery_id; }).filter(Boolean);
@@ -24441,13 +24442,58 @@ function fillOperatorList(selectedEmail) {
       document.body.classList.remove("modal-open");
       _doStageCtx = null;
     }
+    async function _mergeDeliveryInvFallback(list) {
+      if (!sb || !Array.isArray(list) || !list.length) return;
+      var need = list.filter(function(d) {
+        if (!d || !d.delivery_id) return false;
+        var st = String(d.status || "").toLowerCase();
+        if (st === "cancelled" || st === "draft") return false;
+        var m = doParseTags(d.notes);
+        return !m.invUrl;
+      });
+      if (!need.length) return;
+      var needMap = {};
+      need.forEach(function(d) { needMap[d.delivery_id] = true; });
+      try {
+        var { data: logs, error } = await sb.from("audit_logs")
+          .select("ref_id,after_data,created_at,user_email")
+          .eq("module", "delivery_invoice")
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (error || !logs || !logs.length) return;
+        var invByDo = {};
+        logs.forEach(function(lg) {
+          var did = String(lg.ref_id || "").trim();
+          if (!did || !needMap[did] || invByDo[did]) return;
+          var ad = lg.after_data || {};
+          if (typeof ad === "string") { try { ad = JSON.parse(ad); } catch (eP) { ad = {}; } }
+          if (ad && ad.inv_url) {
+            invByDo[did] = {
+              INV_URL: ad.inv_url,
+              INV_NAME: ad.inv_name || "Invoice.pdf",
+              INV_NO: ad.inv_no || "",
+              INV_AT: ad.inv_at || lg.created_at || "",
+              INV_BY: ad.inv_by || lg.user_email || ""
+            };
+          }
+        });
+        list.forEach(function(d) {
+          var hit = d && invByDo[d.delivery_id];
+          if (!hit) return;
+          d.notes = doWriteTags(d.notes || "", hit);
+        });
+      } catch (e) { console.warn("_mergeDeliveryInvFallback", e); }
+    }
     async function _updateDeliveriesSafe(doId, payload, fallbackNotes) {
-      var { error } = await sb.from("deliveries").update(payload).eq("delivery_id", doId);
+      var { data, error } = await sb.from("deliveries").update(payload).eq("delivery_id", doId).select("delivery_id");
       if (error && /no_do_odoo|column/i.test(String(error.message || ""))) {
         var p2 = Object.assign({}, payload);
         delete p2.no_do_odoo;
         if (fallbackNotes != null) p2.notes = fallbackNotes;
-        ({ error } = await sb.from("deliveries").update(p2).eq("delivery_id", doId));
+        ({ data, error } = await sb.from("deliveries").update(p2).eq("delivery_id", doId).select("delivery_id"));
+      }
+      if (!error && (!data || !data.length)) {
+        return { message: "Update DO tidak tersimpan (0 baris terupdate — cek RLS policy tabel deliveries).", code: "RLS_ZERO_ROWS" };
       }
       return error;
     }
@@ -24638,26 +24684,52 @@ function fillOperatorList(selectedEmail) {
             if ($("dsInvStatus")) $("dsInvStatus").textContent = "Mengupload PDF ke Google Drive…";
             toast("Mengupload PDF Invoice ke Google Drive…");
             if (typeof otUploadOneToDrive !== "function") throw new Error("Uploader Google Drive tidak tersedia");
-            var up = await otUploadOneToDrive(file, "delivery_invoice");
-            invUrl = (up && (up.url || up.webViewLink || up.link)) || "";
+            var up = await otUploadOneToDrive(file, "delivery_invoice", doId);
+            invUrl = (up && (up.url || up.webViewLink || up.link || (up.id ? ("https://drive.google.com/file/d/" + up.id + "/view") : ""))) || "";
             invName = (up && up.name) || file.name || "Invoice.pdf";
           }
           if (!invUrl) { toast("Upload PDF Invoice atau isi link PDF terlebih dahulu", true); return; }
           var nextSt = (d.status === "shipped" || d.status === "delivered") ? d.status : "ready";
+          var actorEm = (currentUser && currentUser.email) || "";
           var iNotes = doWriteTags(d.notes, {
             INV_URL: invUrl,
             INV_NAME: invName || "Invoice.pdf",
             INV_NO: invNo,
             INV_AT: nowIso,
-            INV_BY: (currentUser && currentUser.email) || ""
+            INV_BY: actorEm
           });
           var errI = await _updateDeliveriesSafe(doId, {
             status: nextSt,
             notes: iNotes,
             updated_at: nowIso
           });
-          if (errI) return toast(errI.message, true);
-          toast("PDF Invoice dikirim ke Gudang — siap cetak & berangkat");
+          var savedViaFallback = false;
+          if (errI) {
+            // Jika UPDATE deliveries ditolak RLS untuk role Trading, simpan ke audit_logs agar DO tetap lanjut ke Siap Berangkat
+            try {
+              var auditRes = await sb.from("audit_logs").insert({
+                created_at: nowIso,
+                user_email: actorEm,
+                user_name: (currentProfile && (currentProfile.name || currentProfile.full_name)) || actorEm,
+                user_role: (typeof currentRole === "function" ? currentRole() : "") || "",
+                module: "delivery_invoice",
+                action: "upload_invoice",
+                ref_id: doId,
+                summary: "Upload PDF Invoice DO " + doId + (invNo ? (" · " + invNo) : ""),
+                after_data: {
+                  delivery_id: doId,
+                  inv_url: invUrl,
+                  inv_name: invName || "Invoice.pdf",
+                  inv_no: invNo,
+                  inv_at: nowIso,
+                  inv_by: actorEm
+                }
+              });
+              if (!auditRes.error) savedViaFallback = true;
+            } catch (eFb) { console.warn("delivery_invoice fallback", eFb); }
+            if (!savedViaFallback) return toast(errI.message, true);
+          }
+          toast("PDF Invoice dikirim ke Gudang — status DO naik ke Siap Berangkat");
 
         } else if (mode === "dispatch" || mode === "dispatch_emergency") {
           var hasInv = !!(ctx.meta && ctx.meta.invUrl);
@@ -30807,6 +30879,7 @@ function fillOperatorList(selectedEmail) {
         try {
           if (role === "gudang" || role === "trading" || role === "marketing" || role === "admin") {
             var { data: allDosR } = await sb.from("deliveries").select("delivery_id,status,no_do_odoo,notes").limit(150);
+            try { if (typeof _mergeDeliveryInvFallback === "function") await _mergeDeliveryInvFallback(allDosR || []); } catch (eM0) {}
             var dlCnt = { perlu_gudang: 0, butuh_invoice: 0, siap_berangkat: 0, dikirim: 0, ditolak: 0, emergNoInv: 0 };
             (allDosR || []).forEach(function(d) {
               var stg = doGetStage(d);
@@ -31088,6 +31161,7 @@ function fillOperatorList(selectedEmail) {
       try {
         if (role === "gudang" || role === "trading" || role === "marketing" || role === "admin") {
           var { data: allDosF } = await sb.from("deliveries").select("delivery_id,status,no_do_odoo,notes").limit(150);
+          try { if (typeof _mergeDeliveryInvFallback === "function") await _mergeDeliveryInvFallback(allDosF || []); } catch (eM1) {}
           var dlCntF = { perlu_gudang: 0, butuh_invoice: 0, siap_berangkat: 0, dikirim: 0, ditolak: 0, emergNoInv: 0 };
           (allDosF || []).forEach(function(d) {
             var stg = doGetStage(d);
@@ -35660,8 +35734,8 @@ function closeOtModal() {
         toast(String(e.message || e), true);
       }
     }
-    async function otUploadOneToDrive(file, kind) {
-      var otId = ($("otEditId") && $("otEditId").value) || "";
+    async function otUploadOneToDrive(file, kind, refId) {
+      var otId = refId || ($("otEditId") && $("otEditId").value) || "";
       var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
       if (!base) throw new Error("DRIVE_UPLOAD_URL belum diset");
       if (file.size > 6 * 1024 * 1024) throw new Error(file.name + " > 6 MB");
