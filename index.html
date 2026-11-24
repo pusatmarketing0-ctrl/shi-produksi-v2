@@ -25749,11 +25749,28 @@ function fillOperatorList(selectedEmail) {
       var body = $("gudangBody");
       if (body) body.innerHTML = '<tr><td colspan="11" class="empty">Memuat…</td></tr>';
       try { loadGudangStock(); } catch (eS) {}
-      var { data: pos, error } = await sb.from("purchase_orders")
-        .select("po_id,no_so,no_po_odoo,order_id,po_date,status,supplier_name,notes,purchase_lines(*)")
+      var fullPoCols = "po_id,no_so,no_po_odoo,order_id,po_date,status,supplier_name,notes,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,kategori,vendor_name,qc_status,qc_notes,eta_date,replace_eta,awaiting_eta,qc_form_qty,qc_form_notes,qc_form_at,qc_form_by,qc_at,qc_by,arrived_at,arrived_by,received_at,received_by,for_product_id,parent_line_id,notes)";
+      var minPoCols = "po_id,no_so,no_po_odoo,order_id,po_date,status,supplier_name,notes,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta,awaiting_eta,qc_form_qty,qc_form_notes,qc_form_at,qc_form_by,qc_at,arrived_at,received_at)";
+      var resG = await sb.from("purchase_orders")
+        .select(fullPoCols)
         .neq("status", "cancelled")
         .order("po_date", { ascending: false })
-        .limit(150);
+        .limit(120);
+      if (resG.error && /column|schema/i.test(String(resG.error.message || ""))) {
+        resG = await sb.from("purchase_orders")
+          .select(minPoCols)
+          .neq("status", "cancelled")
+          .order("po_date", { ascending: false })
+          .limit(120);
+      } else if (resG.error) {
+        await new Promise(function(r) { setTimeout(r, 250); });
+        resG = await sb.from("purchase_orders")
+          .select(minPoCols)
+          .neq("status", "cancelled")
+          .order("po_date", { ascending: false })
+          .limit(60);
+      }
+      var pos = resG.data, error = resG.error;
       if (error) {
         if (body) body.innerHTML = '<tr><td colspan="11" class="empty">' + esc(error.message) + '</td></tr>';
         return;
@@ -26336,7 +26353,25 @@ function fillOperatorList(selectedEmail) {
         if ($("gqcPhotoImg")) $("gqcPhotoImg").src = row.qc_form_photo;
         if ($("gqcPhotoPrev")) $("gqcPhotoPrev").style.display = "block";
         if ($("gqcPhotoClear")) $("gqcPhotoClear").style.display = "";
-      } else gqcClearPhoto();
+      } else {
+        gqcClearPhoto();
+        if (row.qc_form_at && !row._noPhoto) {
+          sb.from("purchase_lines").select("qc_form_photo").eq("id", lineId).maybeSingle().then(function(phRes) {
+            var curId = Number($("gqcLineId") && $("gqcLineId").value);
+            if (curId !== Number(lineId)) return;
+            var u = phRes && phRes.data && phRes.data.qc_form_photo ? String(phRes.data.qc_form_photo).trim() : "";
+            if (u) {
+              row.qc_form_photo = u;
+              if ($("gqcPhotoUrl")) $("gqcPhotoUrl").value = u;
+              if ($("gqcPhotoImg")) $("gqcPhotoImg").src = u;
+              if ($("gqcPhotoPrev")) $("gqcPhotoPrev").style.display = "block";
+              if ($("gqcPhotoClear")) $("gqcPhotoClear").style.display = "";
+            } else {
+              row._noPhoto = true;
+            }
+          }).catch(function() {});
+        }
+      }
       var pname = "";
       try {
         var p = (products || []).find(function(x) { return String(x.product_id) === String(row.product_id); });
@@ -26363,17 +26398,44 @@ function fillOperatorList(selectedEmail) {
           var f = fileInp.files && fileInp.files[0];
           if (!f) return;
           if (!/^image\//i.test(f.type || "")) return toast("Pilih file gambar", true);
-          if (f.size > 4 * 1024 * 1024) return toast("Foto max 4 MB", true);
-          var dataUrl = await new Promise(function(resolve, reject) {
+          if (f.size > 8 * 1024 * 1024) return toast("Foto max 8 MB", true);
+          var rawUrl = await new Promise(function(resolve, reject) {
             var reader = new FileReader();
             reader.onload = function() { resolve(reader.result); };
             reader.onerror = reject;
             reader.readAsDataURL(f);
           });
+          // Kompres foto ke max 900px JPEG q=0.72 (~40-80 KB) agar cepat upload & aman dari payload besar
+          var dataUrl = await new Promise(function(resolve) {
+            try {
+              var im = new Image();
+              im.onload = function() {
+                var w = im.naturalWidth || im.width || 0;
+                var h = im.naturalHeight || im.height || 0;
+                var maxDim = 900;
+                if (w > maxDim || h > maxDim) {
+                  var sc = maxDim / Math.max(w, h);
+                  w = Math.max(1, Math.round(w * sc));
+                  h = Math.max(1, Math.round(h * sc));
+                }
+                var cv = document.createElement("canvas");
+                cv.width = w;
+                cv.height = h;
+                var ctx = cv.getContext("2d");
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(im, 0, 0, w, h);
+                resolve(cv.toDataURL("image/jpeg", 0.72));
+              };
+              im.onerror = function() { resolve(rawUrl); };
+              im.src = rawUrl;
+            } catch (eC) { resolve(rawUrl); }
+          });
           if ($("gqcPhotoImg")) $("gqcPhotoImg").src = dataUrl;
           if ($("gqcPhotoPrev")) $("gqcPhotoPrev").style.display = "block";
           if ($("gqcPhotoClear")) $("gqcPhotoClear").style.display = "";
           if ($("gqcPhotoUrl")) $("gqcPhotoUrl").value = dataUrl;
+          window.__gqcPhotoUploading = true;
           try {
             var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
             if (base && String(dataUrl).indexOf("base64,") >= 0) {
@@ -26385,8 +26447,8 @@ function fillOperatorList(selectedEmail) {
                 body: JSON.stringify({
                   ot_id: "qc-form-" + (($("gqcLineId") && $("gqcLineId").value) || ""),
                   kind: "qc_form",
-                  fileName: f.name || ("qc-form-" + Date.now() + ".jpg"),
-                  mimeType: f.type || "image/jpeg",
+                  fileName: (f.name ? f.name.replace(/\.[^.]+$/, "") : ("qc-form-" + Date.now())) + ".jpg",
+                  mimeType: "image/jpeg",
                   base64: b64
                 })
               });
@@ -26399,6 +26461,7 @@ function fillOperatorList(selectedEmail) {
               }
             }
           } catch (eU) { console.warn(eU); }
+          finally { window.__gqcPhotoUploading = false; }
         });
       }
       var m = $("gudangQcFormModal");
@@ -26443,6 +26506,12 @@ function fillOperatorList(selectedEmail) {
         auditSummary = (row.qc_form_at ? "Koreksi Form QC " : "Form QC ") + (row.po_id || "") + " · " + (row.product_id || "") + " · total " + formatNum(finalFormQty) + " / " + formatNum(arrived) + " " + (row.unit || "") + (notesInput ? (" · " + notesInput) : "");
       }
 
+      if (window.__gqcPhotoUploading) {
+        toast("Menunggu upload foto ke Drive selesai…");
+        for (var wi = 0; wi < 12 && window.__gqcPhotoUploading; wi++) {
+          await new Promise(function(r) { setTimeout(r, 250); });
+        }
+      }
       var photo = (($("gqcPhotoUrl") && $("gqcPhotoUrl").value) || "").trim();
       var nowIso = new Date().toISOString();
       var payload = {
@@ -26657,13 +26726,30 @@ function fillOperatorList(selectedEmail) {
       if (!sb) return;
       var body = $("qcBody");
       if (body) body.innerHTML = '<tr><td colspan="8" class="empty">Memuat…</td></tr>';
-      var { data: pos, error } = await sb.from("purchase_orders")
-        .select("po_id,no_so,no_po_odoo,status,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta,awaiting_eta,qc_form_qty,qc_form_notes,qc_form_photo,qc_form_at,qc_form_by,qc_at,arrived_at)")
+      var qcFullCols = "po_id,no_so,no_po_odoo,status,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta,awaiting_eta,qc_form_qty,qc_form_notes,qc_form_at,qc_form_by,qc_at,arrived_at)";
+      var qcMinCols = "po_id,no_so,no_po_odoo,status,purchase_lines(id,product_id,qty,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,unit,vendor_name,qc_status,qc_notes,eta_date,replace_eta,qc_form_qty,qc_form_notes,qc_form_at,qc_at,arrived_at)";
+      var resQc = await sb.from("purchase_orders")
+        .select(qcFullCols)
         .neq("status", "cancelled")
         .order("po_date", { ascending: false })
-        .limit(150);
+        .limit(120);
+      if (resQc.error && /column|schema/i.test(String(resQc.error.message || ""))) {
+        resQc = await sb.from("purchase_orders")
+          .select(qcMinCols)
+          .neq("status", "cancelled")
+          .order("po_date", { ascending: false })
+          .limit(120);
+      } else if (resQc.error) {
+        await new Promise(function(r) { setTimeout(r, 250); });
+        resQc = await sb.from("purchase_orders")
+          .select(qcMinCols)
+          .neq("status", "cancelled")
+          .order("po_date", { ascending: false })
+          .limit(60);
+      }
+      var pos = resQc.data, error = resQc.error;
       if (error) {
-        if (body) body.innerHTML = '<tr><td colspan="8" class="empty">' + esc(error.message) + '</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="11" class="empty">' + esc(error.message) + '</td></tr>';
         return;
       }
       qcRows = [];
@@ -26841,8 +26927,8 @@ function fillOperatorList(selectedEmail) {
         if ((Number(r.qty_qc_passed) || 0) > 0 || (Number(r.qty_qc_failed) || 0) > 0 || st !== "pending") {
           actions += ' <button type="button" class="btn btn-ghost btn-sm" style="color:#b45309;border-color:#fcd34d" onclick="openPoLineCorrectModal(' + Number(r.line_id) + ',\'qc\')">Koreksi</button>';
         }
-        if (r.qc_form_photo) {
-          actions += ' <button type="button" class="btn btn-ghost btn-sm" data-photo="' + encodeURIComponent(r.qc_form_photo) + '" onclick="window.open(decodeURIComponent(this.getAttribute(\'data-photo\')),\'_blank\')">Foto</button>';
+        if (!r._noPhoto && (r.qc_form_photo || r.qc_form_at)) {
+          actions += ' <button type="button" class="btn btn-ghost btn-sm" onclick="openQcFormPhoto(' + Number(r.line_id) + ')">Foto</button>';
         }
         var gudangInfo = formatNum(r.qty_received || 0) + " / " + formatNum(r.qty_qc_passed || 0);
         var noteHtml = "";
@@ -26869,6 +26955,30 @@ function fillOperatorList(selectedEmail) {
           "<td style='font-size:0.8rem' title='Diterima gudang / lulus QC'>" + gudangInfo + "</td>" +
           "<td>" + actions + "</td></tr>";
       }).join("");
+    }
+    async function openQcFormPhoto(lineId) {
+      var r = (qcRows || []).find(function(x) { return Number(x.line_id) === Number(lineId); });
+      var url = r && r.qc_form_photo ? String(r.qc_form_photo).trim() : "";
+      if (!url && sb && lineId) {
+        try {
+          var resP = await sb.from("purchase_lines").select("qc_form_photo").eq("id", lineId).maybeSingle();
+          if (resP && resP.error) return toast("Gagal memuat foto: " + (resP.error.message || "500"), true);
+          url = resP && resP.data && resP.data.qc_form_photo ? String(resP.data.qc_form_photo).trim() : "";
+          if (r) {
+            if (url) r.qc_form_photo = url;
+            else r._noPhoto = true;
+          }
+        } catch (eP) {
+          return toast("Gagal memuat foto", true);
+        }
+      }
+      if (!url) {
+        if (r) r._noPhoto = true;
+        return toast("Tidak ada lampiran foto pada form QC ini");
+      }
+      if (typeof openPickImgLightbox === "function") {
+        openPickImgLightbox(url);
+      }
     }
     function closeQcDecideModal() {
       var m = $("qcDecideModal");
@@ -37335,7 +37445,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.24-po-safe";
+    var APP_BUILD_TAG = "2026.11.24-db-light";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
