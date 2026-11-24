@@ -27053,7 +27053,16 @@ function fillOperatorList(selectedEmail) {
       if (["admin", "gudang", "qc", "purchasing", "ppic"].indexOf(role) < 0) {
         return toast("Role Anda tidak memiliki izin koreksi penerimaan PO", true);
       }
-      var { data: line, error } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      var { data: line, error } = await sb.from("purchase_lines")
+        .select("id,po_id,product_id,qty,unit,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,qc_status,qc_notes,qc_at,qc_form_qty,qc_form_at,vendor_name,eta_date,replace_eta,awaiting_eta,for_product_id,kategori")
+        .eq("id", lineId)
+        .maybeSingle();
+      if (error && /column|schema/i.test(String(error.message || ""))) {
+        ({ data: line, error } = await sb.from("purchase_lines")
+          .select("id,po_id,product_id,qty,unit,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,qc_status,qc_form_at,vendor_name,eta_date,replace_eta")
+          .eq("id", lineId)
+          .maybeSingle());
+      }
       if (error || !line) return toast((error && error.message) || "Baris PO tidak ditemukan", true);
       var { data: po } = await sb.from("purchase_orders").select("po_id,no_so,no_po_odoo,supplier_name").eq("po_id", line.po_id).maybeSingle();
       var arrived = Number(line.qty_arrived) || 0;
@@ -27149,7 +27158,16 @@ function fillOperatorList(selectedEmail) {
         if ($("plcReason")) $("plcReason").focus();
         return;
       }
-      var { data: line, error: e0 } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      var { data: line, error: e0 } = await sb.from("purchase_lines")
+        .select("id,po_id,product_id,qty,unit,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,qc_status,qc_notes,qc_at,qc_form_at")
+        .eq("id", lineId)
+        .maybeSingle();
+      if (e0 && /column|schema/i.test(String(e0.message || ""))) {
+        ({ data: line, error: e0 } = await sb.from("purchase_lines")
+          .select("id,po_id,product_id,qty,unit,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,qc_status")
+          .eq("id", lineId)
+          .maybeSingle());
+      }
       if (e0 || !line) return toast((e0 && e0.message) || "Baris PO tidak ditemukan", true);
       var { data: po } = await sb.from("purchase_orders").select("po_id,no_so").eq("po_id", line.po_id).maybeSingle();
 
@@ -27246,7 +27264,10 @@ function fillOperatorList(selectedEmail) {
       if (role !== "admin" && role !== "purchasing" && role !== "ppic") {
         return toast("Hanya Purchase / PPIC / Admin yang boleh set ETA", true);
       }
-      var { data: line, error: e0 } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      var { data: line, error: e0 } = await sb.from("purchase_lines")
+        .select("id,po_id,product_id,qty,qty_arrived,eta_date,replace_eta,awaiting_eta,unit")
+        .eq("id", lineId)
+        .maybeSingle();
       if (e0 || !line) return toast((e0 && e0.message) || "Baris PO tidak ditemukan", true);
       var qty = Number(line.qty) || 0;
       var arrived = Number(line.qty_arrived) || 0;
@@ -27280,7 +27301,16 @@ function fillOperatorList(selectedEmail) {
       if (role !== "admin" && role !== "purchasing" && role !== "ppic") {
         return toast("Hanya Purchase / PPIC / Admin yang boleh set ETA kekurangan", true);
       }
-      var { data: line, error: e0 } = await sb.from("purchase_lines").select("*").eq("id", lineId).maybeSingle();
+      var { data: line, error: e0 } = await sb.from("purchase_lines")
+        .select("id,po_id,product_id,qty,qty_arrived,qty_qc_failed,eta_date,replace_eta,replace_notes,awaiting_eta,unit,vendor_name,kategori")
+        .eq("id", lineId)
+        .maybeSingle();
+      if (e0 && /column|schema/i.test(String(e0.message || ""))) {
+        ({ data: line, error: e0 } = await sb.from("purchase_lines")
+          .select("id,po_id,product_id,qty,qty_arrived,qty_qc_failed,eta_date,replace_eta,awaiting_eta,unit,vendor_name,kategori")
+          .eq("id", lineId)
+          .maybeSingle());
+      }
       if (e0 || !line) return toast((e0 && e0.message) || "Baris PO tidak ditemukan", true);
       // jika partial arrival, arahkan ke sisa ETA
       if (line.awaiting_eta || (Number(line.qty_arrived) > 0 && Number(line.qty_arrived) < Number(line.qty))) {
@@ -28580,7 +28610,23 @@ function fillOperatorList(selectedEmail) {
       try { await loadPurchaseDash(); } catch (e3) {}
     }
 
+    async function _fetchPoLinesLight(poId) {
+      var fullCols = "id,po_id,product_id,qty,unit,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,qc_status,qc_form_at,for_product_id,kategori,vendor_name,eta_date,replace_eta,awaiting_eta,parent_line_id,notes";
+      var minCols = "id,po_id,product_id,qty,unit,qty_arrived,qty_received,qty_qc_passed,qty_qc_failed,qc_status,for_product_id,kategori,vendor_name,eta_date,replace_eta";
+      var res = await sb.from("purchase_lines").select(fullCols).eq("po_id", poId).order("id", { ascending: true });
+      if (res.error && /column|schema/i.test(String(res.error.message || ""))) {
+        res = await sb.from("purchase_lines").select(minCols).eq("po_id", poId).order("id", { ascending: true });
+      } else if (res.error) {
+        // Retry 1x jika Supabase transient 500
+        await new Promise(function(r) { setTimeout(r, 250); });
+        res = await sb.from("purchase_lines").select(minCols).eq("po_id", poId).order("id", { ascending: true });
+      }
+      return res;
+    }
+
     async function openPoModal(poId) {
+      var reqTok = (window.__poModalReqTok = (window.__poModalReqTok || 0) + 1);
+      window.__poLinesLoadError = false;
       let dl = document.getElementById("poProdList");
       if (!dl) {
         dl = document.createElement("datalist");
@@ -28600,25 +28646,53 @@ function fillOperatorList(selectedEmail) {
         $("poNotes").value = "";
         if ($("poOdooNo")) $("poOdooNo").value = "";
         await fillPoSoSelect("");
+        if (reqTok !== window.__poModalReqTok) return;
         if ($("poFgSelect")) $("poFgSelect").innerHTML = '<option value="">— Semua FG di SO —</option>';
         if ($("poSoHint")) $("poSoHint").textContent = "Pilih SO customer terlebih dahulu.";
         // jangan addPoLine dulu — tunggu SO
       } else {
         $("poModalTitle").textContent = "Edit PO";
         $("poEditId").value = poId;
-        const { data: po, error } = await sb.from("purchase_orders").select("*").eq("po_id", poId).maybeSingle();
-        if (error || !po) return toast((error && error.message) || "PO tidak ditemukan", true);
-        $("poDate").value = po.po_date || todayStr();
-        $("poSupplier").value = po.supplier_name || "";
-        $("poStatus").value = po.status || "draft";
-        $("poNotes").value = po.notes || "";
-        if ($("poOdooNo")) $("poOdooNo").value = po.no_po_odoo || po.odoo_po || "";
-        await fillPoSoSelect(po.order_id || "");
+        var cachedPo = (poList || []).find(function(x) { return String(x.po_id) === String(poId); }) || null;
+        const { data: po, error } = await sb.from("purchase_orders")
+          .select("po_id,order_id,no_so,no_po_odoo,po_date,supplier_name,status,notes")
+          .eq("po_id", poId)
+          .maybeSingle();
+        if (reqTok !== window.__poModalReqTok) return;
+        const poRow = po || cachedPo;
+        if (error && !poRow) return toast((error && error.message) || "PO tidak ditemukan", true);
+        if (!poRow) return toast("PO tidak ditemukan", true);
+        $("poDate").value = poRow.po_date || todayStr();
+        $("poSupplier").value = poRow.supplier_name || "";
+        $("poStatus").value = poRow.status || "draft";
+        $("poNotes").value = poRow.notes || "";
+        if ($("poOdooNo")) $("poOdooNo").value = poRow.no_po_odoo || poRow.odoo_po || "";
+        await fillPoSoSelect(poRow.order_id || "");
+        if (reqTok !== window.__poModalReqTok) return;
         try { await onPoSoChange(); } catch (eSo) {}
-        if ($("poSoHint")) $("poSoHint").textContent = "SO: " + (po.no_so || po.order_id || "—");
-        const { data: lines } = await sb.from("purchase_lines").select("*").eq("po_id", poId);
-        if (lines && lines.length) lines.forEach(addPoLine);
-        else addPoLine();
+        if (reqTok !== window.__poModalReqTok) return;
+        if ($("poSoHint")) $("poSoHint").textContent = "SO: " + (poRow.no_so || poRow.order_id || "—");
+        const { data: lines, error: eLines } = await _fetchPoLinesLight(poId);
+        if (reqTok !== window.__poModalReqTok) return;
+        $("poLines").innerHTML = "";
+        if (eLines) {
+          var fallbackLines = (cachedPo && Array.isArray(cachedPo.purchase_lines) && cachedPo.purchase_lines.length) ? cachedPo.purchase_lines : null;
+          if (fallbackLines) {
+            toast("Server Supabase sempat error 500 — menampilkan data PO dari cache lokal", true);
+            fallbackLines.forEach(addPoLine);
+          } else {
+            window.__poLinesLoadError = true;
+            toast("Gagal memuat baris PO dari Supabase (" + (eLines.message || "500") + ")", true);
+            $("poLines").innerHTML = '<div style="padding:0.85rem;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">' +
+              '<span><strong>Gagal memuat baris PO (Server Supabase error).</strong> Simpan PO dikunci sementara agar baris lama tidak tertimpa.</span>' +
+              '<button type="button" class="btn btn-primary btn-sm" onclick="openPoModal(\'' + String(poId).replace(/\\/g, "\\\\").replace(/'/g, "\\'") + '\')">Muat Ulang</button>' +
+              '</div>';
+          }
+        } else if (lines && lines.length) {
+          lines.forEach(addPoLine);
+        } else {
+          addPoLine();
+        }
       }
       $("poModal").classList.add("show");
       document.body.classList.add("modal-open");
@@ -28630,6 +28704,9 @@ function fillOperatorList(selectedEmail) {
     }
     async function savePurchaseOrder() {
       if (!sb) return;
+      if (window.__poLinesLoadError) {
+        return toast("Baris PO gagal dimuat dari server. Klik 'Muat Ulang' dulu sebelum menyimpan.", true);
+      }
       const soInp = $("poSoSelect");
       const order_id = (soInp && (soInp.dataset.scId || "")) || "";
       if (!order_id) return toast("Pilih Sales Order dulu — ketik no SO atau customer", true);
@@ -37258,7 +37335,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.24-qc-rollback";
+    var APP_BUILD_TAG = "2026.11.24-po-safe";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
