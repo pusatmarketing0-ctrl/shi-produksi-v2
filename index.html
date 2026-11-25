@@ -111,8 +111,8 @@
       border: none !important;
       border-radius: 0 !important;
       box-shadow: none !important;
-      mix-blend-mode: normal;
-      filter: drop-shadow(0 8px 20px rgba(15, 122, 79, 0.18));
+      mix-blend-mode: multiply;
+      filter: none;
     }
     .login-logo h1 {
       font-size: 1.25rem; font-weight: 700; letter-spacing: -0.03em;
@@ -134,11 +134,18 @@
       border-color: var(--green-mid); box-shadow: 0 0 0 3px var(--green-ring);
     }
     .pwd-wrap { position: relative; }
-    .pwd-wrap input { padding-right: 2.4rem; }
+    .pwd-wrap input,
+    #authScreen .pwd-wrap input { padding-right: 2.75rem !important; }
     .pwd-toggle {
-      position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
-      border: none; background: none; color: var(--text-dim); cursor: pointer; padding: 0.25rem;
+      position: absolute; right: 0.45rem; top: 50%; transform: translateY(-50%);
+      width: 32px; height: 32px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: none; background: transparent; color: var(--text-dim); cursor: pointer;
+      padding: 0; border-radius: 8px; z-index: 2;
+      transition: color 0.15s, background 0.15s;
     }
+    .pwd-toggle:hover { color: var(--green); background: rgba(16, 185, 129, 0.08); }
+    .pwd-toggle svg { width: 18px; height: 18px; display: block; }
     .btn-login {
       width: 100%; margin-top: 0.35rem; border: none; border-radius: var(--radius-sm);
       padding: 0.85rem 1rem; font-size: 0.95rem; font-weight: 600; color: #fff;
@@ -1618,7 +1625,7 @@
     }
     .login-logo .mark img {
       mix-blend-mode: multiply;
-      background: #fff;
+      background: transparent !important;
     }
 
 
@@ -2497,6 +2504,7 @@
 
     #authScreen {
       position: relative;
+      min-height: 100dvh;
       overflow: hidden;
       animation: fadeIn 0.5s ease both;
     }
@@ -2532,11 +2540,13 @@
       animation: scaleIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     .login-logo .mark {
-      overflow: hidden;
+      overflow: visible;
     }
     .login-logo .mark img {
-      width: 100%; height: 100%; object-fit: contain;
-      border-radius: 12px;
+      width: 200px; height: auto; object-fit: contain;
+      border-radius: 0 !important;
+      mix-blend-mode: multiply;
+      background: transparent !important;
     }
     .login-logo h1 {
       animation: fadeUp 0.55s 0.12s ease both;
@@ -2547,7 +2557,7 @@
     .login-card .field,
     .login-card .auth-tabs,
     .login-card .btn,
-    .login-card button {
+    .login-card button:not(.pwd-toggle) {
       animation: fadeUp 0.5s ease both;
     }
     .login-card .field:nth-of-type(1) { animation-delay: 0.18s; }
@@ -2627,21 +2637,25 @@
     #authScreen .login-card .field:hover label {
       color: var(--green);
     }
-    #authScreen .login-card .field:hover input,
+    #authScreen .login-card .field:hover > input,
     #authScreen .login-card .field:hover .pwd-wrap {
-      border-color: rgba(16, 185, 129, 0.45) !important;
       transform: translateY(-2px);
+    }
+    #authScreen .login-card .field:hover input {
+      border-color: rgba(16, 185, 129, 0.45) !important;
       box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12) !important;
     }
     #authScreen .login-card .field:focus-within label {
       color: var(--green);
       font-weight: 700;
     }
-    #authScreen .login-card .field:focus-within input,
+    #authScreen .login-card .field:focus-within > input,
     #authScreen .login-card .field:focus-within .pwd-wrap {
+      transform: translateY(-2px) scale(1.01);
+    }
+    #authScreen .login-card .field:focus-within input {
       border-color: rgba(16, 185, 129, 0.75) !important;
       background: rgba(255, 255, 255, 0.95) !important;
-      transform: translateY(-3px) scale(1.01);
       box-shadow:
         0 0 0 4px rgba(16, 185, 129, 0.18),
         0 12px 28px rgba(16, 185, 129, 0.15) !important;
@@ -7594,7 +7608,12 @@
         <div class="field"><label>Password</label>
           <div class="pwd-wrap">
             <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
-            <button type="button" class="pwd-toggle" id="togglePwd">👁</button>
+            <button type="button" class="pwd-toggle" id="togglePwd" aria-label="Tampilkan password" title="Tampilkan password">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
           </div>
         </div>
         <button class="btn-login" id="btnLogin" type="submit">Login</button>
@@ -11605,7 +11624,16 @@
     });
     $("togglePwd").onclick = () => {
       const inp = $("password");
-      inp.type = inp.type === "password" ? "text" : "password";
+      const show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      const btn = $("togglePwd");
+      if (btn) {
+        btn.setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password");
+        btn.title = show ? "Sembunyikan password" : "Tampilkan password";
+        btn.innerHTML = show
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="m1 1 22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+      }
     };
 
     function catLabel(c) {
@@ -30929,12 +30957,16 @@ function fillOperatorList(selectedEmail) {
       const email = $("email").value.trim(), password = $("password").value;
       if (!email || !password) return showMsg("Email dan password wajib", true);
       $("btnLogin").disabled = true;
+      $("btnLogin").classList.add("loading");
       try {
         const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
         await enterApp(data.session);
       } catch (e) { showMsg(e.message || "Gagal masuk", true); }
-      finally { $("btnLogin").disabled = false; }
+      finally {
+        $("btnLogin").disabled = false;
+        $("btnLogin").classList.remove("loading");
+      }
     };
     $("btnSignup").onclick = async () => {
       if (!sb) return showMsg("Config belum aktif", true);
@@ -37445,7 +37477,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.24-db-light";
+    var APP_BUILD_TAG = "2026.11.24-login-ui";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -37531,8 +37563,6 @@ function closeOtModal() {
           span.style.top = (e.clientY - rect.top - size / 2) + "px";
           btn.appendChild(span);
           setTimeout(function() { span.remove(); }, 600);
-          btn.classList.add("loading");
-          setTimeout(function() { btn.classList.remove("loading"); }, 1200);
         });
         // subtle focus ring handled by CSS; ensure inputs get class
         ["email", "password"].forEach(function(id) {
