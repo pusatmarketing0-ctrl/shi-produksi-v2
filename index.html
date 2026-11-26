@@ -24448,6 +24448,7 @@ function fillOperatorList(selectedEmail) {
               acts += "<button type='button' class='btn-odoo-teal' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"picked\")'>Siapkan (Picked)</button>";
             } else {
               acts += "<button type='button' class='btn-odoo' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"odoo\")'>Isi DO Odoo</button>";
+              acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets &amp; Qty</button>";
             }
             acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#b91c1c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"reject\")'>Tolak</button>";
           }
@@ -24456,13 +24457,13 @@ function fillOperatorList(selectedEmail) {
             acts += "<button type='button' class='btn-odoo' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Kirim PDF Inv</button>";
           }
           if (isGudang) {
-            acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets</button>";
+            acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets &amp; Qty</button>";
             acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#b45309;border-color:#fcd34d' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch_emergency\")'>Kirim Darurat</button>";
           }
         } else if (stg === "siap_berangkat") {
           if (isGudang) {
             acts += "<button type='button' class='btn-odoo-teal' style='padding:0.32rem 0.7rem;font-size:0.75rem' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"dispatch\")'>Berangkat Kirim</button>";
-            acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets</button>";
+            acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"bets_fix\")'>Koreksi Bets &amp; Qty</button>";
           }
           if (isTrading) {
             acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Ganti Inv</button>";
@@ -24484,7 +24485,7 @@ function fillOperatorList(selectedEmail) {
             acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#be123c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Upload Inv Susulan</button>";
           }
         }
-        if (isGudang && ((stg === "perlu_gudang" && picked) || stg === "butuh_invoice" || stg === "siap_berangkat" || stg === "dikirim" || stg === "selesai")) {
+        if (role === "admin" && ((stg === "perlu_gudang" && picked) || stg === "butuh_invoice" || stg === "siap_berangkat" || stg === "dikirim" || stg === "selesai")) {
           acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#b45309;border-color:#fcd34d' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"gudang_correct\")'>Koreksi DO</button>";
         }
         if (role === "admin" || (role === "gudang" && stg !== "selesai" && stg !== "ditolak")) {
@@ -24703,6 +24704,9 @@ function fillOperatorList(selectedEmail) {
 
     var _doStageCtx = null;
     function openDoStageModal(doId, mode) {
+      if (mode === "gudang_correct" && (((typeof currentRole === "function" ? currentRole() : "") || "").toLowerCase() !== "admin")) {
+        return toast("Aksi Koreksi DO hanya untuk role Admin", true);
+      }
       var d = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
       if (!d) return toast("DO tidak ditemukan", true);
       var meta = doParseTags(d.notes);
@@ -24769,7 +24773,7 @@ function fillOperatorList(selectedEmail) {
         return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.55rem 0.7rem;margin-bottom:0.75rem">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">' +
             '<strong style="font-size:0.76rem;color:#0f172a">Nomor Bets Pengiriman</strong>' +
-            (showFixBtn ? '<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.72rem;padding:0.15rem 0.5rem" onclick="openDoStageModal(' + esc(JSON.stringify(d.delivery_id)) + ',\'bets_fix\')">Koreksi Bets</button>' : '') +
+            (showFixBtn ? '<button type="button" class="btn btn-ghost btn-sm" style="font-size:0.72rem;padding:0.15rem 0.5rem" onclick="openDoStageModal(' + esc(JSON.stringify(d.delivery_id)) + ',\'bets_fix\')">Koreksi Bets &amp; Qty</button>' : '') +
           '</div>' +
           itemsHtml +
         '</div>';
@@ -24833,17 +24837,17 @@ function fillOperatorList(selectedEmail) {
         setTimeout(function() { if ($("dsOdooNo")) $("dsOdooNo").focus(); }, 80);
 
       } else if (mode === "bets_fix") {
-        if (titleEl) titleEl.textContent = "Koreksi Nomor Bets Aktual (Gudang)";
-        btnEl.textContent = "Simpan Bets Aktual";
+        if (titleEl) titleEl.textContent = "Koreksi Nomor Bets & Qty (Gudang)";
+        btnEl.textContent = "Simpan Bets & Qty";
         bodyEl.innerHTML =
           '<p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.65rem">Sesuaikan nomor bets atau split qty sesuai stok fisik yang disiapkan Gudang. Jika total qty berubah, item DO ikut diperbarui.</p>' +
           '<div id="dsBetsEditor">' + _doBuildBetsEditorInner(d, meta) + '</div>' +
-          '<div class="field" style="margin-top:0.35rem"><label>Alasan koreksi bets (opsional)</label>' +
-          '<input id="dsBetsFixReason" value="' + esc(meta.betsFixNote || "") + '" placeholder="Mis. bets lama habis, diganti/split ke bets terbaru" /></div>';
+          '<div class="field" style="margin-top:0.35rem"><label>Alasan koreksi bets / qty (opsional)</label>' +
+          '<input id="dsBetsFixReason" value="' + esc(meta.betsFixNote || "") + '" placeholder="Mis. stok fisik pakai bets lama / qty disesuaikan" /></div>';
         try { bindAllThousandInputs(); } catch (eB2) {}
 
       } else if (mode === "gudang_correct") {
-        if (titleEl) titleEl.textContent = "Koreksi / Rollback DO (Gudang)";
+        if (titleEl) titleEl.textContent = "Koreksi / Rollback DO (Admin)";
         btnEl.textContent = "Jalankan Koreksi DO";
         btnEl.className = "btn";
         btnEl.style.cssText = "background:#b45309;color:#fff;border:none";
@@ -24908,7 +24912,7 @@ function fillOperatorList(selectedEmail) {
             '<div id="dsBetsEditor">' + _doBuildBetsEditorInner(d, meta, true) + '</div>' +
             '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem;font-size:0.75rem" onclick="doAddBetsProdCard(\'dsBetsEditor\')">+ Tambah Produk Pengganti</button>' +
           '</div>' +
-          '<div class="field" style="margin-bottom:0"><label>Alasan Koreksi Gudang <span style="color:#b91c1c">*</span></label>' +
+          '<div class="field" style="margin-bottom:0"><label>Alasan Koreksi Admin <span style="color:#b91c1c">*</span></label>' +
           '<input id="dsCorrectReason" placeholder="Contoh: salah qty kirim / salah No. DO Odoo / batal muat ekspedisi" autocomplete="off" /></div>';
         try { bindAllThousandInputs(); } catch (eBc) {}
         onDoCorrectModeChange();
@@ -25453,12 +25457,15 @@ function fillOperatorList(selectedEmail) {
           toast("Pengiriman selesai (Delivered)");
 
         } else if (mode === "gudang_correct") {
+          if (((typeof currentRole === "function" ? currentRole() : "") || "").toLowerCase() !== "admin") {
+            return toast("Aksi Koreksi DO hanya untuk role Admin", true);
+          }
           var cSel = document.querySelector('input[name="dsCorrectMode"]:checked');
           var cMode = cSel ? cSel.value : "";
           var cReason = (($("dsCorrectReason") && $("dsCorrectReason").value) || "").trim();
           if (!cMode) return toast("Pilih jenis koreksi DO", true);
           if (!cReason) {
-            toast("Isi Alasan Koreksi Gudang terlebih dahulu", true);
+            toast("Isi Alasan Koreksi Admin terlebih dahulu", true);
             if ($("dsCorrectReason")) $("dsCorrectReason").focus();
             return;
           }
@@ -38072,7 +38079,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.25-do-koreksi";
+    var APP_BUILD_TAG = "2026.11.25-do-role";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
