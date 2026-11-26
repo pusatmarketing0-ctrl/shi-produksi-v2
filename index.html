@@ -23580,6 +23580,10 @@ function fillOperatorList(selectedEmail) {
         recv: pick("RECV"),
         deliveredAt: pick("DELIVERED_AT"),
         emergency: pick("EMERGENCY"),
+        stockBypass: pick("STOCK_BYPASS"),
+        gudangFixNote: pick("GUDANG_FIX_NOTE"),
+        gudangFixAt: pick("GUDANG_FIX_AT"),
+        gudangFixBy: pick("GUDANG_FIX_BY"),
         resubmit: pick("RESUBMIT"),
         resubmitAt: pick("RESUBMIT_AT"),
         betsMkt: doDecodeBetsTag(pick("BETS_MKT")),
@@ -23680,7 +23684,7 @@ function fillOperatorList(selectedEmail) {
           '<input class="sl-pid" style="flex:1.4;min-width:130px" placeholder="Kode FG (mis. FG290)" value="' + esc(pid) + '" />' +
           '<div style="width:82px">' + unitSelectHtml(unit, "sl-unit") + '</div>' +
           '<span class="bets-total-badge">Total: ' + formatNum(total) + '</span>' +
-          '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c;padding:0.2rem 0.45rem" onclick="var c=this.closest(\'.bets-prod-card\');if(c)c.remove()" title="Hapus produk">×</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c;padding:0.2rem 0.45rem" onclick="doRemoveBetsProdCard(this)" title="Hapus produk">×</button>' +
         '</div>';
       } else {
         var pName = productNameOnly(pid) || "";
@@ -23690,7 +23694,10 @@ function fillOperatorList(selectedEmail) {
           (opts.mktRefText ? ('<div style="font-size:0.7rem;color:#64748b;margin-top:0.12rem">Mkt: ' + esc(opts.mktRefText) + '</div>') : "") + '</div>' +
           '<input type="hidden" class="sl-pid" value="' + esc(pid) + '" />' +
           '<input type="hidden" class="sl-unit" value="' + esc(unit) + '" />' +
-          '<span class="bets-total-badge">Total: ' + formatNum(total) + ' ' + esc(unit) + '</span>' +
+          '<div style="display:flex;align-items:center;gap:0.35rem">' +
+            '<span class="bets-total-badge">Total: ' + formatNum(total) + ' ' + esc(unit) + '</span>' +
+            (opts.allowRemove ? '<button type="button" class="btn btn-ghost btn-sm" style="color:#b91c1c;padding:0.2rem 0.45rem" onclick="doRemoveBetsProdCard(this)" title="Hapus produk">×</button>' : '') +
+          '</div>' +
         '</div>';
       }
       var rowsHtml = bets.map(function(b) { return doBuildBetRowHtml(b.no, b.qty); }).join("");
@@ -23702,6 +23709,47 @@ function fillOperatorList(selectedEmail) {
           '<span style="font-size:0.68rem;color:var(--text-muted)">Bisa isi lebih dari 1 bets</span>' +
         '</div>' +
       '</div>';
+    }
+    function doRemoveBetsProdCard(btn) {
+      var card = btn && btn.closest(".bets-prod-card");
+      if (!card) return;
+      var box = card.parentElement;
+      if (box && box.querySelectorAll(".bets-prod-card").length <= 1) {
+        return toast("Minimal 1 item produk harus tersisa (pakai Batalkan Berangkat jika batal semua)", true);
+      }
+      card.remove();
+    }
+    function doAddBetsProdCard(containerId) {
+      var box = $(containerId);
+      if (!box) return;
+      box.insertAdjacentHTML("beforeend", doBuildBetsProdCardHtml({
+        product_id: "",
+        unit: "pcs",
+        bets: [{ no: "", qty: "" }],
+        editableProduct: true
+      }));
+      try { bindAllThousandInputs(); } catch (e) {}
+      var pids = box.querySelectorAll(".sl-pid");
+      var lastInp = pids.length ? pids[pids.length - 1] : null;
+      if (lastInp && typeof attachSearchCombo === "function" && typeof scItemsProduct === "function") {
+        try {
+          lastInp.dataset.scBound = "";
+          attachSearchCombo(lastInp, scItemsProduct, {
+            valueMode: "id",
+            placeholder: "Ketik kode / nama FG…",
+            onPick: function(id) {
+              var card = lastInp.closest(".bets-prod-card");
+              var p = (products || []).find(function(x) { return String(x.product_id) === String(id); });
+              var uEl = card && card.querySelector(".sl-unit");
+              if (p && p.unit && uEl) {
+                if (uEl.tagName === "SELECT" && typeof ensureUnitSelectValue === "function") ensureUnitSelectValue(uEl, p.unit);
+                else uEl.value = p.unit;
+              }
+            }
+          });
+        } catch (eSc) {}
+      }
+      if (lastInp) lastInp.focus();
     }
     function doAddBetRowToCard(btn) {
       var card = btn && btn.closest(".bets-prod-card");
@@ -24385,6 +24433,12 @@ function fillOperatorList(selectedEmail) {
         if (meta.emergency) {
           detailLines.push('<div style="color:#b45309">Darurat: ' + esc(meta.emergency) + "</div>");
         }
+        if (meta.stockBypass) {
+          detailLines.push('<div style="color:#b45309">Bypass Stok: ' + esc(meta.stockBypass) + "</div>");
+        }
+        if (meta.gudangFixNote) {
+          detailLines.push('<div style="color:#0369a1">Koreksi Gudang: ' + esc(meta.gudangFixNote) + "</div>");
+        }
 
         // Kolom Aksi sesuai giliran tim & sub-tahap (Picked -> Isi DO Odoo -> Invoice -> Kirim -> Selesai)
         var acts = "";
@@ -24429,6 +24483,9 @@ function fillOperatorList(selectedEmail) {
           if (!meta.invUrl && isTrading) {
             acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#be123c' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"invoice\")'>Upload Inv Susulan</button>";
           }
+        }
+        if (isGudang && ((stg === "perlu_gudang" && picked) || stg === "butuh_invoice" || stg === "siap_berangkat" || stg === "dikirim" || stg === "selesai")) {
+          acts += "<button type='button' class='btn btn-ghost btn-sm' style='color:#b45309;border-color:#fcd34d' onclick='openDoStageModal(" + JSON.stringify(d.delivery_id) + ",\"gudang_correct\")'>Koreksi DO</button>";
         }
         if (role === "admin" || (role === "gudang" && stg !== "selesai" && stg !== "ditolak")) {
           acts += "<button type='button' class='btn btn-ghost btn-sm' onclick='openDeliveryModal(" + JSON.stringify(d.delivery_id) + ")'>Edit</button>";
@@ -24512,6 +24569,138 @@ function fillOperatorList(selectedEmail) {
       }
     }
 
+    async function doFetchFgStockMap(productIds) {
+      var uniq = [];
+      var seen = {};
+      (productIds || []).forEach(function(p) {
+        var s = String(p || "").trim();
+        var k = s.toUpperCase();
+        if (s && !seen[k]) { seen[k] = true; uniq.push(s); }
+      });
+      var map = {};
+      if (!uniq.length) return map;
+      try {
+        if (sb) {
+          var { data, error } = await sb.from("warehouse_movements")
+            .select("product_id,qty,movement_type")
+            .in("product_id", uniq)
+            .limit(5000);
+          if (!error && Array.isArray(data)) {
+            data.forEach(function(m) {
+              var k = String(m.product_id || "").trim().toUpperCase();
+              if (!k) return;
+              if (map[k] == null) map[k] = 0;
+              var q = Number(m.qty) || 0;
+              var t = String(m.movement_type || "");
+              if (t.indexOf("out") === 0 || t === "out_delivery" || t === "out_prod") {
+                map[k] -= q;
+              } else {
+                map[k] += q;
+              }
+            });
+            uniq.forEach(function(p) {
+              var k = p.toUpperCase();
+              if (map[k] == null) map[k] = 0;
+            });
+            return map;
+          }
+        }
+      } catch (e) { console.warn("doFetchFgStockMap", e); }
+      try {
+        (gudangStockRows || []).forEach(function(r) {
+          var k = String(r.product_id || "").trim().toUpperCase();
+          if (k && seen[k]) map[k] = Number(r.saldo) || 0;
+        });
+      } catch (e2) {}
+      return map;
+    }
+    function doEvalStockShortages(dLines, stockMap) {
+      var needByProd = {};
+      (dLines || []).forEach(function(l) {
+        var pid = String(l.product_id || "").trim();
+        var k = pid.toUpperCase();
+        if (!k) return;
+        if (!needByProd[k]) needByProd[k] = { product_id: pid, unit: l.unit || "pcs", need: 0 };
+        needByProd[k].need += Number(l.qty) || 0;
+      });
+      var rows = [];
+      var shortages = [];
+      Object.keys(needByProd).forEach(function(k) {
+        var it = needByProd[k];
+        var saldo = Number(stockMap[k] != null ? stockMap[k] : 0);
+        var kurang = it.need - saldo;
+        var row = { product_id: it.product_id, unit: it.unit, need: it.need, saldo: saldo, kurang: kurang > 0.0001 ? kurang : 0 };
+        rows.push(row);
+        if (row.kurang > 0) shortages.push(row);
+      });
+      return { rows: rows, shortages: shortages };
+    }
+    function doRenderStockPanelHtml(evalRes, isDispatch) {
+      var rows = (evalRes && evalRes.rows) || [];
+      var shortages = (evalRes && evalRes.shortages) || [];
+      if (!rows.length) return "";
+      var hasShort = shortages.length > 0;
+      var linesHtml = rows.map(function(r) {
+        var ok = !(r.kurang > 0);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;font-size:0.75rem;padding:0.18rem 0">' +
+          '<span style="color:#0f172a"><strong>' + esc(r.product_id) + '</strong> · Kirim ' + formatNum(r.need) + ' ' + esc(r.unit) + '</span>' +
+          '<span style="font-weight:700;color:' + (ok ? "#047857" : "#b91c1c") + '">' +
+            (ok ? ('✓ Saldo FG: ' + formatNum(r.saldo)) : ('⚠ Kurang ' + formatNum(r.kurang) + ' (Saldo: ' + formatNum(r.saldo) + ')')) +
+          '</span>' +
+        '</div>';
+      }).join("");
+      var bypassHtml = "";
+      if (isDispatch && hasShort) {
+        bypassHtml =
+          '<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid #fecaca">' +
+            '<label style="display:flex;align-items:flex-start;gap:0.45rem;font-size:0.77rem;font-weight:600;color:#991b1b;cursor:pointer">' +
+              '<input type="checkbox" id="dsStockBypassCheck" style="width:auto;margin-top:0.15rem" onchange="var bx=$(\'dsStockBypassWrap\');if(bx)bx.style.display=this.checked?\'block\':\'none\'" />' +
+              '<span>Tetap berangkat meski saldo stok FG sistem kurang (stok fisik ada / input FG menyusul)</span>' +
+            '</label>' +
+            '<div id="dsStockBypassWrap" style="display:none;margin-top:0.4rem">' +
+              '<input id="dsStockBypassReason" placeholder="Alasan wajib (mis. barang fisik sudah ada, produksi belum input FG masuk)" />' +
+            '</div>' +
+          '</div>';
+      }
+      return '<div style="background:' + (hasShort ? "#fef2f2" : "#f0fdf4") + ';border:1px solid ' + (hasShort ? "#fecaca" : "#bbf7d0") + ';border-radius:10px;padding:0.55rem 0.7rem;margin-bottom:0.75rem">' +
+        '<div style="font-size:0.76rem;font-weight:700;color:' + (hasShort ? "#991b1b" : "#065f46") + ';margin-bottom:0.25rem">' +
+          (hasShort
+            ? (isDispatch ? '⚠ Saldo Stok FG Sistem Tidak Mencukupi' : '⚠ Catatan: Saldo Stok FG Sistem Kurang')
+            : '✓ Saldo Stok FG Gudang Mencukupi') +
+        '</div>' +
+        linesHtml +
+        bypassHtml +
+      '</div>';
+    }
+    async function doLoadStageStockPanel(doId, dLines, isDispatch) {
+      var box = $("dsStockPanel");
+      if (!box || !dLines || !dLines.length) return;
+      var stockMap = await doFetchFgStockMap(dLines.map(function(l) { return l.product_id; }));
+      if (!_doStageCtx || _doStageCtx.doId !== doId) return;
+      var evalRes = doEvalStockShortages(dLines, stockMap);
+      _doStageCtx.stockCheck = { loaded: true, map: stockMap, evalRes: evalRes };
+      var curBox = $("dsStockPanel");
+      if (curBox) curBox.innerHTML = doRenderStockPanelHtml(evalRes, isDispatch);
+    }
+    function onDoCorrectModeChange() {
+      var sel = document.querySelector('input[name="dsCorrectMode"]:checked');
+      var m = sel ? sel.value : "";
+      var wrap = $("dsCorrectEditorWrap");
+      if (wrap) wrap.style.display = (m === "adjust_qty_bets" || m === "adjust_qty_shipped") ? "block" : "none";
+      var warnEl = $("dsCorrectStockWarn");
+      if (warnEl) {
+        if (m === "cancel_dispatch") {
+          warnEl.style.display = "block";
+          warnEl.textContent = "Perhatian: Membatalkan Berangkat Kirim akan otomatis membuat jurnal balik stok masuk (in_adjust) untuk menetralkan potongan stok DO ini.";
+        } else if (m === "adjust_qty_shipped") {
+          warnEl.style.display = "block";
+          warnEl.textContent = "Perhatian: Perubahan qty/item pada DO yang sudah dikirim akan otomatis mencatat jurnal selisih stok FG (in_adjust jika berkurang, out_delivery jika bertambah).";
+        } else {
+          warnEl.style.display = "none";
+        }
+      }
+    }
+
     var _doStageCtx = null;
     function openDoStageModal(doId, mode) {
       var d = (deliveryList || []).find(function(x) { return x.delivery_id === doId; });
@@ -24533,7 +24722,7 @@ function fillOperatorList(selectedEmail) {
 
       var odooNow = String(d.no_do_odoo || meta.doOdooNote || "").trim();
 
-      function _doBuildBetsEditorInner(d, meta) {
+      function _doBuildBetsEditorInner(d, meta, allowRemove) {
         var dLines = d.delivery_lines || [];
         if (!dLines.length) {
           var srcArr = (meta.betsAct && meta.betsAct.length) ? meta.betsAct : (meta.betsMkt || []);
@@ -24542,7 +24731,8 @@ function fillOperatorList(selectedEmail) {
               product_id: it.product_id,
               unit: it.unit || "pcs",
               bets: it.bets,
-              editableProduct: false
+              editableProduct: false,
+              allowRemove: !!allowRemove
             });
           }).join("") || '<div style="font-size:0.76rem;color:#94a3b8">Belum ada item produk di DO ini</div>';
         }
@@ -24562,6 +24752,7 @@ function fillOperatorList(selectedEmail) {
             unit: l.unit || "pcs",
             bets: initBets,
             editableProduct: false,
+            allowRemove: !!allowRemove,
             mktRefText: mktRef
           });
         }).join("");
@@ -24589,6 +24780,7 @@ function fillOperatorList(selectedEmail) {
         btnEl.textContent = "Konfirmasi Sudah Picked";
         var hasActBetsP = !!(meta.betsAct && meta.betsAct.length);
         bodyEl.innerHTML =
+          '<div id="dsStockPanel" style="margin-bottom:0.65rem;font-size:0.75rem;color:#64748b">Memeriksa saldo stok FG…</div>' +
           _doBetsSummaryBox(d, meta, false) +
           '<div style="margin-bottom:0.75rem">' +
             '<label style="display:flex;align-items:center;gap:0.45rem;font-size:0.8rem;font-weight:700;color:#0f172a;cursor:pointer">' +
@@ -24605,6 +24797,7 @@ function fillOperatorList(selectedEmail) {
           '<input id="dsPickNote" placeholder="Mis. sudah disiapkan 5 karton di area packing" />' +
           '<p style="font-size:0.74rem;color:var(--text-muted);margin:0.35rem 0 0">Setelah dikonfirmasi Picked, tahap lanjut ke <strong>Isi DO Odoo</strong>.</p></div>';
         try { bindAllThousandInputs(); } catch (eB0) {}
+        doLoadStageStockPanel(doId, d.delivery_lines || [], false);
         setTimeout(function() { if ($("dsPickNote")) $("dsPickNote").focus(); }, 80);
 
       } else if (mode === "odoo") {
@@ -24617,6 +24810,7 @@ function fillOperatorList(selectedEmail) {
           : "";
         bodyEl.innerHTML =
           pickedBanner +
+          '<div id="dsStockPanel" style="margin-bottom:0.65rem;font-size:0.75rem;color:#64748b">Memeriksa saldo stok FG…</div>' +
           _doBetsSummaryBox(d, meta, false) +
           '<div style="margin-bottom:0.75rem">' +
             '<label style="display:flex;align-items:center;gap:0.45rem;font-size:0.8rem;font-weight:700;color:#0f172a;cursor:pointer">' +
@@ -24635,6 +24829,7 @@ function fillOperatorList(selectedEmail) {
           '<div class="field"><label>Catatan packing gudang (opsional)</label>' +
           '<input id="dsPackNote" placeholder="Mis. 10 karton siap di loading dock" /></div>';
         try { bindAllThousandInputs(); } catch (eB1) {}
+        doLoadStageStockPanel(doId, d.delivery_lines || [], false);
         setTimeout(function() { if ($("dsOdooNo")) $("dsOdooNo").focus(); }, 80);
 
       } else if (mode === "bets_fix") {
@@ -24646,6 +24841,78 @@ function fillOperatorList(selectedEmail) {
           '<div class="field" style="margin-top:0.35rem"><label>Alasan koreksi bets (opsional)</label>' +
           '<input id="dsBetsFixReason" value="' + esc(meta.betsFixNote || "") + '" placeholder="Mis. bets lama habis, diganti/split ke bets terbaru" /></div>';
         try { bindAllThousandInputs(); } catch (eB2) {}
+
+      } else if (mode === "gudang_correct") {
+        if (titleEl) titleEl.textContent = "Koreksi / Rollback DO (Gudang)";
+        btnEl.textContent = "Jalankan Koreksi DO";
+        btnEl.className = "btn";
+        btnEl.style.cssText = "background:#b45309;color:#fff;border:none";
+        var curSt = String(d.status || "draft").toLowerCase();
+        var isShippedOrDone = (curSt === "shipped" || curSt === "delivered");
+        var isPickedNow = doIsPicked(d, meta);
+        var optsC = [];
+        if (!isShippedOrDone) {
+          optsC.push({
+            val: "adjust_qty_bets",
+            title: "Koreksi Item / Qty & No. Bets Aktual",
+            desc: "Ubah produk, qty, atau split No. Bets sebelum barang berangkat (otomatis sinkron ke Instruksi Kirim)."
+          });
+          if (odooNow || meta.invUrl) {
+            optsC.push({
+              val: "reset_odoo",
+              title: "Batalkan No. DO Odoo (Kembali ke Isi DO Odoo)",
+              desc: "Kosongkan No. DO Odoo" + (meta.invUrl ? " & hapus link Invoice sementara" : "") + " agar Gudang bisa input ulang DO Odoo."
+            });
+          }
+          if (isPickedNow) {
+            optsC.push({
+              val: "reset_picked",
+              title: "Batalkan Status Picked (Kembali ke Antrian Awal Gudang)",
+              desc: "Kembalikan DO ke tahap Siapkan (Picked) dan status Instruksi Kirim kembali ke Kirim."
+            });
+          }
+        } else {
+          if (curSt === "delivered") {
+            optsC.push({
+              val: "reopen_delivered",
+              title: "Batalkan Status Selesai / Koreksi Resi",
+              desc: "Kembalikan status dari Selesai ke Dalam Pengiriman agar No. Resi atau Nama Penerima bisa diinput ulang (tanpa ubah stok)."
+            });
+          }
+          optsC.push({
+            val: "adjust_qty_shipped",
+            title: "Koreksi Item / Qty & No. Bets Setelah Berangkat",
+            desc: "Ubah item/qty aktual yang terkirim. Selisih qty otomatis dibuatkan jurnal balik/tambah stok FG (in_adjust / out_delivery)."
+          });
+          optsC.push({
+            val: "cancel_dispatch",
+            title: "Batalkan Berangkat Kirim (Kembalikan ke Ready & Balik Stok FG)",
+            desc: "Batalkan keberangkatan, kembalikan status DO ke Ready (" + (meta.invUrl ? "Siap Berangkat" : "Menunggu Invoice") + "), dan balik seluruh potongan stok FG."
+          });
+        }
+        var defCorrect = optsC.length ? optsC[0].val : "";
+        var optHtml = optsC.map(function(o) {
+          return '<label style="display:flex;gap:0.5rem;align-items:flex-start;border:1px solid #cbd5e1;border-radius:10px;padding:0.55rem 0.65rem;cursor:pointer;background:#fff;margin-bottom:0.4rem">' +
+            '<input type="radio" name="dsCorrectMode" value="' + esc(o.val) + '"' + (o.val === defCorrect ? " checked" : "") + ' style="width:auto;margin-top:0.2rem" onchange="onDoCorrectModeChange()" />' +
+            '<div><div style="font-size:0.82rem;font-weight:700;color:#0f172a">' + esc(o.title) + '</div>' +
+            '<div style="font-size:0.74rem;color:#64748b;line-height:1.35;margin-top:0.1rem">' + esc(o.desc) + '</div></div>' +
+          '</label>';
+        }).join("");
+        bodyEl.innerHTML =
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.55rem 0.7rem;font-size:0.77rem;margin-bottom:0.65rem">' +
+            'Status DB saat ini: <strong>' + esc(curSt) + '</strong>' + (odooNow ? (' · Odoo: <strong>' + esc(odooNow) + '</strong>') : '') +
+          '</div>' +
+          '<div style="margin-bottom:0.55rem">' + optHtml + '</div>' +
+          '<div id="dsCorrectStockWarn" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:0.55rem 0.7rem;font-size:0.76rem;margin-bottom:0.65rem"></div>' +
+          '<div id="dsCorrectEditorWrap" style="display:none;margin-bottom:0.7rem">' +
+            '<div id="dsBetsEditor">' + _doBuildBetsEditorInner(d, meta, true) + '</div>' +
+            '<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.25rem;font-size:0.75rem" onclick="doAddBetsProdCard(\'dsBetsEditor\')">+ Tambah Produk Pengganti</button>' +
+          '</div>' +
+          '<div class="field" style="margin-bottom:0"><label>Alasan Koreksi Gudang <span style="color:#b91c1c">*</span></label>' +
+          '<input id="dsCorrectReason" placeholder="Contoh: salah qty kirim / salah No. DO Odoo / batal muat ekspedisi" autocomplete="off" /></div>';
+        try { bindAllThousandInputs(); } catch (eBc) {}
+        onDoCorrectModeChange();
+        setTimeout(function() { if ($("dsCorrectReason")) $("dsCorrectReason").focus(); }, 80);
 
       } else if (mode === "reject") {
         if (titleEl) titleEl.textContent = "Tolak Instruksi (Kapasitas Gudang)";
@@ -24717,6 +24984,7 @@ function fillOperatorList(selectedEmail) {
         var curMethod = meta.method || "ekspedisi";
         bodyEl.innerHTML =
           invBox +
+          '<div id="dsStockPanel" style="margin-bottom:0.75rem;font-size:0.75rem;color:#64748b">Memeriksa saldo stok FG…</div>' +
           _doBetsSummaryBox(d, meta, true) +
           '<div class="field"><label>No. DO Odoo</label><input id="dsDispatchOdoo" value="' + esc(odooNow) + '" placeholder="WH/OUT/..." /></div>' +
           '<div class="field"><label>Metode Pengiriman</label>' +
@@ -24726,6 +24994,7 @@ function fillOperatorList(selectedEmail) {
             '</div></div>' +
           '<div class="field"><label id="dsCourierLabel">' + (curMethod === "armada" ? "Nama Supir / Kendaraan (opsional)" : "Nama Ekspedisi (mis. JNE / J&T / Cargo)") + '</label>' +
           '<input id="dsCourier" value="' + esc(meta.courier || "") + '" placeholder="' + (curMethod === "armada" ? "Mis. Pak Budi · Grand Max" : "Mis. JNE Cargo / Indah Logistics") + '" /></div>';
+        doLoadStageStockPanel(doId, d.delivery_lines || [], true);
 
       } else if (mode === "finish") {
         var isExp = (meta.method || "ekspedisi") === "ekspedisi";
@@ -25072,6 +25341,39 @@ function fillOperatorList(selectedEmail) {
             if ($("dsDispatchOdoo")) $("dsDispatchOdoo").focus();
             return;
           }
+
+          // Cek saldo stok FG sebelum memotong out_delivery
+          var bypassReason = "";
+          var curLinesCheck = d.delivery_lines || [];
+          if (!curLinesCheck.length) {
+            try {
+              var { data: dlChk } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
+              curLinesCheck = dlChk || [];
+            } catch (eChk) {}
+          }
+          if (d.status !== "shipped" && d.status !== "delivered" && curLinesCheck.length) {
+            var liveStockMap = await doFetchFgStockMap(curLinesCheck.map(function(l) { return l.product_id; }));
+            var evalDisp = doEvalStockShortages(curLinesCheck, liveStockMap);
+            var curBox = $("dsStockPanel");
+            if (curBox && evalDisp.shortages.length && !($("dsStockBypassCheck"))) {
+              curBox.innerHTML = doRenderStockPanelHtml(evalDisp, true);
+            }
+            if (evalDisp.shortages.length) {
+              var wantBypass = !!($("dsStockBypassCheck") && $("dsStockBypassCheck").checked);
+              bypassReason = (($("dsStockBypassReason") && $("dsStockBypassReason").value) || "").trim();
+              if (!wantBypass) {
+                var firstShort = evalDisp.shortages[0];
+                toast("Saldo stok FG kurang untuk " + firstShort.product_id + " (Saldo: " + formatNum(firstShort.saldo) + ", Kirim: " + formatNum(firstShort.need) + "). Input FG dulu atau centang konfirmasi bypass.", true);
+                return;
+              }
+              if (!bypassReason) {
+                toast("Isi alasan tetap berangkat saat saldo stok FG kurang", true);
+                if ($("dsStockBypassReason")) $("dsStockBypassReason").focus();
+                return;
+              }
+            }
+          }
+
           var mRad = document.querySelector('input[name="dsMethod"]:checked');
           var method = mRad ? mRad.value : "ekspedisi";
           var courier = (($("dsCourier") && $("dsCourier").value) || "").trim();
@@ -25079,7 +25381,8 @@ function fillOperatorList(selectedEmail) {
             METHOD: method,
             COURIER: courier,
             SHIP_AT: nowIso,
-            EMERGENCY: isEmerg ? emergReason : ""
+            EMERGENCY: isEmerg ? emergReason : "",
+            STOCK_BYPASS: bypassReason || ""
           });
           var errD = await _updateDeliveriesSafe(doId, {
             status: "shipped",
@@ -25101,11 +25404,22 @@ function fillOperatorList(selectedEmail) {
                   unit: lines[i].unit || "pcs",
                   order_id: d.order_id || null,
                   no_so: d.no_so || "",
-                  ref_note: "DO " + doId + " / Odoo " + dispOdoo + (isEmerg ? " (Darurat)" : ""),
+                  ref_note: "DO " + doId + " / Odoo " + dispOdoo + (isEmerg ? " (Darurat)" : "") + (bypassReason ? " (Bypass Stok)" : ""),
                   created_by: (currentUser && currentUser.email) || ""
                 });
               }
             } catch (eM) { console.warn("out_delivery", eM); }
+            if (bypassReason) {
+              try {
+                await writeAudit({
+                  module: "delivery",
+                  action: "dispatch_stock_bypass",
+                  ref_id: doId,
+                  summary: "Berangkat DO " + doId + " saat saldo FG kurang · Alasan: " + bypassReason,
+                  after: { delivery_id: doId, no_do_odoo: dispOdoo, bypass_reason: bypassReason }
+                });
+              } catch (eAuB) {}
+            }
           }
           if (shipId) await _syncShipRequestFromDo(d.notes, "shipped");
           toast("Berangkat kirim (" + (method === "armada" ? "Armada Sendiri" : "Ekspedisi") + (isEmerg ? " · Darurat" : "") + ")");
@@ -25137,12 +25451,244 @@ function fillOperatorList(selectedEmail) {
           if (errF) return toast(errF.message, true);
           if (shipId) await _syncShipRequestFromDo(d.notes, "shipped");
           toast("Pengiriman selesai (Delivered)");
+
+        } else if (mode === "gudang_correct") {
+          var cSel = document.querySelector('input[name="dsCorrectMode"]:checked');
+          var cMode = cSel ? cSel.value : "";
+          var cReason = (($("dsCorrectReason") && $("dsCorrectReason").value) || "").trim();
+          if (!cMode) return toast("Pilih jenis koreksi DO", true);
+          if (!cReason) {
+            toast("Isi Alasan Koreksi Gudang terlebih dahulu", true);
+            if ($("dsCorrectReason")) $("dsCorrectReason").focus();
+            return;
+          }
+          var actorEmG = (currentUser && currentUser.email) || "";
+          var fixTagsBase = {
+            GUDANG_FIX_NOTE: cReason,
+            GUDANG_FIX_AT: nowIso,
+            GUDANG_FIX_BY: actorEmG
+          };
+          var prevLinesC = (d.delivery_lines || []).slice();
+          if (!prevLinesC.length) {
+            try {
+              var { data: dlCur } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
+              prevLinesC = dlCur || [];
+            } catch (eDlC) {}
+          }
+
+          if (cMode === "reset_odoo") {
+            var okO = await appConfirm("Batalkan No. DO Odoo pada " + doId + " dan kembalikan ke tahap Isi DO Odoo?\n\nAlasan: " + cReason, "Konfirmasi Koreksi DO Odoo", { danger: true, yesText: "Ya, Reset DO Odoo", noText: "Batal" });
+            if (!okO) return;
+            var roNotes = doWriteTags(d.notes, Object.assign({ ODOO_AT: "", INV_URL: "", INV_NAME: "", INV_NO: "", INV_AT: "", INV_BY: "" }, fixTagsBase));
+            roNotes = roNotes.replace(/\s*·?\s*DO Odoo:\s*[^\s·\[]+/ig, "").trim();
+            var errRo = await _updateDeliveriesSafe(doId, {
+              status: "ready",
+              no_do_odoo: null,
+              notes: roNotes,
+              updated_at: nowIso
+            });
+            if (errRo) return toast(errRo.message, true);
+            toast("No. DO Odoo direset → kembali ke Isi DO Odoo");
+
+          } else if (cMode === "reset_picked") {
+            var okP = await appConfirm("Batalkan status Picked pada " + doId + " dan kembalikan ke antrian awal Gudang?\n\nAlasan: " + cReason, "Konfirmasi Batal Picked", { danger: true, yesText: "Ya, Batalkan Picked", noText: "Batal" });
+            if (!okP) return;
+            var rpNotes = doWriteTags(d.notes, Object.assign({ PICKED_AT: "", PICKED_BY: "", ODOO_AT: "", INV_URL: "", INV_NAME: "", INV_NO: "", INV_AT: "", INV_BY: "" }, fixTagsBase));
+            rpNotes = rpNotes.replace(/\s*·?\s*DO Odoo:\s*[^\s·\[]+/ig, "").trim();
+            var errRp = await _updateDeliveriesSafe(doId, {
+              status: "draft",
+              no_do_odoo: null,
+              notes: rpNotes,
+              updated_at: nowIso
+            });
+            if (errRp) return toast(errRp.message, true);
+            if (shipId) await _syncShipRequestFromDo(d.notes, "requested");
+            toast("Status Picked dibatalkan → kembali ke antrian Siapkan (Picked)");
+
+          } else if (cMode === "adjust_qty_bets") {
+            var colReady = doCollectBetsCards("dsBetsEditor", true);
+            if (colReady.error) {
+              toast(colReady.error, true);
+              if (colReady.focusEl) colReady.focusEl.focus();
+              return;
+            }
+            if (!colReady.items.length) return toast("Minimal 1 item produk & qty > 0", true);
+            var cleanActR = colReady.items.map(function(it) { return { product_id: it.product_id, unit: it.unit || "pcs", bets: it.bets }; });
+            var abTags = Object.assign({
+              BETS_ACT: doEncodeBetsTag(cleanActR),
+              BETS_FIX_NOTE: cReason,
+              BETS_FIX_AT: nowIso,
+              BETS_FIX_BY: actorEmG
+            }, fixTagsBase);
+            var abNotes = doWriteTags(d.notes, abTags);
+            var errAb = await _updateDeliveriesSafe(doId, { notes: abNotes, updated_at: nowIso });
+            if (errAb) return toast(errAb.message, true);
+            await sb.from("delivery_lines").delete().eq("delivery_id", doId);
+            await sb.from("delivery_lines").insert(colReady.items.map(function(it) {
+              return { delivery_id: doId, product_id: it.product_id, qty: it.totalQty, unit: it.unit || "pcs" };
+            }));
+            if (shipId) {
+              try {
+                var { data: srR } = await sb.from("ship_requests").select("notes").eq("ship_id", shipId).maybeSingle();
+                if (srR) {
+                  await sb.from("ship_requests").update({ notes: doWriteTags(srR.notes || "", abTags), updated_at: nowIso }).eq("ship_id", shipId);
+                }
+              } catch (eSrR) {}
+            }
+            toast("Item, Qty & No. Bets DO diperbarui");
+
+          } else if (cMode === "reopen_delivered") {
+            var okRe = await appConfirm("Batalkan status Selesai pada " + doId + " agar bisa input ulang No. Resi / Penerima?\n\nAlasan: " + cReason, "Konfirmasi Buka Status Selesai", { danger: true, yesText: "Ya, Buka Kembali", noText: "Batal" });
+            if (!okRe) return;
+            var rdNotes = doWriteTags(d.notes, Object.assign({ DELIVERED_AT: "" }, fixTagsBase));
+            var errRd = await _updateDeliveriesSafe(doId, { status: "shipped", notes: rdNotes, updated_at: nowIso });
+            if (errRd) return toast(errRd.message, true);
+            toast("DO dibuka kembali ke Dalam Pengiriman untuk koreksi resi");
+
+          } else if (cMode === "adjust_qty_shipped") {
+            var colShip = doCollectBetsCards("dsBetsEditor", true);
+            if (colShip.error) {
+              toast(colShip.error, true);
+              if (colShip.focusEl) colShip.focusEl.focus();
+              return;
+            }
+            if (!colShip.items.length) return toast("Minimal 1 item produk & qty > 0 (pakai Batalkan Berangkat jika batal semua)", true);
+            var oldByKey = {};
+            prevLinesC.forEach(function(l) {
+              var k = String(l.product_id || "").trim().toUpperCase();
+              if (!k) return;
+              if (!oldByKey[k]) oldByKey[k] = { product_id: l.product_id, unit: l.unit || "pcs", qty: 0 };
+              oldByKey[k].qty += Number(l.qty) || 0;
+            });
+            var newByKey = {};
+            colShip.items.forEach(function(it) {
+              var k = String(it.product_id || "").trim().toUpperCase();
+              newByKey[k] = { product_id: it.product_id, unit: it.unit || "pcs", qty: it.totalQty };
+            });
+            var allKeys = {};
+            Object.keys(oldByKey).forEach(function(k) { allKeys[k] = true; });
+            Object.keys(newByKey).forEach(function(k) { allKeys[k] = true; });
+            var deltas = [];
+            Object.keys(allKeys).forEach(function(k) {
+              var oldQ = (oldByKey[k] && oldByKey[k].qty) || 0;
+              var newQ = (newByKey[k] && newByKey[k].qty) || 0;
+              var diff = newQ - oldQ;
+              if (Math.abs(diff) > 0.0001) {
+                var refProd = (newByKey[k] && newByKey[k].product_id) || (oldByKey[k] && oldByKey[k].product_id) || k;
+                var refUnit = (newByKey[k] && newByKey[k].unit) || (oldByKey[k] && oldByKey[k].unit) || "pcs";
+                deltas.push({ product_id: refProd, unit: refUnit, oldQty: oldQ, newQty: newQ, diff: diff });
+              }
+            });
+            var deltaText = deltas.length
+              ? deltas.map(function(dl) {
+                  return "• " + dl.product_id + ": " + formatNum(dl.oldQty) + " → " + formatNum(dl.newQty) + " " + dl.unit +
+                    (dl.diff < 0 ? (" (balik stok +" + formatNum(Math.abs(dl.diff)) + ")") : (" (potong tambahan -" + formatNum(dl.diff) + ")"));
+                }).join("\n")
+              : "• Tidak ada selisih qty (hanya koreksi No. Bets).";
+            var okAdj = await appConfirm(
+              "Konfirmasi koreksi item/qty setelah berangkat untuk " + doId + ":\n\n" + deltaText + "\n\nAlasan: " + cReason,
+              "Konfirmasi Rekonsiliasi Stok DO",
+              { danger: deltas.length > 0, yesText: "Ya, Simpan & Sesuaikan Stok", noText: "Batal" }
+            );
+            if (!okAdj) return;
+
+            for (var di = 0; di < deltas.length; di++) {
+              var dl = deltas[di];
+              var isBack = dl.diff < 0;
+              var { error: eDelta } = await sb.from("warehouse_movements").insert({
+                movement_type: isBack ? "in_adjust" : "out_delivery",
+                product_id: dl.product_id,
+                qty: Math.abs(dl.diff),
+                unit: dl.unit || "pcs",
+                order_id: d.order_id || null,
+                no_so: d.no_so || "",
+                ref_note: (isBack ? "Koreksi turun qty DO " : "Koreksi tambah qty DO ") + doId + " — " + cReason,
+                created_by: actorEmG
+              });
+              if (eDelta) return toast("Gagal catat penyesuaian stok " + dl.product_id + ": " + eDelta.message, true);
+            }
+            var cleanActS = colShip.items.map(function(it) { return { product_id: it.product_id, unit: it.unit || "pcs", bets: it.bets }; });
+            var asTags = Object.assign({
+              BETS_ACT: doEncodeBetsTag(cleanActS),
+              BETS_FIX_NOTE: cReason,
+              BETS_FIX_AT: nowIso,
+              BETS_FIX_BY: actorEmG
+            }, fixTagsBase);
+            var asNotes = doWriteTags(d.notes, asTags);
+            var errAs = await _updateDeliveriesSafe(doId, { notes: asNotes, updated_at: nowIso });
+            if (errAs) return toast(errAs.message, true);
+            await sb.from("delivery_lines").delete().eq("delivery_id", doId);
+            await sb.from("delivery_lines").insert(colShip.items.map(function(it) {
+              return { delivery_id: doId, product_id: it.product_id, qty: it.totalQty, unit: it.unit || "pcs" };
+            }));
+            if (shipId) {
+              try {
+                var { data: srS } = await sb.from("ship_requests").select("notes").eq("ship_id", shipId).maybeSingle();
+                if (srS) {
+                  await sb.from("ship_requests").update({ notes: doWriteTags(srS.notes || "", asTags), updated_at: nowIso }).eq("ship_id", shipId);
+                }
+              } catch (eSrS) {}
+            }
+            toast("Item DO dikoreksi" + (deltas.length ? " & selisih stok FG disesuaikan" : ""));
+
+          } else if (cMode === "cancel_dispatch") {
+            var revSummary = prevLinesC.map(function(l) {
+              return "• " + l.product_id + ": +" + formatNum(l.qty) + " " + (l.unit || "pcs");
+            }).join("\n");
+            var okCd = await appConfirm(
+              "Batalkan Berangkat Kirim untuk " + doId + "?\n\nStok FG akan otomatis dikembalikan (in_adjust):\n" + (revSummary || "—") + "\n\nAlasan: " + cReason,
+              "Konfirmasi Batal Berangkat & Balik Stok",
+              { danger: true, yesText: "Ya, Batal Kirim & Balik Stok", noText: "Batal" }
+            );
+            if (!okCd) return;
+            for (var ri = 0; ri < prevLinesC.length; ri++) {
+              var rl = prevLinesC[ri];
+              if (!(Number(rl.qty) > 0)) continue;
+              var { error: eRev } = await sb.from("warehouse_movements").insert({
+                movement_type: "in_adjust",
+                product_id: rl.product_id,
+                qty: Number(rl.qty),
+                unit: rl.unit || "pcs",
+                order_id: d.order_id || null,
+                no_so: d.no_so || "",
+                ref_note: "Koreksi/Batal kirim DO " + doId + " — " + cReason,
+                created_by: actorEmG
+              });
+              if (eRev) return toast("Gagal catat jurnal balik stok " + rl.product_id + ": " + eRev.message, true);
+            }
+            var cdNotes = doWriteTags(d.notes, Object.assign({
+              SHIP_AT: "",
+              METHOD: "",
+              COURIER: "",
+              RESI: "",
+              RECV: "",
+              DELIVERED_AT: "",
+              EMERGENCY: "",
+              STOCK_BYPASS: ""
+            }, fixTagsBase));
+            var errCd = await _updateDeliveriesSafe(doId, { status: "ready", notes: cdNotes, updated_at: nowIso });
+            if (errCd) return toast(errCd.message, true);
+            if (shipId) await _syncShipRequestFromDo(d.notes, "picked");
+            toast("Berangkat Kirim dibatalkan & stok FG dikembalikan ke Gudang");
+          }
+
+          try {
+            await writeAudit({
+              module: "delivery",
+              action: "gudang_correct_" + cMode,
+              ref_id: doId,
+              summary: "Koreksi Gudang (" + cMode + ") " + doId + " · Alasan: " + cReason,
+              before: { status: d.status, no_do_odoo: d.no_do_odoo || "", lines: prevLinesC },
+              after: { mode: cMode, reason: cReason }
+            });
+          } catch (eAuG) {}
         }
 
         window.__highlightDoId = doId;
         closeDoStageModal();
         await loadDeliveries();
         try { loadShipRequests(); } catch (eSR) {}
+        try { loadGudangStock(); } catch (eGS) {}
         try { loadInboxNotifs(true); } catch (eN) {}
         try { loadSidebarBadges(true); } catch (eB) {}
       } catch (eAll) {
@@ -25175,21 +25721,40 @@ function fillOperatorList(selectedEmail) {
       $("doNotes").value = "";
       $("doCustomer").value = "";
       window.__doEditRawNotes = "";
+      window.__doEditPrevStatus = "";
+      window.__doEditPrevLines = [];
+      if ($("doStatus")) $("doStatus").disabled = false;
+      if ($("doAddLineBtn")) $("doAddLineBtn").style.display = "";
+      if ($("doEditLockWarn")) { $("doEditLockWarn").style.display = "none"; $("doEditLockWarn").textContent = ""; }
       if ($("doOdooNo")) $("doOdooNo").value = "";
       if ($("doShipRef")) $("doShipRef").value = "";
       await fillDoSoSelect(doId ? "" : "");
       if (doId) {
         var { data: d } = await sb.from("deliveries").select("*").eq("delivery_id", doId).maybeSingle();
         if (d) {
+          var prevSt = String(d.status || "draft").toLowerCase();
+          window.__doEditPrevStatus = prevSt;
           $("doDate").value = String(d.delivery_date || "").slice(0, 10);
-          $("doStatus").value = d.status || "draft";
+          $("doStatus").value = prevSt;
           window.__doEditRawNotes = d.notes || "";
           $("doNotes").value = doParseTags(d.notes).cleanNotes || "";
           $("doCustomer").value = d.customer_name || "";
           if ($("doOdooNo")) $("doOdooNo").value = d.no_do_odoo || "";
           await fillDoSoSelect(d.order_id || "");
           var { data: lines } = await sb.from("delivery_lines").select("*").eq("delivery_id", doId);
+          window.__doEditPrevLines = lines || [];
           (lines || []).forEach(function(l) { addDoLine(l); });
+          if (prevSt === "shipped" || prevSt === "delivered") {
+            if ($("doEditLockWarn")) {
+              $("doEditLockWarn").style.display = "block";
+              $("doEditLockWarn").textContent = "DO ini sudah berstatus " + prevSt + " (stok FG sudah terpotong). Status & baris produk dikunci di Edit DO — gunakan tombol Koreksi DO untuk ubah item/qty atau membatalkan pengiriman agar mutasi stok tetap sinkron.";
+            }
+            if ($("doStatus")) $("doStatus").disabled = true;
+            if ($("doAddLineBtn")) $("doAddLineBtn").style.display = "none";
+            document.querySelectorAll("#doLines .do-line input, #doLines .do-line select, #doLines .do-line button").forEach(function(el) {
+              el.disabled = true;
+            });
+          }
         }
       } else {
         addDoLine();
@@ -25263,7 +25828,9 @@ function fillOperatorList(selectedEmail) {
       var no_so = (hit && hit.no_so) || "";
       var do_id = ($("doEditId").value || "").trim() || (await newDeliveryId());
       var isNew = !($("doEditId").value || "").trim();
-      var st = $("doStatus").value || "draft";
+      var prevStEdit = String(window.__doEditPrevStatus || "").toLowerCase();
+      var wasAlreadyOut = !isNew && (prevStEdit === "shipped" || prevStEdit === "delivered");
+      var st = wasAlreadyOut ? prevStEdit : ($("doStatus").value || "draft");
       var no_do_odoo = (($("doOdooNo") && $("doOdooNo").value) || "").trim();
       if ((st === "shipped" || st === "delivered") && !no_do_odoo) {
         toast("Status shipped wajib isi No. DO Odoo — atau pakai tombol Kirim di daftar", true);
@@ -25275,6 +25842,37 @@ function fillOperatorList(selectedEmail) {
         var prevTags = String(window.__doEditRawNotes).match(/\[[A-Z0-9_]+:[^\]]*\]/g);
         if (prevTags && prevTags.length) rawNotes = (rawNotes ? rawNotes + " " : "") + prevTags.join(" ");
       }
+      var lines = [];
+      if (wasAlreadyOut && Array.isArray(window.__doEditPrevLines) && window.__doEditPrevLines.length) {
+        lines = window.__doEditPrevLines.map(function(l) {
+          return { delivery_id: do_id, product_id: l.product_id, qty: Number(l.qty) || 0, unit: l.unit || "pcs" };
+        });
+      } else {
+        document.querySelectorAll("#doLines .do-line").forEach(function(el) {
+          var product_id = (el.querySelector(".dol-pid").value || "").trim();
+          var qty = parseInputNum(el.querySelector(".dol-qty").value);
+          var unit = (el.querySelector(".dol-unit").value || "pcs").trim();
+          if (product_id && qty > 0) lines.push({ delivery_id: do_id, product_id: product_id, qty: qty, unit: unit });
+        });
+      }
+      if (!lines.length) return toast("Minimal 1 baris FG", true);
+
+      if ((st === "shipped" || st === "delivered") && !wasAlreadyOut) {
+        var smEdit = await doFetchFgStockMap(lines.map(function(l) { return l.product_id; }));
+        var evEdit = doEvalStockShortages(lines, smEdit);
+        if (evEdit.shortages.length) {
+          var msgShort = evEdit.shortages.map(function(s) {
+            return "• " + s.product_id + ": Saldo " + formatNum(s.saldo) + ", Kirim " + formatNum(s.need) + " " + s.unit;
+          }).join("\n");
+          var okEditBypass = await appConfirm(
+            "Saldo stok FG sistem belum cukup untuk:\n" + msgShort + "\n\nTetap simpan sebagai " + st + " dan potong stok?",
+            "Peringatan Saldo Stok FG Kurang",
+            { danger: true, yesText: "Ya, Tetap Simpan", noText: "Batal" }
+          );
+          if (!okEditBypass) return;
+        }
+      }
+
       var header = {
         delivery_id: do_id,
         order_id: order_id,
@@ -25290,14 +25888,6 @@ function fillOperatorList(selectedEmail) {
         header.created_by = (currentUser && currentUser.email) || "";
         header.created_at = new Date().toISOString();
       }
-      var lines = [];
-      document.querySelectorAll("#doLines .do-line").forEach(function(el) {
-        var product_id = (el.querySelector(".dol-pid").value || "").trim();
-        var qty = parseInputNum(el.querySelector(".dol-qty").value);
-        var unit = (el.querySelector(".dol-unit").value || "pcs").trim();
-        if (product_id && qty > 0) lines.push({ delivery_id: do_id, product_id: product_id, qty: qty, unit: unit });
-      });
-      if (!lines.length) return toast("Minimal 1 baris FG", true);
       var error;
       if (isNew) {
         ({ error } = await sb.from("deliveries").insert(header));
@@ -25315,13 +25905,15 @@ function fillOperatorList(selectedEmail) {
           if (no_do_odoo) h3.notes = (h3.notes ? h3.notes + " · " : "") + "DO Odoo: " + no_do_odoo;
           ({ error } = await sb.from("deliveries").update(h3).eq("delivery_id", do_id));
         }
-        await sb.from("delivery_lines").delete().eq("delivery_id", do_id);
+        if (!wasAlreadyOut) {
+          await sb.from("delivery_lines").delete().eq("delivery_id", do_id);
+        }
       }
       if (error) return toast(error.message, true);
-      var { error: eL } = await sb.from("delivery_lines").insert(lines);
-      if (eL) return toast(eL.message, true);
-      var existingDo = !isNew ? (deliveryList || []).find(function(x) { return x.delivery_id === do_id; }) : null;
-      var wasAlreadyOut = existingDo && (existingDo.status === "shipped" || existingDo.status === "delivered");
+      if (!wasAlreadyOut) {
+        var { error: eL } = await sb.from("delivery_lines").insert(lines);
+        if (eL) return toast(eL.message, true);
+      }
       if (header.status === "shipped" || header.status === "delivered") {
         if (!wasAlreadyOut) {
           try {
@@ -25358,6 +25950,8 @@ function fillOperatorList(selectedEmail) {
       }
       toast("DO disimpan" + (header.status === "shipped" ? " · instruksi kirim → shipped" : ""));
       window.__doEditRawNotes = "";
+      window.__doEditPrevStatus = "";
+      window.__doEditPrevLines = [];
       closeDeliveryModal();
       window.__highlightDoId = do_id;
       if ($("page-delivery") && $("page-delivery").hidden) {
@@ -25365,6 +25959,7 @@ function fillOperatorList(selectedEmail) {
       }
       loadDeliveries();
       try { loadShipRequests(); } catch (eR) {}
+      try { loadGudangStock(); } catch (eGS2) {}
     }
 
     async function saveWhFromProduction() {
@@ -37477,7 +38072,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.24-login-ui";
+    var APP_BUILD_TAG = "2026.11.25-do-koreksi";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -40188,6 +40783,7 @@ function closeOtModal() {
         <button type="button" class="ot-close-x" onclick="closeDeliveryModal()" aria-label="Tutup">&times;</button>
       </div>
       <div class="sheet-body">
+        <div id="doEditLockWarn" style="display:none;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:0.55rem 0.7rem;font-size:0.78rem;margin-bottom:0.75rem"></div>
         <input type="hidden" id="doEditId" />
         <input type="hidden" id="doShipRef" />
         <div class="field"><label>Sales Order</label>
@@ -40210,7 +40806,7 @@ function closeOtModal() {
         <div class="field"><label>Catatan</label><input id="doNotes" /></div>
         <div style="font-weight:700;margin:0.75rem 0 0.35rem;font-size:0.84rem;color:#0f172a">Baris produk (FG)</div>
         <div id="doLines"></div>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="addDoLine()">+ Baris</button>
+        <button id="doAddLineBtn" type="button" class="btn btn-ghost btn-sm" onclick="addDoLine()">+ Baris</button>
       </div>
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeDeliveryModal()">Batal</button>
