@@ -24,10 +24,26 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script src="/maps-config.js" onerror="void 0"></script>
   <script>
     if (window.pdfjsLib) {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
     }
+    window.gm_authFailure = function() {
+      window.dispatchEvent(new CustomEvent("gmp-quota-exceeded"));
+    };
+    (function() {
+      var origError = console.error;
+      console.error = function() {
+        origError.apply(console, arguments);
+        try {
+          var msg = Array.prototype.map.call(arguments, function(a) { return String(a); }).join(" ");
+          if (msg.indexOf("OverQuotaMapError") !== -1 || msg.indexOf("QuotaExceededError") !== -1) {
+            window.dispatchEvent(new CustomEvent("gmp-quota-exceeded"));
+          }
+        } catch (eTap) {}
+      };
+    })();
   </script>
   <style>
 
@@ -7743,9 +7759,61 @@
       vertical-align: middle;
     }
     .att-photo-btn:hover { background: #e2e8f0; }
+    #attMapCanvas {
+      width: 100%;
+      height: 360px;
+      min-height: 280px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+    @media (max-width: 640px) {
+      #attMapCanvas { height: 280px; min-height: 240px; }
+    }
+    .att-map-search-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.65rem;
+      position: relative;
+      z-index: 5;
+      overflow: visible;
+    }
+    #attMapSearchHost {
+      flex: 1;
+      min-width: 0;
+    }
+    #attMapSearchHost gmp-place-autocomplete {
+      width: 100%;
+      display: block;
+      color-scheme: light;
+      border-radius: 10px;
+    }
+    .att-map-info-bar {
+      margin-top: 0.65rem;
+      padding: 0.6rem 0.75rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 0.9fr;
+      gap: 0.5rem;
+      align-items: end;
+    }
+    @media (max-width: 640px) {
+      .att-map-info-bar { grid-template-columns: 1fr 1fr; }
+    }
     </style>
 </head>
 <body>
+  <div id="gmpQuotaBanner" role="alert" style="display:none;position:sticky;top:0;z-index:100500;background:#fffbeb;border-bottom:1px solid #fde68a;color:#78350f;padding:0.6rem 1rem;font-size:0.78rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+    <span>
+      Google Maps Platform quota reached. If you are the app owner, visit
+      <a href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors" target="_blank" rel="noopener noreferrer" style="text-decoration:underline;font-weight:700;color:#451a03">maps developer site</a>
+      for instructions to update your account.
+    </span>
+  </div>
   <div id="pwaUpdateBar" class="pwa-update-bar" role="status" aria-live="polite">
     <div style="font-size:0.8rem;line-height:1.35">
       <strong style="display:block;color:#6ee7b7">Pembaruan aplikasi tersedia</strong>
@@ -10576,6 +10644,48 @@
       <div class="sheet-foot">
         <button type="button" class="btn btn-ghost" onclick="attCloseEarlyOutModal(true)">Batal</button>
         <button type="button" class="btn btn-primary" style="background:#be123c;border-color:#be123c" onclick="attConfirmEarlyOut()">Lanjutkan Clock Out</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attMapPickerModal" class="modal-bg" style="z-index:100190">
+    <div class="modal modal-sheet" style="max-width:740px;width:96vw">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div>
+          <h2 style="margin:0">Pilih Lokasi di Google Maps</h2>
+          <div id="attMapLocBadge" style="font-size:0.76rem;color:#065f46;font-weight:700;margin-top:0.15rem"></div>
+        </div>
+        <button type="button" class="ot-close-x" onclick="attCloseMapPicker()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body" style="overflow:visible">
+        <div id="attMapErrorBox" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:0.6rem 0.75rem;font-size:0.8rem;margin-bottom:0.6rem"></div>
+        <div class="att-map-search-row">
+          <div id="attMapSearchHost"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="attUseCurrentGpsInMap()" style="flex-shrink:0">Lokasi Saya</button>
+        </div>
+        <div id="attMapCanvas"></div>
+        <div class="att-map-info-bar">
+          <div class="field" style="margin:0">
+            <label style="font-size:0.72rem">Latitude Terpilih</label>
+            <input type="text" id="attMapPickedLat" readonly style="background:#fff;font-family:monospace;font-size:0.8rem" placeholder="-6.xxxxxx" />
+          </div>
+          <div class="field" style="margin:0">
+            <label style="font-size:0.72rem">Longitude Terpilih</label>
+            <input type="text" id="attMapPickedLng" readonly style="background:#fff;font-family:monospace;font-size:0.8rem" placeholder="106.xxxxxx" />
+          </div>
+          <div class="field" style="margin:0">
+            <label style="font-size:0.72rem">Preview Radius (meter)</label>
+            <input type="number" id="attMapRadiusInp" min="20" max="5000" value="150" oninput="attUpdateMapCircleRadius()" />
+          </div>
+        </div>
+        <div id="attMapPickedPlace" style="font-size:0.76rem;color:var(--text-muted);margin-top:0.45rem;min-height:1.1em">
+          Klik pada peta, geser pin hijau, atau cari nama lokasi/alamat di kolom pencarian di atas.
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="attCloseMapPicker()">Batal</button>
+        <button type="button" class="btn btn-primary" id="attMapConfirmBtn" onclick="attConfirmMapPicker()">Gunakan Lokasi Ini</button>
       </div>
     </div>
   </div>
@@ -38596,7 +38706,11 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-multi";
+    var APP_BUILD_TAG = "2026.11.27-absensi-gmaps";
+    window.addEventListener("gmp-quota-exceeded", function() {
+      var b = $("gmpQuotaBanner");
+      if (b) b.style.display = "block";
+    });
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -42825,7 +42939,8 @@ function closeOtModal() {
         '</div>' +
         '<div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center;justify-content:space-between">' +
           '<div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center">' +
-            '<button type="button" class="btn btn-primary btn-sm" onclick="attCaptureRowGps(this)">Ambil GPS Lokasi Ini</button>' +
+            '<button type="button" class="btn btn-primary btn-sm" onclick="attOpenMapPicker(this)">Pilih di Google Maps</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" onclick="attCaptureRowGps(this)">Ambil GPS Lokasi Ini</button>' +
             '<a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm att-loc-map" style="display:none">Lihat Maps</a>' +
           '</div>' +
           '<button type="button" class="btn btn-sm btn-danger" onclick="attRemoveLocationCard(this)">Hapus Lokasi</button>' +
@@ -42844,6 +42959,283 @@ function closeOtModal() {
       var card = btnEl && btnEl.closest ? btnEl.closest(".att-loc-card") : null;
       if (card) card.remove();
       attRefreshShiftLocationDropdowns();
+    }
+
+    var _attMapTargetCard = null;
+    var _attMapInstance = null;
+    var _attMapMarker = null;
+    var _attMapCircle = null;
+    var _attMapAutocomplete = null;
+    var _attMapPickedLat = null;
+    var _attMapPickedLng = null;
+    var _attGmpLoadedPromise = null;
+
+    function attCheckQuotaError(err) {
+      var s = String((err && (err.message || err.status || err.code)) || err || "");
+      if (s.indexOf("RESOURCE_EXHAUSTED") !== -1 || s.indexOf("OVER_QUERY_LIMIT") !== -1 || s.indexOf("OverQuotaMapError") !== -1) {
+        window.dispatchEvent(new CustomEvent("gmp-quota-exceeded"));
+        return true;
+      }
+      return false;
+    }
+
+    function attLoadRuntimeMapsKey() {
+      if (window.__GMP_API_KEY__) return Promise.resolve(String(window.__GMP_API_KEY__));
+      return new Promise(function(resolve) {
+        var sc = document.createElement("script");
+        sc.src = "/maps-config.js?t=" + Date.now();
+        sc.onload = function() { resolve(String(window.__GMP_API_KEY__ || "")); };
+        sc.onerror = function() { resolve(String(window.__GMP_API_KEY__ || "")); };
+        document.head.appendChild(sc);
+      });
+    }
+
+    async function attEnsureGoogleMapsLibs() {
+      var apiKey = await attLoadRuntimeMapsKey();
+      if (!apiKey) {
+        throw new Error("Kunci Google Maps belum aktif di server ini. Gunakan tombol 'Ambil GPS Lokasi Ini' atau isi Latitude/Longitude secara manual.");
+      }
+      if (!window.google || !window.google.maps || typeof window.google.maps.importLibrary !== "function") {
+        (function(g){var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=function(){return h||(h=new Promise(async function(f,n){await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,function(t){return "_"+t[0].toLowerCase();}),g[k]);e.set("callback",c+".maps."+q);a.src="https://maps."+c+"apis.com/maps/api/js?"+e;d[q]=f;a.onerror=function(){return h=n(new Error(p+" could not load."));};var nonceEl=m.querySelector("script[nonce]");a.nonce=(nonceEl&&nonceEl.nonce)||"";m.head.append(a);}))};d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=function(f){var n=Array.prototype.slice.call(arguments,1);return r.add(f)&&u().then(function(){return d[l].apply(d,[f].concat(n));});}})({
+          key: apiKey,
+          v: "weekly",
+          language: "id",
+          region: "ID"
+        });
+      }
+      if (!_attGmpLoadedPromise) {
+        _attGmpLoadedPromise = Promise.all([
+          google.maps.importLibrary("maps"),
+          google.maps.importLibrary("marker"),
+          google.maps.importLibrary("places")
+        ]).catch(function(err) {
+          _attGmpLoadedPromise = null;
+          attCheckQuotaError(err);
+          throw err;
+        });
+      }
+      return _attGmpLoadedPromise;
+    }
+
+    function attSetMapPickerCoords(lat, lng, labelText) {
+      if (!isFinite(lat) || !isFinite(lng)) return;
+      _attMapPickedLat = Number(lat);
+      _attMapPickedLng = Number(lng);
+      var pos = { lat: _attMapPickedLat, lng: _attMapPickedLng };
+      if ($("attMapPickedLat")) $("attMapPickedLat").value = _attMapPickedLat.toFixed(6);
+      if ($("attMapPickedLng")) $("attMapPickedLng").value = _attMapPickedLng.toFixed(6);
+      if ($("attMapConfirmBtn")) $("attMapConfirmBtn").disabled = false;
+      if (_attMapMarker) _attMapMarker.position = pos;
+      if (_attMapCircle) _attMapCircle.setCenter(pos);
+      if ($("attMapPickedPlace")) {
+        $("attMapPickedPlace").textContent = labelText
+          ? ("Lokasi dipilih: " + labelText)
+          : ("Titik dipilih: " + _attMapPickedLat.toFixed(6) + ", " + _attMapPickedLng.toFixed(6) + " (geser pin atau klik peta untuk menyesuaikan)");
+      }
+    }
+
+    function attUpdateMapCircleRadius() {
+      var r = Math.max(20, Math.min(5000, Number($("attMapRadiusInp") && $("attMapRadiusInp").value) || 150));
+      if (_attMapCircle) _attMapCircle.setRadius(r);
+    }
+
+    async function attOpenMapPicker(btnEl) {
+      if (currentRole() !== "admin") return;
+      var card = btnEl && btnEl.closest ? btnEl.closest(".att-loc-card") : null;
+      if (!card) return;
+      _attMapTargetCard = card;
+
+      var locName = (card.querySelector(".att-loc-name") && card.querySelector(".att-loc-name").value || "").trim() || "Lokasi Kantor";
+      var latStr = (card.querySelector(".att-loc-lat") && card.querySelector(".att-loc-lat").value || "").trim();
+      var lngStr = (card.querySelector(".att-loc-lng") && card.querySelector(".att-loc-lng").value || "").trim();
+      var radVal = Math.max(20, Math.min(5000, Number(card.querySelector(".att-loc-radius") && card.querySelector(".att-loc-radius").value) || 150));
+      var hasCoords = latStr !== "" && lngStr !== "" && isFinite(Number(latStr)) && isFinite(Number(lngStr));
+      var startPos = hasCoords ? { lat: Number(latStr), lng: Number(lngStr) } : { lat: -6.2088, lng: 106.8456 };
+
+      if ($("attMapLocBadge")) $("attMapLocBadge").textContent = locName;
+      if ($("attMapRadiusInp")) $("attMapRadiusInp").value = String(radVal);
+      if ($("attMapErrorBox")) { $("attMapErrorBox").style.display = "none"; $("attMapErrorBox").textContent = ""; }
+      if ($("attMapConfirmBtn")) $("attMapConfirmBtn").disabled = !hasCoords;
+      if (hasCoords) {
+        _attMapPickedLat = startPos.lat;
+        _attMapPickedLng = startPos.lng;
+        if ($("attMapPickedLat")) $("attMapPickedLat").value = startPos.lat.toFixed(6);
+        if ($("attMapPickedLng")) $("attMapPickedLng").value = startPos.lng.toFixed(6);
+        if ($("attMapPickedPlace")) $("attMapPickedPlace").textContent = "Koordinat tersimpan saat ini: " + startPos.lat.toFixed(6) + ", " + startPos.lng.toFixed(6);
+      } else {
+        _attMapPickedLat = null;
+        _attMapPickedLng = null;
+        if ($("attMapPickedLat")) $("attMapPickedLat").value = "";
+        if ($("attMapPickedLng")) $("attMapPickedLng").value = "";
+        if ($("attMapPickedPlace")) $("attMapPickedPlace").textContent = "Cari alamat/tempat di atas, klik peta, atau tekan 'Lokasi Saya' untuk menentukan titik.";
+      }
+
+      var modal = $("attMapPickerModal");
+      if (modal) modal.classList.add("show");
+
+      try {
+        var libs = await attEnsureGoogleMapsLibs();
+        var mapsLib = libs[0];
+        var markerLib = libs[1];
+        var placesLib = libs[2];
+
+        var canvas = $("attMapCanvas");
+        if (!canvas) return;
+
+        if (!_attMapInstance) {
+          _attMapInstance = new mapsLib.Map(canvas, {
+            center: startPos,
+            zoom: hasCoords ? 17 : 11,
+            mapId: "DEMO_MAP_ID",
+            gestureHandling: "greedy",
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: true,
+            internalUsageAttributionIds: ["gmp_mcp_codeassist_v1_aistudio"]
+          });
+
+          var pin = new markerLib.PinElement({
+            background: "#0d9f6e",
+            borderColor: "#065f46",
+            glyphColor: "#ffffff",
+            scale: 1.25
+          });
+          _attMapMarker = new markerLib.AdvancedMarkerElement({
+            map: _attMapInstance,
+            position: startPos,
+            gmpDraggable: true,
+            title: locName
+          });
+          _attMapMarker.append(pin);
+
+          _attMapCircle = new mapsLib.Circle({
+            map: _attMapInstance,
+            center: startPos,
+            radius: radVal,
+            strokeColor: "#0d9f6e",
+            strokeOpacity: 0.85,
+            strokeWeight: 2,
+            fillColor: "#10b981",
+            fillOpacity: 0.16,
+            clickable: false
+          });
+
+          _attMapInstance.addListener("click", function(ev) {
+            if (ev && ev.latLng) {
+              attSetMapPickerCoords(ev.latLng.lat(), ev.latLng.lng(), "");
+            }
+          });
+
+          _attMapMarker.addListener("dragend", function() {
+            var p = _attMapMarker.position;
+            if (!p) return;
+            var la = typeof p.lat === "function" ? p.lat() : Number(p.lat);
+            var ln = typeof p.lng === "function" ? p.lng() : Number(p.lng);
+            attSetMapPickerCoords(la, ln, "");
+          });
+        } else {
+          _attMapInstance.setCenter(startPos);
+          _attMapInstance.setZoom(hasCoords ? 17 : 11);
+          if (_attMapMarker) {
+            _attMapMarker.position = startPos;
+            _attMapMarker.title = locName;
+          }
+          if (_attMapCircle) {
+            _attMapCircle.setCenter(startPos);
+            _attMapCircle.setRadius(radVal);
+          }
+        }
+
+        var searchHost = $("attMapSearchHost");
+        if (searchHost && !_attMapAutocomplete && placesLib && placesLib.PlaceAutocompleteElement) {
+          _attMapAutocomplete = new placesLib.PlaceAutocompleteElement();
+          _attMapAutocomplete.setAttribute("internal-usage-attribution-ids", "gmp_mcp_codeassist_v1_aistudio");
+          _attMapAutocomplete.placeholder = "Cari nama kantor, gedung, atau alamat…";
+          _attMapAutocomplete.includedRegionCodes = ["id"];
+          _attMapAutocomplete.locationBias = { center: startPos, radius: 30000 };
+          searchHost.innerHTML = "";
+          searchHost.appendChild(_attMapAutocomplete);
+
+          _attMapAutocomplete.addEventListener("gmp-select", async function(ev) {
+            try {
+              var pred = ev && ev.placePrediction;
+              if (!pred) return;
+              var place = pred.toPlace();
+              await place.fetchFields({ fields: ["displayName", "formattedAddress", "location", "viewport"] });
+              if (place && place.location) {
+                var la = typeof place.location.lat === "function" ? place.location.lat() : Number(place.location.lat);
+                var ln = typeof place.location.lng === "function" ? place.location.lng() : Number(place.location.lng);
+                var desc = [place.displayName, place.formattedAddress].filter(Boolean).join(" — ");
+                attSetMapPickerCoords(la, ln, desc);
+                if (place.viewport && _attMapInstance) {
+                  _attMapInstance.fitBounds(place.viewport);
+                } else if (_attMapInstance) {
+                  _attMapInstance.setCenter({ lat: la, lng: ln });
+                  _attMapInstance.setZoom(17);
+                }
+              }
+            } catch (eSel) {
+              attCheckQuotaError(eSel);
+              toast((eSel && eSel.message) || "Gagal mengambil detail lokasi terpilih", true);
+            }
+          });
+        } else if (_attMapAutocomplete) {
+          _attMapAutocomplete.locationBias = { center: startPos, radius: 30000 };
+        }
+
+        setTimeout(function() {
+          try {
+            if (_attMapInstance && window.google && window.google.maps && window.google.maps.event) {
+              window.google.maps.event.trigger(_attMapInstance, "resize");
+              _attMapInstance.setCenter(startPos);
+            }
+          } catch (eRz) {}
+        }, 120);
+      } catch (eMap) {
+        if ($("attMapErrorBox")) {
+          $("attMapErrorBox").textContent = (eMap && eMap.message) || "Gagal memuat Google Maps.";
+          $("attMapErrorBox").style.display = "block";
+        }
+      }
+    }
+
+    async function attUseCurrentGpsInMap() {
+      try {
+        toast("Mengambil posisi GPS Anda…");
+        var gps = await attGetGps();
+        var pos = { lat: gps.lat, lng: gps.lng };
+        attSetMapPickerCoords(gps.lat, gps.lng, "Posisi GPS Anda (±" + gps.acc + " m)");
+        if (_attMapInstance) {
+          _attMapInstance.setCenter(pos);
+          _attMapInstance.setZoom(17);
+        }
+      } catch (e) {
+        toast((e && e.message) || "Gagal mengambil GPS saat ini", true);
+      }
+    }
+
+    function attCloseMapPicker() {
+      if ($("attMapPickerModal")) $("attMapPickerModal").classList.remove("show");
+      _attMapTargetCard = null;
+    }
+
+    function attConfirmMapPicker() {
+      if (!_attMapTargetCard) return attCloseMapPicker();
+      if (_attMapPickedLat == null || _attMapPickedLng == null) {
+        return toast("Silakan pilih titik lokasi di peta terlebih dahulu.", true);
+      }
+      var latEl = _attMapTargetCard.querySelector(".att-loc-lat");
+      var lngEl = _attMapTargetCard.querySelector(".att-loc-lng");
+      var radEl = _attMapTargetCard.querySelector(".att-loc-radius");
+      if (latEl) latEl.value = _attMapPickedLat.toFixed(6);
+      if (lngEl) lngEl.value = _attMapPickedLng.toFixed(6);
+      if (radEl && $("attMapRadiusInp")) {
+        var r = Math.max(20, Math.min(5000, Number($("attMapRadiusInp").value) || 150));
+        radEl.value = String(r);
+      }
+      attUpdateRowMapPreview(_attMapTargetCard);
+      attCloseMapPicker();
+      toast("Koordinat dari Google Maps diterapkan. Klik 'Simpan Pengaturan' untuk menyimpan.");
     }
 
     function attAddShiftRow(s) {
