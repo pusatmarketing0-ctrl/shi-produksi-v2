@@ -11090,7 +11090,24 @@
           <label>Alasan / Keterangan <span style="color:#dc2626">* Wajib diisi</span></label>
           <textarea id="attReqReason" rows="3" placeholder="Contoh: Lupa tekan Clock In saat tiba di pabrik jam 07:30 / HP mati saat pulang…"></textarea>
         </div>
-        <div id="attReqErr" style="display:none;color:#dc2626;font-size:0.76rem;margin-top:0.35rem;font-weight:600"></div>
+        <div class="field" style="margin:0.65rem 0 0">
+          <label>Lampiran Foto Bukti <span style="color:#dc2626">* Wajib dilampirkan</span></label>
+          <input id="attReqPhotoInp" type="file" accept="image/*" style="display:none" onchange="attOnReqPhotoPicked(this)" />
+          <input id="attReqCamInp" type="file" accept="image/*" capture="environment" style="display:none" onchange="attOnReqPhotoPicked(this)" />
+          <div style="display:flex;gap:0.45rem;flex-wrap:wrap;margin-top:0.25rem">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('attReqCamInp').click()">📷 Ambil Foto Kamera</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('attReqPhotoInp').click()">🖼️ Pilih dari Galeri</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="attReqPhotoClearBtn" style="display:none;color:#dc2626" onclick="attClearReqPhoto()">Hapus Foto</button>
+          </div>
+          <div id="attReqPhotoBox" style="display:none;margin-top:0.5rem;border:1px solid #cbd5e1;border-radius:10px;padding:0.45rem;background:#f8fafc;align-items:center;gap:0.65rem">
+            <img id="attReqPhotoPreview" alt="Preview lampiran koreksi absensi" style="width:68px;height:68px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;flex-shrink:0" />
+            <div style="font-size:0.75rem;color:#334155;line-height:1.35">
+              <div style="font-weight:700;color:#065f46">Foto bukti siap dilampirkan</div>
+              <div id="attReqPhotoMeta" style="color:#64748b;margin-top:0.12rem"></div>
+            </div>
+          </div>
+        </div>
+        <div id="attReqErr" style="display:none;color:#dc2626;font-size:0.76rem;margin-top:0.45rem;font-weight:600"></div>
       </div>
       <div class="sheet-foot">
         <button type="button" class="btn btn-ghost" onclick="attCloseReqModal()">Batal</button>
@@ -39136,7 +39153,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-mobile";
+    var APP_BUILD_TAG = "2026.11.27-absensi-koreksi-foto";
     window.addEventListener("gmp-quota-exceeded", function() {
       var b = $("gmpQuotaBanner");
       if (b) b.style.display = "block";
@@ -41376,6 +41393,7 @@ function closeOtModal() {
     var attAdminFiltered = [];
     var attAdmReqRows = [];
     var attRejectTargetReqId = "";
+    var attReqPhotoDataUrl = "";
     var attLastGps = null;
     var attClockTimer = null;
     var attBusyClock = false;
@@ -41988,6 +42006,7 @@ function closeOtModal() {
       attAdminFiltered = [];
       attAdmReqRows = [];
       attRejectTargetReqId = "";
+      attReqPhotoDataUrl = "";
       attLastGps = null;
       attDraftShift = "";
       try { attStopCamera(); } catch (e) {}
@@ -44176,6 +44195,77 @@ function closeOtModal() {
       attOnReqShiftChange();
     }
 
+    function attClearReqPhoto() {
+      attReqPhotoDataUrl = "";
+      if ($("attReqPhotoInp")) $("attReqPhotoInp").value = "";
+      if ($("attReqCamInp")) $("attReqCamInp").value = "";
+      if ($("attReqPhotoPreview")) $("attReqPhotoPreview").removeAttribute("src");
+      if ($("attReqPhotoMeta")) $("attReqPhotoMeta").textContent = "";
+      if ($("attReqPhotoBox")) $("attReqPhotoBox").style.display = "none";
+      if ($("attReqPhotoClearBtn")) $("attReqPhotoClearBtn").style.display = "none";
+    }
+
+    function attOnReqPhotoPicked(inp) {
+      var f = inp && inp.files && inp.files[0];
+      if (!f) return;
+      if (f.type && f.type.indexOf("image/") !== 0) {
+        toast("File harus berupa gambar/foto (JPG/PNG).", true);
+        if (inp) inp.value = "";
+        return;
+      }
+      var reader = new FileReader();
+      reader.onerror = function() {
+        toast("Gagal membaca file foto.", true);
+      };
+      reader.onload = function() {
+        var im = new Image();
+        im.onerror = function() {
+          toast("Format foto tidak didukung atau rusak.", true);
+        };
+        im.onload = function() {
+          try {
+            var maxDim = 760;
+            var w = im.naturalWidth || im.width || 640;
+            var h = im.naturalHeight || im.height || 480;
+            if (w > maxDim || h > maxDim) {
+              var sc = maxDim / Math.max(w, h);
+              w = Math.max(1, Math.round(w * sc));
+              h = Math.max(1, Math.round(h * sc));
+            }
+            var cv = document.createElement("canvas");
+            cv.width = w;
+            cv.height = h;
+            var ctx = cv.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(im, 0, 0, w, h);
+            var barH = 26;
+            ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
+            ctx.fillRect(0, h - barH, w, barH);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 11px sans-serif";
+            var wp = attWibParts();
+            var uName = String((currentProfile && currentProfile.name) || (currentUser && currentUser.email) || "Karyawan").slice(0, 28);
+            ctx.fillText("Bukti Koreksi · " + uName + " · " + wp.ymd + " " + wp.hm + " WIB", 8, h - 8, w - 16);
+
+            var dataUrl = cv.toDataURL("image/jpeg", 0.72);
+            attReqPhotoDataUrl = dataUrl;
+            var approxKb = Math.max(1, Math.round((dataUrl.length * 3) / 4 / 1024));
+            if ($("attReqPhotoPreview")) $("attReqPhotoPreview").src = dataUrl;
+            if ($("attReqPhotoMeta")) $("attReqPhotoMeta").textContent = (f.name || "foto.jpg") + " · ~" + approxKb + " KB";
+            if ($("attReqPhotoBox")) $("attReqPhotoBox").style.display = "flex";
+            if ($("attReqPhotoClearBtn")) $("attReqPhotoClearBtn").style.display = "";
+            if ($("attReqErr")) $("attReqErr").style.display = "none";
+          } catch (eCv) {
+            toast("Gagal memproses foto lampiran.", true);
+          }
+          if (inp) inp.value = "";
+        };
+        im.src = reader.result;
+      };
+      reader.readAsDataURL(f);
+    }
+
     async function attOpenReqModal(presetType, presetDate) {
       if (!currentUser || !currentUser.email) return toast("Silakan login terlebih dahulu.", true);
       await attLoadSettings();
@@ -44201,6 +44291,7 @@ function closeOtModal() {
       if ($("attReqInHm")) $("attReqInHm").value = "";
       if ($("attReqOutHm")) $("attReqOutHm").value = "";
       if ($("attReqReason")) $("attReqReason").value = "";
+      attClearReqPhoto();
       if ($("attReqErr")) $("attReqErr").style.display = "none";
       await attOnReqFieldsChange();
       if ($("attReqModal")) $("attReqModal").classList.add("show");
@@ -44237,6 +44328,7 @@ function closeOtModal() {
       if ((reqType === "lupa_in" || reqType === "lupa_both") && !inHm) return showErr("Jam Masuk aktual wajib diisi.");
       if ((reqType === "lupa_out" || reqType === "lupa_both") && !outHm) return showErr("Jam Pulang aktual wajib diisi.");
       if (reason.length < 5) return showErr("Alasan wajib diisi minimal 5 karakter.");
+      if (!attReqPhotoDataUrl) return showErr("Lampiran foto bukti wajib diisi sebelum mengirim pengajuan.");
 
       var email = String(currentUser.email || "").trim().toLowerCase();
       var myReqs = await attFetchRequests({ email: email });
@@ -44246,8 +44338,10 @@ function closeOtModal() {
       if (dup) return showErr("Anda sudah memiliki pengajuan yang masih menunggu Admin untuk tanggal dan jenis yang sama.");
 
       var btn = $("attReqSubmitBtn");
-      if (btn) { btn.disabled = true; btn.textContent = "Mengirim…"; }
+      if (btn) { btn.disabled = true; btn.textContent = "Mengupload Foto…"; }
       try {
+        var uploadedPhotoUrl = await attUploadSelfieToDrive(attReqPhotoDataUrl, "koreksi_" + reqType, attDate, email);
+        if (btn) btn.textContent = "Mengirim…";
         var locObj = attResolveTargetLocation(validShift, null, locId || validShift.location_id || "");
         var userName = (currentProfile && currentProfile.name) || email.split("@")[0] || email;
         var reqObj = {
@@ -44266,6 +44360,7 @@ function closeOtModal() {
           req_in_hm: (reqType === "lupa_in" || reqType === "lupa_both") ? inHm : "",
           req_out_hm: (reqType === "lupa_out" || reqType === "lupa_both") ? outHm : "",
           reason: reason,
+          photo_url: uploadedPhotoUrl || attReqPhotoDataUrl,
           status: "pending",
           created_at: new Date().toISOString(),
           reviewed_by: null,
@@ -44275,8 +44370,9 @@ function closeOtModal() {
         };
         var saved = await attSaveRequest(reqObj, "submit_request");
         if (saved.error) return showErr("Gagal mengirim pengajuan: " + saved.error.message);
+        attClearReqPhoto();
         attCloseReqModal();
-        toast("Pengajuan lupa absen berhasil dikirim ke Admin.");
+        toast("Pengajuan koreksi & foto bukti berhasil dikirim ke Admin.");
         await loadAttendanceMyRequests();
         if (currentRole() === "admin") await loadAttendanceAdminRequests();
       } finally {
@@ -44314,11 +44410,14 @@ function closeOtModal() {
             var revInfo = r.reviewed_by
               ? '<div style="font-size:0.71rem;color:var(--text-muted);margin-top:0.2rem">oleh ' + esc(r.reviewed_by_name || r.reviewed_by) + (r.review_note ? ' · ' + esc(r.review_note) : '') + '</div>'
               : '';
+            var picBtn = r.photo_url
+              ? '<div style="margin-top:0.25rem"><button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.photo_url) + '\',\'Bukti%20Koreksi%20' + encodeURIComponent(r.att_date || "") + '\')">📷 Bukti</button></div>'
+              : '';
             return '<tr>' +
               '<td class="mono">' + esc(r.att_date) + '</td>' +
               '<td><strong>' + esc(attReqTypeLabel(r.req_type)) + '</strong></td>' +
               '<td><div>' + esc(r.shift_name || "—") + ' <span class="mono">(' + esc(fmtTimes(r)) + ')</span></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase()) + '</div></td>' +
-              '<td style="font-size:0.78rem;max-width:220px">' + esc(r.reason || "—") + '</td>' +
+              '<td style="font-size:0.78rem;max-width:220px">' + esc(r.reason || "—") + picBtn + '</td>' +
               '<td>' + attReqStatusBadge(r.status) + revInfo + '</td>' +
             '</tr>';
           }).join("");
@@ -44329,11 +44428,12 @@ function closeOtModal() {
           ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada pengajuan lupa absen</div></div>'
           : list.slice(0, 25).map(function(r) {
               var revM = r.reviewed_by ? '<div class="m-sub" style="margin-top:0.25rem">Diproses oleh ' + esc(r.reviewed_by_name || r.reviewed_by) + (r.review_note ? ' · ' + esc(r.review_note) : '') + '</div>' : '';
+              var picM = r.photo_url ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.photo_url) + '\',\'Bukti%20Koreksi%20' + encodeURIComponent(r.att_date || "") + '\')">📷 Bukti</button>' : '';
               return '<div class="m-card">' +
                 '<div class="m-title">' + esc(r.att_date) + ' · ' + esc(attReqTypeLabel(r.req_type)) + '</div>' +
                 '<div class="m-sub">' + esc(r.shift_name || "—") + ' · ' + esc(fmtTimes(r)) + (r.company_name ? ' · ' + esc(r.company_name) : '') + '</div>' +
                 '<div class="m-sub">' + esc(r.reason || "") + '</div>' +
-                '<div class="m-row">' + attReqStatusBadge(r.status) + '</div>' + revM +
+                '<div class="m-row">' + attReqStatusBadge(r.status) + picM + '</div>' + revM +
               '</div>';
             }).join("");
       }
@@ -44387,12 +44487,15 @@ function closeOtModal() {
                   '<button type="button" class="btn btn-sm btn-danger" onclick="attOpenRejectReqModal(\'' + encodeURIComponent(r.req_id) + '\')">Tolak</button>' +
                 '</div>'
               : '<span style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.reviewed_by_name || r.reviewed_by || "Selesai") + (r.review_note ? '<br>' + esc(r.review_note) : '') + '</span>';
+            var picBtnAdm = r.photo_url
+              ? '<div style="margin-top:0.25rem"><button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.photo_url) + '\',\'Bukti%20Koreksi%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Lihat Bukti</button></div>'
+              : '';
             return '<tr>' +
               '<td><div><strong>' + esc(r.user_name || r.user_email) + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.user_email) + (r.user_role ? ' · ' + esc(r.user_role) : '') + '</div></td>' +
               '<td class="mono">' + esc(r.att_date) + '</td>' +
               '<td><strong>' + esc(attReqTypeLabel(r.req_type)) + '</strong></td>' +
               '<td><div>' + esc(r.shift_name || "—") + '</div><div class="mono" style="font-size:0.76rem;color:#065f46;font-weight:700">' + esc(fmtTimes(r)) + '</div><div style="font-size:0.71rem;color:var(--text-muted)">' + esc((r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase()) + '</div></td>' +
-              '<td style="font-size:0.78rem;max-width:210px">' + esc(r.reason || "—") + '</td>' +
+              '<td style="font-size:0.78rem;max-width:210px">' + esc(r.reason || "—") + picBtnAdm + '</td>' +
               '<td>' + attReqStatusBadge(r.status) + '</td>' +
               '<td>' + actionHtml + '</td>' +
             '</tr>';
@@ -44404,6 +44507,7 @@ function closeOtModal() {
           ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Tidak ada pengajuan</div></div>'
           : list.slice(0, 30).map(function(r) {
               var isPend = (r.status || "pending") === "pending";
+              var picMAdm = r.photo_url ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.photo_url) + '\',\'Bukti%20Koreksi%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Lihat Bukti</button>' : '';
               var btns = isPend
                 ? '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem">' +
                     '<button type="button" class="btn btn-sm btn-primary" onclick="attReviewRequest(\'' + encodeURIComponent(r.req_id) + '\',\'approved\')">Setujui &amp; Terapkan</button>' +
@@ -44414,7 +44518,7 @@ function closeOtModal() {
                 '<div class="m-title">' + esc(r.user_name || r.user_email) + ' · ' + esc(r.att_date) + '</div>' +
                 '<div class="m-sub"><b>' + esc(attReqTypeLabel(r.req_type)) + '</b> · ' + esc(r.shift_name || "—") + ' (' + esc(fmtTimes(r)) + ')</div>' +
                 '<div class="m-sub">' + esc(r.reason || "") + '</div>' +
-                '<div class="m-row">' + attReqStatusBadge(r.status) + '</div>' + btns +
+                '<div class="m-row">' + attReqStatusBadge(r.status) + picMAdm + '</div>' + btns +
               '</div>';
             }).join("");
       }
@@ -44506,7 +44610,9 @@ function closeOtModal() {
           shift_end: shiftObj.end,
           work_mode: req.work_mode || existing.work_mode || "wfo",
           clock_in_at: inIso,
+          clock_in_photo: ((req.req_type === "lupa_in" || req.req_type === "lupa_both") && !existing.clock_in_photo && req.photo_url) ? req.photo_url : (existing.clock_in_photo || null),
           clock_out_at: outIso,
+          clock_out_photo: ((req.req_type === "lupa_out" || req.req_type === "lupa_both") && !existing.clock_out_photo && req.photo_url) ? req.photo_url : (existing.clock_out_photo || null),
           late_minutes: lateMins,
           early_out_minutes: earlyMins,
           status: newStatus,
