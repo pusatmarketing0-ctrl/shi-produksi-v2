@@ -7686,14 +7686,21 @@
       cursor: pointer;
     }
     .att-missing-chip:hover { background: #fef3c7; }
+    .att-loc-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.75rem 0.85rem;
+      margin-bottom: 0.65rem;
+    }
     .att-shift-row {
       display: grid;
-      grid-template-columns: 1.5fr 0.85fr 0.85fr 0.75fr auto;
+      grid-template-columns: 1.2fr 0.75fr 0.75fr 0.65fr 1.25fr auto;
       gap: 0.45rem;
       align-items: center;
       margin-bottom: 0.45rem;
     }
-    @media (max-width: 680px) {
+    @media (max-width: 760px) {
       .att-shift-row { grid-template-columns: 1fr 1fr; }
     }
     .att-cam-box {
@@ -8904,15 +8911,21 @@
                   <div class="field" style="margin:0">
                     <label style="font-size:0.74rem">Mode Kehadiran</label>
                     <select id="attWorkMode" onchange="attRenderGpsPreview()">
-                      <option value="wfo">WFO (Lokasi Pabrik)</option>
+                      <option value="wfo">WFO (Lokasi Kantor/Pabrik)</option>
                       <option value="dinas">Dinas Luar</option>
                       <option value="wfh">WFH / Remote</option>
                     </select>
                   </div>
                 </div>
-                <div class="field" style="margin:0">
-                  <label style="font-size:0.74rem">Catatan (opsional)</label>
-                  <input id="attNotes" type="text" placeholder="Contoh: lembur / tugas luar / kendala jalan…" />
+                <div class="att-form-row">
+                  <div class="field" style="margin:0">
+                    <label style="font-size:0.74rem">Perusahaan / Lokasi</label>
+                    <select id="attLocSelect" onchange="attRenderGpsPreview()"></select>
+                  </div>
+                  <div class="field" style="margin:0">
+                    <label style="font-size:0.74rem">Catatan (opsional, wajib jika pulang awal)</label>
+                    <input id="attNotes" type="text" placeholder="Contoh: lembur / izin pulang awal…" />
+                  </div>
                 </div>
                 <div id="attGpsBox" class="att-gps-box">
                   <div>
@@ -8988,11 +9001,13 @@
             </div>
             <div class="toolbar" style="flex-wrap:wrap">
               <input type="date" id="attAdmDate" onchange="loadAttendanceAdmin()" />
+              <select id="attAdmCompany" onchange="renderAttendanceAdmin()"><option value="">Semua perusahaan</option></select>
               <select id="attAdmShift" onchange="renderAttendanceAdmin()"><option value="">Semua shift</option></select>
               <select id="attAdmStatus" onchange="renderAttendanceAdmin()">
                 <option value="">Semua status</option>
                 <option value="hadir">Tepat Waktu</option>
                 <option value="terlambat">Terlambat</option>
+                <option value="pulang_awal">Pulang Lebih Awal</option>
                 <option value="no_out">Belum Clock Out</option>
                 <option value="out_radius">Di Luar Radius</option>
                 <option value="belum_absen">Belum Absen</option>
@@ -9009,7 +9024,7 @@
             <div class="card desk-only-table" style="padding:0;overflow:hidden">
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Karyawan</th><th>Shift &amp; Mode</th><th>Clock In (GPS)</th><th>Clock Out (GPS)</th><th>Status</th><th>Catatan</th><th></th></tr></thead>
+                  <thead><tr><th>Karyawan</th><th>Shift &amp; Lokasi</th><th>Clock In (GPS)</th><th>Clock Out (GPS)</th><th>Status</th><th>Catatan</th><th></th></tr></thead>
                   <tbody id="attAdmBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
                 </table>
               </div>
@@ -9020,44 +9035,40 @@
           <!-- Pane: Pengaturan Lokasi & Shift (Hanya Admin) -->
           <div id="attPaneSettings" class="mod-pane" hidden>
             <div class="card" style="margin-bottom:0.85rem">
-              <h3 style="margin:0 0 0.25rem">Lokasi Pabrik / Kantor &amp; Radius GPS</h3>
-              <p style="margin:0 0 0.85rem;font-size:0.8rem;color:var(--text-muted)">Atur titik koordinat pabrik dan toleransi jarak GPS untuk validasi Clock In / Clock Out.</p>
-              <div class="att-form-row">
-                <div class="field"><label>Nama Lokasi / Pabrik</label><input id="attSetOfficeName" type="text" placeholder="PT. Sentra Herbal Internasional" /></div>
-                <div class="field"><label>Radius Maksimal (meter)</label><input id="attSetRadius" type="number" min="20" max="5000" value="150" /></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0 0 0.2rem">Daftar Lokasi / Perusahaan &amp; Radius GPS</h3>
+                  <p style="margin:0;font-size:0.8rem;color:var(--text-muted)">Atur titik GPS untuk masing-masing perusahaan/lokasi (misal PT. Sentra Herbal Internasional &amp; Sentra Digital Marketing).</p>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="attAddLocationCard()">+ Tambah Lokasi</button>
               </div>
-              <div class="att-form-row">
-                <div class="field"><label>Latitude <span style="font-weight:400;color:var(--text-muted);font-size:0.72rem">(bisa paste &quot;lat, lng&quot;)</span></label><input id="attSetLat" type="text" placeholder="-6.xxxxxx" oninput="attHandleCoordPaste(this.value)" /></div>
-                <div class="field"><label>Longitude</label><input id="attSetLng" type="text" placeholder="106.xxxxxx" /></div>
+              <div id="attSetLocationsHost"></div>
+              <div style="margin-top:0.5rem">
+                <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer;margin-bottom:0.45rem">
+                  <input type="checkbox" id="attSetStrictRadius" checked />
+                  <span>Wajib di dalam radius lokasi saat Clock In / Clock Out untuk mode <b>WFO</b></span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer;margin-bottom:0.45rem">
+                  <input type="checkbox" id="attSetRequireSelfie" checked />
+                  <span>Wajib ambil <b>foto selfie kamera</b> saat Clock In &amp; Clock Out</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer">
+                  <input type="checkbox" id="attSetStrictDevice" checked />
+                  <span>Tolak Clock Out jika <b>perangkat/HP berbeda</b> dari saat Clock In (anti titip absen)</span>
+                </label>
               </div>
-              <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.75rem">
-                <button type="button" class="btn btn-primary btn-sm" onclick="attCaptureAdminGps()">Ambil Lokasi Saya Saat Ini (GPS)</button>
-                <a id="attSetMapPreviewLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" style="display:none">Lihat di Google Maps</a>
-              </div>
-              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer;margin-bottom:0.45rem">
-                <input type="checkbox" id="attSetStrictRadius" checked />
-                <span>Wajib di dalam radius pabrik saat Clock In / Clock Out untuk mode <b>WFO</b></span>
-              </label>
-              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer;margin-bottom:0.45rem">
-                <input type="checkbox" id="attSetRequireSelfie" checked />
-                <span>Wajib ambil <b>foto selfie kamera</b> saat Clock In &amp; Clock Out</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer">
-                <input type="checkbox" id="attSetStrictDevice" checked />
-                <span>Tolak Clock Out jika <b>perangkat/HP berbeda</b> dari saat Clock In (anti titip absen)</span>
-              </label>
             </div>
 
             <div class="card" style="margin-bottom:0.85rem">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem">
                 <div>
                   <h3 style="margin:0">Daftar Shift &amp; Jam Kerja</h3>
-                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Tentukan jam masuk, jam pulang, dan toleransi keterlambatan (menit).</p>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Tentukan jam masuk, jam pulang, toleransi terlambat, dan lokasi/perusahaan shift tersebut.</p>
                 </div>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="attAddShiftRow()">+ Tambah Shift</button>
               </div>
-              <div style="display:grid;grid-template-columns:1.5fr 0.85fr 0.85fr 0.75fr auto;gap:0.45rem;font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem" class="desk-only-table">
-                <span>Nama Shift</span><span>Jam Masuk</span><span>Jam Pulang</span><span>Toleransi (mnt)</span><span></span>
+              <div style="display:grid;grid-template-columns:1.2fr 0.75fr 0.75fr 0.65fr 1.25fr auto;gap:0.45rem;font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem" class="desk-only-table">
+                <span>Nama Shift</span><span>Jam Masuk</span><span>Jam Pulang</span><span>Toleransi (mnt)</span><span>Perusahaan / Lokasi</span><span></span>
               </div>
               <div id="attSetShiftsHost"></div>
               <div style="margin-top:0.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
@@ -10543,6 +10554,28 @@
       <div class="sheet-foot">
         <a id="attPhotoModalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" style="display:none">Buka Link Asli</a>
         <button type="button" class="btn btn-primary" onclick="attClosePhotoModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attEarlyOutModal" class="modal-bg" style="z-index:100185">
+    <div class="modal modal-sheet" style="max-width:460px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2>Alasan Pulang Lebih Awal</h2>
+        <button type="button" class="ot-close-x" onclick="attCloseEarlyOutModal(true)" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <div id="attEarlyInfo" style="background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:10px;padding:0.6rem 0.75rem;font-size:0.8rem;line-height:1.45;margin-bottom:0.7rem"></div>
+        <div class="field" style="margin:0">
+          <label>Alasan Pulang Lebih Awal <span style="color:#dc2626">* Wajib diisi</span></label>
+          <textarea id="attEarlyReasonInp" rows="3" placeholder="Tuliskan alasan pulang lebih awal dengan jelas (minimal 5 karakter)…"></textarea>
+        </div>
+        <div id="attEarlyErr" style="display:none;color:#dc2626;font-size:0.76rem;margin-top:0.35rem;font-weight:600"></div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="attCloseEarlyOutModal(true)">Batal</button>
+        <button type="button" class="btn btn-primary" style="background:#be123c;border-color:#be123c" onclick="attConfirmEarlyOut()">Lanjutkan Clock Out</button>
       </div>
     </div>
   </div>
@@ -38563,7 +38596,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-lock";
+    var APP_BUILD_TAG = "2026.11.27-absensi-multi";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -40714,14 +40747,18 @@ function closeOtModal() {
       strict_radius: true,
       strict_device: true,
       require_selfie: true,
+      locations: [
+        { id: "shi", name: "PT. Sentra Herbal Internasional", lat: null, lng: null, radius_m: 150 },
+        { id: "sdm", name: "Sentra Digital Marketing", lat: null, lng: null, radius_m: 150 }
+      ],
       shifts: [
-        { name: "Office / Non-Shift", start: "07:30", end: "15:15", grace_min: 10 },
-        { name: "Shift 1", start: "07:30", end: "15:15", grace_min: 10 },
-        { name: "Shift 2", start: "15:45", end: "23:55", grace_min: 10 },
-        { name: "Shift 3", start: "23:59", end: "07:30", grace_min: 10 },
-        { name: "SDM 1", start: "07:30", end: "16:00", grace_min: 10 },
-        { name: "SDM 2", start: "08:50", end: "17:00", grace_min: 10 },
-        { name: "Driver 2", start: "13:30", end: "22:00", grace_min: 10 }
+        { name: "Office / Non-Shift", start: "07:30", end: "15:15", grace_min: 10, location_id: "shi" },
+        { name: "Shift 1", start: "07:30", end: "15:15", grace_min: 10, location_id: "shi" },
+        { name: "Shift 2", start: "15:45", end: "23:55", grace_min: 10, location_id: "shi" },
+        { name: "Shift 3", start: "23:59", end: "07:30", grace_min: 10, location_id: "shi" },
+        { name: "SDM 1", start: "07:30", end: "16:00", grace_min: 10, location_id: "sdm" },
+        { name: "SDM 2", start: "08:50", end: "17:00", grace_min: 10, location_id: "sdm" },
+        { name: "Driver 2", start: "13:30", end: "22:00", grace_min: 10, location_id: "shi" }
       ]
     };
     var ATT_SETUP_SQL = [
@@ -40734,6 +40771,7 @@ function closeOtModal() {
       "  strict_radius boolean not null default true,",
       "  strict_device boolean not null default true,",
       "  require_selfie boolean not null default true,",
+      "  locations jsonb not null default '[]'::jsonb,",
       "  shifts jsonb not null default '[]'::jsonb,",
       "  updated_by text,",
       "  updated_at timestamptz default now()",
@@ -40744,6 +40782,8 @@ function closeOtModal() {
       "  user_email text not null,",
       "  user_name text,",
       "  user_role text,",
+      "  location_id text,",
+      "  company_name text,",
       "  shift_name text,",
       "  shift_start text,",
       "  shift_end text,",
@@ -40763,6 +40803,8 @@ function closeOtModal() {
       "  clock_out_photo text,",
       "  clock_out_device_id text,",
       "  late_minutes integer default 0,",
+      "  early_out_minutes integer default 0,",
+      "  early_out_reason text,",
       "  status text default 'hadir',",
       "  notes text,",
       "  corrected_by text,",
@@ -40795,6 +40837,7 @@ function closeOtModal() {
     var attSelfieMeta = null;
     var attSelfieResolve = null;
     var attDraftShift = "";
+    var attEarlyResolve = null;
 
     function attIsMissingTableErr(err) {
       if (!err) return false;
@@ -40850,6 +40893,13 @@ function closeOtModal() {
       return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
     }
 
+    function attNextDate(ymd) {
+      var d = new Date(String(ymd || todayStr()) + "T12:00:00");
+      d.setDate(d.getDate() + 1);
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+    }
+
     function attFmtDateLongWib(ymd) {
       try {
         var d = new Date(String(ymd) + "T12:00:00+07:00");
@@ -40901,32 +40951,92 @@ function closeOtModal() {
       return diff > grace ? Math.max(0, diff) : 0;
     }
 
+    function attComputeEarlyOutMins(clockInIso, clockOutIso, shiftObj, attDate) {
+      if (!clockOutIso || !shiftObj || !shiftObj.end) return 0;
+      var sMins = attParseHmMins(shiftObj.start || "08:00");
+      var eMins = attParseHmMins(shiftObj.end || "17:00");
+      var inWp = attWibParts(clockInIso || clockOutIso);
+      var baseDate = attDate || inWp.ymd;
+      var endDate = baseDate;
+      if (eMins < sMins) {
+        endDate = inWp.mins >= 12 * 60 ? attNextDate(inWp.ymd) : inWp.ymd;
+      }
+      var schedEndMs = new Date(endDate + "T" + String(shiftObj.end).slice(0, 5) + ":00+07:00").getTime();
+      var outMs = new Date(clockOutIso).getTime();
+      if (!isFinite(schedEndMs) || !isFinite(outMs)) return 0;
+      var diffMins = Math.floor(schedEndMs / 60000) - Math.floor(outMs / 60000);
+      return diffMins > 0 ? diffMins : 0;
+    }
+
     function attNormalizeSettings(raw) {
       var def = JSON.parse(JSON.stringify(ATT_DEFAULT_SETTINGS));
       if (!raw || typeof raw !== "object") return def;
+
+      var locs = Array.isArray(raw.locations) ? raw.locations : [];
+      if (typeof raw.locations === "string") {
+        try { locs = JSON.parse(raw.locations); } catch (eL) { locs = []; }
+      }
+      locs = (locs || []).map(function(l, idx) {
+        var nm = String((l && l.name) || "").trim();
+        var lid = String((l && l.id) || "").trim() || ("loc_" + (idx + 1));
+        var lLat = (l && l.lat !== null && l.lat !== undefined && l.lat !== "" && isFinite(Number(l.lat))) ? Number(l.lat) : null;
+        var lLng = (l && l.lng !== null && l.lng !== undefined && l.lng !== "" && isFinite(Number(l.lng))) ? Number(l.lng) : null;
+        return {
+          id: lid,
+          name: nm || ("Lokasi " + (idx + 1)),
+          lat: lLat,
+          lng: lLng,
+          radius_m: Math.max(20, Math.min(5000, Number(l && l.radius_m) || def.radius_m))
+        };
+      }).filter(function(l) { return !!l.name; });
+
+      var rawLat = (raw.lat !== null && raw.lat !== undefined && raw.lat !== "" && isFinite(Number(raw.lat))) ? Number(raw.lat) : null;
+      var rawLng = (raw.lng !== null && raw.lng !== undefined && raw.lng !== "" && isFinite(Number(raw.lng))) ? Number(raw.lng) : null;
+      if (!locs.length) {
+        locs = JSON.parse(JSON.stringify(def.locations));
+        if (raw.office_name) locs[0].name = String(raw.office_name).trim() || locs[0].name;
+        if (rawLat != null && rawLng != null) {
+          locs[0].lat = rawLat;
+          locs[0].lng = rawLng;
+        }
+        if (raw.radius_m != null) locs[0].radius_m = Math.max(20, Math.min(5000, Number(raw.radius_m) || 150));
+      }
+
       var shifts = Array.isArray(raw.shifts) ? raw.shifts : [];
       if (typeof raw.shifts === "string") {
         try { shifts = JSON.parse(raw.shifts); } catch (e) { shifts = []; }
       }
       shifts = (shifts || []).map(function(s) {
+        var sName = String((s && s.name) || "Shift").trim() || "Shift";
+        var sLocId = s && s.location_id !== undefined && s.location_id !== null ? String(s.location_id).trim() : null;
+        if (sLocId === null) {
+          if (/^sdm\b/i.test(sName) && locs.some(function(l) { return l.id === "sdm" || /digital/i.test(l.name); })) {
+            var sdmLoc = locs.find(function(l) { return l.id === "sdm" || /digital/i.test(l.name); });
+            sLocId = sdmLoc ? sdmLoc.id : "";
+          } else {
+            sLocId = locs[0] ? locs[0].id : "";
+          }
+        }
         return {
-          name: String((s && s.name) || "Shift").trim() || "Shift",
+          name: sName,
           start: String((s && s.start) || "08:00").slice(0, 5),
           end: String((s && s.end) || "17:00").slice(0, 5),
-          grace_min: Math.max(0, Number(s && s.grace_min) || 0)
+          grace_min: Math.max(0, Number(s && s.grace_min) || 0),
+          location_id: sLocId
         };
       }).filter(function(s) { return !!s.name; });
       if (!shifts.length) shifts = def.shifts;
-      var lat = (raw.lat !== null && raw.lat !== undefined && raw.lat !== "" && isFinite(Number(raw.lat))) ? Number(raw.lat) : null;
-      var lng = (raw.lng !== null && raw.lng !== undefined && raw.lng !== "" && isFinite(Number(raw.lng))) ? Number(raw.lng) : null;
+
+      var primaryLoc = locs[0] || {};
       return {
-        office_name: String(raw.office_name || def.office_name).trim() || def.office_name,
-        lat: lat,
-        lng: lng,
-        radius_m: Math.max(20, Math.min(5000, Number(raw.radius_m) || def.radius_m)),
+        office_name: String(primaryLoc.name || raw.office_name || def.office_name).trim() || def.office_name,
+        lat: primaryLoc.lat != null ? primaryLoc.lat : rawLat,
+        lng: primaryLoc.lng != null ? primaryLoc.lng : rawLng,
+        radius_m: Number(primaryLoc.radius_m || raw.radius_m || def.radius_m),
         strict_radius: raw.strict_radius !== false,
         strict_device: raw.strict_device !== false,
         require_selfie: raw.require_selfie !== false,
+        locations: locs,
         shifts: shifts
       };
     }
@@ -40983,7 +41093,7 @@ function closeOtModal() {
       var email = (currentUser && currentUser.email) || "";
       var savedPrimary = false;
       try {
-        var res = await sb.from("attendance_settings").upsert({
+        var setRow = {
           id: "default",
           office_name: clean.office_name,
           lat: clean.lat,
@@ -40992,10 +41102,18 @@ function closeOtModal() {
           strict_radius: clean.strict_radius,
           strict_device: clean.strict_device,
           require_selfie: clean.require_selfie,
+          locations: clean.locations,
           shifts: clean.shifts,
           updated_by: email,
           updated_at: nowIso
-        }, { onConflict: "id" });
+        };
+        var res = await sb.from("attendance_settings").upsert(setRow, { onConflict: "id" });
+        if (res.error && String(res.error.code || "").toUpperCase() === "PGRST204") {
+          var slimSet = Object.assign({}, setRow);
+          delete slimSet.locations;
+          delete slimSet.strict_device;
+          res = await sb.from("attendance_settings").upsert(slimSet, { onConflict: "id" });
+        }
         if (!res.error) {
           attStorageMode = "table";
           savedPrimary = true;
@@ -41004,7 +41122,7 @@ function closeOtModal() {
               module: "attendance_history",
               action: "save_settings",
               ref_id: "default",
-              summary: "Update lokasi & shift absensi (" + clean.office_name + ", radius " + clean.radius_m + "m)",
+              summary: "Update lokasi & shift absensi (" + clean.locations.length + " lokasi)",
               after: clean
             });
           } catch (eAu) {}
@@ -41026,7 +41144,7 @@ function closeOtModal() {
           module: "attendance_settings",
           action: "save_settings",
           ref_id: "default",
-          summary: "Pengaturan lokasi & shift absensi (" + clean.office_name + ", radius " + clean.radius_m + "m)",
+          summary: "Pengaturan lokasi & shift (" + clean.locations.map(function(l) { return l.name; }).join(", ") + ")",
           after_data: clean
         });
         if (fb.error) {
@@ -41117,6 +41235,8 @@ function closeOtModal() {
         user_email: targetEmail,
         user_name: rec.user_name || rec.user_email || "",
         user_role: rec.user_role || "",
+        location_id: rec.location_id || null,
+        company_name: rec.company_name || null,
         shift_name: rec.shift_name || "",
         shift_start: rec.shift_start || "",
         shift_end: rec.shift_end || "",
@@ -41136,6 +41256,8 @@ function closeOtModal() {
         clock_out_photo: rec.clock_out_photo || null,
         clock_out_device_id: rec.clock_out_device_id || null,
         late_minutes: Math.max(0, Math.round(Number(rec.late_minutes) || 0)),
+        early_out_minutes: Math.max(0, Math.round(Number(rec.early_out_minutes) || 0)),
+        early_out_reason: rec.early_out_reason || null,
         status: rec.status || "hadir",
         notes: rec.notes || "",
         corrected_by: rec.corrected_by || null,
@@ -41153,6 +41275,10 @@ function closeOtModal() {
             var slimRow = Object.assign({}, row);
             delete slimRow.clock_in_device_id;
             delete slimRow.clock_out_device_id;
+            delete slimRow.location_id;
+            delete slimRow.company_name;
+            delete slimRow.early_out_minutes;
+            delete slimRow.early_out_reason;
             res = await sb.from("attendance_logs")
               .upsert(slimRow, { onConflict: "att_date,user_email" })
               .select("*")
@@ -41355,9 +41481,57 @@ function closeOtModal() {
       return shifts.find(function(s) { return s.name === name; }) || shifts[0];
     }
 
+    function attGetLocationsList() {
+      return (attSettings && attSettings.locations && attSettings.locations.length) ? attSettings.locations : ATT_DEFAULT_SETTINGS.locations;
+    }
+
+    function attPopulateLocationSelect(preferLocId) {
+      var sel = $("attLocSelect");
+      if (!sel) return;
+      var locs = attGetLocationsList();
+      var prev = preferLocId !== undefined ? preferLocId : sel.value;
+      sel.innerHTML = '<option value="">Otomatis (Sesuai Shift / Terdekat)</option>' +
+        locs.map(function(l) {
+          return '<option value="' + esc(l.id) + '">' + esc(l.name) + '</option>';
+        }).join("");
+      var hasMatch = prev && locs.some(function(l) { return l.id === prev; });
+      sel.value = hasMatch ? prev : "";
+    }
+
+    function attResolveTargetLocation(shiftObj, gps, preferLocId) {
+      var locs = attGetLocationsList();
+      var wantId = preferLocId || (shiftObj && shiftObj.location_id) || "";
+      if (wantId) {
+        var found = locs.find(function(l) { return l.id === wantId; });
+        if (found) return found;
+      }
+      if (gps && gps.lat != null && gps.lng != null) {
+        var best = null;
+        var bestDist = Infinity;
+        locs.forEach(function(l) {
+          if (l.lat != null && l.lng != null) {
+            var d = attCalcDistM(gps.lat, gps.lng, l.lat, l.lng);
+            if (d != null && d < bestDist) {
+              bestDist = d;
+              best = l;
+            }
+          }
+        });
+        if (best) return best;
+      }
+      return locs[0] || { id: "default", name: attSettings.office_name || "Lokasi Kerja", lat: attSettings.lat, lng: attSettings.lng, radius_m: attSettings.radius_m || 150 };
+    }
+
     function attOnShiftChange(val) {
       var next = val !== undefined ? String(val || "") : (($("attShiftSelect") && $("attShiftSelect").value) || "");
       attSetDraftShift(next);
+      if (next) {
+        var sh = attGetShiftsList().find(function(s) { return s.name === next; });
+        if (sh && sh.location_id) {
+          attPopulateLocationSelect(sh.location_id);
+        }
+      }
+      attRenderGpsPreview();
     }
 
     function attRenderGpsPreview() {
@@ -41366,15 +41540,22 @@ function closeOtModal() {
       var sub = $("attGpsSub");
       if (!box || !txt || !sub) return;
       box.className = "att-gps-box";
-      var hasTarget = attSettings && attSettings.lat != null && attSettings.lng != null;
+      var r = attActiveRecord;
+      var shiftName = (r && r.clock_in_at && !r.clock_out_at && r.shift_name) || ($("attShiftSelect") && $("attShiftSelect").value) || attGetDraftShift() || "";
+      var shObj = shiftName ? attGetShiftsList().find(function(s) { return s.name === shiftName; }) : null;
+      var preferLoc = (r && r.clock_in_at && !r.clock_out_at && r.location_id) || ($("attLocSelect") && $("attLocSelect").value) || "";
+      var targetLoc = attResolveTargetLocation(shObj, attLastGps, preferLoc);
+      var locName = (targetLoc && targetLoc.name) || "Lokasi Kerja";
+      var rad = Number((targetLoc && targetLoc.radius_m) || (attSettings && attSettings.radius_m) || 150);
+      var hasTarget = targetLoc && targetLoc.lat != null && targetLoc.lng != null;
       var mode = ($("attWorkMode") && $("attWorkMode").value) || "wfo";
       if (!attLastGps) {
         if (!hasTarget) {
           box.classList.add("unset");
-          txt.textContent = "Koordinat pabrik belum diset Admin — absensi tetap tersimpan dengan GPS Anda.";
+          txt.textContent = "Target: " + locName + " — koordinat belum diset Admin (absen tetap tercatat dengan GPS Anda).";
           sub.textContent = "Tekan Cek GPS atau langsung Clock In / Clock Out.";
         } else {
-          txt.textContent = "Lokasi target: " + (attSettings.office_name || "Pabrik") + " (radius " + attSettings.radius_m + " m).";
+          txt.textContent = "Lokasi target: " + locName + " (radius " + rad + " m).";
           sub.textContent = "Tekan Cek GPS untuk cek jarak sebelum Clock In / Out.";
         }
         return;
@@ -41383,19 +41564,18 @@ function closeOtModal() {
       var coordsTxt = attLastGps.lat.toFixed(5) + ", " + attLastGps.lng.toFixed(5) + " (±" + attLastGps.acc + " m)";
       if (!hasTarget) {
         box.classList.add("ok");
-        txt.textContent = "GPS terbaca: " + coordsTxt;
-        sub.innerHTML = (mapUrl ? '<a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer">Lihat titik di Google Maps</a> · ' : "") + "Koordinat pabrik belum diset Admin.";
+        txt.textContent = "GPS terbaca: " + coordsTxt + " · " + locName;
+        sub.innerHTML = (mapUrl ? '<a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer">Lihat titik di Google Maps</a> · ' : "") + "Koordinat " + esc(locName) + " belum diset Admin.";
         return;
       }
-      var dist = attCalcDistM(attLastGps.lat, attLastGps.lng, attSettings.lat, attSettings.lng);
-      var rad = Number(attSettings.radius_m || 150);
+      var dist = attCalcDistM(attLastGps.lat, attLastGps.lng, targetLoc.lat, targetLoc.lng);
       var inside = dist != null && dist <= rad;
       if (inside || mode !== "wfo") {
         box.classList.add("ok");
-        txt.textContent = (inside ? "Dalam radius pabrik: " + dist + " m (maks " + rad + " m)" : "Mode " + mode.toUpperCase() + " · jarak " + dist + " m dari pabrik");
+        txt.textContent = (inside ? "Dalam radius " + locName + ": " + dist + " m (maks " + rad + " m)" : "Mode " + mode.toUpperCase() + " · jarak " + dist + " m dari " + locName);
       } else {
         box.classList.add("out");
-        txt.textContent = "Di luar radius pabrik: " + dist + " m (maks " + rad + " m)";
+        txt.textContent = "Di luar radius " + locName + ": " + dist + " m (maks " + rad + " m)";
       }
       sub.innerHTML = "GPS: " + esc(coordsTxt) + (mapUrl ? ' · <a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer">Lihat Maps</a>' : "");
     }
@@ -41440,7 +41620,14 @@ function closeOtModal() {
     function attFormatRecBadge(r) {
       if (!r || !r.clock_in_at) return '<span class="badge-st badge-partial">Belum Absen</span>';
       var out = "";
-      if (Number(r.late_minutes) > 0 || r.status === "terlambat") {
+      var isEarly = r.status === "pulang_awal" || Number(r.early_out_minutes) > 0;
+      var isLate = Number(r.late_minutes) > 0 || r.status === "terlambat";
+      if (isEarly) {
+        out += '<span class="badge-st" style="background:#ffe4e6;color:#9f1239">Pulang Lebih Awal' + (Number(r.early_out_minutes) > 0 ? ' (' + Number(r.early_out_minutes) + ' mnt)' : '') + '</span>';
+        if (isLate) {
+          out += ' <span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Telat ' + (Number(r.late_minutes) || 0) + ' mnt</span>';
+        }
+      } else if (isLate) {
         out += '<span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Terlambat ' + (Number(r.late_minutes) || 0) + ' mnt</span>';
       } else {
         out += '<span class="badge-st badge-done">Tepat Waktu</span>';
@@ -41448,8 +41635,12 @@ function closeOtModal() {
       if (!r.clock_out_at) {
         out += ' <span class="badge-st" style="background:#e0f2fe;color:#0369a1">Belum Pulang</span>';
       }
-      var rad = Number((attSettings && attSettings.radius_m) || 150);
-      var hasTarget = attSettings && attSettings.lat != null && attSettings.lng != null;
+      var locs = attGetLocationsList();
+      var locObj = (r.location_id && locs.find(function(l) { return l.id === r.location_id; })) ||
+        (r.company_name && locs.find(function(l) { return l.name === r.company_name; })) ||
+        locs[0];
+      var rad = Number((locObj && locObj.radius_m) || (attSettings && attSettings.radius_m) || 150);
+      var hasTarget = locObj && locObj.lat != null && locObj.lng != null;
       if (hasTarget && (r.work_mode || "wfo") === "wfo") {
         var dIn = r.clock_in_dist_m != null ? Number(r.clock_in_dist_m) : null;
         var dOut = r.clock_out_dist_m != null ? Number(r.clock_out_dist_m) : null;
@@ -41472,6 +41663,7 @@ function closeOtModal() {
       var btn = $("attClockBtn");
       var shiftSel = $("attShiftSelect");
       var modeSel = $("attWorkMode");
+      var locSel = $("attLocSelect");
       var r = attActiveRecord;
       if (!r || !r.clock_in_at) {
         if (chip) chip.textContent = "Belum Clock In hari ini";
@@ -41488,6 +41680,12 @@ function closeOtModal() {
           attPopulateShiftSelect(shiftSel, attGetDraftShift(), true);
         }
         if (modeSel) modeSel.disabled = false;
+        if (locSel) {
+          locSel.disabled = false;
+          var dSh = attGetDraftShift();
+          var dShObj = dSh ? attGetShiftsList().find(function(s) { return s.name === dSh; }) : null;
+          attPopulateLocationSelect(dShObj && dShObj.location_id ? dShObj.location_id : undefined);
+        }
         return;
       }
       if (shiftSel && r.shift_name) {
@@ -41495,13 +41693,18 @@ function closeOtModal() {
         shiftSel.value = r.shift_name;
       }
       if (modeSel && r.work_mode) modeSel.value = r.work_mode;
+      if (locSel) {
+        attPopulateLocationSelect(r.location_id || "");
+        locSel.disabled = true;
+      }
       var inTime = attWibParts(r.clock_in_at).hm;
+      var compInfo = r.company_name ? (" · " + r.company_name) : "";
       if (!r.clock_out_at) {
         if (chip) chip.textContent = (Number(r.late_minutes) > 0 ? "Masuk · Terlambat " + r.late_minutes + " mnt" : "Sudah Clock In (" + inTime + " WIB)");
         if (sum) {
           sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime + " WIB" +
             (r.clock_in_dist_m != null ? " (jarak " + r.clock_in_dist_m + " m)" : "") +
-            " · Shift " + (r.shift_name || "—");
+            " · Shift " + (r.shift_name || "—") + compInfo;
         }
         if (btn) {
           btn.disabled = false;
@@ -41513,9 +41716,10 @@ function closeOtModal() {
         if (shiftSel) shiftSel.disabled = true;
       } else {
         var outTime = attWibParts(r.clock_out_at).hm;
-        if (chip) chip.textContent = "Selesai Kerja Hari Ini";
+        var isEarly = r.status === "pulang_awal" || Number(r.early_out_minutes) > 0;
+        if (chip) chip.textContent = isEarly ? ("Pulang Lebih Awal (" + (r.early_out_minutes || 0) + " mnt)") : "Selesai Kerja Hari Ini";
         if (sum) {
-          sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime + " WIB · Pulang " + outTime + " WIB · Shift " + (r.shift_name || "—");
+          sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime + " WIB · Pulang " + outTime + " WIB · Shift " + (r.shift_name || "—") + compInfo;
         }
         if (btn) {
           btn.disabled = true;
@@ -41785,6 +41989,51 @@ function closeOtModal() {
       document.body.classList.remove("modal-open");
     }
 
+    function attPromptEarlyOutModal(info) {
+      return new Promise(function(resolve) {
+        attEarlyResolve = resolve;
+        if ($("attEarlyInfo")) {
+          $("attEarlyInfo").innerHTML =
+            "<b>" + esc(info.shiftName || "Shift") + "</b> (jadwal pulang <b>" + esc(info.schedEnd || "-") + " WIB</b>).<br>" +
+            "Sekarang pukul <b>" + esc(info.nowHm || "-") + " WIB</b> — Anda pulang lebih awal <b>" + esc(String(info.earlyMins || 0)) + " menit</b>.<br>" +
+            "Status absensi akan tercatat sebagai <b>Pulang Lebih Awal</b> dan wajib melampirkan alasan.";
+        }
+        var inp = $("attEarlyReasonInp");
+        if (inp) inp.value = (info.prefill || "").trim();
+        if ($("attEarlyErr")) $("attEarlyErr").style.display = "none";
+        if ($("attEarlyOutModal")) $("attEarlyOutModal").classList.add("show");
+        document.body.classList.add("modal-open");
+        setTimeout(function() { try { if (inp) inp.focus(); } catch (e) {} }, 80);
+      });
+    }
+
+    function attCloseEarlyOutModal(cancelled) {
+      if ($("attEarlyOutModal")) $("attEarlyOutModal").classList.remove("show");
+      if (!document.querySelector(".modal-bg.show")) document.body.classList.remove("modal-open");
+      if (cancelled && attEarlyResolve) {
+        var r = attEarlyResolve;
+        attEarlyResolve = null;
+        r(null);
+      }
+    }
+
+    function attConfirmEarlyOut() {
+      var inp = $("attEarlyReasonInp");
+      var reason = (inp && inp.value || "").trim();
+      if (reason.length < 5) {
+        if ($("attEarlyErr")) {
+          $("attEarlyErr").textContent = "Alasan pulang lebih awal wajib diisi minimal 5 karakter.";
+          $("attEarlyErr").style.display = "block";
+        }
+        try { if (inp) inp.focus(); } catch (e) {}
+        return;
+      }
+      var r = attEarlyResolve;
+      attEarlyResolve = null;
+      attCloseEarlyOutModal(false);
+      if (r) r(reason);
+    }
+
     async function attSubmitClock(fromHome) {
       if (attBusyClock) return;
       if (!currentUser || !currentUser.email) return toast("Silakan login ulang terlebih dahulu.", true);
@@ -41835,19 +42084,51 @@ function closeOtModal() {
           return;
         }
         var shiftObj = isOut && active && active.shift_name ? attFindShift(active.shift_name) : validShift;
+        if (isOut && active && active.shift_start && active.shift_end) {
+          shiftObj = Object.assign({}, shiftObj, { start: active.shift_start, end: active.shift_end });
+        }
         var workMode = isOut && active && active.work_mode
           ? active.work_mode
           : (($("attWorkMode") && $("attWorkMode").value) || "wfo");
         var notes = ($("attNotes") && $("attNotes").value || "").trim();
 
+        var checkNowIso = new Date().toISOString();
+        var checkWp = attWibParts(checkNowIso);
+        var earlyMins = 0;
+        var earlyReason = "";
+        if (isOut) {
+          earlyMins = attComputeEarlyOutMins(active.clock_in_at, checkNowIso, shiftObj, active.att_date);
+          if (earlyMins > 0) {
+            if (btn && !fromHome) btn.textContent = "Alasan Pulang Awal…";
+            var gotReason = await attPromptEarlyOutModal({
+              shiftName: shiftObj.name,
+              schedEnd: shiftObj.end,
+              nowHm: checkWp.hm,
+              earlyMins: earlyMins,
+              prefill: notes
+            });
+            if (!gotReason) {
+              toast("Clock Out dibatalkan (alasan pulang lebih awal wajib diisi).", true);
+              return;
+            }
+            earlyReason = gotReason;
+            if (btn && !fromHome) btn.textContent = "Mengambil GPS…";
+          }
+        }
+
         var gps = await attGetGps();
         attRenderGpsPreview();
 
-        var hasTarget = attSettings.lat != null && attSettings.lng != null;
-        var distM = hasTarget ? attCalcDistM(gps.lat, gps.lng, attSettings.lat, attSettings.lng) : null;
-        var maxRad = Number(attSettings.radius_m || 150);
+        var selectedLocId = isOut && active && active.location_id
+          ? active.location_id
+          : (($("attLocSelect") && $("attLocSelect").value) || "");
+        var targetLoc = attResolveTargetLocation(shiftObj, gps, selectedLocId);
+        var hasTarget = targetLoc && targetLoc.lat != null && targetLoc.lng != null;
+        var distM = hasTarget ? attCalcDistM(gps.lat, gps.lng, targetLoc.lat, targetLoc.lng) : null;
+        var maxRad = Number((targetLoc && targetLoc.radius_m) || attSettings.radius_m || 150);
+        var locLabel = (targetLoc && targetLoc.name) || attSettings.office_name || "Lokasi Kerja";
         if (hasTarget && workMode === "wfo" && attSettings.strict_radius && distM != null && distM > maxRad) {
-          toast("Di luar radius pabrik (" + distM + " m, maks " + maxRad + " m). Mendekat ke pabrik atau pilih mode Dinas Luar / WFH.", true);
+          toast("Di luar radius " + locLabel + " (" + distM + " m, maks " + maxRad + " m). Mendekat ke lokasi atau pilih mode Dinas Luar / WFH.", true);
           return;
         }
 
@@ -41863,7 +42144,7 @@ function closeOtModal() {
             userName: userName,
             gps: gps,
             distM: distM,
-            shiftName: shiftObj.name,
+            shiftName: shiftObj.name + " · " + locLabel,
             clockInPhoto: isOut && active ? active.clock_in_photo : null
           });
           if (!captured) {
@@ -41885,6 +42166,8 @@ function closeOtModal() {
             user_email: email,
             user_name: userName,
             user_role: currentRole() || "",
+            location_id: (targetLoc && targetLoc.id) || "",
+            company_name: locLabel,
             shift_name: shiftObj.name,
             shift_start: shiftObj.start,
             shift_end: shiftObj.end,
@@ -41897,13 +42180,24 @@ function closeOtModal() {
             clock_in_photo: photoUrl,
             clock_in_device_id: curDev || null,
             late_minutes: lateMins,
+            early_out_minutes: 0,
+            early_out_reason: null,
             status: lateMins > 0 ? "terlambat" : "hadir",
             notes: notes
           };
         } else {
+          earlyMins = attComputeEarlyOutMins(active.clock_in_at, nowIso, shiftObj, active.att_date);
           var mergedNotes = active.notes || "";
-          if (notes) mergedNotes = mergedNotes ? (mergedNotes + " | Pulang: " + notes) : notes;
+          if (earlyMins > 0 && earlyReason) {
+            var eTxt = "Pulang lebih awal (" + earlyMins + " mnt): " + earlyReason;
+            mergedNotes = mergedNotes ? (mergedNotes + " | " + eTxt) : eTxt;
+            if (notes && notes !== earlyReason) mergedNotes += " (" + notes + ")";
+          } else if (notes) {
+            mergedNotes = mergedNotes ? (mergedNotes + " | Pulang: " + notes) : notes;
+          }
           payload = Object.assign({}, active, {
+            location_id: active.location_id || (targetLoc && targetLoc.id) || "",
+            company_name: active.company_name || locLabel,
             clock_out_at: nowIso,
             clock_out_lat: gps.lat,
             clock_out_lng: gps.lng,
@@ -41911,6 +42205,9 @@ function closeOtModal() {
             clock_out_dist_m: distM,
             clock_out_photo: photoUrl || active.clock_out_photo || null,
             clock_out_device_id: curDev || null,
+            early_out_minutes: earlyMins,
+            early_out_reason: earlyMins > 0 ? earlyReason : (active.early_out_reason || null),
+            status: earlyMins > 0 ? "pulang_awal" : (active.status || (Number(active.late_minutes) > 0 ? "terlambat" : "hadir")),
             notes: mergedNotes
           });
         }
@@ -41928,17 +42225,17 @@ function closeOtModal() {
           await loadAttendanceMy();
           if (currentRole() === "admin" && attActiveTab === "admin") await loadAttendanceAdmin();
         }
-        var distInfo = distM != null ? " · jarak " + distM + " m" : "";
+        var distInfo = distM != null ? " · jarak " + distM + " m (" + locLabel + ")" : (" · " + locLabel);
         if (!isOut) {
           toast("Clock In berhasil pukul " + wp.hm + " WIB" + (payload.late_minutes > 0 ? " (terlambat " + payload.late_minutes + " mnt)" : "") + distInfo);
         } else {
-          toast("Clock Out berhasil pukul " + wp.hm + " WIB" + distInfo);
+          toast("Clock Out berhasil pukul " + wp.hm + " WIB" + (earlyMins > 0 ? " · Status: Pulang Lebih Awal (" + earlyMins + " mnt)" : "") + distInfo);
         }
       } catch (e) {
         toast((e && e.message) || "Gagal mencatat absensi.", true);
       } finally {
         attBusyClock = false;
-        if (btn && (btn.textContent === "Mengambil GPS…" || btn.textContent === "Menunggu Selfie…" || btn.textContent === "Mengupload Selfie…")) {
+        if (btn && (btn.textContent === "Mengambil GPS…" || btn.textContent === "Menunggu Selfie…" || btn.textContent === "Mengupload Selfie…" || btn.textContent === "Alasan Pulang Awal…")) {
           btn.disabled = false;
           btn.textContent = origText || "Clock In (Masuk)";
         }
@@ -41979,7 +42276,7 @@ function closeOtModal() {
             '<div class="att-quick-left">' +
               '<div class="att-quick-dot">✓</div>' +
               '<div><div style="font-weight:700;font-size:0.88rem">Sudah Clock In: ' + esc(inHm) + ' WIB' + lateTag + '</div>' +
-              '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + (rec.clock_in_dist_m != null ? ' · Jarak ' + rec.clock_in_dist_m + ' m' : '') + '</div></div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + (rec.company_name ? ' · ' + esc(rec.company_name) : '') + (rec.clock_in_dist_m != null ? ' · Jarak ' + rec.clock_in_dist_m + ' m' : '') + '</div></div>' +
             '</div>' +
             '<div class="att-quick-actions">' +
               '<button type="button" class="btn btn-primary btn-sm" style="background:#d97706;border-color:#d97706" onclick="attSubmitClock(true)">Clock Out (GPS)</button>' +
@@ -41988,11 +42285,14 @@ function closeOtModal() {
         } else {
           var inHm2 = attWibParts(rec.clock_in_at).hm;
           var outHm2 = attWibParts(rec.clock_out_at).hm;
+          var earlyTag2 = (rec.status === "pulang_awal" || Number(rec.early_out_minutes) > 0)
+            ? ' · <span style="color:#be123c;font-weight:700">Pulang Lebih Awal</span>'
+            : '';
           html =
             '<div class="att-quick-left">' +
               '<div class="att-quick-dot done">✓</div>' +
-              '<div><div style="font-weight:700;font-size:0.88rem">Absensi Hari Ini Selesai (' + esc(inHm2) + ' – ' + esc(outHm2) + ' WIB)</div>' +
-              '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + '</div></div>' +
+              '<div><div style="font-weight:700;font-size:0.88rem">Absensi Hari Ini Selesai (' + esc(inHm2) + ' – ' + esc(outHm2) + ' WIB)' + earlyTag2 + '</div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + (rec.company_name ? ' · ' + esc(rec.company_name) : '') + '</div></div>' +
             '</div>' +
             '<div class="att-quick-actions">' +
               '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Lihat Riwayat</button>' +
@@ -42039,9 +42339,10 @@ function closeOtModal() {
             var outDist = r.clock_out_dist_m != null ? ' <span style="font-size:0.72rem;color:var(--text-muted)">(' + r.clock_out_dist_m + ' m)</span>' : "";
             var inPic = r.clock_in_photo ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_in_photo) + '\',\'Selfie%20Masuk%20' + encodeURIComponent(r.att_date || "") + '\')">📷</button>' : "";
             var outPic = r.clock_out_photo ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.att_date || "") + '\')">📷</button>' : "";
+            var subLoc = (r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase();
             return '<tr>' +
               '<td class="mono">' + esc(r.att_date) + '</td>' +
-              '<td><div><strong>' + esc(r.shift_name || "—") + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.work_mode || "wfo").toUpperCase()) + '</div></td>' +
+              '<td><div><strong>' + esc(r.shift_name || "—") + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(subLoc) + '</div></td>' +
               '<td class="mono">' + esc(inTxt) + inDist + inPic + '</td>' +
               '<td class="mono">' + esc(outTxt) + outDist + outPic + '</td>' +
               '<td>' + attFormatRecBadge(r) + '</td>' +
@@ -42060,7 +42361,7 @@ function closeOtModal() {
                 (r.clock_out_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.att_date || "") + '\')">📷 Pulang</button>' : '');
               return '<div class="m-card">' +
                 '<div class="m-title">' + esc(r.att_date) + ' · ' + esc(r.shift_name || "—") + '</div>' +
-                '<div class="m-sub">Masuk ' + esc(inTxt) + ' · Pulang ' + esc(outTxt) + ' WIB (' + esc((r.work_mode || "wfo").toUpperCase()) + ')</div>' +
+                '<div class="m-sub">Masuk ' + esc(inTxt) + ' · Pulang ' + esc(outTxt) + ' WIB (' + esc((r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase()) + ')</div>' +
                 '<div class="m-row">' + attFormatRecBadge(r) + (pics ? ' ' + pics : '') + '</div>' +
                 (r.notes ? '<div class="m-sub" style="margin-top:0.35rem">' + esc(r.notes) + '</div>' : '') +
               '</div>';
@@ -42083,6 +42384,16 @@ function closeOtModal() {
       await attLoadSettings();
       if ($("attAdmDate") && !$("attAdmDate").value) $("attAdmDate").value = todayStr();
       var date = ($("attAdmDate") && $("attAdmDate").value) || todayStr();
+
+      // Isi filter perusahaan / lokasi
+      var cf = $("attAdmCompany");
+      if (cf) {
+        var curC = cf.value;
+        var locs = attGetLocationsList();
+        cf.innerHTML = '<option value="">Semua perusahaan</option>' +
+          locs.map(function(l) { return '<option value="' + esc(l.name) + '">' + esc(l.name) + '</option>'; }).join("");
+        cf.value = curC;
+      }
 
       // Isi filter shift
       var sf = $("attAdmShift");
@@ -42143,11 +42454,11 @@ function closeOtModal() {
     function renderAttendanceAdmin() {
       if (currentRole() !== "admin") return;
       var date = ($("attAdmDate") && $("attAdmDate").value) || todayStr();
+      var compF = ($("attAdmCompany") && $("attAdmCompany").value) || "";
       var shiftF = ($("attAdmShift") && $("attAdmShift").value) || "";
       var stF = ($("attAdmStatus") && $("attAdmStatus").value) || "";
       var q = (($("attAdmSearch") && $("attAdmSearch").value) || "").toLowerCase().trim();
-      var rad = Number((attSettings && attSettings.radius_m) || 150);
-      var hasTarget = attSettings && attSettings.lat != null && attSettings.lng != null;
+      var locs = attGetLocationsList();
 
       var list;
       if (stF === "belum_absen") {
@@ -42157,24 +42468,39 @@ function closeOtModal() {
             user_email: p.email,
             user_name: p.name || p.email,
             user_role: p.role || "",
+            company_name: "",
             shift_name: "",
             work_mode: "",
             clock_in_at: null,
             clock_out_at: null,
             late_minutes: 0,
+            early_out_minutes: 0,
             status: "belum_absen",
             notes: ""
           };
         });
       } else {
         list = attAdminRows.slice();
+        if (compF) list = list.filter(function(r) { return String(r.company_name || "") === compF; });
         if (shiftF) list = list.filter(function(r) { return String(r.shift_name || "") === shiftF; });
-        if (stF === "hadir") list = list.filter(function(r) { return !!r.clock_in_at && !(Number(r.late_minutes) > 0 || r.status === "terlambat"); });
-        else if (stF === "terlambat") list = list.filter(function(r) { return Number(r.late_minutes) > 0 || r.status === "terlambat"; });
-        else if (stF === "no_out") list = list.filter(function(r) { return !!r.clock_in_at && !r.clock_out_at; });
-        else if (stF === "out_radius") {
+        if (stF === "hadir") {
           list = list.filter(function(r) {
-            if (!hasTarget || (r.work_mode || "wfo") !== "wfo") return false;
+            var isEarly = r.status === "pulang_awal" || Number(r.early_out_minutes) > 0;
+            var isLate = Number(r.late_minutes) > 0 || r.status === "terlambat";
+            return !!r.clock_in_at && !isEarly && !isLate;
+          });
+        } else if (stF === "terlambat") {
+          list = list.filter(function(r) { return Number(r.late_minutes) > 0 || r.status === "terlambat"; });
+        } else if (stF === "pulang_awal") {
+          list = list.filter(function(r) { return Number(r.early_out_minutes) > 0 || r.status === "pulang_awal"; });
+        } else if (stF === "no_out") {
+          list = list.filter(function(r) { return !!r.clock_in_at && !r.clock_out_at; });
+        } else if (stF === "out_radius") {
+          list = list.filter(function(r) {
+            if ((r.work_mode || "wfo") !== "wfo") return false;
+            var lObj = (r.location_id && locs.find(function(l) { return l.id === r.location_id; })) || locs[0];
+            if (!lObj || lObj.lat == null || lObj.lng == null) return false;
+            var rad = Number(lObj.radius_m || (attSettings && attSettings.radius_m) || 150);
             return (r.clock_in_dist_m != null && Number(r.clock_in_dist_m) > rad) ||
               (r.clock_out_dist_m != null && Number(r.clock_out_dist_m) > rad);
           });
@@ -42185,7 +42511,8 @@ function closeOtModal() {
         list = list.filter(function(r) {
           return String(r.user_name || "").toLowerCase().includes(q) ||
             String(r.user_email || "").toLowerCase().includes(q) ||
-            String(r.user_role || "").toLowerCase().includes(q);
+            String(r.user_role || "").toLowerCase().includes(q) ||
+            String(r.company_name || "").toLowerCase().includes(q);
         });
       }
       attAdminFiltered = list;
@@ -42207,13 +42534,14 @@ function closeOtModal() {
             var outPic = r.clock_out_photo ? ' · <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Selfie</button>' : "";
             var inGps = (r.clock_in_dist_m != null ? r.clock_in_dist_m + " m" : "") + (inMap ? ' · <a href="' + inMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "") + inPic;
             var outGps = (r.clock_out_dist_m != null ? r.clock_out_dist_m + " m" : "") + (outMap ? ' · <a href="' + outMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "") + outPic;
+            var locLine = (r.company_name ? r.company_name + " · " : "") + (r.work_mode || "").toUpperCase();
             return '<tr>' +
               '<td><div><strong>' + esc(r.user_name || r.user_email) + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.user_email) + (r.user_role ? ' · ' + esc(r.user_role) : '') + '</div></td>' +
-              '<td><div>' + esc(r.shift_name || "—") + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.work_mode || "").toUpperCase()) + '</div></td>' +
+              '<td><div>' + esc(r.shift_name || "—") + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(locLine) + '</div></td>' +
               '<td><div class="mono">' + esc(inTime) + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + inGps + '</div></td>' +
               '<td><div class="mono">' + esc(outTime) + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + outGps + '</div></td>' +
               '<td>' + attFormatRecBadge(r) + '</td>' +
-              '<td style="font-size:0.76rem;max-width:190px">' + esc(r.notes || "—") + (r.corrected_by ? '<div style="font-size:0.68rem;color:#6b21a8">oleh ' + esc(r.corrected_by) + '</div>' : '') + '</td>' +
+              '<td style="font-size:0.76rem;max-width:210px">' + esc(r.notes || "—") + (r.corrected_by ? '<div style="font-size:0.68rem;color:#6b21a8">oleh ' + esc(r.corrected_by) + '</div>' : '') + '</td>' +
               '<td><button type="button" class="btn btn-sm btn-ghost" onclick="attOpenAdminEditModal(\'' + encodeURIComponent(r.user_email || "") + '\',\'' + esc(r.att_date || date) + '\')">Koreksi</button></td>' +
             '</tr>';
           }).join("");
@@ -42229,8 +42557,9 @@ function closeOtModal() {
                 (r.clock_out_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Pulang</button>' : '');
               return '<div class="m-card">' +
                 '<div class="m-title">' + esc(r.user_name || r.user_email) + ' <small style="font-weight:500;color:var(--text-muted)">(' + esc(r.user_role || "-") + ')</small></div>' +
-                '<div class="m-sub">Masuk ' + esc(inTime) + (r.clock_in_dist_m != null ? ' (' + r.clock_in_dist_m + 'm)' : '') + ' · Pulang ' + esc(outTime) + ' · ' + esc(r.shift_name || "—") + '</div>' +
+                '<div class="m-sub">Masuk ' + esc(inTime) + (r.clock_in_dist_m != null ? ' (' + r.clock_in_dist_m + 'm)' : '') + ' · Pulang ' + esc(outTime) + ' · ' + esc(r.shift_name || "—") + (r.company_name ? ' · ' + esc(r.company_name) : '') + '</div>' +
                 '<div class="m-row">' + attFormatRecBadge(r) + (pics ? ' ' + pics : '') + '</div>' +
+                (r.notes ? '<div class="m-sub" style="margin-top:0.35rem">' + esc(r.notes) + '</div>' : '') +
                 '<div style="margin-top:0.45rem"><button type="button" class="btn btn-sm btn-ghost" onclick="attOpenAdminEditModal(\'' + encodeURIComponent(r.user_email || "") + '\',\'' + esc(r.att_date || date) + '\')">Koreksi</button></div>' +
               '</div>';
             }).join("");
@@ -42274,7 +42603,7 @@ function closeOtModal() {
         if ($("attEdWorkMode")) $("attEdWorkMode").value = existing.work_mode || "wfo";
         if ($("attEdNotes")) $("attEdNotes").value = existing.notes || "";
       } else {
-        if ($("attEdInHm")) $("attEdInHm").value = "08:00";
+        if ($("attEdInHm")) $("attEdInHm").value = "07:30";
         if ($("attEdOutHm")) $("attEdOutHm").value = "";
         if ($("attEdWorkMode")) $("attEdWorkMode").value = "wfo";
         if ($("attEdNotes")) $("attEdNotes").value = "";
@@ -42301,15 +42630,13 @@ function closeOtModal() {
       if (!inHm) return toast("Jam Masuk wajib diisi.", true);
 
       var shiftObj = attFindShift(shiftName);
+      var locObj = attResolveTargetLocation(shiftObj, null, shiftObj.location_id || "");
       var inIso = new Date(date + "T" + inHm + ":00+07:00").toISOString();
       var outIso = null;
       if (outHm) {
         var outDate = date;
         if (attParseHmMins(outHm) < attParseHmMins(inHm)) {
-          var dNext = new Date(date + "T12:00:00");
-          dNext.setDate(dNext.getDate() + 1);
-          var z = function(n) { return String(n).padStart(2, "0"); };
-          outDate = dNext.getFullYear() + "-" + z(dNext.getMonth() + 1) + "-" + z(dNext.getDate());
+          outDate = attNextDate(date);
         }
         outIso = new Date(outDate + "T" + outHm + ":00+07:00").toISOString();
       }
@@ -42317,11 +42644,15 @@ function closeOtModal() {
       var existing = existingList[0] || {};
       var prof = (accountRows || []).find(function(p) { return String(p.email || "").toLowerCase() === email; });
       var lateMins = attComputeLateMins(inIso, shiftObj);
+      var earlyMins = outIso ? attComputeEarlyOutMins(inIso, outIso, shiftObj, date) : 0;
+      var newStatus = earlyMins > 0 ? "pulang_awal" : (lateMins > 0 ? "terlambat" : "hadir");
       var rec = Object.assign({}, existing, {
         att_date: date,
         user_email: email,
         user_name: (prof && prof.name) || existing.user_name || email,
         user_role: (prof && prof.role) || existing.user_role || "",
+        location_id: existing.location_id || (locObj && locObj.id) || "",
+        company_name: existing.company_name || (locObj && locObj.name) || "",
         shift_name: shiftObj.name,
         shift_start: shiftObj.start,
         shift_end: shiftObj.end,
@@ -42329,7 +42660,8 @@ function closeOtModal() {
         clock_in_at: inIso,
         clock_out_at: outIso,
         late_minutes: lateMins,
-        status: lateMins > 0 ? "terlambat" : "hadir",
+        early_out_minutes: earlyMins,
+        status: newStatus,
         notes: notes,
         corrected_by: (currentUser && currentUser.email) || "admin",
         corrected_at: new Date().toISOString()
@@ -42351,7 +42683,7 @@ function closeOtModal() {
       if (currentRole() !== "admin") return toast("Hanya Admin yang dapat export rekap absensi.", true);
       var rows = attAdminFiltered && attAdminFiltered.length ? attAdminFiltered : attAdminRows;
       if (!rows || !rows.length) return toast("Tidak ada data untuk diexport.", true);
-      var headers = ["Tanggal", "Nama", "Email", "Role", "Shift", "Mode", "Clock In (WIB)", "Telat (Menit)", "Jarak In (m)", "Koordinat In", "Foto Masuk", "Clock Out (WIB)", "Jarak Out (m)", "Koordinat Out", "Foto Pulang", "Status", "Catatan", "Koreksi Admin"];
+      var headers = ["Tanggal", "Nama", "Email", "Role", "Perusahaan / Lokasi", "Shift", "Mode", "Clock In (WIB)", "Telat (Menit)", "Jarak In (m)", "Koordinat In", "Foto Masuk", "Clock Out (WIB)", "Pulang Awal (Menit)", "Alasan Pulang Awal", "Jarak Out (m)", "Koordinat Out", "Foto Pulang", "Status", "Catatan", "Koreksi Admin"];
       var qCsv = function(v) {
         var s = String(v == null ? "" : v);
         return '"' + s.replace(/"/g, '""') + '"';
@@ -42366,12 +42698,14 @@ function closeOtModal() {
         var outHm = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "";
         var inCoord = (r.clock_in_lat != null && r.clock_in_lng != null) ? (r.clock_in_lat + ", " + r.clock_in_lng) : "";
         var outCoord = (r.clock_out_lat != null && r.clock_out_lng != null) ? (r.clock_out_lat + ", " + r.clock_out_lng) : "";
-        var stLabel = !r.clock_in_at ? "Belum Absen" : (Number(r.late_minutes) > 0 ? "Terlambat" : "Tepat Waktu");
+        var isEarly = r.status === "pulang_awal" || Number(r.early_out_minutes) > 0;
+        var stLabel = !r.clock_in_at ? "Belum Absen" : (isEarly ? "Pulang Lebih Awal" : (Number(r.late_minutes) > 0 ? "Terlambat" : "Tepat Waktu"));
         lines.push([
           r.att_date || "",
           r.user_name || "",
           r.user_email || "",
           r.user_role || "",
+          r.company_name || "",
           r.shift_name || "",
           (r.work_mode || "").toUpperCase(),
           inHm,
@@ -42380,6 +42714,8 @@ function closeOtModal() {
           inCoord,
           fmtPhotoCsv(r.clock_in_photo),
           outHm,
+          r.early_out_minutes != null ? r.early_out_minutes : 0,
+          r.early_out_reason || "",
           r.clock_out_dist_m != null ? r.clock_out_dist_m : "",
           outCoord,
           fmtPhotoCsv(r.clock_out_photo),
@@ -42398,21 +42734,26 @@ function closeOtModal() {
       setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     }
 
-    function attHandleCoordPaste(val) {
-      var m = String(val || "").match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+    function attHandleRowCoordPaste(inpEl) {
+      var card = inpEl && inpEl.closest ? inpEl.closest(".att-loc-card") : null;
+      if (!card) return;
+      var m = String((inpEl && inpEl.value) || "").match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
       if (m) {
-        if ($("attSetLat")) $("attSetLat").value = m[1];
-        if ($("attSetLng")) $("attSetLng").value = m[2];
-        attUpdateMapPreviewLink();
-      } else {
-        attUpdateMapPreviewLink();
+        var latEl = card.querySelector(".att-loc-lat");
+        var lngEl = card.querySelector(".att-loc-lng");
+        if (latEl) latEl.value = m[1];
+        if (lngEl) lngEl.value = m[2];
       }
+      attUpdateRowMapPreview(card);
     }
 
-    function attUpdateMapPreviewLink() {
-      var a = $("attSetMapPreviewLink");
+    function attUpdateRowMapPreview(card) {
+      if (!card) return;
+      var a = card.querySelector(".att-loc-map");
       if (!a) return;
-      var link = attMapLink($("attSetLat") && $("attSetLat").value, $("attSetLng") && $("attSetLng").value);
+      var latV = card.querySelector(".att-loc-lat") && card.querySelector(".att-loc-lat").value;
+      var lngV = card.querySelector(".att-loc-lng") && card.querySelector(".att-loc-lng").value;
+      var link = attMapLink(latV, lngV);
       if (link) {
         a.href = link;
         a.style.display = "";
@@ -42421,24 +42762,100 @@ function closeOtModal() {
       }
     }
 
-    async function attCaptureAdminGps() {
+    async function attCaptureRowGps(btnEl) {
       if (currentRole() !== "admin") return;
+      var card = btnEl && btnEl.closest ? btnEl.closest(".att-loc-card") : null;
+      if (!card) return;
       try {
         toast("Mengambil lokasi GPS Anda saat ini…");
         var gps = await attGetGps();
-        if ($("attSetLat")) $("attSetLat").value = gps.lat.toFixed(6);
-        if ($("attSetLng")) $("attSetLng").value = gps.lng.toFixed(6);
-        attUpdateMapPreviewLink();
+        var latEl = card.querySelector(".att-loc-lat");
+        var lngEl = card.querySelector(".att-loc-lng");
+        if (latEl) latEl.value = gps.lat.toFixed(6);
+        if (lngEl) lngEl.value = gps.lng.toFixed(6);
+        attUpdateRowMapPreview(card);
         toast("Koordinat berhasil diambil (±" + gps.acc + " m). Jangan lupa klik Simpan Pengaturan.");
       } catch (e) {
         toast((e && e.message) || "Gagal mengambil GPS", true);
       }
     }
 
+    function attReadLocationsFromDom() {
+      var out = [];
+      document.querySelectorAll("#attSetLocationsHost .att-loc-card").forEach(function(card, idx) {
+        var id = card.getAttribute("data-loc-id") || ("loc_" + (idx + 1));
+        var name = (card.querySelector(".att-loc-name") && card.querySelector(".att-loc-name").value || "").trim();
+        if (name) out.push({ id: id, name: name });
+      });
+      return out.length ? out : attGetLocationsList();
+    }
+
+    function attRefreshShiftLocationDropdowns() {
+      var locs = attReadLocationsFromDom();
+      document.querySelectorAll("#attSetShiftsHost .att-sh-loc").forEach(function(sel) {
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">Bebas / Terdekat</option>' +
+          locs.map(function(l) { return '<option value="' + esc(l.id) + '">' + esc(l.name) + '</option>'; }).join("");
+        var has = cur && locs.some(function(l) { return l.id === cur; });
+        sel.value = has ? cur : "";
+      });
+    }
+
+    function attAddLocationCard(loc) {
+      var host = $("attSetLocationsHost");
+      if (!host) return;
+      loc = loc || {
+        id: "loc_" + Date.now().toString(36),
+        name: "",
+        lat: null,
+        lng: null,
+        radius_m: 150
+      };
+      var card = document.createElement("div");
+      card.className = "att-loc-card";
+      card.setAttribute("data-loc-id", loc.id || ("loc_" + Date.now().toString(36)));
+      card.innerHTML =
+        '<div class="att-form-row">' +
+          '<div class="field"><label>Nama Perusahaan / Lokasi</label><input type="text" class="att-loc-name" placeholder="PT. Sentra Herbal Internasional" value="' + esc(loc.name || "") + '" oninput="attRefreshShiftLocationDropdowns()" /></div>' +
+          '<div class="field"><label>Radius Maksimal (meter)</label><input type="number" class="att-loc-radius" min="20" max="5000" value="' + esc(String(loc.radius_m || 150)) + '" /></div>' +
+        '</div>' +
+        '<div class="att-form-row">' +
+          '<div class="field"><label>Latitude <span style="font-weight:400;color:var(--text-muted);font-size:0.72rem">(bisa paste &quot;lat, lng&quot;)</span></label><input type="text" class="att-loc-lat" placeholder="-6.xxxxxx" value="' + (loc.lat != null ? esc(String(loc.lat)) : "") + '" oninput="attHandleRowCoordPaste(this)" /></div>' +
+          '<div class="field"><label>Longitude</label><input type="text" class="att-loc-lng" placeholder="106.xxxxxx" value="' + (loc.lng != null ? esc(String(loc.lng)) : "") + '" oninput="attHandleRowCoordPaste(this)" /></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center;justify-content:space-between">' +
+          '<div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center">' +
+            '<button type="button" class="btn btn-primary btn-sm" onclick="attCaptureRowGps(this)">Ambil GPS Lokasi Ini</button>' +
+            '<a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm att-loc-map" style="display:none">Lihat Maps</a>' +
+          '</div>' +
+          '<button type="button" class="btn btn-sm btn-danger" onclick="attRemoveLocationCard(this)">Hapus Lokasi</button>' +
+        '</div>';
+      host.appendChild(card);
+      attUpdateRowMapPreview(card);
+      attRefreshShiftLocationDropdowns();
+    }
+
+    function attRemoveLocationCard(btnEl) {
+      var host = $("attSetLocationsHost");
+      if (!host) return;
+      if (host.querySelectorAll(".att-loc-card").length <= 1) {
+        return toast("Minimal harus ada 1 lokasi kerja.", true);
+      }
+      var card = btnEl && btnEl.closest ? btnEl.closest(".att-loc-card") : null;
+      if (card) card.remove();
+      attRefreshShiftLocationDropdowns();
+    }
+
     function attAddShiftRow(s) {
       var host = $("attSetShiftsHost");
       if (!host) return;
-      s = s || { name: "", start: "08:00", end: "17:00", grace_min: 10 };
+      s = s || { name: "", start: "08:00", end: "17:00", grace_min: 10, location_id: "" };
+      var locs = attReadLocationsFromDom();
+      var locOpts = '<option value="">Bebas / Terdekat</option>' +
+        locs.map(function(l) {
+          var sel = (s.location_id && s.location_id === l.id) ? ' selected' : '';
+          return '<option value="' + esc(l.id) + '"' + sel + '>' + esc(l.name) + '</option>';
+        }).join("");
       var div = document.createElement("div");
       div.className = "att-shift-row";
       div.innerHTML =
@@ -42446,20 +42863,21 @@ function closeOtModal() {
         '<input type="time" class="att-sh-start" value="' + esc(s.start || "08:00") + '" />' +
         '<input type="time" class="att-sh-end" value="' + esc(s.end || "17:00") + '" />' +
         '<input type="number" class="att-sh-grace" min="0" max="120" value="' + esc(String(s.grace_min != null ? s.grace_min : 10)) + '" />' +
+        '<select class="att-sh-loc">' + locOpts + '</select>' +
         '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentNode.remove()">Hapus</button>';
       host.appendChild(div);
     }
 
     function attRenderSettingsForm() {
       if (currentRole() !== "admin") return;
-      if ($("attSetOfficeName")) $("attSetOfficeName").value = attSettings.office_name || "";
-      if ($("attSetRadius")) $("attSetRadius").value = String(attSettings.radius_m || 150);
-      if ($("attSetLat")) $("attSetLat").value = attSettings.lat != null ? String(attSettings.lat) : "";
-      if ($("attSetLng")) $("attSetLng").value = attSettings.lng != null ? String(attSettings.lng) : "";
+      var locHost = $("attSetLocationsHost");
+      if (locHost) {
+        locHost.innerHTML = "";
+        attGetLocationsList().forEach(function(l) { attAddLocationCard(l); });
+      }
       if ($("attSetStrictRadius")) $("attSetStrictRadius").checked = attSettings.strict_radius !== false;
       if ($("attSetRequireSelfie")) $("attSetRequireSelfie").checked = attSettings.require_selfie !== false;
       if ($("attSetStrictDevice")) $("attSetStrictDevice").checked = attSettings.strict_device !== false;
-      attUpdateMapPreviewLink();
       var host = $("attSetShiftsHost");
       if (host) {
         host.innerHTML = "";
@@ -42478,37 +42896,56 @@ function closeOtModal() {
 
     async function attSaveSettingsFromUi() {
       if (currentRole() !== "admin") return toast("Hanya Admin.", true);
+      var locs = [];
+      var coordErr = "";
+      document.querySelectorAll("#attSetLocationsHost .att-loc-card").forEach(function(card, idx) {
+        var id = card.getAttribute("data-loc-id") || ("loc_" + (idx + 1));
+        var name = (card.querySelector(".att-loc-name") && card.querySelector(".att-loc-name").value || "").trim();
+        var radius = Math.max(20, Math.min(5000, Number(card.querySelector(".att-loc-radius") && card.querySelector(".att-loc-radius").value) || 150));
+        var latStr = (card.querySelector(".att-loc-lat") && card.querySelector(".att-loc-lat").value || "").trim();
+        var lngStr = (card.querySelector(".att-loc-lng") && card.querySelector(".att-loc-lng").value || "").trim();
+        if ((latStr && !lngStr) || (!latStr && lngStr)) {
+          coordErr = "Latitude dan Longitude pada " + (name || "lokasi") + " harus diisi keduanya atau dikosongkan keduanya.";
+        }
+        var latN = latStr ? Number(latStr) : null;
+        var lngN = lngStr ? Number(lngStr) : null;
+        if ((latN != null && !isFinite(latN)) || (lngN != null && !isFinite(lngN))) {
+          coordErr = "Format koordinat pada " + (name || "lokasi") + " tidak valid.";
+        }
+        if (name) {
+          locs.push({ id: id, name: name, lat: latN, lng: lngN, radius_m: radius });
+        }
+      });
+      if (coordErr) return toast(coordErr, true);
+      if (!locs.length) return toast("Minimal harus ada 1 lokasi / perusahaan.", true);
+
       var rows = [];
       document.querySelectorAll("#attSetShiftsHost .att-shift-row").forEach(function(el) {
         var name = (el.querySelector(".att-sh-name") && el.querySelector(".att-sh-name").value || "").trim();
         var start = (el.querySelector(".att-sh-start") && el.querySelector(".att-sh-start").value) || "08:00";
         var end = (el.querySelector(".att-sh-end") && el.querySelector(".att-sh-end").value) || "17:00";
         var grace = Math.max(0, Number(el.querySelector(".att-sh-grace") && el.querySelector(".att-sh-grace").value) || 0);
-        if (name) rows.push({ name: name, start: start, end: end, grace_min: grace });
+        var locId = (el.querySelector(".att-sh-loc") && el.querySelector(".att-sh-loc").value) || "";
+        if (name) rows.push({ name: name, start: start, end: end, grace_min: grace, location_id: locId });
       });
       if (!rows.length) return toast("Minimal harus ada 1 shift kerja.", true);
-      var latStr = ($("attSetLat") && $("attSetLat").value || "").trim();
-      var lngStr = ($("attSetLng") && $("attSetLng").value || "").trim();
-      if ((latStr && !lngStr) || (!latStr && lngStr)) {
-        return toast("Latitude dan Longitude harus diisi keduanya atau dikosongkan keduanya.", true);
-      }
+
       var cfg = {
-        office_name: ($("attSetOfficeName") && $("attSetOfficeName").value || "").trim() || ATT_DEFAULT_SETTINGS.office_name,
-        lat: latStr ? Number(latStr) : null,
-        lng: lngStr ? Number(lngStr) : null,
-        radius_m: Math.max(20, Math.min(5000, Number($("attSetRadius") && $("attSetRadius").value) || 150)),
+        office_name: locs[0].name,
+        lat: locs[0].lat,
+        lng: locs[0].lng,
+        radius_m: locs[0].radius_m,
         strict_radius: !!($("attSetStrictRadius") && $("attSetStrictRadius").checked),
         strict_device: !!($("attSetStrictDevice") && $("attSetStrictDevice").checked),
         require_selfie: !!($("attSetRequireSelfie") && $("attSetRequireSelfie").checked),
+        locations: locs,
         shifts: rows
       };
-      if ((cfg.lat != null && !isFinite(cfg.lat)) || (cfg.lng != null && !isFinite(cfg.lng))) {
-        return toast("Format koordinat Latitude / Longitude tidak valid.", true);
-      }
       var ok = await attSaveSettings(cfg);
       if (ok) {
         toast("Pengaturan lokasi & shift berhasil disimpan");
         attPopulateShiftSelect($("attShiftSelect"), (attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.shift_name : "", true);
+        attPopulateLocationSelect((attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.location_id : undefined);
         attRenderGpsPreview();
         attRenderSettingsForm();
         loadAttendanceHomeWidget();
@@ -42530,6 +42967,7 @@ function closeOtModal() {
       await attLoadSettings(!!force);
       attActiveRecord = await attFindActiveRecordForMe();
       attPopulateShiftSelect($("attShiftSelect"), (attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.shift_name : "", true);
+      attPopulateLocationSelect((attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.location_id : undefined);
       attRenderHero();
       attRenderGpsPreview();
       await Promise.all([
