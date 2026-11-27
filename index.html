@@ -7681,6 +7681,46 @@
     @media (max-width: 680px) {
       .att-shift-row { grid-template-columns: 1fr 1fr; }
     }
+    .att-cam-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      max-height: 360px;
+      background: #0f172a;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #1e293b;
+    }
+    .att-cam-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    .att-cam-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #0f172a;
+    }
+    .att-photo-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.14rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    .att-photo-btn:hover { background: #e2e8f0; }
     </style>
 </head>
 <body>
@@ -8979,9 +9019,13 @@
                 <button type="button" class="btn btn-primary btn-sm" onclick="attCaptureAdminGps()">Ambil Lokasi Saya Saat Ini (GPS)</button>
                 <a id="attSetMapPreviewLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" style="display:none">Lihat di Google Maps</a>
               </div>
-              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer;margin-bottom:0.45rem">
                 <input type="checkbox" id="attSetStrictRadius" checked />
                 <span>Wajib di dalam radius pabrik saat Clock In / Clock Out untuk mode <b>WFO</b></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer">
+                <input type="checkbox" id="attSetRequireSelfie" checked />
+                <span>Wajib ambil <b>foto selfie kamera</b> saat Clock In &amp; Clock Out</span>
               </label>
             </div>
 
@@ -10429,6 +10473,50 @@
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="attCloseAdminEditModal()">Batal</button>
         <button class="btn btn-primary" type="button" onclick="attSaveAdminEdit()">Simpan Absensi</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attSelfieModal" class="modal-bg" style="z-index:100180">
+    <div class="modal modal-sheet" style="max-width:460px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="attSelfieTitle">Selfie Absensi</h2>
+        <button type="button" class="ot-close-x" onclick="attCloseSelfieModal(true)" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <div id="attSelfieMeta" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.55rem"></div>
+        <div class="att-cam-box">
+          <video id="attCamVideo" autoplay playsinline muted></video>
+          <img id="attSelfiePreview" alt="Preview Selfie" style="display:none" />
+          <div id="attCamFallbackMsg" style="display:none;color:#e2e8f0;text-align:center;padding:1rem;font-size:0.84rem;line-height:1.45"></div>
+        </div>
+        <input type="file" id="attSelfieFallbackInp" accept="image/*" capture="user" hidden />
+        <p style="font-size:0.73rem;color:var(--text-muted);margin:0.5rem 0 0">Foto otomatis diberi cap waktu WIB &amp; koordinat GPS.</p>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="attCloseSelfieModal(true)">Batal</button>
+        <button type="button" class="btn btn-ghost" id="attSelfieAltCamBtn" style="display:none" onclick="document.getElementById('attSelfieFallbackInp').click()">Buka Kamera HP</button>
+        <button type="button" class="btn btn-ghost" id="attSelfieRetakeBtn" style="display:none" onclick="attRetakeSelfie()">Ulangi</button>
+        <button type="button" class="btn btn-primary" id="attSelfieSnapBtn" onclick="attSnapSelfie()">Ambil Foto</button>
+        <button type="button" class="btn btn-primary" id="attSelfieConfirmBtn" style="display:none" onclick="attConfirmSelfie()">Simpan &amp; Absen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attPhotoModal" class="modal-bg" style="z-index:100190">
+    <div class="modal modal-sheet" style="max-width:520px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="attPhotoModalTitle">Foto Selfie Absensi</h2>
+        <button type="button" class="ot-close-x" onclick="attClosePhotoModal()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body" style="text-align:center">
+        <img id="attPhotoModalImg" alt="Selfie Absensi" style="max-width:100%;max-height:70vh;border-radius:12px;border:1px solid var(--border)" />
+      </div>
+      <div class="sheet-foot">
+        <a id="attPhotoModalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" style="display:none">Buka Link Asli</a>
+        <button type="button" class="btn btn-primary" onclick="attClosePhotoModal()">Tutup</button>
       </div>
     </div>
   </div>
@@ -38442,7 +38530,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-gps";
+    var APP_BUILD_TAG = "2026.11.27-absensi-selfie";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -40584,13 +40672,14 @@ function closeOtModal() {
       }
     }
 
-    // ===== BACKUP ABSENSI KARYAWAN (GPS + ADMIN CONFIG) =====
+    // ===== BACKUP ABSENSI KARYAWAN (GPS + SELFIE + ADMIN CONFIG) =====
     var ATT_DEFAULT_SETTINGS = {
       office_name: "PT. Sentra Herbal Internasional",
       lat: null,
       lng: null,
       radius_m: 150,
       strict_radius: true,
+      require_selfie: true,
       shifts: [
         { name: "Office / Non-Shift", start: "08:00", end: "17:00", grace_min: 10 },
         { name: "Shift 1", start: "07:00", end: "15:00", grace_min: 10 },
@@ -40606,6 +40695,7 @@ function closeOtModal() {
       "  lng double precision,",
       "  radius_m integer not null default 150,",
       "  strict_radius boolean not null default true,",
+      "  require_selfie boolean not null default true,",
       "  shifts jsonb not null default '[]'::jsonb,",
       "  updated_by text,",
       "  updated_at timestamptz default now()",
@@ -40625,11 +40715,13 @@ function closeOtModal() {
       "  clock_in_lng double precision,",
       "  clock_in_acc integer,",
       "  clock_in_dist_m integer,",
+      "  clock_in_photo text,",
       "  clock_out_at timestamptz,",
       "  clock_out_lat double precision,",
       "  clock_out_lng double precision,",
       "  clock_out_acc integer,",
       "  clock_out_dist_m integer,",
+      "  clock_out_photo text,",
       "  late_minutes integer default 0,",
       "  status text default 'hadir',",
       "  notes text,",
@@ -40658,6 +40750,10 @@ function closeOtModal() {
     var attLastGps = null;
     var attClockTimer = null;
     var attBusyClock = false;
+    var attCamStream = null;
+    var attSelfieDataUrl = "";
+    var attSelfieMeta = null;
+    var attSelfieResolve = null;
 
     function attIsMissingTableErr(err) {
       if (!err) return false;
@@ -40788,6 +40884,7 @@ function closeOtModal() {
         lng: lng,
         radius_m: Math.max(20, Math.min(5000, Number(raw.radius_m) || def.radius_m)),
         strict_radius: raw.strict_radius !== false,
+        require_selfie: raw.require_selfie !== false,
         shifts: shifts
       };
     }
@@ -40851,6 +40948,7 @@ function closeOtModal() {
           lng: clean.lng,
           radius_m: clean.radius_m,
           strict_radius: clean.strict_radius,
+          require_selfie: clean.require_selfie,
           shifts: clean.shifts,
           updated_by: email,
           updated_at: nowIso
@@ -40980,11 +41078,13 @@ function closeOtModal() {
         clock_in_lng: rec.clock_in_lng != null ? Number(rec.clock_in_lng) : null,
         clock_in_acc: rec.clock_in_acc != null ? Math.round(Number(rec.clock_in_acc)) : null,
         clock_in_dist_m: rec.clock_in_dist_m != null ? Math.round(Number(rec.clock_in_dist_m)) : null,
+        clock_in_photo: rec.clock_in_photo || null,
         clock_out_at: rec.clock_out_at || null,
         clock_out_lat: rec.clock_out_lat != null ? Number(rec.clock_out_lat) : null,
         clock_out_lng: rec.clock_out_lng != null ? Number(rec.clock_out_lng) : null,
         clock_out_acc: rec.clock_out_acc != null ? Math.round(Number(rec.clock_out_acc)) : null,
         clock_out_dist_m: rec.clock_out_dist_m != null ? Math.round(Number(rec.clock_out_dist_m)) : null,
+        clock_out_photo: rec.clock_out_photo || null,
         late_minutes: Math.max(0, Math.round(Number(rec.late_minutes) || 0)),
         status: rec.status || "hadir",
         notes: rec.notes || "",
@@ -41285,6 +41385,249 @@ function closeOtModal() {
       }
     }
 
+    function attStopCamera() {
+      try {
+        if (attCamStream && attCamStream.getTracks) {
+          attCamStream.getTracks().forEach(function(t) { try { t.stop(); } catch (e) {} });
+        }
+      } catch (e0) {}
+      attCamStream = null;
+      var vid = $("attCamVideo");
+      if (vid) vid.srcObject = null;
+    }
+
+    function attDrawWatermarkedSelfie(sourceEl, srcW, srcH, meta, mirror) {
+      var maxDim = 480;
+      var w = srcW || 480;
+      var h = srcH || 360;
+      if (w > maxDim || h > maxDim) {
+        var sc = maxDim / Math.max(w, h);
+        w = Math.max(1, Math.round(w * sc));
+        h = Math.max(1, Math.round(h * sc));
+      }
+      var cv = document.createElement("canvas");
+      cv.width = w;
+      cv.height = h;
+      var ctx = cv.getContext("2d");
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, w, h);
+      ctx.save();
+      if (mirror) {
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(sourceEl, 0, 0, w, h);
+      ctx.restore();
+
+      // Watermark timestamp & GPS di bagian bawah foto
+      var barH = 44;
+      ctx.fillStyle = "rgba(15, 23, 42, 0.74)";
+      ctx.fillRect(0, h - barH, w, barH);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 11px sans-serif";
+      var wp = attWibParts();
+      var line1 = String((meta && meta.userName) || "Karyawan").slice(0, 26) + " · " +
+        ((meta && meta.isOut) ? "CLOCK OUT" : "CLOCK IN") + " · " + wp.ymd + " " + wp.hms + " WIB";
+      ctx.fillText(line1, 8, h - 26, w - 16);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "10px monospace";
+      var g = meta && meta.gps;
+      var distTxt = (meta && meta.distM != null) ? (" · Jarak " + meta.distM + " m") : "";
+      var line2 = g ? ("GPS " + g.lat.toFixed(5) + ", " + g.lng.toFixed(5) + " (±" + g.acc + "m)" + distTxt) : "GPS aktif";
+      ctx.fillText(line2, 8, h - 10, w - 16);
+      return cv.toDataURL("image/jpeg", 0.68);
+    }
+
+    function attSetSelfieStage(stage, msg) {
+      var vid = $("attCamVideo");
+      var img = $("attSelfiePreview");
+      var fb = $("attCamFallbackMsg");
+      var altBtn = $("attSelfieAltCamBtn");
+      var snapBtn = $("attSelfieSnapBtn");
+      var retBtn = $("attSelfieRetakeBtn");
+      var okBtn = $("attSelfieConfirmBtn");
+      if (vid) vid.style.display = stage === "live" ? "block" : "none";
+      if (img) img.style.display = stage === "preview" ? "block" : "none";
+      if (fb) {
+        fb.style.display = stage === "fallback" ? "block" : "none";
+        if (msg) fb.textContent = msg;
+      }
+      if (altBtn) altBtn.style.display = stage === "fallback" ? "" : "none";
+      if (snapBtn) snapBtn.style.display = stage === "live" ? "" : "none";
+      if (retBtn) retBtn.style.display = stage === "preview" ? "" : "none";
+      if (okBtn) {
+        okBtn.style.display = stage === "preview" ? "" : "none";
+        okBtn.disabled = false;
+        okBtn.textContent = "Simpan & Absen";
+      }
+    }
+
+    async function attStartCameraPreview() {
+      attSelfieDataUrl = "";
+      var vid = $("attCamVideo");
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        attSetSelfieStage("fallback", "Browser ini tidak mendukung preview kamera langsung. Tekan Buka Kamera HP untuk ambil foto selfie.");
+        return;
+      }
+      attSetSelfieStage("live");
+      try {
+        attStopCamera();
+        attCamStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false
+        });
+        if (vid) {
+          vid.srcObject = attCamStream;
+          try { await vid.play(); } catch (eP) {}
+        }
+      } catch (e) {
+        attSetSelfieStage("fallback", "Kamera langsung belum diizinkan (" + ((e && e.message) || "izin ditolak") + "). Tekan Buka Kamera HP atau aktifkan izin kamera browser.");
+      }
+    }
+
+    function attSnapSelfie() {
+      var vid = $("attCamVideo");
+      if (!vid || !vid.videoWidth) return toast("Kamera belum siap, tunggu sebentar.", true);
+      var url = attDrawWatermarkedSelfie(vid, vid.videoWidth, vid.videoHeight, attSelfieMeta, true);
+      attSelfieDataUrl = url;
+      attStopCamera();
+      if ($("attSelfiePreview")) $("attSelfiePreview").src = url;
+      attSetSelfieStage("preview");
+    }
+
+    function attRetakeSelfie() {
+      attStartCameraPreview();
+    }
+
+    function attConfirmSelfie() {
+      if (!attSelfieDataUrl) return toast("Ambil foto selfie dulu.", true);
+      var resolver = attSelfieResolve;
+      attSelfieResolve = null;
+      attCloseSelfieModal(false);
+      if (resolver) resolver(attSelfieDataUrl);
+    }
+
+    function attCloseSelfieModal(cancelled) {
+      attStopCamera();
+      var m = $("attSelfieModal");
+      if (m) m.classList.remove("show");
+      document.body.classList.remove("modal-open");
+      if (cancelled && attSelfieResolve) {
+        var r = attSelfieResolve;
+        attSelfieResolve = null;
+        r(null);
+      }
+    }
+
+    function attCaptureSelfieModal(meta) {
+      return new Promise(function(resolve) {
+        attSelfieMeta = meta || {};
+        attSelfieResolve = resolve;
+        attSelfieDataUrl = "";
+        if ($("attSelfieTitle")) $("attSelfieTitle").textContent = meta && meta.isOut ? "Selfie Clock Out (Pulang)" : "Selfie Clock In (Masuk)";
+        var g = meta && meta.gps;
+        if ($("attSelfieMeta")) {
+          $("attSelfieMeta").textContent = (g ? ("GPS: " + g.lat.toFixed(5) + ", " + g.lng.toFixed(5)) : "") +
+            (meta && meta.distM != null ? (" · Jarak " + meta.distM + " m") : "") +
+            (meta && meta.shiftName ? (" · " + meta.shiftName) : "");
+        }
+        var fbInp = $("attSelfieFallbackInp");
+        if (fbInp && fbInp.dataset.bound !== "1") {
+          fbInp.dataset.bound = "1";
+          fbInp.addEventListener("change", function() {
+            var f = fbInp.files && fbInp.files[0];
+            if (!f) return;
+            var reader = new FileReader();
+            reader.onload = function() {
+              var im = new Image();
+              im.onload = function() {
+                var url = attDrawWatermarkedSelfie(im, im.naturalWidth || im.width, im.naturalHeight || im.height, attSelfieMeta, false);
+                attSelfieDataUrl = url;
+                attStopCamera();
+                if ($("attSelfiePreview")) $("attSelfiePreview").src = url;
+                attSetSelfieStage("preview");
+                fbInp.value = "";
+              };
+              im.src = reader.result;
+            };
+            reader.readAsDataURL(f);
+          });
+        }
+        var m = $("attSelfieModal");
+        if (m) m.classList.add("show");
+        document.body.classList.add("modal-open");
+        attStartCameraPreview();
+      });
+    }
+
+    async function attUploadSelfieToDrive(dataUrl, kindLabel, attDate, email) {
+      if (!dataUrl || String(dataUrl).indexOf("base64,") < 0) return dataUrl || null;
+      var base = (typeof DRIVE_UPLOAD_URL === "string" && DRIVE_UPLOAD_URL) ? DRIVE_UPLOAD_URL.trim() : "";
+      if (!base) return dataUrl;
+      var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function() { try { ctrl.abort(); } catch (e) {} }, 12000) : null;
+      try {
+        var b64 = String(dataUrl).split("base64,")[1] || "";
+        var safeEmail = String(email || "user").replace(/[^a-z0-9]/gi, "_").slice(0, 24);
+        var res = await fetch(base, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          signal: ctrl ? ctrl.signal : undefined,
+          body: JSON.stringify({
+            ot_id: "absensi-" + attDate + "-" + safeEmail,
+            kind: "attendance_" + kindLabel,
+            fileName: "selfie-" + kindLabel + "-" + attDate + "-" + safeEmail + ".jpg",
+            mimeType: "image/jpeg",
+            base64: b64
+          })
+        });
+        var text = await res.text();
+        var data = {};
+        try { data = JSON.parse(text); } catch (e1) {}
+        if (data && data.ok && data.url) return data.url;
+      } catch (eU) {
+        console.warn("attUploadSelfie fallback inline", eU);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+      return dataUrl;
+    }
+
+    function attResolvePhotoSrc(url) {
+      var s = String(url || "").trim();
+      if (!s) return "";
+      if (s.indexOf("data:image/") === 0) return s;
+      var m = s.match(/\/d\/([a-zA-Z0-9_-]+)/) || s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m && m[1] && s.indexOf("drive.google.com") >= 0) {
+        return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w1000";
+      }
+      return s;
+    }
+
+    function attViewPhoto(encodedUrl, encodedTitle) {
+      var raw = encodedUrl ? decodeURIComponent(encodedUrl) : "";
+      var title = encodedTitle ? decodeURIComponent(encodedTitle) : "Foto Selfie Absensi";
+      if (!raw) return;
+      if ($("attPhotoModalTitle")) $("attPhotoModalTitle").textContent = title;
+      if ($("attPhotoModalImg")) $("attPhotoModalImg").src = attResolvePhotoSrc(raw);
+      var lnk = $("attPhotoModalLink");
+      if (lnk) {
+        if (raw.indexOf("http") === 0) {
+          lnk.href = raw;
+          lnk.style.display = "";
+        } else {
+          lnk.style.display = "none";
+        }
+      }
+      if ($("attPhotoModal")) $("attPhotoModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function attClosePhotoModal() {
+      if ($("attPhotoModal")) $("attPhotoModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
     async function attSubmitClock(fromHome) {
       if (attBusyClock) return;
       if (!currentUser || !currentUser.email) return toast("Silakan login ulang terlebih dahulu.", true);
@@ -41325,10 +41668,32 @@ function closeOtModal() {
           return;
         }
 
-        var nowIso = new Date().toISOString();
-        var wp = attWibParts(nowIso);
         var email = currentUser.email.toLowerCase();
         var userName = (currentProfile && currentProfile.name) || email.split("@")[0] || email;
+        var nowIso = new Date().toISOString();
+        var wp = attWibParts(nowIso);
+
+        var photoUrl = null;
+        if (attSettings.require_selfie !== false) {
+          if (btn && !fromHome) btn.textContent = "Menunggu Selfie…";
+          var captured = await attCaptureSelfieModal({
+            isOut: isOut,
+            userName: userName,
+            gps: gps,
+            distM: distM,
+            shiftName: shiftObj.name
+          });
+          if (!captured) {
+            toast("Absensi dibatalkan (foto selfie diperlukan).", true);
+            return;
+          }
+          if (btn && !fromHome) btn.textContent = "Mengupload Selfie…";
+          else toast("Mengupload selfie & menyimpan absensi…");
+          photoUrl = await attUploadSelfieToDrive(captured, isOut ? "out" : "in", isOut && active ? active.att_date : wp.ymd, email);
+          nowIso = new Date().toISOString();
+          wp = attWibParts(nowIso);
+        }
+
         var payload;
         if (!isOut) {
           var lateMins = attComputeLateMins(nowIso, shiftObj);
@@ -41346,6 +41711,7 @@ function closeOtModal() {
             clock_in_lng: gps.lng,
             clock_in_acc: gps.acc,
             clock_in_dist_m: distM,
+            clock_in_photo: photoUrl,
             late_minutes: lateMins,
             status: lateMins > 0 ? "terlambat" : "hadir",
             notes: notes
@@ -41359,6 +41725,7 @@ function closeOtModal() {
             clock_out_lng: gps.lng,
             clock_out_acc: gps.acc,
             clock_out_dist_m: distM,
+            clock_out_photo: photoUrl || active.clock_out_photo || null,
             notes: mergedNotes
           });
         }
@@ -41385,7 +41752,7 @@ function closeOtModal() {
         toast((e && e.message) || "Gagal mencatat absensi.", true);
       } finally {
         attBusyClock = false;
-        if (btn && btn.textContent === "Mengambil GPS…") {
+        if (btn && (btn.textContent === "Mengambil GPS…" || btn.textContent === "Menunggu Selfie…" || btn.textContent === "Mengupload Selfie…")) {
           btn.disabled = false;
           btn.textContent = origText || "Clock In (Masuk)";
         }
@@ -41477,11 +41844,13 @@ function closeOtModal() {
             var outTxt = r.clock_out_at ? (attWibParts(r.clock_out_at).hm + " WIB") : "—";
             var inDist = r.clock_in_dist_m != null ? ' <span style="font-size:0.72rem;color:var(--text-muted)">(' + r.clock_in_dist_m + ' m)</span>' : "";
             var outDist = r.clock_out_dist_m != null ? ' <span style="font-size:0.72rem;color:var(--text-muted)">(' + r.clock_out_dist_m + ' m)</span>' : "";
+            var inPic = r.clock_in_photo ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_in_photo) + '\',\'Selfie%20Masuk%20' + encodeURIComponent(r.att_date || "") + '\')">📷</button>' : "";
+            var outPic = r.clock_out_photo ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.att_date || "") + '\')">📷</button>' : "";
             return '<tr>' +
               '<td class="mono">' + esc(r.att_date) + '</td>' +
               '<td><div><strong>' + esc(r.shift_name || "—") + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.work_mode || "wfo").toUpperCase()) + '</div></td>' +
-              '<td class="mono">' + esc(inTxt) + inDist + '</td>' +
-              '<td class="mono">' + esc(outTxt) + outDist + '</td>' +
+              '<td class="mono">' + esc(inTxt) + inDist + inPic + '</td>' +
+              '<td class="mono">' + esc(outTxt) + outDist + outPic + '</td>' +
               '<td>' + attFormatRecBadge(r) + '</td>' +
               '<td style="font-size:0.78rem">' + esc(r.notes || "—") + '</td>' +
             '</tr>';
@@ -41494,10 +41863,12 @@ function closeOtModal() {
           : attMyRows.slice(0, 30).map(function(r) {
               var inTxt = r.clock_in_at ? attWibParts(r.clock_in_at).hm : "—";
               var outTxt = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "—";
+              var pics = (r.clock_in_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_in_photo) + '\',\'Selfie%20Masuk%20' + encodeURIComponent(r.att_date || "") + '\')">📷 Masuk</button> ' : '') +
+                (r.clock_out_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.att_date || "") + '\')">📷 Pulang</button>' : '');
               return '<div class="m-card">' +
                 '<div class="m-title">' + esc(r.att_date) + ' · ' + esc(r.shift_name || "—") + '</div>' +
                 '<div class="m-sub">Masuk ' + esc(inTxt) + ' · Pulang ' + esc(outTxt) + ' WIB (' + esc((r.work_mode || "wfo").toUpperCase()) + ')</div>' +
-                '<div class="m-row">' + attFormatRecBadge(r) + '</div>' +
+                '<div class="m-row">' + attFormatRecBadge(r) + (pics ? ' ' + pics : '') + '</div>' +
                 (r.notes ? '<div class="m-sub" style="margin-top:0.35rem">' + esc(r.notes) + '</div>' : '') +
               '</div>';
             }).join("");
@@ -41639,8 +42010,10 @@ function closeOtModal() {
             var outTime = r.clock_out_at ? (attWibParts(r.clock_out_at).hm + " WIB") : "—";
             var inMap = attMapLink(r.clock_in_lat, r.clock_in_lng);
             var outMap = attMapLink(r.clock_out_lat, r.clock_out_lng);
-            var inGps = (r.clock_in_dist_m != null ? r.clock_in_dist_m + " m" : "") + (inMap ? ' · <a href="' + inMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "");
-            var outGps = (r.clock_out_dist_m != null ? r.clock_out_dist_m + " m" : "") + (outMap ? ' · <a href="' + outMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "");
+            var inPic = r.clock_in_photo ? ' · <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_in_photo) + '\',\'Selfie%20Masuk%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Selfie</button>' : "";
+            var outPic = r.clock_out_photo ? ' · <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Selfie</button>' : "";
+            var inGps = (r.clock_in_dist_m != null ? r.clock_in_dist_m + " m" : "") + (inMap ? ' · <a href="' + inMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "") + inPic;
+            var outGps = (r.clock_out_dist_m != null ? r.clock_out_dist_m + " m" : "") + (outMap ? ' · <a href="' + outMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "") + outPic;
             return '<tr>' +
               '<td><div><strong>' + esc(r.user_name || r.user_email) + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.user_email) + (r.user_role ? ' · ' + esc(r.user_role) : '') + '</div></td>' +
               '<td><div>' + esc(r.shift_name || "—") + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.work_mode || "").toUpperCase()) + '</div></td>' +
@@ -41659,10 +42032,12 @@ function closeOtModal() {
           : list.slice(0, 40).map(function(r) {
               var inTime = r.clock_in_at ? attWibParts(r.clock_in_at).hm : "—";
               var outTime = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "—";
+              var pics = (r.clock_in_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_in_photo) + '\',\'Selfie%20Masuk%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Masuk</button> ' : '') +
+                (r.clock_out_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Pulang</button>' : '');
               return '<div class="m-card">' +
                 '<div class="m-title">' + esc(r.user_name || r.user_email) + ' <small style="font-weight:500;color:var(--text-muted)">(' + esc(r.user_role || "-") + ')</small></div>' +
                 '<div class="m-sub">Masuk ' + esc(inTime) + (r.clock_in_dist_m != null ? ' (' + r.clock_in_dist_m + 'm)' : '') + ' · Pulang ' + esc(outTime) + ' · ' + esc(r.shift_name || "—") + '</div>' +
-                '<div class="m-row">' + attFormatRecBadge(r) + '</div>' +
+                '<div class="m-row">' + attFormatRecBadge(r) + (pics ? ' ' + pics : '') + '</div>' +
                 '<div style="margin-top:0.45rem"><button type="button" class="btn btn-sm btn-ghost" onclick="attOpenAdminEditModal(\'' + encodeURIComponent(r.user_email || "") + '\',\'' + esc(r.att_date || date) + '\')">Koreksi</button></div>' +
               '</div>';
             }).join("");
@@ -41783,10 +42158,14 @@ function closeOtModal() {
       if (currentRole() !== "admin") return toast("Hanya Admin yang dapat export rekap absensi.", true);
       var rows = attAdminFiltered && attAdminFiltered.length ? attAdminFiltered : attAdminRows;
       if (!rows || !rows.length) return toast("Tidak ada data untuk diexport.", true);
-      var headers = ["Tanggal", "Nama", "Email", "Role", "Shift", "Mode", "Clock In (WIB)", "Telat (Menit)", "Jarak In (m)", "Koordinat In", "Clock Out (WIB)", "Jarak Out (m)", "Koordinat Out", "Status", "Catatan", "Koreksi Admin"];
+      var headers = ["Tanggal", "Nama", "Email", "Role", "Shift", "Mode", "Clock In (WIB)", "Telat (Menit)", "Jarak In (m)", "Koordinat In", "Foto Masuk", "Clock Out (WIB)", "Jarak Out (m)", "Koordinat Out", "Foto Pulang", "Status", "Catatan", "Koreksi Admin"];
       var qCsv = function(v) {
         var s = String(v == null ? "" : v);
         return '"' + s.replace(/"/g, '""') + '"';
+      };
+      var fmtPhotoCsv = function(p) {
+        if (!p) return "";
+        return String(p).indexOf("data:image/") === 0 ? "Foto tersimpan (inline)" : String(p);
       };
       var lines = [headers.map(qCsv).join(",")];
       rows.forEach(function(r) {
@@ -41806,9 +42185,11 @@ function closeOtModal() {
           r.late_minutes != null ? r.late_minutes : 0,
           r.clock_in_dist_m != null ? r.clock_in_dist_m : "",
           inCoord,
+          fmtPhotoCsv(r.clock_in_photo),
           outHm,
           r.clock_out_dist_m != null ? r.clock_out_dist_m : "",
           outCoord,
+          fmtPhotoCsv(r.clock_out_photo),
           stLabel,
           r.notes || "",
           r.corrected_by || ""
@@ -41883,6 +42264,7 @@ function closeOtModal() {
       if ($("attSetLat")) $("attSetLat").value = attSettings.lat != null ? String(attSettings.lat) : "";
       if ($("attSetLng")) $("attSetLng").value = attSettings.lng != null ? String(attSettings.lng) : "";
       if ($("attSetStrictRadius")) $("attSetStrictRadius").checked = attSettings.strict_radius !== false;
+      if ($("attSetRequireSelfie")) $("attSetRequireSelfie").checked = attSettings.require_selfie !== false;
       attUpdateMapPreviewLink();
       var host = $("attSetShiftsHost");
       if (host) {
@@ -41922,6 +42304,7 @@ function closeOtModal() {
         lng: lngStr ? Number(lngStr) : null,
         radius_m: Math.max(20, Math.min(5000, Number($("attSetRadius") && $("attSetRadius").value) || 150)),
         strict_radius: !!($("attSetStrictRadius") && $("attSetStrictRadius").checked),
+        require_selfie: !!($("attSetRequireSelfie") && $("attSetRequireSelfie").checked),
         shifts: rows
       };
       if ((cfg.lat != null && !isFinite(cfg.lat)) || (cfg.lng != null && !isFinite(cfg.lng))) {
