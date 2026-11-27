@@ -7563,6 +7563,124 @@
     @media (min-width: 900px) {
       .pwa-update-bar { bottom: 1.25rem; right: 1.25rem; left: auto; }
     }
+    /* Backup Absensi GPS */
+    .att-quick-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      background: linear-gradient(135deg, #f0fdf4, #ecfeff);
+      border: 1px solid #a7f3d0;
+      border-radius: 14px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .att-quick-left { display: flex; align-items: center; gap: 0.65rem; min-width: 210px; flex: 1; }
+    .att-quick-dot {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      background: #059669; color: #fff; flex-shrink: 0; font-size: 1rem;
+    }
+    .att-quick-dot.done { background: #0f766e; }
+    .att-quick-dot.warn { background: #d97706; }
+    .att-quick-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .att-clock-hero {
+      background: linear-gradient(135deg, #065f46 0%, #0d9488 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 1.15rem 1.25rem;
+      margin-bottom: 0.9rem;
+      display: grid;
+      grid-template-columns: minmax(220px, 1.1fr) minmax(260px, 1.3fr);
+      gap: 1rem;
+      align-items: center;
+    }
+    @media (max-width: 820px) {
+      .att-clock-hero { grid-template-columns: 1fr; padding: 1rem; }
+    }
+    .att-live-time {
+      font-size: 2.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      margin: 0.25rem 0;
+    }
+    .att-live-date { font-size: 0.84rem; opacity: 0.9; }
+    .att-status-chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.28rem 0.65rem; border-radius: 999px;
+      font-size: 0.74rem; font-weight: 700;
+      background: rgba(255,255,255,0.18); color: #fff;
+      margin-top: 0.45rem;
+    }
+    .att-clock-panel {
+      background: rgba(255,255,255,0.97);
+      color: var(--text);
+      border-radius: 13px;
+      padding: 0.95rem 1rem;
+      box-shadow: 0 10px 26px rgba(6, 78, 59, 0.22);
+    }
+    .att-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      margin-bottom: 0.55rem;
+    }
+    @media (max-width: 520px) {
+      .att-form-row { grid-template-columns: 1fr; }
+    }
+    .att-gps-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.55rem 0.7rem;
+      font-size: 0.78rem;
+      margin: 0.55rem 0 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .att-gps-box.ok { background: #f0fdf4; border-color: #86efac; color: #166534; }
+    .att-gps-box.out { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .att-gps-box.unset { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .att-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 0.65rem;
+      margin-bottom: 0.85rem;
+    }
+    .att-missing-strip {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 0.65rem 0.85rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.8rem;
+      color: #92400e;
+    }
+    .att-missing-chips {
+      display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem;
+    }
+    .att-missing-chip {
+      background: #fff; border: 1px solid #fcd34d; color: #78350f;
+      border-radius: 999px; padding: 0.18rem 0.55rem; font-size: 0.73rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .att-missing-chip:hover { background: #fef3c7; }
+    .att-shift-row {
+      display: grid;
+      grid-template-columns: 1.5fr 0.85fr 0.85fr 0.75fr auto;
+      gap: 0.45rem;
+      align-items: center;
+      margin-bottom: 0.45rem;
+    }
+    @media (max-width: 680px) {
+      .att-shift-row { grid-template-columns: 1fr 1fr; }
+    }
     </style>
 </head>
 <body>
@@ -7744,7 +7862,7 @@
         <button class="nav-item" data-page="fg-korlap" data-roles="admin,ppic,korlap" data-tip="Output FG Korlap"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#f59e0b" d="M4 8.5 12 4l8 4.5v9L12 22 4 17.5z"/><path fill="#fbbf24" d="M12 12.5 20 8.5 12 4 4 8.5z"/><path stroke="#fff" stroke-width="1.8" fill="none" d="M12 12.5V22"/><circle cx="12" cy="10" r="2.2" fill="#fff"/><path stroke="#f59e0b" stroke-width="1.4" fill="none" d="m10.7 10 0.9 0.9 1.7-1.7"/></svg></span><span class="nav-txt">Output FG Korlap</span></button>
         <button class="nav-item" data-page="wip" data-roles="admin,ppic,korlap" data-tip="Stok WIP"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-bounce"><path fill="#8b5cf6" d="m4 8 8-4 8 4v8l-8 4-8-4z"/><path stroke="#fff" stroke-width="1.4" fill="none" d="m4 8 8 4 8-4M12 12v8"/></svg></span><span class="nav-txt">Stok WIP</span></button>
         <button class="nav-item" data-page="revisions" data-roles="admin,ppic,korlap,operator" data-tip="Revisi Target"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-wiggle"><path fill="#f59e0b" d="M16 4.2 19.8 8 8 19.8 3.5 21l1.2-4.5z"/></svg></span><span class="nav-txt">Revisi Target</span><span class="nav-badge" id="navRevBadge" style="display:none">0</span></button>
-        <button class="nav-item" data-page="absences" data-roles="admin,ppic,korlap,operator" data-tip="Cuti / Ijin"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-wiggle"><rect x="4" y="6" width="16" height="14" rx="2.5" fill="#14b8a6"/><path stroke="#fff" stroke-width="1.6" d="M4 10.5h16"/><circle cx="12" cy="15" r="1.5" fill="#fff"/></svg></span><span class="nav-txt">Cuti / Ijin</span></button>
+        <button class="nav-item" data-page="absences" data-roles="all" data-tip="Absensi &amp; Ijin"><span class="nav-ico"><svg viewBox="0 0 24 24" class="anim-wiggle"><rect x="4" y="6" width="16" height="14" rx="2.5" fill="#14b8a6"/><path stroke="#fff" stroke-width="1.6" d="M4 10.5h16"/><circle cx="12" cy="15" r="1.5" fill="#fff"/></svg></span><span class="nav-txt">Absensi &amp; Ijin</span></button>
         <button class="nav-item" data-page="ranking" data-roles="admin,ppic,korlap" data-tip="Ranking Operator"><span class="nav-ico"><svg viewBox="0 0 24 24"><rect class="anim-grow" x="5" y="12" width="3.5" height="8" rx="1" fill="#34d399"/><rect class="anim-grow" x="10.2" y="6" width="3.5" height="14" rx="1" fill="#059669"/><rect class="anim-grow" x="15.5" y="9" width="3.5" height="11" rx="1" fill="#6ee7b7"/></svg></span><span class="nav-txt">Ranking Operator</span></button>
         <button class="nav-item" data-page="kendala" data-roles="admin,ppic,korlap" data-tip="Analisis Kendala"><span class="nav-ico"><svg viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 3 3 19h18L12 3z"/><rect x="11" y="9" width="2" height="5" rx="0.5" fill="#fff"/><circle cx="12" cy="16.5" r="1.1" fill="#fff"/></svg></span><span class="nav-txt">Analisis Kendala</span></button>
 
@@ -7785,6 +7903,7 @@
               <div><h1 id="greet">Selamat datang</h1><p id="homeSub">Pantau plan dan laporan harian.</p></div>
               <button type="button" class="btn btn-ghost btn-sm" onclick="loadHomeDaily()">Refresh</button>
             </div>
+            <div id="attHomeWidgetStaff" class="att-quick-bar" style="display:none"></div>
             <div id="homeEtaCard" class="kpi" style="display:none;max-width:420px;margin-bottom:0.75rem;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1px solid #fdba74" onclick="openPurchasingEta()">
               <div class="label" style="color:#9a3412">⚠ Perlu ETA sisa (Purchasing)</div>
               <div class="value" id="homeEtaCount" style="font-size:1.8rem;color:#c2410c">0</div>
@@ -7861,6 +7980,7 @@
           </div>
           <!-- Operator home (phone-first) -->
           <div id="homeOperator" style="display:none">
+            <div id="attHomeWidgetOp" class="att-quick-bar" style="display:none"></div>
             <div class="op-hero">
               <div class="op-hero-top">
                 <div>
@@ -8694,27 +8814,206 @@
 
         <section id="page-absences" class="page" hidden>
           <div class="page-head">
-            <div><h1>Cuti / Ijin</h1><p>Operator ajukan tidak masuk; PPIC/korlap melihat untuk ubah plan.</p></div>
-            <button class="btn btn-primary" type="button" onclick="openAbsenceModal()">+ Ajukan</button>
+            <div>
+              <h1>Absensi &amp; Ijin</h1>
+              <p>Clock In / Out GPS karyawan &amp; pengajuan cuti/ijin.</p>
+            </div>
+            <div style="display:flex;gap:0.45rem;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" type="button" onclick="loadAttendancePage(true)">Refresh</button>
+              <button class="btn btn-primary btn-sm" type="button" onclick="openAbsenceModal()">+ Ajukan Cuti/Ijin</button>
+            </div>
           </div>
-          <div class="toolbar">
-            <input type="date" id="absFrom" onchange="loadAbsences()" />
-            <input type="date" id="absTo" onchange="loadAbsences()" />
-            <select id="absFilter" onchange="loadAbsences()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem">
-              <option value="">Semua status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
+
+          <div class="mod-tabs" id="attPageTabs" role="tablist">
+            <button type="button" class="mod-tab active" data-atab="mine" onclick="setAttTab('mine')">Absen &amp; Ijin Saya</button>
+            <button type="button" class="mod-tab" data-atab="admin" id="attTabAdmin" style="display:none" onclick="setAttTab('admin')">Rekap Karyawan (Admin)</button>
+            <button type="button" class="mod-tab" data-atab="settings" id="attTabSettings" style="display:none" onclick="setAttTab('settings')">Pengaturan Lokasi &amp; Shift</button>
           </div>
-          <div id="absCards" class="mobile-cards mobile-only"></div>
-          <div class="table-wrap desk-only-table">
-            <table>
-              <thead><tr><th>Tanggal</th><th>Operator</th><th>Jenis</th><th>Alasan</th><th>Status</th><th></th></tr></thead>
-              <tbody id="absBody"></tbody>
-            </table>
+
+          <!-- Pane: Absen & Ijin Saya (Semua role) -->
+          <div id="attPaneMine" class="mod-pane">
+            <div class="att-clock-hero">
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.85">Absensi Online (GPS)</div>
+                <div class="att-live-time" id="attLiveClock">--:--:-- WIB</div>
+                <div class="att-live-date" id="attLiveDate">—</div>
+                <div class="att-status-chip" id="attMyStatusChip">Memuat status hari ini…</div>
+                <div id="attMyTodaySummary" style="font-size:0.78rem;margin-top:0.45rem;opacity:0.92;line-height:1.45"></div>
+              </div>
+              <div class="att-clock-panel">
+                <div class="att-form-row">
+                  <div class="field" style="margin:0">
+                    <label style="font-size:0.74rem">Shift Kerja</label>
+                    <select id="attShiftSelect" onchange="attOnShiftChange()"></select>
+                  </div>
+                  <div class="field" style="margin:0">
+                    <label style="font-size:0.74rem">Mode Kehadiran</label>
+                    <select id="attWorkMode" onchange="attRenderGpsPreview()">
+                      <option value="wfo">WFO (Lokasi Pabrik)</option>
+                      <option value="dinas">Dinas Luar</option>
+                      <option value="wfh">WFH / Remote</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="field" style="margin:0">
+                  <label style="font-size:0.74rem">Catatan (opsional)</label>
+                  <input id="attNotes" type="text" placeholder="Contoh: lembur / tugas luar / kendala jalan…" />
+                </div>
+                <div id="attGpsBox" class="att-gps-box">
+                  <div>
+                    <div id="attGpsText" style="font-weight:600">Tekan Cek GPS atau langsung Clock In/Out untuk membaca lokasi Anda.</div>
+                    <div id="attGpsSub" style="font-size:0.72rem;opacity:0.85;margin-top:0.15rem"></div>
+                  </div>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="attRefreshGpsPreview(true)">Cek GPS</button>
+                </div>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+                  <button type="button" class="btn btn-primary" id="attClockBtn" style="flex:1;min-height:42px;font-weight:700" onclick="attSubmitClock()">Clock In (Masuk)</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:0.9rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0">Riwayat Absensi Saya</h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Hanya menampilkan catatan absensi akun Anda sendiri.</p>
+                </div>
+                <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+                  <input type="date" id="attMyFrom" onchange="loadAttendanceMy()" />
+                  <input type="date" id="attMyTo" onchange="loadAttendanceMy()" />
+                </div>
+              </div>
+              <div id="attMyCards" class="mobile-cards mobile-only"></div>
+              <div class="table-wrap desk-only-table">
+                <table>
+                  <thead><tr><th>Tanggal</th><th>Shift &amp; Mode</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Catatan</th></tr></thead>
+                  <tbody id="attMyBody"><tr><td colspan="6" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
+              <div id="attMyPager" class="pg-bar"></div>
+            </div>
+
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0">Pengajuan Cuti / Ijin</h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Pengajuan tidak masuk / ijin kerja.</p>
+                </div>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="openAbsenceModal()">+ Ajukan</button>
+              </div>
+              <div class="toolbar">
+                <input type="date" id="absFrom" onchange="loadAbsences()" />
+                <input type="date" id="absTo" onchange="loadAbsences()" />
+                <select id="absFilter" onchange="loadAbsences()" style="border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem">
+                  <option value="">Semua status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div id="absCards" class="mobile-cards mobile-only"></div>
+              <div class="table-wrap desk-only-table">
+                <table>
+                  <thead><tr><th>Tanggal</th><th>Karyawan</th><th>Jenis</th><th>Alasan</th><th>Status</th><th></th></tr></thead>
+                  <tbody id="absBody"></tbody>
+                </table>
+              </div>
+              <div id="absPager" class="pg-bar"></div>
+            </div>
           </div>
-          <div id="absPager" class="pg-bar"></div>
+
+          <!-- Pane: Rekap Karyawan (Hanya Admin) -->
+          <div id="attPaneAdmin" class="mod-pane" hidden>
+            <div class="att-kpi-grid">
+              <div class="kpi"><div class="label">Karyawan Aktif</div><div class="value" id="attKpiTotal">—</div></div>
+              <div class="kpi"><div class="label">Sudah Clock In</div><div class="value" id="attKpiIn" style="color:#059669">—</div></div>
+              <div class="kpi"><div class="label">Tepat Waktu</div><div class="value" id="attKpiOnTime" style="color:#0f766e">—</div></div>
+              <div class="kpi"><div class="label">Terlambat</div><div class="value" id="attKpiLate" style="color:#d97706">—</div></div>
+              <div class="kpi"><div class="label">Belum Absen</div><div class="value" id="attKpiMissing" style="color:#dc2626">—</div></div>
+            </div>
+            <div class="toolbar" style="flex-wrap:wrap">
+              <input type="date" id="attAdmDate" onchange="loadAttendanceAdmin()" />
+              <select id="attAdmShift" onchange="renderAttendanceAdmin()"><option value="">Semua shift</option></select>
+              <select id="attAdmStatus" onchange="renderAttendanceAdmin()">
+                <option value="">Semua status</option>
+                <option value="hadir">Tepat Waktu</option>
+                <option value="terlambat">Terlambat</option>
+                <option value="no_out">Belum Clock Out</option>
+                <option value="out_radius">Di Luar Radius</option>
+                <option value="belum_absen">Belum Absen</option>
+              </select>
+              <input type="search" id="attAdmSearch" placeholder="Cari nama / email / role…" oninput="renderAttendanceAdmin()" />
+              <button type="button" class="btn btn-primary btn-sm" onclick="attOpenAdminEditModal()">+ Input / Koreksi Manual</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="attExportCsv()">Export CSV</button>
+            </div>
+            <div id="attMissingWrap" class="att-missing-strip" style="display:none">
+              <div style="font-weight:700" id="attMissingTitle">Belum Clock In</div>
+              <div class="att-missing-chips" id="attMissingChips"></div>
+            </div>
+            <div id="attAdmCards" class="mobile-cards mobile-only"></div>
+            <div class="card desk-only-table" style="padding:0;overflow:hidden">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Karyawan</th><th>Shift &amp; Mode</th><th>Clock In (GPS)</th><th>Clock Out (GPS)</th><th>Status</th><th>Catatan</th><th></th></tr></thead>
+                  <tbody id="attAdmBody"><tr><td colspan="7" class="empty">Memuat…</td></tr></tbody>
+                </table>
+              </div>
+              <div id="attAdmPager" class="pg-bar"></div>
+            </div>
+          </div>
+
+          <!-- Pane: Pengaturan Lokasi & Shift (Hanya Admin) -->
+          <div id="attPaneSettings" class="mod-pane" hidden>
+            <div class="card" style="margin-bottom:0.85rem">
+              <h3 style="margin:0 0 0.25rem">Lokasi Pabrik / Kantor &amp; Radius GPS</h3>
+              <p style="margin:0 0 0.85rem;font-size:0.8rem;color:var(--text-muted)">Atur titik koordinat pabrik dan toleransi jarak GPS untuk validasi Clock In / Clock Out.</p>
+              <div class="att-form-row">
+                <div class="field"><label>Nama Lokasi / Pabrik</label><input id="attSetOfficeName" type="text" placeholder="PT. Sentra Herbal Internasional" /></div>
+                <div class="field"><label>Radius Maksimal (meter)</label><input id="attSetRadius" type="number" min="20" max="5000" value="150" /></div>
+              </div>
+              <div class="att-form-row">
+                <div class="field"><label>Latitude <span style="font-weight:400;color:var(--text-muted);font-size:0.72rem">(bisa paste &quot;lat, lng&quot;)</span></label><input id="attSetLat" type="text" placeholder="-6.xxxxxx" oninput="attHandleCoordPaste(this.value)" /></div>
+                <div class="field"><label>Longitude</label><input id="attSetLng" type="text" placeholder="106.xxxxxx" /></div>
+              </div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.75rem">
+                <button type="button" class="btn btn-primary btn-sm" onclick="attCaptureAdminGps()">Ambil Lokasi Saya Saat Ini (GPS)</button>
+                <a id="attSetMapPreviewLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" style="display:none">Lihat di Google Maps</a>
+              </div>
+              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer">
+                <input type="checkbox" id="attSetStrictRadius" checked />
+                <span>Wajib di dalam radius pabrik saat Clock In / Clock Out untuk mode <b>WFO</b></span>
+              </label>
+            </div>
+
+            <div class="card" style="margin-bottom:0.85rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0">Daftar Shift &amp; Jam Kerja</h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Tentukan jam masuk, jam pulang, dan toleransi keterlambatan (menit).</p>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="attAddShiftRow()">+ Tambah Shift</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1.5fr 0.85fr 0.85fr 0.75fr auto;gap:0.45rem;font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem" class="desk-only-table">
+                <span>Nama Shift</span><span>Jam Masuk</span><span>Jam Pulang</span><span>Toleransi (mnt)</span><span></span>
+              </div>
+              <div id="attSetShiftsHost"></div>
+              <div style="margin-top:0.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+                <span id="attStorageModeLabel" style="font-size:0.76rem;color:var(--text-muted)"></span>
+                <button type="button" class="btn btn-primary" onclick="attSaveSettingsFromUi()">Simpan Pengaturan</button>
+              </div>
+            </div>
+
+            <div id="attSqlSetupBox" class="card" style="display:none;background:#f8fafc;border:1px solid #cbd5e1">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
+                <div>
+                  <h4 style="margin:0;font-size:0.88rem">Mode Cadangan Aktif (Siap Pakai Langsung)</h4>
+                  <p style="margin:0.2rem 0 0;font-size:0.78rem;color:var(--text-muted)">Saat ini absensi sudah tersimpan otomatis di database menggunakan tabel sistem yang ada. Jika Anda ingin membuat tabel khusus <code>attendance_logs</code> &amp; <code>attendance_settings</code> di Supabase SQL Editor (opsional), salin SQL di bawah:</p>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="attCopySetupSql()">Salin SQL</button>
+              </div>
+              <pre id="attSetupSqlText" style="margin:0.65rem 0 0;padding:0.65rem;background:#0f172a;color:#e2e8f0;border-radius:8px;font-size:0.7rem;overflow:auto;max-height:210px"></pre>
+            </div>
+          </div>
         </section>
 
 
@@ -10093,6 +10392,43 @@
       <div class="sheet-foot">
         <button class="btn btn-ghost" type="button" onclick="closeAbsenceModal()">Batal</button>
         <button class="btn btn-primary" type="button" id="btnSaveAbsence">Kirim</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attAdminEditModal" class="modal-bg">
+    <div class="modal modal-sheet" style="max-width:480px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="attEdTitle">Koreksi / Input Absensi</h2>
+        <button type="button" class="ot-close-x" onclick="attCloseAdminEditModal()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label>Karyawan</label>
+          <select id="attEdEmail"></select>
+        </div>
+        <div class="att-form-row">
+          <div class="field"><label>Tanggal</label><input id="attEdDate" type="date" /></div>
+          <div class="field"><label>Shift</label><select id="attEdShift"></select></div>
+        </div>
+        <div class="att-form-row">
+          <div class="field"><label>Jam Masuk (WIB)</label><input id="attEdInHm" type="time" /></div>
+          <div class="field"><label>Jam Pulang (WIB)</label><input id="attEdOutHm" type="time" /></div>
+        </div>
+        <div class="field">
+          <label>Mode Kehadiran</label>
+          <select id="attEdWorkMode">
+            <option value="wfo">WFO (Lokasi Pabrik)</option>
+            <option value="dinas">Dinas Luar</option>
+            <option value="wfh">WFH / Remote</option>
+          </select>
+        </div>
+        <div class="field"><label>Catatan / Alasan Koreksi</label><input id="attEdNotes" type="text" placeholder="Contoh: koreksi lupa clock out / HP error" /></div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-ghost" type="button" onclick="attCloseAdminEditModal()">Batal</button>
+        <button class="btn btn-primary" type="button" onclick="attSaveAdminEdit()">Simpan Absensi</button>
       </div>
     </div>
   </div>
@@ -14956,14 +15292,14 @@ function fillOperatorList(selectedEmail) {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
           { page: "reports", label: "Lapor", ico: "ico-report" },
-          { page: "absences", label: "Cuti", ico: "ico-leave" },
+          { page: "absences", label: "Absensi", ico: "ico-leave" },
           { page: "revisions", label: "Revisi", ico: "ico-edit" }
         ],
         more: [
           { group: "Saya", items: [
             { page: "home", label: "Beranda & grade", ico: "ico-home" },
             { page: "reports", label: "Laporan saya", ico: "ico-report" },
-            { page: "absences", label: "Izin / cuti", ico: "ico-leave" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
@@ -14989,6 +15325,7 @@ function fillOperatorList(selectedEmail) {
             { page: "pick-wh", label: "Pick Bahan Gudang", ico: "ico-inbox" },
             { page: "vendors", label: "Vendor / Supplier", ico: "ico-truck" },
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -15015,6 +15352,7 @@ function fillOperatorList(selectedEmail) {
             { page: "plans", label: "Plan Harian", ico: "ico-plan" },
             { page: "customers", label: "Customer", ico: "ico-user" },
             { page: "export-data", label: "Export Data", ico: "ico-out" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -15034,6 +15372,7 @@ function fillOperatorList(selectedEmail) {
           ]},
           { group: "Operasional & Usulan", items: [
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -15055,7 +15394,7 @@ function fillOperatorList(selectedEmail) {
             { page: "reports", label: "Laporan OP", ico: "ico-report" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
-            { page: "absences", label: "Cuti / Ijin", ico: "ico-leave" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
           ]},
           { group: "Penjualan & Pengiriman", items: [
@@ -15098,6 +15437,7 @@ function fillOperatorList(selectedEmail) {
             { page: "purchasing", label: "Purchase Order (PO)", ico: "ico-cart", tab: "po" },
             { page: "vendors", label: "Vendor / Supplier", ico: "ico-truck" },
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -15114,6 +15454,7 @@ function fillOperatorList(selectedEmail) {
             { page: "qc", label: "Antrian QC", ico: "ico-qc", tab: "antrian" },
             { page: "qc", label: "Riwayat QC", ico: "ico-report", tab: "riwayat" },
             { page: "operasional", label: "Grid operasional", ico: "ico-grid" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
           ]}
         ]
@@ -15135,7 +15476,7 @@ function fillOperatorList(selectedEmail) {
             { page: "wip", label: "Stok WIP", ico: "ico-box" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
-            { page: "absences", label: "Cuti / Ijin", ico: "ico-leave" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "revisions", label: "Revisi target", ico: "ico-edit" }
           ]},
           { group: "Order, Bahan & Master", items: [
@@ -15166,7 +15507,7 @@ function fillOperatorList(selectedEmail) {
             { page: "wip", label: "Stok WIP", ico: "ico-box" },
             { page: "ranking", label: "Ranking operator", ico: "ico-rank" },
             { page: "kendala", label: "Analisis Kendala", ico: "ico-report" },
-            { page: "absences", label: "Cuti / Ijin", ico: "ico-leave" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
             { page: "revisions", label: "Revisi Target", ico: "ico-edit" }
           ]},
           { group: "Penjualan & Pengiriman", items: [
@@ -17256,7 +17597,7 @@ function fillOperatorList(selectedEmail) {
       if (!sb) return;
       let q = sb.from("absences").select("*").order("absence_date", { ascending: false }).limit(200);
       const role = currentRole();
-      if (role === "operator" && currentUser) {
+      if (!["admin","ppic","korlap"].includes(role) && currentUser) {
         q = q.eq("operator_email", currentUser.email);
       }
       const st = ($("absFilter") && $("absFilter").value) || "";
@@ -23052,7 +23393,7 @@ function fillOperatorList(selectedEmail) {
       "page-delivery": ["ship_requests", "ship_request_lines", "deliveries", "delivery_lines"],
       "page-marketing": ["ship_requests", "ship_request_lines", "fg_korlap_reports", "reports", "orders", "audit_logs"],
       "page-wip": ["wip_stock"],
-      "page-absences": ["absences"],
+      "page-absences": ["absences", "attendance_logs", "attendance_settings", "audit_logs"],
       "page-revisions": ["plan_revision_requests", "plans"]
     };
     function invalidatePagesByTable(table) {
@@ -23132,7 +23473,7 @@ function fillOperatorList(selectedEmail) {
             else loadMarketing();
           }
           else if (pid === "page-wip") loadWipStock();
-          else if (pid === "page-absences") loadAbsences();
+          else if (pid === "page-absences") { if (typeof loadAttendancePage === "function") loadAttendancePage(true); else loadAbsences(); }
           else if (pid === "page-revisions") { if (typeof loadRevisions === "function") loadRevisions(); }
         } catch (e3) { console.warn("refreshLive", reason, e3); }
       }, 1500);
@@ -30473,6 +30814,7 @@ function fillOperatorList(selectedEmail) {
 
     async function loadOperatorHome() {
       if (!sb || !currentUser) return;
+      try { if (typeof loadAttendanceHomeWidget === "function") loadAttendanceHomeWidget(); } catch (eAt) {}
       const email = currentUser.email;
       const today = todayStr();
       if ($("opHeroDate")) $("opHeroDate").textContent = "Hari ini · " + today + " (WIB)";
@@ -33116,6 +33458,7 @@ function fillOperatorList(selectedEmail) {
 
 
     async function loadHomeDaily() {
+      try { if (typeof loadAttendanceHomeWidget === "function") loadAttendanceHomeWidget(); } catch (eAt) {}
       if (!sb) {
         var b0 = $("hdBody");
         if (b0) b0.innerHTML = '<tr><td colspan="9" class="empty">Supabase belum siap</td></tr>';
@@ -35839,7 +36182,13 @@ var id = await newPickId();
       if (page === "export-data") { try { initExportPage(); } catch (eEx) {} }
       if (page === "orders" && _shouldFetch("orders", 20000)) { try { loadOrdersPage(); } catch (e) {} }
       if (page === "order-trading" && _shouldFetch("order-trading", 20000)) { try { loadOrderTrading(); } catch (e) {} }
-      if (page === "absences" && _shouldFetch("absences", 20000)) { try { loadAbsences(); } catch (e) {} }
+      if (page === "absences") {
+        if (_shouldFetch("absences", 15000)) {
+          try { if (typeof loadAttendancePage === "function") loadAttendancePage(); else loadAbsences(); } catch (e) {}
+        } else {
+          try { if (typeof attUpdateUiPermissions === "function") attUpdateUiPermissions(); } catch (e2) {}
+        }
+      }
       if (page === "revisions" && _shouldFetch("revisions", 20000)) { try { loadRevisionRequests(); } catch (eR) {} }
       if (page === "audit" && _shouldFetch("audit", 30000)) { try { loadAuditLogs(); } catch (eA) {} }
       if (page === "fg-korlap" && _shouldFetch("fg-korlap", 20000)) { try { loadFgKorlap(); } catch (eF) {} }
@@ -35892,6 +36241,8 @@ var id = await newPickId();
     function applyUserChip() {
       try { setupUserChipMenu(); } catch (e0) {}
       try { applyHomeByRole(); } catch (eH0) {}
+      try { if (typeof attUpdateUiPermissions === "function") attUpdateUiPermissions(); } catch (eAtt0) {}
+      try { if (typeof loadAttendanceHomeWidget === "function") loadAttendanceHomeWidget(); } catch (eAtt1) {}
       const name = (currentProfile && currentProfile.name) || (currentUser && currentUser.email) || "—";
       const role = (currentProfile && currentProfile.role) || "operator";
       const avatarUrl = (currentProfile && (currentProfile.avatar_url || currentProfile.photo_url)) || "";
@@ -38091,7 +38442,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.26-rank-fix";
+    var APP_BUILD_TAG = "2026.11.27-absensi-gps";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -40230,6 +40581,1385 @@ function closeOtModal() {
       if (host) host.innerHTML = "";
       if (!document.querySelector(".modal-bg.show")) {
         document.body.classList.remove("modal-open");
+      }
+    }
+
+    // ===== BACKUP ABSENSI KARYAWAN (GPS + ADMIN CONFIG) =====
+    var ATT_DEFAULT_SETTINGS = {
+      office_name: "PT. Sentra Herbal Internasional",
+      lat: null,
+      lng: null,
+      radius_m: 150,
+      strict_radius: true,
+      shifts: [
+        { name: "Office / Non-Shift", start: "08:00", end: "17:00", grace_min: 10 },
+        { name: "Shift 1", start: "07:00", end: "15:00", grace_min: 10 },
+        { name: "Shift 2", start: "15:00", end: "23:00", grace_min: 10 },
+        { name: "Shift 3", start: "23:00", end: "07:00", grace_min: 10 }
+      ]
+    };
+    var ATT_SETUP_SQL = [
+      "create table if not exists attendance_settings (",
+      "  id text primary key default 'default',",
+      "  office_name text not null default 'PT. Sentra Herbal Internasional',",
+      "  lat double precision,",
+      "  lng double precision,",
+      "  radius_m integer not null default 150,",
+      "  strict_radius boolean not null default true,",
+      "  shifts jsonb not null default '[]'::jsonb,",
+      "  updated_by text,",
+      "  updated_at timestamptz default now()",
+      ");",
+      "create table if not exists attendance_logs (",
+      "  id bigserial primary key,",
+      "  att_date date not null,",
+      "  user_email text not null,",
+      "  user_name text,",
+      "  user_role text,",
+      "  shift_name text,",
+      "  shift_start text,",
+      "  shift_end text,",
+      "  work_mode text default 'wfo',",
+      "  clock_in_at timestamptz,",
+      "  clock_in_lat double precision,",
+      "  clock_in_lng double precision,",
+      "  clock_in_acc integer,",
+      "  clock_in_dist_m integer,",
+      "  clock_out_at timestamptz,",
+      "  clock_out_lat double precision,",
+      "  clock_out_lng double precision,",
+      "  clock_out_acc integer,",
+      "  clock_out_dist_m integer,",
+      "  late_minutes integer default 0,",
+      "  status text default 'hadir',",
+      "  notes text,",
+      "  corrected_by text,",
+      "  corrected_at timestamptz,",
+      "  created_at timestamptz default now(),",
+      "  updated_at timestamptz default now(),",
+      "  unique (att_date, user_email)",
+      ");",
+      "create index if not exists attendance_logs_date_idx on attendance_logs(att_date desc);",
+      "alter table attendance_settings enable row level security;",
+      "alter table attendance_logs enable row level security;",
+      "create policy att_set_all on attendance_settings for all using (true) with check (true);",
+      "create policy att_log_all on attendance_logs for all using (true) with check (true);"
+    ].join("\n");
+
+    var attSettings = JSON.parse(JSON.stringify(ATT_DEFAULT_SETTINGS));
+    var attSettingsLoadedAt = 0;
+    var attStorageMode = "unknown"; // "table" | "fallback" | "unknown"
+    var attActiveTab = "mine";
+    var attMyRows = [];
+    var attActiveRecord = null;
+    var attAdminRows = [];
+    var attAdminMissing = [];
+    var attAdminFiltered = [];
+    var attLastGps = null;
+    var attClockTimer = null;
+    var attBusyClock = false;
+
+    function attIsMissingTableErr(err) {
+      if (!err) return false;
+      var code = String(err.code || "").toUpperCase();
+      var msg = String(err.message || err.details || err.hint || "").toLowerCase();
+      return code === "42P01" || code === "PGRST205" || code === "PGRST204" ||
+        msg.indexOf("does not exist") >= 0 ||
+        msg.indexOf("schema cache") >= 0 ||
+        msg.indexOf("could not find the table") >= 0 ||
+        msg.indexOf("row-level security") >= 0 ||
+        msg.indexOf("permission denied") >= 0;
+    }
+
+    function attWibParts(input) {
+      var d = input ? new Date(input) : new Date();
+      if (isNaN(d.getTime())) d = new Date();
+      try {
+        var parts = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Jakarta",
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+          hour12: false
+        }).formatToParts(d);
+        var get = function(t) {
+          var x = parts.find(function(p) { return p.type === t; });
+          return x ? x.value : "00";
+        };
+        var hh = get("hour");
+        if (hh === "24") hh = "00";
+        var mm = get("minute");
+        var ss = get("second");
+        return {
+          ymd: get("year") + "-" + get("month") + "-" + get("day"),
+          hm: hh + ":" + mm,
+          hms: hh + ":" + mm + ":" + ss,
+          mins: (Number(hh) || 0) * 60 + (Number(mm) || 0)
+        };
+      } catch (e) {
+        var z = function(n) { return String(n).padStart(2, "0"); };
+        return {
+          ymd: d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()),
+          hm: z(d.getHours()) + ":" + z(d.getMinutes()),
+          hms: z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds()),
+          mins: d.getHours() * 60 + d.getMinutes()
+        };
+      }
+    }
+
+    function attPrevDate(ymd) {
+      var d = new Date(String(ymd || todayStr()) + "T12:00:00");
+      d.setDate(d.getDate() - 1);
+      var z = function(n) { return String(n).padStart(2, "0"); };
+      return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+    }
+
+    function attFmtDateLongWib(ymd) {
+      try {
+        var d = new Date(String(ymd) + "T12:00:00+07:00");
+        return new Intl.DateTimeFormat("id-ID", {
+          timeZone: "Asia/Jakarta",
+          weekday: "long", day: "numeric", month: "long", year: "numeric"
+        }).format(d);
+      } catch (e) {
+        return ymd || "";
+      }
+    }
+
+    function attCalcDistM(lat1, lng1, lat2, lng2) {
+      var a1 = Number(lat1), o1 = Number(lng1), a2 = Number(lat2), o2 = Number(lng2);
+      if (!isFinite(a1) || !isFinite(o1) || !isFinite(a2) || !isFinite(o2)) return null;
+      var R = 6371000;
+      var toRad = function(v) { return (v * Math.PI) / 180; };
+      var dLat = toRad(a2 - a1);
+      var dLng = toRad(o2 - o1);
+      var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(a1)) * Math.cos(toRad(a2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      var c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+      return Math.round(R * c);
+    }
+
+    function attMapLink(lat, lng) {
+      if (lat == null || lng == null || lat === "" || lng === "") return "";
+      var a = Number(lat), o = Number(lng);
+      if (!isFinite(a) || !isFinite(o)) return "";
+      return "https://www.google.com/maps?q=" + encodeURIComponent(a.toFixed(6) + "," + o.toFixed(6));
+    }
+
+    function attParseHmMins(hm) {
+      var p = String(hm || "08:00").split(":");
+      return (Number(p[0]) || 0) * 60 + (Number(p[1]) || 0);
+    }
+
+    function attComputeLateMins(clockInIso, shiftObj) {
+      if (!clockInIso || !shiftObj) return 0;
+      var wp = attWibParts(clockInIso);
+      var inMins = wp.mins;
+      var sMins = attParseHmMins(shiftObj.start || "08:00");
+      var eMins = attParseHmMins(shiftObj.end || "17:00");
+      var grace = Math.max(0, Number(shiftObj.grace_min) || 0);
+      if (eMins < sMins && inMins < 12 * 60) {
+        inMins += 1440;
+      }
+      var diff = inMins - sMins;
+      return diff > grace ? Math.max(0, diff) : 0;
+    }
+
+    function attNormalizeSettings(raw) {
+      var def = JSON.parse(JSON.stringify(ATT_DEFAULT_SETTINGS));
+      if (!raw || typeof raw !== "object") return def;
+      var shifts = Array.isArray(raw.shifts) ? raw.shifts : [];
+      if (typeof raw.shifts === "string") {
+        try { shifts = JSON.parse(raw.shifts); } catch (e) { shifts = []; }
+      }
+      shifts = (shifts || []).map(function(s) {
+        return {
+          name: String((s && s.name) || "Shift").trim() || "Shift",
+          start: String((s && s.start) || "08:00").slice(0, 5),
+          end: String((s && s.end) || "17:00").slice(0, 5),
+          grace_min: Math.max(0, Number(s && s.grace_min) || 0)
+        };
+      }).filter(function(s) { return !!s.name; });
+      if (!shifts.length) shifts = def.shifts;
+      var lat = (raw.lat !== null && raw.lat !== undefined && raw.lat !== "" && isFinite(Number(raw.lat))) ? Number(raw.lat) : null;
+      var lng = (raw.lng !== null && raw.lng !== undefined && raw.lng !== "" && isFinite(Number(raw.lng))) ? Number(raw.lng) : null;
+      return {
+        office_name: String(raw.office_name || def.office_name).trim() || def.office_name,
+        lat: lat,
+        lng: lng,
+        radius_m: Math.max(20, Math.min(5000, Number(raw.radius_m) || def.radius_m)),
+        strict_radius: raw.strict_radius !== false,
+        shifts: shifts
+      };
+    }
+
+    async function attLoadSettings(force) {
+      if (!sb) return attSettings;
+      if (!force && attSettingsLoadedAt && (Date.now() - attSettingsLoadedAt < 30000)) {
+        return attSettings;
+      }
+      if (attStorageMode !== "fallback") {
+        try {
+          var res = await sb.from("attendance_settings").select("*").eq("id", "default").maybeSingle();
+          if (!res.error) {
+            attStorageMode = "table";
+            attSettings = attNormalizeSettings(res.data || ATT_DEFAULT_SETTINGS);
+            attSettingsLoadedAt = Date.now();
+            return attSettings;
+          }
+          if (!attIsMissingTableErr(res.error)) {
+            console.warn("attendance_settings", res.error);
+          } else {
+            attStorageMode = "fallback";
+          }
+        } catch (e) {
+          attStorageMode = "fallback";
+        }
+      }
+      try {
+        var fb = await sb.from("audit_logs")
+          .select("after_data,created_at")
+          .eq("module", "attendance_settings")
+          .eq("ref_id", "default")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (!fb.error && fb.data && fb.data.length && fb.data[0].after_data) {
+          attSettings = attNormalizeSettings(fb.data[0].after_data);
+        } else {
+          attSettings = attNormalizeSettings(ATT_DEFAULT_SETTINGS);
+        }
+      } catch (e2) {
+        attSettings = attNormalizeSettings(ATT_DEFAULT_SETTINGS);
+      }
+      attSettingsLoadedAt = Date.now();
+      return attSettings;
+    }
+
+    async function attSaveSettings(cfg) {
+      if (currentRole() !== "admin") {
+        toast("Hanya Admin yang dapat menyimpan pengaturan absensi.", true);
+        return false;
+      }
+      var clean = attNormalizeSettings(cfg);
+      var nowIso = new Date().toISOString();
+      var email = (currentUser && currentUser.email) || "";
+      var savedPrimary = false;
+      try {
+        var res = await sb.from("attendance_settings").upsert({
+          id: "default",
+          office_name: clean.office_name,
+          lat: clean.lat,
+          lng: clean.lng,
+          radius_m: clean.radius_m,
+          strict_radius: clean.strict_radius,
+          shifts: clean.shifts,
+          updated_by: email,
+          updated_at: nowIso
+        }, { onConflict: "id" });
+        if (!res.error) {
+          attStorageMode = "table";
+          savedPrimary = true;
+          try {
+            await writeAudit({
+              module: "attendance_history",
+              action: "save_settings",
+              ref_id: "default",
+              summary: "Update lokasi & shift absensi (" + clean.office_name + ", radius " + clean.radius_m + "m)",
+              after: clean
+            });
+          } catch (eAu) {}
+        } else if (!attIsMissingTableErr(res.error)) {
+          toast("Gagal simpan pengaturan: " + res.error.message, true);
+          return false;
+        } else {
+          attStorageMode = "fallback";
+        }
+      } catch (e) {
+        attStorageMode = "fallback";
+      }
+      if (!savedPrimary) {
+        var fb = await sb.from("audit_logs").insert({
+          created_at: nowIso,
+          user_email: email,
+          user_name: (currentProfile && currentProfile.name) || email,
+          user_role: currentRole(),
+          module: "attendance_settings",
+          action: "save_settings",
+          ref_id: "default",
+          summary: "Pengaturan lokasi & shift absensi (" + clean.office_name + ", radius " + clean.radius_m + "m)",
+          after_data: clean
+        });
+        if (fb.error) {
+          toast("Gagal simpan pengaturan: " + fb.error.message, true);
+          return false;
+        }
+      }
+      attSettings = clean;
+      attSettingsLoadedAt = Date.now();
+      return true;
+    }
+
+    async function attFetchLogs(opts) {
+      opts = opts || {};
+      if (!sb) return [];
+      var from = opts.from || "";
+      var to = opts.to || "";
+      var email = (opts.email || "").trim().toLowerCase();
+
+      if (attStorageMode !== "fallback") {
+        try {
+          var q = sb.from("attendance_logs").select("*").order("att_date", { ascending: false }).limit(opts.limit || 500);
+          if (from) q = q.gte("att_date", from);
+          if (to) q = q.lte("att_date", to);
+          if (email) q = q.eq("user_email", email);
+          var res = await q;
+          if (!res.error) {
+            attStorageMode = "table";
+            return res.data || [];
+          }
+          if (!attIsMissingTableErr(res.error)) {
+            console.warn("attendance_logs", res.error);
+            return [];
+          }
+          attStorageMode = "fallback";
+        } catch (e) {
+          attStorageMode = "fallback";
+        }
+      }
+
+      // Fallback transparan menggunakan tabel audit_logs yang sudah ada
+      try {
+        var fq = sb.from("audit_logs")
+          .select("id,created_at,user_email,user_name,user_role,action,ref_id,summary,after_data")
+          .eq("module", "attendance")
+          .order("created_at", { ascending: false })
+          .limit(1500);
+        var fres = await fq;
+        if (fres.error) {
+          console.warn("attendance fallback", fres.error);
+          return [];
+        }
+        var latestByKey = {};
+        (fres.data || []).forEach(function(item) {
+          var r = item && item.after_data;
+          if (!r || typeof r !== "object" || !r.att_date || !r.user_email) return;
+          var key = String(r.att_date) + "|" + String(r.user_email).toLowerCase();
+          if (!latestByKey[key]) {
+            latestByKey[key] = r;
+          }
+        });
+        var rows = Object.keys(latestByKey).map(function(k) { return latestByKey[k]; });
+        if (from) rows = rows.filter(function(r) { return String(r.att_date || "") >= from; });
+        if (to) rows = rows.filter(function(r) { return String(r.att_date || "") <= to; });
+        if (email) rows = rows.filter(function(r) { return String(r.user_email || "").toLowerCase() === email; });
+        rows.sort(function(a, b) {
+          var dCmp = String(b.att_date || "").localeCompare(String(a.att_date || ""));
+          if (dCmp !== 0) return dCmp;
+          return String(b.clock_in_at || "").localeCompare(String(a.clock_in_at || ""));
+        });
+        return rows;
+      } catch (e2) {
+        console.warn("attendance fallback err", e2);
+        return [];
+      }
+    }
+
+    async function attUpsertRecord(rec, actionName) {
+      if (!sb) return { error: { message: "Supabase belum siap" } };
+      var nowIso = new Date().toISOString();
+      var row = {
+        att_date: rec.att_date,
+        user_email: String(rec.user_email || "").trim().toLowerCase(),
+        user_name: rec.user_name || rec.user_email || "",
+        user_role: rec.user_role || "",
+        shift_name: rec.shift_name || "",
+        shift_start: rec.shift_start || "",
+        shift_end: rec.shift_end || "",
+        work_mode: rec.work_mode || "wfo",
+        clock_in_at: rec.clock_in_at || null,
+        clock_in_lat: rec.clock_in_lat != null ? Number(rec.clock_in_lat) : null,
+        clock_in_lng: rec.clock_in_lng != null ? Number(rec.clock_in_lng) : null,
+        clock_in_acc: rec.clock_in_acc != null ? Math.round(Number(rec.clock_in_acc)) : null,
+        clock_in_dist_m: rec.clock_in_dist_m != null ? Math.round(Number(rec.clock_in_dist_m)) : null,
+        clock_out_at: rec.clock_out_at || null,
+        clock_out_lat: rec.clock_out_lat != null ? Number(rec.clock_out_lat) : null,
+        clock_out_lng: rec.clock_out_lng != null ? Number(rec.clock_out_lng) : null,
+        clock_out_acc: rec.clock_out_acc != null ? Math.round(Number(rec.clock_out_acc)) : null,
+        clock_out_dist_m: rec.clock_out_dist_m != null ? Math.round(Number(rec.clock_out_dist_m)) : null,
+        late_minutes: Math.max(0, Math.round(Number(rec.late_minutes) || 0)),
+        status: rec.status || "hadir",
+        notes: rec.notes || "",
+        corrected_by: rec.corrected_by || null,
+        corrected_at: rec.corrected_at || null,
+        updated_at: nowIso
+      };
+      var savedPrimary = false;
+      if (attStorageMode !== "fallback") {
+        try {
+          var res = await sb.from("attendance_logs")
+            .upsert(row, { onConflict: "att_date,user_email" })
+            .select("*")
+            .maybeSingle();
+          if (!res.error) {
+            attStorageMode = "table";
+            savedPrimary = true;
+            try {
+              await writeAudit({
+                module: "attendance_history",
+                action: actionName || "clock",
+                ref_id: row.att_date + "|" + row.user_email,
+                summary: (row.user_name || row.user_email) + " · " + (actionName || "absen") + " (" + row.att_date + ")",
+                after: row
+              });
+            } catch (eAu) {}
+            return { data: res.data || row, error: null };
+          }
+          if (!attIsMissingTableErr(res.error)) {
+            return { data: null, error: res.error };
+          }
+          attStorageMode = "fallback";
+        } catch (e) {
+          attStorageMode = "fallback";
+        }
+      }
+      if (!savedPrimary) {
+        var actorEmail = (currentUser && currentUser.email) || row.user_email;
+        var actorName = (currentProfile && currentProfile.name) || actorEmail;
+        var fb = await sb.from("audit_logs").insert({
+          created_at: nowIso,
+          user_email: actorEmail,
+          user_name: actorName,
+          user_role: currentRole() || row.user_role || "",
+          module: "attendance",
+          action: actionName || "clock",
+          ref_id: row.att_date + "|" + row.user_email,
+          summary: (row.user_name || row.user_email) + " · " + (actionName || "absen") + " · " + row.att_date + (row.shift_name ? " (" + row.shift_name + ")" : ""),
+          after_data: row
+        });
+        if (fb.error) return { data: null, error: fb.error };
+        return { data: row, error: null };
+      }
+    }
+
+    function attGetGps() {
+      return new Promise(function(resolve, reject) {
+        if (!navigator.geolocation) {
+          reject(new Error("Browser / perangkat ini tidak mendukung GPS."));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          function(pos) {
+            var c = pos && pos.coords ? pos.coords : {};
+            var res = {
+              lat: Number(c.latitude),
+              lng: Number(c.longitude),
+              acc: Math.round(Number(c.accuracy) || 0),
+              ts: Date.now()
+            };
+            attLastGps = res;
+            resolve(res);
+          },
+          function(err) {
+            var code = err && err.code;
+            if (code === 1) reject(new Error("Izin lokasi GPS ditolak browser. Aktifkan izin Lokasi/GPS untuk situs ini lalu coba lagi."));
+            else if (code === 2) reject(new Error("Sinyal GPS tidak tersedia. Pastikan GPS/Lokasi perangkat menyala."));
+            else if (code === 3) reject(new Error("Pencarian lokasi GPS timeout. Pindah ke area sinyal lebih baik lalu coba lagi."));
+            else reject(new Error((err && err.message) || "Gagal mengambil lokasi GPS."));
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      });
+    }
+
+    function attUpdateUiPermissions() {
+      var isAdmin = currentRole() === "admin";
+      var tAdm = $("attTabAdmin");
+      var tSet = $("attTabSettings");
+      if (tAdm) tAdm.style.display = isAdmin ? "" : "none";
+      if (tSet) tSet.style.display = isAdmin ? "" : "none";
+      if (!isAdmin && (attActiveTab === "admin" || attActiveTab === "settings")) {
+        setAttTab("mine");
+      }
+    }
+
+    function setAttTab(tab) {
+      var isAdmin = currentRole() === "admin";
+      if ((tab === "admin" || tab === "settings") && !isAdmin) tab = "mine";
+      attActiveTab = tab || "mine";
+      document.querySelectorAll("#attPageTabs .mod-tab").forEach(function(btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-atab") === attActiveTab);
+      });
+      if ($("attPaneMine")) $("attPaneMine").hidden = attActiveTab !== "mine";
+      if ($("attPaneAdmin")) $("attPaneAdmin").hidden = attActiveTab !== "admin";
+      if ($("attPaneSettings")) $("attPaneSettings").hidden = attActiveTab !== "settings";
+      if (attActiveTab === "admin") loadAttendanceAdmin();
+      if (attActiveTab === "settings") attRenderSettingsForm();
+    }
+
+    function attStartLiveClock() {
+      function tick() {
+        var elT = $("attLiveClock");
+        var elD = $("attLiveDate");
+        if (!elT && !elD) return;
+        var wp = attWibParts();
+        if (elT) elT.textContent = wp.hms + " WIB";
+        if (elD) elD.textContent = attFmtDateLongWib(wp.ymd);
+      }
+      tick();
+      if (!attClockTimer) attClockTimer = setInterval(tick, 1000);
+    }
+
+    function attPopulateShiftSelect(selEl, selectedName) {
+      if (!selEl) return;
+      var shifts = (attSettings && attSettings.shifts && attSettings.shifts.length) ? attSettings.shifts : ATT_DEFAULT_SETTINGS.shifts;
+      var saved = selectedName || "";
+      try { if (!saved) saved = localStorage.getItem("shi_last_att_shift") || ""; } catch (e) {}
+      selEl.innerHTML = shifts.map(function(s) {
+        return '<option value="' + esc(s.name) + '">' + esc(s.name + " (" + s.start + "–" + s.end + ")") + '</option>';
+      }).join("");
+      var hasMatch = shifts.some(function(s) { return s.name === saved; });
+      selEl.value = hasMatch ? saved : shifts[0].name;
+    }
+
+    function attFindShift(name) {
+      var shifts = (attSettings && attSettings.shifts && attSettings.shifts.length) ? attSettings.shifts : ATT_DEFAULT_SETTINGS.shifts;
+      return shifts.find(function(s) { return s.name === name; }) || shifts[0];
+    }
+
+    function attOnShiftChange() {
+      var sel = $("attShiftSelect");
+      if (!sel) return;
+      try { localStorage.setItem("shi_last_att_shift", sel.value || ""); } catch (e) {}
+    }
+
+    function attRenderGpsPreview() {
+      var box = $("attGpsBox");
+      var txt = $("attGpsText");
+      var sub = $("attGpsSub");
+      if (!box || !txt || !sub) return;
+      box.className = "att-gps-box";
+      var hasTarget = attSettings && attSettings.lat != null && attSettings.lng != null;
+      var mode = ($("attWorkMode") && $("attWorkMode").value) || "wfo";
+      if (!attLastGps) {
+        if (!hasTarget) {
+          box.classList.add("unset");
+          txt.textContent = "Koordinat pabrik belum diset Admin — absensi tetap tersimpan dengan GPS Anda.";
+          sub.textContent = "Tekan Cek GPS atau langsung Clock In / Clock Out.";
+        } else {
+          txt.textContent = "Lokasi target: " + (attSettings.office_name || "Pabrik") + " (radius " + attSettings.radius_m + " m).";
+          sub.textContent = "Tekan Cek GPS untuk cek jarak sebelum Clock In / Out.";
+        }
+        return;
+      }
+      var mapUrl = attMapLink(attLastGps.lat, attLastGps.lng);
+      var coordsTxt = attLastGps.lat.toFixed(5) + ", " + attLastGps.lng.toFixed(5) + " (±" + attLastGps.acc + " m)";
+      if (!hasTarget) {
+        box.classList.add("ok");
+        txt.textContent = "GPS terbaca: " + coordsTxt;
+        sub.innerHTML = (mapUrl ? '<a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer">Lihat titik di Google Maps</a> · ' : "") + "Koordinat pabrik belum diset Admin.";
+        return;
+      }
+      var dist = attCalcDistM(attLastGps.lat, attLastGps.lng, attSettings.lat, attSettings.lng);
+      var rad = Number(attSettings.radius_m || 150);
+      var inside = dist != null && dist <= rad;
+      if (inside || mode !== "wfo") {
+        box.classList.add("ok");
+        txt.textContent = (inside ? "Dalam radius pabrik: " + dist + " m (maks " + rad + " m)" : "Mode " + mode.toUpperCase() + " · jarak " + dist + " m dari pabrik");
+      } else {
+        box.classList.add("out");
+        txt.textContent = "Di luar radius pabrik: " + dist + " m (maks " + rad + " m)";
+      }
+      sub.innerHTML = "GPS: " + esc(coordsTxt) + (mapUrl ? ' · <a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer">Lihat Maps</a>' : "");
+    }
+
+    async function attRefreshGpsPreview(showToast) {
+      var txt = $("attGpsText");
+      if (txt) txt.textContent = "Mengambil sinyal GPS…";
+      try {
+        await attGetGps();
+        attRenderGpsPreview();
+        if (showToast) toast("Lokasi GPS berhasil terbaca");
+      } catch (e) {
+        var box = $("attGpsBox");
+        if (box) box.className = "att-gps-box out";
+        if (txt) txt.textContent = e.message || "Gagal mengambil GPS";
+        if (showToast) toast(e.message || "Gagal mengambil GPS", true);
+      }
+    }
+
+    async function attFindActiveRecordForMe() {
+      if (!currentUser || !currentUser.email) return null;
+      var today = todayStr();
+      var prev = attPrevDate(today);
+      var rows = await attFetchLogs({ from: prev, to: today, email: currentUser.email });
+      var recToday = rows.find(function(r) { return String(r.att_date) === today; });
+      if (recToday) return recToday;
+      var recPrev = rows.find(function(r) { return String(r.att_date) === prev; });
+      if (recPrev && recPrev.clock_in_at && !recPrev.clock_out_at) {
+        var ageHrs = (Date.now() - new Date(recPrev.clock_in_at).getTime()) / 3600000;
+        var isNight = recPrev.shift_end && recPrev.shift_start && recPrev.shift_end < recPrev.shift_start;
+        if ((isNight && ageHrs < 18) || ageHrs < 14) {
+          return recPrev;
+        }
+      }
+      return null;
+    }
+
+    function attFormatRecBadge(r) {
+      if (!r || !r.clock_in_at) return '<span class="badge-st badge-partial">Belum Absen</span>';
+      var out = "";
+      if (Number(r.late_minutes) > 0 || r.status === "terlambat") {
+        out += '<span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Terlambat ' + (Number(r.late_minutes) || 0) + ' mnt</span>';
+      } else {
+        out += '<span class="badge-st badge-done">Tepat Waktu</span>';
+      }
+      if (!r.clock_out_at) {
+        out += ' <span class="badge-st" style="background:#e0f2fe;color:#0369a1">Belum Pulang</span>';
+      }
+      var rad = Number((attSettings && attSettings.radius_m) || 150);
+      var hasTarget = attSettings && attSettings.lat != null && attSettings.lng != null;
+      if (hasTarget && (r.work_mode || "wfo") === "wfo") {
+        var dIn = r.clock_in_dist_m != null ? Number(r.clock_in_dist_m) : null;
+        var dOut = r.clock_out_dist_m != null ? Number(r.clock_out_dist_m) : null;
+        if ((dIn != null && dIn > rad) || (dOut != null && dOut > rad)) {
+          out += ' <span class="badge-st" style="background:#fee2e2;color:#991b1b">Luar Radius</span>';
+        }
+      }
+      if (r.corrected_by) {
+        out += ' <span class="badge-st" style="background:#f3e8ff;color:#6b21a8">Koreksi Admin</span>';
+      }
+      return out;
+    }
+
+    function attRenderHero() {
+      var chip = $("attMyStatusChip");
+      var sum = $("attMyTodaySummary");
+      var btn = $("attClockBtn");
+      var shiftSel = $("attShiftSelect");
+      var modeSel = $("attWorkMode");
+      var r = attActiveRecord;
+      if (!r || !r.clock_in_at) {
+        if (chip) chip.textContent = "Belum Clock In hari ini";
+        if (sum) sum.textContent = "Pilih shift & mode kerja, lalu tekan Clock In untuk mencatat jam masuk + GPS.";
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Clock In (Masuk)";
+          btn.className = "btn btn-primary";
+        }
+        if (shiftSel) shiftSel.disabled = false;
+        if (modeSel) modeSel.disabled = false;
+        return;
+      }
+      if (shiftSel && r.shift_name) shiftSel.value = r.shift_name;
+      if (modeSel && r.work_mode) modeSel.value = r.work_mode;
+      var inTime = attWibParts(r.clock_in_at).hm;
+      if (!r.clock_out_at) {
+        if (chip) chip.textContent = (Number(r.late_minutes) > 0 ? "Masuk · Terlambat " + r.late_minutes + " mnt" : "Sudah Clock In (" + inTime + " WIB)");
+        if (sum) {
+          sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime + " WIB" +
+            (r.clock_in_dist_m != null ? " (jarak " + r.clock_in_dist_m + " m)" : "") +
+            " · Shift " + (r.shift_name || "—");
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Clock Out (Pulang)";
+          btn.className = "btn btn-primary";
+          btn.style.background = "#d97706";
+          btn.style.borderColor = "#d97706";
+        }
+        if (shiftSel) shiftSel.disabled = true;
+      } else {
+        var outTime = attWibParts(r.clock_out_at).hm;
+        if (chip) chip.textContent = "Selesai Kerja Hari Ini";
+        if (sum) {
+          sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime + " WIB · Pulang " + outTime + " WIB · Shift " + (r.shift_name || "—");
+        }
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Sudah Clock In & Out (" + inTime + " – " + outTime + ")";
+          btn.className = "btn btn-ghost";
+          btn.style.background = "";
+          btn.style.borderColor = "";
+        }
+        if (shiftSel) shiftSel.disabled = true;
+        if (modeSel) modeSel.disabled = true;
+      }
+    }
+
+    async function attSubmitClock(fromHome) {
+      if (attBusyClock) return;
+      if (!currentUser || !currentUser.email) return toast("Silakan login ulang terlebih dahulu.", true);
+      attBusyClock = true;
+      var btn = $("attClockBtn");
+      var origText = btn ? btn.textContent : "";
+      if (btn && !fromHome) { btn.disabled = true; btn.textContent = "Mengambil GPS…"; }
+      try {
+        await attLoadSettings();
+        var active = await attFindActiveRecordForMe();
+        attActiveRecord = active;
+        var isOut = !!(active && active.clock_in_at && !active.clock_out_at);
+        if (active && active.clock_in_at && active.clock_out_at) {
+          toast("Anda sudah Clock In dan Clock Out untuk hari ini.");
+          return;
+        }
+        var shiftName = ($("attShiftSelect") && $("attShiftSelect").value) || "";
+        if (!shiftName) {
+          try { shiftName = localStorage.getItem("shi_last_att_shift") || ""; } catch (eS) {}
+        }
+        var shiftObj = isOut && active && active.shift_name ? attFindShift(active.shift_name) : attFindShift(shiftName);
+        if (!isOut) {
+          try { localStorage.setItem("shi_last_att_shift", shiftObj.name); } catch (eLs) {}
+        }
+        var workMode = isOut && active && active.work_mode
+          ? active.work_mode
+          : (($("attWorkMode") && $("attWorkMode").value) || "wfo");
+        var notes = ($("attNotes") && $("attNotes").value || "").trim();
+
+        var gps = await attGetGps();
+        attRenderGpsPreview();
+
+        var hasTarget = attSettings.lat != null && attSettings.lng != null;
+        var distM = hasTarget ? attCalcDistM(gps.lat, gps.lng, attSettings.lat, attSettings.lng) : null;
+        var maxRad = Number(attSettings.radius_m || 150);
+        if (hasTarget && workMode === "wfo" && attSettings.strict_radius && distM != null && distM > maxRad) {
+          toast("Di luar radius pabrik (" + distM + " m, maks " + maxRad + " m). Mendekat ke pabrik atau pilih mode Dinas Luar / WFH.", true);
+          return;
+        }
+
+        var nowIso = new Date().toISOString();
+        var wp = attWibParts(nowIso);
+        var email = currentUser.email.toLowerCase();
+        var userName = (currentProfile && currentProfile.name) || email.split("@")[0] || email;
+        var payload;
+        if (!isOut) {
+          var lateMins = attComputeLateMins(nowIso, shiftObj);
+          payload = {
+            att_date: wp.ymd,
+            user_email: email,
+            user_name: userName,
+            user_role: currentRole() || "",
+            shift_name: shiftObj.name,
+            shift_start: shiftObj.start,
+            shift_end: shiftObj.end,
+            work_mode: workMode,
+            clock_in_at: nowIso,
+            clock_in_lat: gps.lat,
+            clock_in_lng: gps.lng,
+            clock_in_acc: gps.acc,
+            clock_in_dist_m: distM,
+            late_minutes: lateMins,
+            status: lateMins > 0 ? "terlambat" : "hadir",
+            notes: notes
+          };
+        } else {
+          var mergedNotes = active.notes || "";
+          if (notes) mergedNotes = mergedNotes ? (mergedNotes + " | Pulang: " + notes) : notes;
+          payload = Object.assign({}, active, {
+            clock_out_at: nowIso,
+            clock_out_lat: gps.lat,
+            clock_out_lng: gps.lng,
+            clock_out_acc: gps.acc,
+            clock_out_dist_m: distM,
+            notes: mergedNotes
+          });
+        }
+        var saved = await attUpsertRecord(payload, isOut ? "clock_out" : "clock_in");
+        if (saved.error) {
+          toast("Gagal simpan absensi: " + saved.error.message, true);
+          return;
+        }
+        attActiveRecord = saved.data;
+        if ($("attNotes")) $("attNotes").value = "";
+        attRenderHero();
+        loadAttendanceHomeWidget();
+        if (currentPageId() === "page-absences") {
+          await loadAttendanceMy();
+          if (currentRole() === "admin" && attActiveTab === "admin") await loadAttendanceAdmin();
+        }
+        var distInfo = distM != null ? " · jarak " + distM + " m" : "";
+        if (!isOut) {
+          toast("Clock In berhasil pukul " + wp.hm + " WIB" + (payload.late_minutes > 0 ? " (terlambat " + payload.late_minutes + " mnt)" : "") + distInfo);
+        } else {
+          toast("Clock Out berhasil pukul " + wp.hm + " WIB" + distInfo);
+        }
+      } catch (e) {
+        toast((e && e.message) || "Gagal mencatat absensi.", true);
+      } finally {
+        attBusyClock = false;
+        if (btn && btn.textContent === "Mengambil GPS…") {
+          btn.disabled = false;
+          btn.textContent = origText || "Clock In (Masuk)";
+        }
+        attRenderHero();
+      }
+    }
+
+    async function loadAttendanceHomeWidget() {
+      var hosts = [$("attHomeWidgetStaff"), $("attHomeWidgetOp")].filter(Boolean);
+      if (!hosts.length || !sb || !currentUser) return;
+      try {
+        await attLoadSettings();
+        var rec = await attFindActiveRecordForMe();
+        attActiveRecord = rec;
+        var html = "";
+        if (!rec || !rec.clock_in_at) {
+          html =
+            '<div class="att-quick-left">' +
+              '<div class="att-quick-dot warn">📍</div>' +
+              '<div><div style="font-weight:700;font-size:0.88rem">Belum Absen Masuk Hari Ini</div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">Gunakan GPS untuk Clock In atau buka menu Absensi &amp; Ijin.</div></div>' +
+            '</div>' +
+            '<div class="att-quick-actions">' +
+              '<button type="button" class="btn btn-primary btn-sm" onclick="attSubmitClock(true)">Clock In (GPS)</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Detail</button>' +
+            '</div>';
+        } else if (!rec.clock_out_at) {
+          var inHm = attWibParts(rec.clock_in_at).hm;
+          var lateTag = Number(rec.late_minutes) > 0 ? ' · <span style="color:#b45309;font-weight:700">Terlambat ' + rec.late_minutes + ' mnt</span>' : ' · <span style="color:#047857;font-weight:700">Tepat Waktu</span>';
+          html =
+            '<div class="att-quick-left">' +
+              '<div class="att-quick-dot">✓</div>' +
+              '<div><div style="font-weight:700;font-size:0.88rem">Sudah Clock In: ' + esc(inHm) + ' WIB' + lateTag + '</div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + (rec.clock_in_dist_m != null ? ' · Jarak ' + rec.clock_in_dist_m + ' m' : '') + '</div></div>' +
+            '</div>' +
+            '<div class="att-quick-actions">' +
+              '<button type="button" class="btn btn-primary btn-sm" style="background:#d97706;border-color:#d97706" onclick="attSubmitClock(true)">Clock Out (GPS)</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Riwayat</button>' +
+            '</div>';
+        } else {
+          var inHm2 = attWibParts(rec.clock_in_at).hm;
+          var outHm2 = attWibParts(rec.clock_out_at).hm;
+          html =
+            '<div class="att-quick-left">' +
+              '<div class="att-quick-dot done">✓</div>' +
+              '<div><div style="font-weight:700;font-size:0.88rem">Absensi Hari Ini Selesai (' + esc(inHm2) + ' – ' + esc(outHm2) + ' WIB)</div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + '</div></div>' +
+            '</div>' +
+            '<div class="att-quick-actions">' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Lihat Riwayat</button>' +
+            '</div>';
+        }
+        hosts.forEach(function(h) {
+          h.style.display = "flex";
+          h.innerHTML = html;
+        });
+      } catch (e) {
+        console.warn("loadAttendanceHomeWidget", e);
+      }
+    }
+
+    async function loadAttendanceMy() {
+      if (!sb || !currentUser || !currentUser.email) return;
+      var today = todayStr();
+      if ($("attMyTo") && !$("attMyTo").value) $("attMyTo").value = today;
+      if ($("attMyFrom") && !$("attMyFrom").value) {
+        var dFrom = new Date(today + "T12:00:00");
+        dFrom.setDate(dFrom.getDate() - 30);
+        var z = function(n) { return String(n).padStart(2, "0"); };
+        $("attMyFrom").value = dFrom.getFullYear() + "-" + z(dFrom.getMonth() + 1) + "-" + z(dFrom.getDate());
+      }
+      var from = ($("attMyFrom") && $("attMyFrom").value) || "";
+      var to = ($("attMyTo") && $("attMyTo").value) || "";
+      attMyRows = await attFetchLogs({ from: from, to: to, email: currentUser.email });
+      renderAttendanceMy();
+    }
+
+    function renderAttendanceMy() {
+      var body = $("attMyBody");
+      var cards = $("attMyCards");
+      if (body) {
+        if (!attMyRows.length) {
+          body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada riwayat absensi</td></tr>';
+          pageOf("attMy", [], "attMyPager");
+        } else {
+          var pageList = pageOf("attMy", attMyRows, "attMyPager");
+          body.innerHTML = pageList.map(function(r) {
+            var inTxt = r.clock_in_at ? (attWibParts(r.clock_in_at).hm + " WIB") : "—";
+            var outTxt = r.clock_out_at ? (attWibParts(r.clock_out_at).hm + " WIB") : "—";
+            var inDist = r.clock_in_dist_m != null ? ' <span style="font-size:0.72rem;color:var(--text-muted)">(' + r.clock_in_dist_m + ' m)</span>' : "";
+            var outDist = r.clock_out_dist_m != null ? ' <span style="font-size:0.72rem;color:var(--text-muted)">(' + r.clock_out_dist_m + ' m)</span>' : "";
+            return '<tr>' +
+              '<td class="mono">' + esc(r.att_date) + '</td>' +
+              '<td><div><strong>' + esc(r.shift_name || "—") + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.work_mode || "wfo").toUpperCase()) + '</div></td>' +
+              '<td class="mono">' + esc(inTxt) + inDist + '</td>' +
+              '<td class="mono">' + esc(outTxt) + outDist + '</td>' +
+              '<td>' + attFormatRecBadge(r) + '</td>' +
+              '<td style="font-size:0.78rem">' + esc(r.notes || "—") + '</td>' +
+            '</tr>';
+          }).join("");
+        }
+      }
+      if (cards) {
+        cards.innerHTML = !attMyRows.length
+          ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada riwayat absensi</div></div>'
+          : attMyRows.slice(0, 30).map(function(r) {
+              var inTxt = r.clock_in_at ? attWibParts(r.clock_in_at).hm : "—";
+              var outTxt = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "—";
+              return '<div class="m-card">' +
+                '<div class="m-title">' + esc(r.att_date) + ' · ' + esc(r.shift_name || "—") + '</div>' +
+                '<div class="m-sub">Masuk ' + esc(inTxt) + ' · Pulang ' + esc(outTxt) + ' WIB (' + esc((r.work_mode || "wfo").toUpperCase()) + ')</div>' +
+                '<div class="m-row">' + attFormatRecBadge(r) + '</div>' +
+                (r.notes ? '<div class="m-sub" style="margin-top:0.35rem">' + esc(r.notes) + '</div>' : '') +
+              '</div>';
+            }).join("");
+      }
+    }
+
+    async function attEnsureProfiles() {
+      if (accountRows && accountRows.length) return accountRows;
+      if (!sb) return [];
+      try {
+        var res = await sb.from("profiles").select("id,email,name,role,active").order("name").limit(500);
+        if (!res.error && res.data) accountRows = res.data;
+      } catch (e) {}
+      return accountRows || [];
+    }
+
+    async function loadAttendanceAdmin() {
+      if (currentRole() !== "admin") return;
+      await attLoadSettings();
+      if ($("attAdmDate") && !$("attAdmDate").value) $("attAdmDate").value = todayStr();
+      var date = ($("attAdmDate") && $("attAdmDate").value) || todayStr();
+
+      // Isi filter shift
+      var sf = $("attAdmShift");
+      if (sf) {
+        var cur = sf.value;
+        var shifts = (attSettings.shifts || ATT_DEFAULT_SETTINGS.shifts);
+        sf.innerHTML = '<option value="">Semua shift</option>' +
+          shifts.map(function(s) { return '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>'; }).join("");
+        sf.value = cur;
+      }
+
+      var pair = await Promise.all([
+        attEnsureProfiles(),
+        attFetchLogs({ from: date, to: date })
+      ]);
+      var profiles = pair[0] || [];
+      attAdminRows = pair[1] || [];
+
+      var byEmail = {};
+      attAdminRows.forEach(function(r) {
+        if (r.user_email) byEmail[String(r.user_email).toLowerCase()] = r;
+      });
+      var activeProfiles = profiles.filter(function(p) { return p.active !== false && p.email; });
+      attAdminMissing = activeProfiles.filter(function(p) {
+        return !byEmail[String(p.email).toLowerCase()];
+      });
+
+      var totalAktif = activeProfiles.length || attAdminRows.length;
+      var sudahIn = attAdminRows.filter(function(r) { return !!r.clock_in_at; }).length;
+      var telat = attAdminRows.filter(function(r) { return !!r.clock_in_at && (Number(r.late_minutes) > 0 || r.status === "terlambat"); }).length;
+      var tepat = Math.max(0, sudahIn - telat);
+      var belum = attAdminMissing.length;
+
+      if ($("attKpiTotal")) $("attKpiTotal").textContent = formatNum(totalAktif);
+      if ($("attKpiIn")) $("attKpiIn").textContent = formatNum(sudahIn);
+      if ($("attKpiOnTime")) $("attKpiOnTime").textContent = formatNum(tepat);
+      if ($("attKpiLate")) $("attKpiLate").textContent = formatNum(telat);
+      if ($("attKpiMissing")) $("attKpiMissing").textContent = formatNum(belum);
+
+      var mWrap = $("attMissingWrap");
+      var mTitle = $("attMissingTitle");
+      var mChips = $("attMissingChips");
+      if (mWrap && mTitle && mChips) {
+        if (attAdminMissing.length) {
+          mWrap.style.display = "";
+          mTitle.textContent = "Belum Clock In pada " + date + " (" + attAdminMissing.length + " karyawan) — ketuk nama untuk input manual:";
+          mChips.innerHTML = attAdminMissing.map(function(p) {
+            return '<button type="button" class="att-missing-chip" onclick="attOpenAdminEditModal(\'' + encodeURIComponent(p.email) + '\',\'' + esc(date) + '\')">' +
+              esc((p.name || p.email) + " (" + (p.role || "-") + ")") + '</button>';
+          }).join("");
+        } else {
+          mWrap.style.display = "none";
+        }
+      }
+      renderAttendanceAdmin();
+    }
+
+    function renderAttendanceAdmin() {
+      if (currentRole() !== "admin") return;
+      var date = ($("attAdmDate") && $("attAdmDate").value) || todayStr();
+      var shiftF = ($("attAdmShift") && $("attAdmShift").value) || "";
+      var stF = ($("attAdmStatus") && $("attAdmStatus").value) || "";
+      var q = (($("attAdmSearch") && $("attAdmSearch").value) || "").toLowerCase().trim();
+      var rad = Number((attSettings && attSettings.radius_m) || 150);
+      var hasTarget = attSettings && attSettings.lat != null && attSettings.lng != null;
+
+      var list;
+      if (stF === "belum_absen") {
+        list = attAdminMissing.map(function(p) {
+          return {
+            att_date: date,
+            user_email: p.email,
+            user_name: p.name || p.email,
+            user_role: p.role || "",
+            shift_name: "",
+            work_mode: "",
+            clock_in_at: null,
+            clock_out_at: null,
+            late_minutes: 0,
+            status: "belum_absen",
+            notes: ""
+          };
+        });
+      } else {
+        list = attAdminRows.slice();
+        if (shiftF) list = list.filter(function(r) { return String(r.shift_name || "") === shiftF; });
+        if (stF === "hadir") list = list.filter(function(r) { return !!r.clock_in_at && !(Number(r.late_minutes) > 0 || r.status === "terlambat"); });
+        else if (stF === "terlambat") list = list.filter(function(r) { return Number(r.late_minutes) > 0 || r.status === "terlambat"; });
+        else if (stF === "no_out") list = list.filter(function(r) { return !!r.clock_in_at && !r.clock_out_at; });
+        else if (stF === "out_radius") {
+          list = list.filter(function(r) {
+            if (!hasTarget || (r.work_mode || "wfo") !== "wfo") return false;
+            return (r.clock_in_dist_m != null && Number(r.clock_in_dist_m) > rad) ||
+              (r.clock_out_dist_m != null && Number(r.clock_out_dist_m) > rad);
+          });
+        }
+      }
+
+      if (q) {
+        list = list.filter(function(r) {
+          return String(r.user_name || "").toLowerCase().includes(q) ||
+            String(r.user_email || "").toLowerCase().includes(q) ||
+            String(r.user_role || "").toLowerCase().includes(q);
+        });
+      }
+      attAdminFiltered = list;
+
+      var body = $("attAdmBody");
+      var cards = $("attAdmCards");
+      if (body) {
+        if (!list.length) {
+          body.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada data absensi sesuai filter</td></tr>';
+          pageOf("attAdm", [], "attAdmPager");
+        } else {
+          var pageList = pageOf("attAdm", list, "attAdmPager");
+          body.innerHTML = pageList.map(function(r) {
+            var inTime = r.clock_in_at ? (attWibParts(r.clock_in_at).hm + " WIB") : "—";
+            var outTime = r.clock_out_at ? (attWibParts(r.clock_out_at).hm + " WIB") : "—";
+            var inMap = attMapLink(r.clock_in_lat, r.clock_in_lng);
+            var outMap = attMapLink(r.clock_out_lat, r.clock_out_lng);
+            var inGps = (r.clock_in_dist_m != null ? r.clock_in_dist_m + " m" : "") + (inMap ? ' · <a href="' + inMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "");
+            var outGps = (r.clock_out_dist_m != null ? r.clock_out_dist_m + " m" : "") + (outMap ? ' · <a href="' + outMap + '" target="_blank" rel="noopener noreferrer">Maps</a>' : "");
+            return '<tr>' +
+              '<td><div><strong>' + esc(r.user_name || r.user_email) + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.user_email) + (r.user_role ? ' · ' + esc(r.user_role) : '') + '</div></td>' +
+              '<td><div>' + esc(r.shift_name || "—") + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.work_mode || "").toUpperCase()) + '</div></td>' +
+              '<td><div class="mono">' + esc(inTime) + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + inGps + '</div></td>' +
+              '<td><div class="mono">' + esc(outTime) + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + outGps + '</div></td>' +
+              '<td>' + attFormatRecBadge(r) + '</td>' +
+              '<td style="font-size:0.76rem;max-width:190px">' + esc(r.notes || "—") + (r.corrected_by ? '<div style="font-size:0.68rem;color:#6b21a8">oleh ' + esc(r.corrected_by) + '</div>' : '') + '</td>' +
+              '<td><button type="button" class="btn btn-sm btn-ghost" onclick="attOpenAdminEditModal(\'' + encodeURIComponent(r.user_email || "") + '\',\'' + esc(r.att_date || date) + '\')">Koreksi</button></td>' +
+            '</tr>';
+          }).join("");
+        }
+      }
+      if (cards) {
+        cards.innerHTML = !list.length
+          ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Tidak ada data</div></div>'
+          : list.slice(0, 40).map(function(r) {
+              var inTime = r.clock_in_at ? attWibParts(r.clock_in_at).hm : "—";
+              var outTime = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "—";
+              return '<div class="m-card">' +
+                '<div class="m-title">' + esc(r.user_name || r.user_email) + ' <small style="font-weight:500;color:var(--text-muted)">(' + esc(r.user_role || "-") + ')</small></div>' +
+                '<div class="m-sub">Masuk ' + esc(inTime) + (r.clock_in_dist_m != null ? ' (' + r.clock_in_dist_m + 'm)' : '') + ' · Pulang ' + esc(outTime) + ' · ' + esc(r.shift_name || "—") + '</div>' +
+                '<div class="m-row">' + attFormatRecBadge(r) + '</div>' +
+                '<div style="margin-top:0.45rem"><button type="button" class="btn btn-sm btn-ghost" onclick="attOpenAdminEditModal(\'' + encodeURIComponent(r.user_email || "") + '\',\'' + esc(r.att_date || date) + '\')">Koreksi</button></div>' +
+              '</div>';
+            }).join("");
+      }
+    }
+
+    async function attOpenAdminEditModal(encodedEmail, dateStr) {
+      if (currentRole() !== "admin") return toast("Hanya Admin yang dapat melakukan koreksi absensi.", true);
+      await attLoadSettings();
+      var profiles = await attEnsureProfiles();
+      var email = encodedEmail ? decodeURIComponent(encodedEmail) : "";
+      var date = dateStr || ($("attAdmDate") && $("attAdmDate").value) || todayStr();
+
+      var selEmp = $("attEdEmail");
+      if (selEmp) {
+        var opts = profiles.slice();
+        if (email && !opts.some(function(p) { return String(p.email).toLowerCase() === email.toLowerCase(); })) {
+          opts.unshift({ email: email, name: email, role: "" });
+        }
+        selEmp.innerHTML = opts.map(function(p) {
+          return '<option value="' + esc(String(p.email || "").toLowerCase()) + '">' +
+            esc((p.name || p.email) + " · " + p.email + (p.role ? " (" + p.role + ")" : "")) + '</option>';
+        }).join("");
+        if (email) selEmp.value = email.toLowerCase();
+      }
+      attPopulateShiftSelect($("attEdShift"), "");
+      if ($("attEdDate")) $("attEdDate").value = date;
+
+      var targetEmail = (selEmp && selEmp.value) || email.toLowerCase();
+      var existing = attAdminRows.find(function(r) {
+        return String(r.user_email || "").toLowerCase() === targetEmail && String(r.att_date || "") === date;
+      });
+      if (!existing && targetEmail) {
+        var fetched = await attFetchLogs({ from: date, to: date, email: targetEmail });
+        existing = fetched[0] || null;
+      }
+      if (existing) {
+        if ($("attEdShift") && existing.shift_name) $("attEdShift").value = existing.shift_name;
+        if ($("attEdInHm")) $("attEdInHm").value = existing.clock_in_at ? attWibParts(existing.clock_in_at).hm : "";
+        if ($("attEdOutHm")) $("attEdOutHm").value = existing.clock_out_at ? attWibParts(existing.clock_out_at).hm : "";
+        if ($("attEdWorkMode")) $("attEdWorkMode").value = existing.work_mode || "wfo";
+        if ($("attEdNotes")) $("attEdNotes").value = existing.notes || "";
+      } else {
+        if ($("attEdInHm")) $("attEdInHm").value = "08:00";
+        if ($("attEdOutHm")) $("attEdOutHm").value = "";
+        if ($("attEdWorkMode")) $("attEdWorkMode").value = "wfo";
+        if ($("attEdNotes")) $("attEdNotes").value = "";
+      }
+      if ($("attAdminEditModal")) $("attAdminEditModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function attCloseAdminEditModal() {
+      if ($("attAdminEditModal")) $("attAdminEditModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    async function attSaveAdminEdit() {
+      if (currentRole() !== "admin") return toast("Hanya Admin.", true);
+      var email = (($("attEdEmail") && $("attEdEmail").value) || "").trim().toLowerCase();
+      var date = ($("attEdDate") && $("attEdDate").value) || "";
+      var shiftName = ($("attEdShift") && $("attEdShift").value) || "";
+      var inHm = ($("attEdInHm") && $("attEdInHm").value) || "";
+      var outHm = ($("attEdOutHm") && $("attEdOutHm").value) || "";
+      var workMode = ($("attEdWorkMode") && $("attEdWorkMode").value) || "wfo";
+      var notes = ($("attEdNotes") && $("attEdNotes").value || "").trim();
+      if (!email || !date) return toast("Karyawan dan tanggal wajib diisi.", true);
+      if (!inHm) return toast("Jam Masuk wajib diisi.", true);
+
+      var shiftObj = attFindShift(shiftName);
+      var inIso = new Date(date + "T" + inHm + ":00+07:00").toISOString();
+      var outIso = null;
+      if (outHm) {
+        var outDate = date;
+        if (attParseHmMins(outHm) < attParseHmMins(inHm)) {
+          var dNext = new Date(date + "T12:00:00");
+          dNext.setDate(dNext.getDate() + 1);
+          var z = function(n) { return String(n).padStart(2, "0"); };
+          outDate = dNext.getFullYear() + "-" + z(dNext.getMonth() + 1) + "-" + z(dNext.getDate());
+        }
+        outIso = new Date(outDate + "T" + outHm + ":00+07:00").toISOString();
+      }
+      var existingList = await attFetchLogs({ from: date, to: date, email: email });
+      var existing = existingList[0] || {};
+      var prof = (accountRows || []).find(function(p) { return String(p.email || "").toLowerCase() === email; });
+      var lateMins = attComputeLateMins(inIso, shiftObj);
+      var rec = Object.assign({}, existing, {
+        att_date: date,
+        user_email: email,
+        user_name: (prof && prof.name) || existing.user_name || email,
+        user_role: (prof && prof.role) || existing.user_role || "",
+        shift_name: shiftObj.name,
+        shift_start: shiftObj.start,
+        shift_end: shiftObj.end,
+        work_mode: workMode,
+        clock_in_at: inIso,
+        clock_out_at: outIso,
+        late_minutes: lateMins,
+        status: lateMins > 0 ? "terlambat" : "hadir",
+        notes: notes,
+        corrected_by: (currentUser && currentUser.email) || "admin",
+        corrected_at: new Date().toISOString()
+      });
+      var saved = await attUpsertRecord(rec, "admin_edit");
+      if (saved.error) return toast("Gagal simpan: " + saved.error.message, true);
+      toast("Absensi karyawan berhasil disimpan");
+      attCloseAdminEditModal();
+      await loadAttendanceAdmin();
+      if (currentUser && currentUser.email && email === currentUser.email.toLowerCase()) {
+        attActiveRecord = await attFindActiveRecordForMe();
+        attRenderHero();
+        loadAttendanceMy();
+        loadAttendanceHomeWidget();
+      }
+    }
+
+    function attExportCsv() {
+      if (currentRole() !== "admin") return toast("Hanya Admin yang dapat export rekap absensi.", true);
+      var rows = attAdminFiltered && attAdminFiltered.length ? attAdminFiltered : attAdminRows;
+      if (!rows || !rows.length) return toast("Tidak ada data untuk diexport.", true);
+      var headers = ["Tanggal", "Nama", "Email", "Role", "Shift", "Mode", "Clock In (WIB)", "Telat (Menit)", "Jarak In (m)", "Koordinat In", "Clock Out (WIB)", "Jarak Out (m)", "Koordinat Out", "Status", "Catatan", "Koreksi Admin"];
+      var qCsv = function(v) {
+        var s = String(v == null ? "" : v);
+        return '"' + s.replace(/"/g, '""') + '"';
+      };
+      var lines = [headers.map(qCsv).join(",")];
+      rows.forEach(function(r) {
+        var inHm = r.clock_in_at ? attWibParts(r.clock_in_at).hm : "";
+        var outHm = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "";
+        var inCoord = (r.clock_in_lat != null && r.clock_in_lng != null) ? (r.clock_in_lat + ", " + r.clock_in_lng) : "";
+        var outCoord = (r.clock_out_lat != null && r.clock_out_lng != null) ? (r.clock_out_lat + ", " + r.clock_out_lng) : "";
+        var stLabel = !r.clock_in_at ? "Belum Absen" : (Number(r.late_minutes) > 0 ? "Terlambat" : "Tepat Waktu");
+        lines.push([
+          r.att_date || "",
+          r.user_name || "",
+          r.user_email || "",
+          r.user_role || "",
+          r.shift_name || "",
+          (r.work_mode || "").toUpperCase(),
+          inHm,
+          r.late_minutes != null ? r.late_minutes : 0,
+          r.clock_in_dist_m != null ? r.clock_in_dist_m : "",
+          inCoord,
+          outHm,
+          r.clock_out_dist_m != null ? r.clock_out_dist_m : "",
+          outCoord,
+          stLabel,
+          r.notes || "",
+          r.corrected_by || ""
+        ].map(qCsv).join(","));
+      });
+      var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+      var a = document.createElement("a");
+      var dt = ($("attAdmDate") && $("attAdmDate").value) || todayStr();
+      a.href = URL.createObjectURL(blob);
+      a.download = "rekap-absensi-" + dt + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }
+
+    function attHandleCoordPaste(val) {
+      var m = String(val || "").match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+      if (m) {
+        if ($("attSetLat")) $("attSetLat").value = m[1];
+        if ($("attSetLng")) $("attSetLng").value = m[2];
+        attUpdateMapPreviewLink();
+      } else {
+        attUpdateMapPreviewLink();
+      }
+    }
+
+    function attUpdateMapPreviewLink() {
+      var a = $("attSetMapPreviewLink");
+      if (!a) return;
+      var link = attMapLink($("attSetLat") && $("attSetLat").value, $("attSetLng") && $("attSetLng").value);
+      if (link) {
+        a.href = link;
+        a.style.display = "";
+      } else {
+        a.style.display = "none";
+      }
+    }
+
+    async function attCaptureAdminGps() {
+      if (currentRole() !== "admin") return;
+      try {
+        toast("Mengambil lokasi GPS Anda saat ini…");
+        var gps = await attGetGps();
+        if ($("attSetLat")) $("attSetLat").value = gps.lat.toFixed(6);
+        if ($("attSetLng")) $("attSetLng").value = gps.lng.toFixed(6);
+        attUpdateMapPreviewLink();
+        toast("Koordinat berhasil diambil (±" + gps.acc + " m). Jangan lupa klik Simpan Pengaturan.");
+      } catch (e) {
+        toast((e && e.message) || "Gagal mengambil GPS", true);
+      }
+    }
+
+    function attAddShiftRow(s) {
+      var host = $("attSetShiftsHost");
+      if (!host) return;
+      s = s || { name: "", start: "08:00", end: "17:00", grace_min: 10 };
+      var div = document.createElement("div");
+      div.className = "att-shift-row";
+      div.innerHTML =
+        '<input type="text" class="att-sh-name" placeholder="Nama shift" value="' + esc(s.name || "") + '" />' +
+        '<input type="time" class="att-sh-start" value="' + esc(s.start || "08:00") + '" />' +
+        '<input type="time" class="att-sh-end" value="' + esc(s.end || "17:00") + '" />' +
+        '<input type="number" class="att-sh-grace" min="0" max="120" value="' + esc(String(s.grace_min != null ? s.grace_min : 10)) + '" />' +
+        '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentNode.remove()">Hapus</button>';
+      host.appendChild(div);
+    }
+
+    function attRenderSettingsForm() {
+      if (currentRole() !== "admin") return;
+      if ($("attSetOfficeName")) $("attSetOfficeName").value = attSettings.office_name || "";
+      if ($("attSetRadius")) $("attSetRadius").value = String(attSettings.radius_m || 150);
+      if ($("attSetLat")) $("attSetLat").value = attSettings.lat != null ? String(attSettings.lat) : "";
+      if ($("attSetLng")) $("attSetLng").value = attSettings.lng != null ? String(attSettings.lng) : "";
+      if ($("attSetStrictRadius")) $("attSetStrictRadius").checked = attSettings.strict_radius !== false;
+      attUpdateMapPreviewLink();
+      var host = $("attSetShiftsHost");
+      if (host) {
+        host.innerHTML = "";
+        (attSettings.shifts || ATT_DEFAULT_SETTINGS.shifts).forEach(function(s) { attAddShiftRow(s); });
+      }
+      if ($("attStorageModeLabel")) {
+        $("attStorageModeLabel").textContent = attStorageMode === "table"
+          ? "Penyimpanan: Tabel khusus attendance_logs & attendance_settings"
+          : "Penyimpanan: Mode cadangan otomatis (aktif langsung tanpa perlu setup SQL)";
+      }
+      if ($("attSqlSetupBox") && $("attSetupSqlText")) {
+        $("attSetupSqlText").textContent = ATT_SETUP_SQL;
+        $("attSqlSetupBox").style.display = attStorageMode === "table" ? "none" : "";
+      }
+    }
+
+    async function attSaveSettingsFromUi() {
+      if (currentRole() !== "admin") return toast("Hanya Admin.", true);
+      var rows = [];
+      document.querySelectorAll("#attSetShiftsHost .att-shift-row").forEach(function(el) {
+        var name = (el.querySelector(".att-sh-name") && el.querySelector(".att-sh-name").value || "").trim();
+        var start = (el.querySelector(".att-sh-start") && el.querySelector(".att-sh-start").value) || "08:00";
+        var end = (el.querySelector(".att-sh-end") && el.querySelector(".att-sh-end").value) || "17:00";
+        var grace = Math.max(0, Number(el.querySelector(".att-sh-grace") && el.querySelector(".att-sh-grace").value) || 0);
+        if (name) rows.push({ name: name, start: start, end: end, grace_min: grace });
+      });
+      if (!rows.length) return toast("Minimal harus ada 1 shift kerja.", true);
+      var latStr = ($("attSetLat") && $("attSetLat").value || "").trim();
+      var lngStr = ($("attSetLng") && $("attSetLng").value || "").trim();
+      if ((latStr && !lngStr) || (!latStr && lngStr)) {
+        return toast("Latitude dan Longitude harus diisi keduanya atau dikosongkan keduanya.", true);
+      }
+      var cfg = {
+        office_name: ($("attSetOfficeName") && $("attSetOfficeName").value || "").trim() || ATT_DEFAULT_SETTINGS.office_name,
+        lat: latStr ? Number(latStr) : null,
+        lng: lngStr ? Number(lngStr) : null,
+        radius_m: Math.max(20, Math.min(5000, Number($("attSetRadius") && $("attSetRadius").value) || 150)),
+        strict_radius: !!($("attSetStrictRadius") && $("attSetStrictRadius").checked),
+        shifts: rows
+      };
+      if ((cfg.lat != null && !isFinite(cfg.lat)) || (cfg.lng != null && !isFinite(cfg.lng))) {
+        return toast("Format koordinat Latitude / Longitude tidak valid.", true);
+      }
+      var ok = await attSaveSettings(cfg);
+      if (ok) {
+        toast("Pengaturan lokasi & shift berhasil disimpan");
+        attPopulateShiftSelect($("attShiftSelect"), "");
+        attRenderGpsPreview();
+        attRenderSettingsForm();
+      }
+    }
+
+    async function attCopySetupSql() {
+      try {
+        await navigator.clipboard.writeText(ATT_SETUP_SQL);
+        toast("SQL berhasil disalin ke clipboard");
+      } catch (e) {
+        toast("Gagal menyalin otomatis, blok teks SQL lalu Ctrl+C", true);
+      }
+    }
+
+    async function loadAttendancePage(force) {
+      attUpdateUiPermissions();
+      attStartLiveClock();
+      await attLoadSettings(!!force);
+      attPopulateShiftSelect($("attShiftSelect"), "");
+      attActiveRecord = await attFindActiveRecordForMe();
+      attRenderHero();
+      attRenderGpsPreview();
+      await Promise.all([
+        loadAttendanceMy(),
+        loadAbsences()
+      ]);
+      if (currentRole() === "admin") {
+        if (attActiveTab === "admin") await loadAttendanceAdmin();
+        if (attActiveTab === "settings") attRenderSettingsForm();
       }
     }
 
