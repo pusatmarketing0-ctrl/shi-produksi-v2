@@ -17404,7 +17404,10 @@ function fillOperatorList(selectedEmail) {
         });
         pids = pids.filter(function(v, i, a) { return a.indexOf(v) === i; }).slice(0, 200);
         if (pids.length) {
-          var { data: pls } = await sb.from("plans").select("plan_id,target_qty").in("plan_id", pids);
+          var { data: pls, error: ePls } = await sb.from("plans").select("plan_id,target_qty,eval_target,machine_id").in("plan_id", pids);
+          if (ePls) {
+            ({ data: pls } = await sb.from("plans").select("plan_id,target_qty,machine_id").in("plan_id", pids));
+          }
           (pls || []).forEach(function(p) { planById[p.plan_id] = p; });
         }
       } catch (eP) { console.warn(eP); }
@@ -17436,11 +17439,20 @@ function fillOperatorList(selectedEmail) {
       // Plan yang sudah lewat / sampai hari ini, ada operator, belum ada laporan
       // → actual 0, target = target plan (menurunkan rata-rata)
       try {
-        var { data: openPlans } = await sb.from("plans").select("plan_id,plan_date,target_qty,assigned_operator,status")
+        var { data: openPlans, error: errOpenP } = await sb.from("plans")
+          .select("plan_id,plan_date,target_qty,eval_target,assigned_operator,status,product_id,machine_id,shift,no_so")
           .gte("plan_date", from)
           .lte("plan_date", to)
           .in("status", ["open", "in_progress", "done", "draft"])
           .limit(3000);
+        if (errOpenP) {
+          ({ data: openPlans } = await sb.from("plans")
+            .select("plan_id,plan_date,target_qty,assigned_operator,status,product_id,machine_id,shift,no_so")
+            .gte("plan_date", from)
+            .lte("plan_date", to)
+            .in("status", ["open", "in_progress", "done", "draft"])
+            .limit(3000));
+        }
         (openPlans || []).forEach(function(pl) {
           if (reportedPlanIds[String(pl.plan_id)]) return;
           var em = String(pl.assigned_operator || "").trim();
@@ -17463,12 +17475,12 @@ function fillOperatorList(selectedEmail) {
             no_so: pl.no_so || ""
           });
         });
-        // enrich reported details with plan product/machine
+        // enrich details with plan product/machine/shift
         try {
           var needP = [];
           Object.keys(by).forEach(function(em) {
             (by[em].details || []).forEach(function(d) {
-              if (d.kind === "reported" && d.plan_id && !d.product_id) needP.push(d.plan_id);
+              if (d.plan_id && (!d.product_id || !d.shift || !d.machine_id)) needP.push(d.plan_id);
             });
           });
           needP = needP.filter(function(v, i, a) { return a.indexOf(v) === i; });
@@ -38079,7 +38091,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.25-do-role";
+    var APP_BUILD_TAG = "2026.11.26-rank-fix";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
