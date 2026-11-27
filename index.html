@@ -8898,8 +8898,8 @@
               <div class="att-clock-panel">
                 <div class="att-form-row">
                   <div class="field" style="margin:0">
-                    <label style="font-size:0.74rem">Shift Kerja</label>
-                    <select id="attShiftSelect" onchange="attOnShiftChange()"></select>
+                    <label style="font-size:0.74rem">Shift Kerja <span style="color:#fecaca;font-weight:700">* Wajib</span></label>
+                    <select id="attShiftSelect" onchange="attOnShiftChange()" required></select>
                   </div>
                   <div class="field" style="margin:0">
                     <label style="font-size:0.74rem">Mode Kehadiran</label>
@@ -9038,9 +9038,13 @@
                 <input type="checkbox" id="attSetStrictRadius" checked />
                 <span>Wajib di dalam radius pabrik saat Clock In / Clock Out untuk mode <b>WFO</b></span>
               </label>
-              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer;margin-bottom:0.45rem">
                 <input type="checkbox" id="attSetRequireSelfie" checked />
                 <span>Wajib ambil <b>foto selfie kamera</b> saat Clock In &amp; Clock Out</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;cursor:pointer">
+                <input type="checkbox" id="attSetStrictDevice" checked />
+                <span>Tolak Clock Out jika <b>perangkat/HP berbeda</b> dari saat Clock In (anti titip absen)</span>
               </label>
             </div>
 
@@ -10501,6 +10505,13 @@
       </div>
       <div class="sheet-body">
         <div id="attSelfieMeta" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.55rem"></div>
+        <div id="attSelfieRefBox" style="display:none;margin-bottom:0.55rem;padding:0.45rem 0.55rem;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;align-items:center;gap:0.65rem">
+          <img id="attSelfieRefImg" alt="Foto Clock In" style="width:58px;height:58px;object-fit:cover;border-radius:8px;border:1px solid #94a3b8;flex-shrink:0" />
+          <div style="font-size:0.74rem;line-height:1.35;color:#334155">
+            <div style="font-weight:700;color:#0f172a">Referensi Selfie Clock In</div>
+            <div id="attSelfieRefText">Pastikan orang yang Clock Out sama dengan saat Clock In.</div>
+          </div>
+        </div>
         <div class="att-cam-box">
           <video id="attCamVideo" autoplay playsinline muted></video>
           <img id="attSelfiePreview" alt="Preview Selfie" style="display:none" />
@@ -31958,6 +31969,7 @@ function fillOperatorList(selectedEmail) {
     async function enterApp(session) {
       currentUser = session.user;
       currentProfile = null;
+      try { if (typeof attResetSessionState === "function") attResetSessionState(); } catch (eAttR) {}
       try {
         // 1) by auth user id
         var r1 = await sb.from("profiles").select("id,email,name,role,active").eq("id", session.user.id).maybeSingle();
@@ -32043,6 +32055,7 @@ function fillOperatorList(selectedEmail) {
     };
     $("btnLogout").onclick = async () => {
       try { closeProfileModal(); } catch (eC) {}
+      try { if (typeof attResetSessionState === "function") attResetSessionState(); } catch (eAttOut) {}
       try {
         if (rtPoll) { clearInterval(rtPoll); rtPoll = null; }
         if (rtTimer) { clearTimeout(rtTimer); rtTimer = null; }
@@ -32050,6 +32063,8 @@ function fillOperatorList(selectedEmail) {
         rtChannel = null; rtStatus = "";
       } catch (eRtOut) {}
       if (sb) await sb.auth.signOut();
+      currentUser = null;
+      currentProfile = null;
       $("app").classList.remove("show");
       $("authScreen").style.display = "flex";
       setAuthMode(false);
@@ -38451,6 +38466,9 @@ function closeOtModal() {
         }
         if (ev === "SIGNED_OUT" || !session) {
           if (ev === "SIGNED_OUT") {
+            try { if (typeof attResetSessionState === "function") attResetSessionState(); } catch (eAttS) {}
+            currentUser = null;
+            currentProfile = null;
             $("app").classList.remove("show");
             $("authScreen").style.display = "flex";
           }
@@ -38545,7 +38563,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-shift";
+    var APP_BUILD_TAG = "2026.11.27-absensi-lock";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -40694,6 +40712,7 @@ function closeOtModal() {
       lng: null,
       radius_m: 150,
       strict_radius: true,
+      strict_device: true,
       require_selfie: true,
       shifts: [
         { name: "Office / Non-Shift", start: "07:30", end: "15:15", grace_min: 10 },
@@ -40713,6 +40732,7 @@ function closeOtModal() {
       "  lng double precision,",
       "  radius_m integer not null default 150,",
       "  strict_radius boolean not null default true,",
+      "  strict_device boolean not null default true,",
       "  require_selfie boolean not null default true,",
       "  shifts jsonb not null default '[]'::jsonb,",
       "  updated_by text,",
@@ -40734,12 +40754,14 @@ function closeOtModal() {
       "  clock_in_acc integer,",
       "  clock_in_dist_m integer,",
       "  clock_in_photo text,",
+      "  clock_in_device_id text,",
       "  clock_out_at timestamptz,",
       "  clock_out_lat double precision,",
       "  clock_out_lng double precision,",
       "  clock_out_acc integer,",
       "  clock_out_dist_m integer,",
       "  clock_out_photo text,",
+      "  clock_out_device_id text,",
       "  late_minutes integer default 0,",
       "  status text default 'hadir',",
       "  notes text,",
@@ -40903,6 +40925,7 @@ function closeOtModal() {
         lng: lng,
         radius_m: Math.max(20, Math.min(5000, Number(raw.radius_m) || def.radius_m)),
         strict_radius: raw.strict_radius !== false,
+        strict_device: raw.strict_device !== false,
         require_selfie: raw.require_selfie !== false,
         shifts: shifts
       };
@@ -40967,6 +40990,7 @@ function closeOtModal() {
           lng: clean.lng,
           radius_m: clean.radius_m,
           strict_radius: clean.strict_radius,
+          strict_device: clean.strict_device,
           require_selfie: clean.require_selfie,
           shifts: clean.shifts,
           updated_by: email,
@@ -41082,10 +41106,15 @@ function closeOtModal() {
 
     async function attUpsertRecord(rec, actionName) {
       if (!sb) return { error: { message: "Supabase belum siap" } };
+      var targetEmail = String(rec.user_email || "").trim().toLowerCase();
+      var loginEmail = (currentUser && currentUser.email) ? String(currentUser.email).trim().toLowerCase() : "";
+      if (actionName === "clock_out" && loginEmail && targetEmail && targetEmail !== loginEmail) {
+        return { data: null, error: { message: "Tidak bisa Clock Out: akun login (" + loginEmail + ") berbeda dengan akun Clock In (" + targetEmail + ")." } };
+      }
       var nowIso = new Date().toISOString();
       var row = {
         att_date: rec.att_date,
-        user_email: String(rec.user_email || "").trim().toLowerCase(),
+        user_email: targetEmail,
         user_name: rec.user_name || rec.user_email || "",
         user_role: rec.user_role || "",
         shift_name: rec.shift_name || "",
@@ -41098,12 +41127,14 @@ function closeOtModal() {
         clock_in_acc: rec.clock_in_acc != null ? Math.round(Number(rec.clock_in_acc)) : null,
         clock_in_dist_m: rec.clock_in_dist_m != null ? Math.round(Number(rec.clock_in_dist_m)) : null,
         clock_in_photo: rec.clock_in_photo || null,
+        clock_in_device_id: rec.clock_in_device_id || null,
         clock_out_at: rec.clock_out_at || null,
         clock_out_lat: rec.clock_out_lat != null ? Number(rec.clock_out_lat) : null,
         clock_out_lng: rec.clock_out_lng != null ? Number(rec.clock_out_lng) : null,
         clock_out_acc: rec.clock_out_acc != null ? Math.round(Number(rec.clock_out_acc)) : null,
         clock_out_dist_m: rec.clock_out_dist_m != null ? Math.round(Number(rec.clock_out_dist_m)) : null,
         clock_out_photo: rec.clock_out_photo || null,
+        clock_out_device_id: rec.clock_out_device_id || null,
         late_minutes: Math.max(0, Math.round(Number(rec.late_minutes) || 0)),
         status: rec.status || "hadir",
         notes: rec.notes || "",
@@ -41118,6 +41149,15 @@ function closeOtModal() {
             .upsert(row, { onConflict: "att_date,user_email" })
             .select("*")
             .maybeSingle();
+          if (res.error && String(res.error.code || "").toUpperCase() === "PGRST204") {
+            var slimRow = Object.assign({}, row);
+            delete slimRow.clock_in_device_id;
+            delete slimRow.clock_out_device_id;
+            res = await sb.from("attendance_logs")
+              .upsert(slimRow, { onConflict: "att_date,user_email" })
+              .select("*")
+              .maybeSingle();
+          }
           if (!res.error) {
             attStorageMode = "table";
             savedPrimary = true;
@@ -41227,6 +41267,38 @@ function closeOtModal() {
       if (!attClockTimer) attClockTimer = setInterval(tick, 1000);
     }
 
+    function attGetDeviceId() {
+      try {
+        var id = localStorage.getItem("shi_att_device_id");
+        if (!id) {
+          id = "dev-" + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+          localStorage.setItem("shi_att_device_id", id);
+        }
+        return id;
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function attDraftStorageKey() {
+      var em = (currentUser && currentUser.email) ? String(currentUser.email).trim().toLowerCase() : "anon";
+      return "shi_att_draft_shift_" + em;
+    }
+
+    function attResetSessionState() {
+      attActiveRecord = null;
+      attMyRows = [];
+      attAdminRows = [];
+      attAdminMissing = [];
+      attAdminFiltered = [];
+      attLastGps = null;
+      attDraftShift = "";
+      try { attStopCamera(); } catch (e) {}
+      if ($("attHomeWidgetStaff")) { $("attHomeWidgetStaff").style.display = "none"; $("attHomeWidgetStaff").innerHTML = ""; }
+      if ($("attHomeWidgetOp")) { $("attHomeWidgetOp").style.display = "none"; $("attHomeWidgetOp").innerHTML = ""; }
+      if ($("attShiftSelect")) $("attShiftSelect").value = "";
+    }
+
     function attGetShiftsList() {
       return (attSettings && attSettings.shifts && attSettings.shifts.length) ? attSettings.shifts : ATT_DEFAULT_SETTINGS.shifts;
     }
@@ -41235,7 +41307,7 @@ function closeOtModal() {
       var shifts = attGetShiftsList();
       var val = attDraftShift || "";
       if (!val) {
-        try { val = sessionStorage.getItem("shi_att_draft_shift") || ""; } catch (e) {}
+        try { val = sessionStorage.getItem(attDraftStorageKey()) || ""; } catch (e) {}
       }
       if (!val) return "";
       return shifts.some(function(s) { return s.name === val; }) ? val : "";
@@ -41244,8 +41316,9 @@ function closeOtModal() {
     function attSetDraftShift(val) {
       attDraftShift = String(val || "").trim();
       try {
-        if (attDraftShift) sessionStorage.setItem("shi_att_draft_shift", attDraftShift);
-        else sessionStorage.removeItem("shi_att_draft_shift");
+        var k = attDraftStorageKey();
+        if (attDraftShift) sessionStorage.setItem(k, attDraftShift);
+        else sessionStorage.removeItem(k);
       } catch (e) {}
       var pageSel = $("attShiftSelect");
       if (pageSel && pageSel.value !== attDraftShift) {
@@ -41264,7 +41337,7 @@ function closeOtModal() {
       var chosen = selectedName || (allowBlank ? attGetDraftShift() : "");
       var opts = [];
       if (allowBlank) {
-        opts.push('<option value="">-- Pilih Shift Kerja --</option>');
+        opts.push('<option value="">-- Wajib Pilih Shift Kerja --</option>');
       }
       shifts.forEach(function(s) {
         opts.push('<option value="' + esc(s.name) + '">' + esc(s.name + " (" + s.start + "–" + s.end + ")") + '</option>');
@@ -41344,9 +41417,13 @@ function closeOtModal() {
 
     async function attFindActiveRecordForMe() {
       if (!currentUser || !currentUser.email) return null;
+      var myEmail = String(currentUser.email || "").trim().toLowerCase();
       var today = todayStr();
       var prev = attPrevDate(today);
-      var rows = await attFetchLogs({ from: prev, to: today, email: currentUser.email });
+      var rawRows = await attFetchLogs({ from: prev, to: today, email: myEmail });
+      var rows = (rawRows || []).filter(function(r) {
+        return String(r.user_email || "").trim().toLowerCase() === myEmail;
+      });
       var recToday = rows.find(function(r) { return String(r.att_date) === today; });
       if (recToday) return recToday;
       var recPrev = rows.find(function(r) { return String(r.att_date) === prev; });
@@ -41379,6 +41456,9 @@ function closeOtModal() {
         if ((dIn != null && dIn > rad) || (dOut != null && dOut > rad)) {
           out += ' <span class="badge-st" style="background:#fee2e2;color:#991b1b">Luar Radius</span>';
         }
+      }
+      if (r.clock_in_device_id && r.clock_out_device_id && r.clock_in_device_id !== r.clock_out_device_id) {
+        out += ' <span class="badge-st" style="background:#ffedd5;color:#9a3412">Beda Perangkat</span>';
       }
       if (r.corrected_by) {
         out += ' <span class="badge-st" style="background:#f3e8ff;color:#6b21a8">Koreksi Admin</span>';
@@ -41595,6 +41675,19 @@ function closeOtModal() {
             (meta && meta.distM != null ? (" · Jarak " + meta.distM + " m") : "") +
             (meta && meta.shiftName ? (" · " + meta.shiftName) : "");
         }
+        var refBox = $("attSelfieRefBox");
+        var refImg = $("attSelfieRefImg");
+        var refTxt = $("attSelfieRefText");
+        if (refBox && refImg) {
+          if (meta && meta.isOut && meta.clockInPhoto) {
+            refImg.src = attResolvePhotoSrc(meta.clockInPhoto);
+            if (refTxt) refTxt.textContent = "Pastikan orang yang melakukan Clock Out sama dengan foto Clock In (" + (meta.userName || "akun ini") + ").";
+            refBox.style.display = "flex";
+          } else {
+            refBox.style.display = "none";
+            refImg.removeAttribute("src");
+          }
+        }
         var fbInp = $("attSelfieFallbackInp");
         if (fbInp && fbInp.dataset.bound !== "1") {
           fbInp.dataset.bound = "1";
@@ -41701,12 +41794,24 @@ function closeOtModal() {
       if (btn && !fromHome) { btn.disabled = true; btn.textContent = "Mengambil GPS…"; }
       try {
         await attLoadSettings();
+        var email = String(currentUser.email || "").trim().toLowerCase();
         var active = await attFindActiveRecordForMe();
         attActiveRecord = active;
         var isOut = !!(active && active.clock_in_at && !active.clock_out_at);
         if (active && active.clock_in_at && active.clock_out_at) {
           toast("Anda sudah Clock In dan Clock Out untuk hari ini.");
           return;
+        }
+        var curDev = attGetDeviceId();
+        if (isOut) {
+          if (String(active.user_email || "").trim().toLowerCase() !== email) {
+            toast("Tidak bisa Clock Out: data Clock In ini milik akun berbeda (" + (active.user_email || "-") + ").", true);
+            return;
+          }
+          if (attSettings.strict_device !== false && active.clock_in_device_id && curDev && active.clock_in_device_id !== curDev) {
+            toast("Tidak bisa Clock Out: perangkat/HP berbeda dengan saat Clock In. Hubungi Admin untuk koreksi jika ganti HP.", true);
+            return;
+          }
         }
         var visibleHomeShiftEl = null;
         document.querySelectorAll(".att-home-shift").forEach(function(el) {
@@ -41718,8 +41823,9 @@ function closeOtModal() {
         } else {
           shiftName = ($("attShiftSelect") && $("attShiftSelect").value) || attGetDraftShift() || "";
         }
-        if (!isOut && !shiftName) {
-          toast("Silakan pilih shift kerja terlebih dahulu sebelum Clock In.", true);
+        var validShift = !isOut ? attGetShiftsList().find(function(s) { return s.name === shiftName; }) : null;
+        if (!isOut && (!shiftName || !validShift)) {
+          toast("Wajib pilih shift kerja terlebih dahulu sebelum Clock In!", true);
           var warnEl = fromHome ? (visibleHomeShiftEl || document.querySelector(".att-home-shift")) : $("attShiftSelect");
           if (warnEl) {
             warnEl.classList.add("att-shift-warn");
@@ -41728,7 +41834,7 @@ function closeOtModal() {
           }
           return;
         }
-        var shiftObj = isOut && active && active.shift_name ? attFindShift(active.shift_name) : attFindShift(shiftName);
+        var shiftObj = isOut && active && active.shift_name ? attFindShift(active.shift_name) : validShift;
         var workMode = isOut && active && active.work_mode
           ? active.work_mode
           : (($("attWorkMode") && $("attWorkMode").value) || "wfo");
@@ -41745,7 +41851,6 @@ function closeOtModal() {
           return;
         }
 
-        var email = currentUser.email.toLowerCase();
         var userName = (currentProfile && currentProfile.name) || email.split("@")[0] || email;
         var nowIso = new Date().toISOString();
         var wp = attWibParts(nowIso);
@@ -41758,7 +41863,8 @@ function closeOtModal() {
             userName: userName,
             gps: gps,
             distM: distM,
-            shiftName: shiftObj.name
+            shiftName: shiftObj.name,
+            clockInPhoto: isOut && active ? active.clock_in_photo : null
           });
           if (!captured) {
             toast("Absensi dibatalkan (foto selfie diperlukan).", true);
@@ -41789,6 +41895,7 @@ function closeOtModal() {
             clock_in_acc: gps.acc,
             clock_in_dist_m: distM,
             clock_in_photo: photoUrl,
+            clock_in_device_id: curDev || null,
             late_minutes: lateMins,
             status: lateMins > 0 ? "terlambat" : "hadir",
             notes: notes
@@ -41803,6 +41910,7 @@ function closeOtModal() {
             clock_out_acc: gps.acc,
             clock_out_dist_m: distM,
             clock_out_photo: photoUrl || active.clock_out_photo || null,
+            clock_out_device_id: curDev || null,
             notes: mergedNotes
           });
         }
@@ -41848,7 +41956,7 @@ function closeOtModal() {
         var html = "";
         if (!rec || !rec.clock_in_at) {
           var curDraft = attGetDraftShift();
-          var shiftOpts = '<option value="">-- Pilih Shift --</option>' +
+          var shiftOpts = '<option value="">-- Wajib Pilih Shift --</option>' +
             attGetShiftsList().map(function(s) {
               var selAttr = curDraft === s.name ? ' selected' : '';
               return '<option value="' + esc(s.name) + '"' + selAttr + '>' + esc(s.name + " (" + s.start + "–" + s.end + ")") + '</option>';
@@ -42350,6 +42458,7 @@ function closeOtModal() {
       if ($("attSetLng")) $("attSetLng").value = attSettings.lng != null ? String(attSettings.lng) : "";
       if ($("attSetStrictRadius")) $("attSetStrictRadius").checked = attSettings.strict_radius !== false;
       if ($("attSetRequireSelfie")) $("attSetRequireSelfie").checked = attSettings.require_selfie !== false;
+      if ($("attSetStrictDevice")) $("attSetStrictDevice").checked = attSettings.strict_device !== false;
       attUpdateMapPreviewLink();
       var host = $("attSetShiftsHost");
       if (host) {
@@ -42389,6 +42498,7 @@ function closeOtModal() {
         lng: lngStr ? Number(lngStr) : null,
         radius_m: Math.max(20, Math.min(5000, Number($("attSetRadius") && $("attSetRadius").value) || 150)),
         strict_radius: !!($("attSetStrictRadius") && $("attSetStrictRadius").checked),
+        strict_device: !!($("attSetStrictDevice") && $("attSetStrictDevice").checked),
         require_selfie: !!($("attSetRequireSelfie") && $("attSetRequireSelfie").checked),
         shifts: rows
       };
