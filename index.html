@@ -7585,6 +7585,21 @@
     .att-quick-dot.done { background: #0f766e; }
     .att-quick-dot.warn { background: #d97706; }
     .att-quick-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .att-home-shift {
+      min-height: 34px;
+      padding: 0.32rem 0.6rem;
+      border: 1px solid #94a3b8;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #ffffff;
+      color: #0f172a;
+      max-width: 230px;
+    }
+    .att-shift-warn {
+      border-color: #dc2626 !important;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18) !important;
+    }
     .att-clock-hero {
       background: linear-gradient(135deg, #065f46 0%, #0d9488 100%);
       color: #fff;
@@ -38530,7 +38545,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-selfie";
+    var APP_BUILD_TAG = "2026.11.27-absensi-shift";
     try {
       if ($("appBuildVersionLabel")) $("appBuildVersionLabel").textContent = "Versi " + APP_BUILD_TAG + " · Cek & muat ulang cache";
     } catch (eBv) {}
@@ -40681,10 +40696,13 @@ function closeOtModal() {
       strict_radius: true,
       require_selfie: true,
       shifts: [
-        { name: "Office / Non-Shift", start: "08:00", end: "17:00", grace_min: 10 },
-        { name: "Shift 1", start: "07:00", end: "15:00", grace_min: 10 },
-        { name: "Shift 2", start: "15:00", end: "23:00", grace_min: 10 },
-        { name: "Shift 3", start: "23:00", end: "07:00", grace_min: 10 }
+        { name: "Office / Non-Shift", start: "07:30", end: "15:15", grace_min: 10 },
+        { name: "Shift 1", start: "07:30", end: "15:15", grace_min: 10 },
+        { name: "Shift 2", start: "15:45", end: "23:55", grace_min: 10 },
+        { name: "Shift 3", start: "23:59", end: "07:30", grace_min: 10 },
+        { name: "SDM 1", start: "07:30", end: "16:00", grace_min: 10 },
+        { name: "SDM 2", start: "08:50", end: "17:00", grace_min: 10 },
+        { name: "Driver 2", start: "13:30", end: "22:00", grace_min: 10 }
       ]
     };
     var ATT_SETUP_SQL = [
@@ -40754,6 +40772,7 @@ function closeOtModal() {
     var attSelfieDataUrl = "";
     var attSelfieMeta = null;
     var attSelfieResolve = null;
+    var attDraftShift = "";
 
     function attIsMissingTableErr(err) {
       if (!err) return false;
@@ -41208,27 +41227,64 @@ function closeOtModal() {
       if (!attClockTimer) attClockTimer = setInterval(tick, 1000);
     }
 
-    function attPopulateShiftSelect(selEl, selectedName) {
+    function attGetShiftsList() {
+      return (attSettings && attSettings.shifts && attSettings.shifts.length) ? attSettings.shifts : ATT_DEFAULT_SETTINGS.shifts;
+    }
+
+    function attGetDraftShift() {
+      var shifts = attGetShiftsList();
+      var val = attDraftShift || "";
+      if (!val) {
+        try { val = sessionStorage.getItem("shi_att_draft_shift") || ""; } catch (e) {}
+      }
+      if (!val) return "";
+      return shifts.some(function(s) { return s.name === val; }) ? val : "";
+    }
+
+    function attSetDraftShift(val) {
+      attDraftShift = String(val || "").trim();
+      try {
+        if (attDraftShift) sessionStorage.setItem("shi_att_draft_shift", attDraftShift);
+        else sessionStorage.removeItem("shi_att_draft_shift");
+      } catch (e) {}
+      var pageSel = $("attShiftSelect");
+      if (pageSel && pageSel.value !== attDraftShift) {
+        pageSel.value = attDraftShift;
+      }
+      if (pageSel) pageSel.classList.remove("att-shift-warn");
+      document.querySelectorAll(".att-home-shift").forEach(function(el) {
+        if (el.value !== attDraftShift) el.value = attDraftShift;
+        el.classList.remove("att-shift-warn");
+      });
+    }
+
+    function attPopulateShiftSelect(selEl, selectedName, allowBlank) {
       if (!selEl) return;
-      var shifts = (attSettings && attSettings.shifts && attSettings.shifts.length) ? attSettings.shifts : ATT_DEFAULT_SETTINGS.shifts;
-      var saved = selectedName || "";
-      try { if (!saved) saved = localStorage.getItem("shi_last_att_shift") || ""; } catch (e) {}
-      selEl.innerHTML = shifts.map(function(s) {
-        return '<option value="' + esc(s.name) + '">' + esc(s.name + " (" + s.start + "–" + s.end + ")") + '</option>';
-      }).join("");
-      var hasMatch = shifts.some(function(s) { return s.name === saved; });
-      selEl.value = hasMatch ? saved : shifts[0].name;
+      var shifts = attGetShiftsList();
+      var chosen = selectedName || (allowBlank ? attGetDraftShift() : "");
+      var opts = [];
+      if (allowBlank) {
+        opts.push('<option value="">-- Pilih Shift Kerja --</option>');
+      }
+      shifts.forEach(function(s) {
+        opts.push('<option value="' + esc(s.name) + '">' + esc(s.name + " (" + s.start + "–" + s.end + ")") + '</option>');
+      });
+      if (selectedName && !shifts.some(function(s) { return s.name === selectedName; })) {
+        opts.push('<option value="' + esc(selectedName) + '">' + esc(selectedName) + '</option>');
+      }
+      selEl.innerHTML = opts.join("");
+      var hasMatch = chosen && Array.prototype.some.call(selEl.options, function(o) { return o.value === chosen; });
+      selEl.value = hasMatch ? chosen : (allowBlank ? "" : shifts[0].name);
     }
 
     function attFindShift(name) {
-      var shifts = (attSettings && attSettings.shifts && attSettings.shifts.length) ? attSettings.shifts : ATT_DEFAULT_SETTINGS.shifts;
+      var shifts = attGetShiftsList();
       return shifts.find(function(s) { return s.name === name; }) || shifts[0];
     }
 
-    function attOnShiftChange() {
-      var sel = $("attShiftSelect");
-      if (!sel) return;
-      try { localStorage.setItem("shi_last_att_shift", sel.value || ""); } catch (e) {}
+    function attOnShiftChange(val) {
+      var next = val !== undefined ? String(val || "") : (($("attShiftSelect") && $("attShiftSelect").value) || "");
+      attSetDraftShift(next);
     }
 
     function attRenderGpsPreview() {
@@ -41339,17 +41395,25 @@ function closeOtModal() {
       var r = attActiveRecord;
       if (!r || !r.clock_in_at) {
         if (chip) chip.textContent = "Belum Clock In hari ini";
-        if (sum) sum.textContent = "Pilih shift & mode kerja, lalu tekan Clock In untuk mencatat jam masuk + GPS.";
+        if (sum) sum.textContent = "Pilih shift & mode kerja terlebih dahulu, lalu tekan Clock In untuk mencatat jam masuk + GPS.";
         if (btn) {
           btn.disabled = false;
           btn.textContent = "Clock In (Masuk)";
           btn.className = "btn btn-primary";
+          btn.style.background = "";
+          btn.style.borderColor = "";
         }
-        if (shiftSel) shiftSel.disabled = false;
+        if (shiftSel) {
+          shiftSel.disabled = false;
+          attPopulateShiftSelect(shiftSel, attGetDraftShift(), true);
+        }
         if (modeSel) modeSel.disabled = false;
         return;
       }
-      if (shiftSel && r.shift_name) shiftSel.value = r.shift_name;
+      if (shiftSel && r.shift_name) {
+        attPopulateShiftSelect(shiftSel, r.shift_name, true);
+        shiftSel.value = r.shift_name;
+      }
       if (modeSel && r.work_mode) modeSel.value = r.work_mode;
       var inTime = attWibParts(r.clock_in_at).hm;
       if (!r.clock_out_at) {
@@ -41644,14 +41708,27 @@ function closeOtModal() {
           toast("Anda sudah Clock In dan Clock Out untuk hari ini.");
           return;
         }
-        var shiftName = ($("attShiftSelect") && $("attShiftSelect").value) || "";
-        if (!shiftName) {
-          try { shiftName = localStorage.getItem("shi_last_att_shift") || ""; } catch (eS) {}
+        var visibleHomeShiftEl = null;
+        document.querySelectorAll(".att-home-shift").forEach(function(el) {
+          if (!visibleHomeShiftEl && el.offsetParent !== null) visibleHomeShiftEl = el;
+        });
+        var shiftName = "";
+        if (fromHome) {
+          shiftName = (visibleHomeShiftEl && visibleHomeShiftEl.value) || attGetDraftShift() || ($("attShiftSelect") && $("attShiftSelect").value) || "";
+        } else {
+          shiftName = ($("attShiftSelect") && $("attShiftSelect").value) || attGetDraftShift() || "";
+        }
+        if (!isOut && !shiftName) {
+          toast("Silakan pilih shift kerja terlebih dahulu sebelum Clock In.", true);
+          var warnEl = fromHome ? (visibleHomeShiftEl || document.querySelector(".att-home-shift")) : $("attShiftSelect");
+          if (warnEl) {
+            warnEl.classList.add("att-shift-warn");
+            try { warnEl.focus(); } catch (eF) {}
+            setTimeout(function() { try { warnEl.classList.remove("att-shift-warn"); } catch (eR) {} }, 2800);
+          }
+          return;
         }
         var shiftObj = isOut && active && active.shift_name ? attFindShift(active.shift_name) : attFindShift(shiftName);
-        if (!isOut) {
-          try { localStorage.setItem("shi_last_att_shift", shiftObj.name); } catch (eLs) {}
-        }
         var workMode = isOut && active && active.work_mode
           ? active.work_mode
           : (($("attWorkMode") && $("attWorkMode").value) || "wfo");
@@ -41735,6 +41812,7 @@ function closeOtModal() {
           return;
         }
         attActiveRecord = saved.data;
+        if (!isOut) attSetDraftShift("");
         if ($("attNotes")) $("attNotes").value = "";
         attRenderHero();
         loadAttendanceHomeWidget();
@@ -41769,13 +41847,20 @@ function closeOtModal() {
         attActiveRecord = rec;
         var html = "";
         if (!rec || !rec.clock_in_at) {
+          var curDraft = attGetDraftShift();
+          var shiftOpts = '<option value="">-- Pilih Shift --</option>' +
+            attGetShiftsList().map(function(s) {
+              var selAttr = curDraft === s.name ? ' selected' : '';
+              return '<option value="' + esc(s.name) + '"' + selAttr + '>' + esc(s.name + " (" + s.start + "–" + s.end + ")") + '</option>';
+            }).join("");
           html =
             '<div class="att-quick-left">' +
               '<div class="att-quick-dot warn">📍</div>' +
               '<div><div style="font-weight:700;font-size:0.88rem">Belum Absen Masuk Hari Ini</div>' +
-              '<div style="font-size:0.75rem;color:var(--text-muted)">Gunakan GPS untuk Clock In atau buka menu Absensi &amp; Ijin.</div></div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">Pilih shift kerja Anda terlebih dahulu, lalu tekan Clock In (GPS).</div></div>' +
             '</div>' +
             '<div class="att-quick-actions">' +
+              '<select class="att-home-shift" aria-label="Pilih Shift Kerja" onchange="attOnShiftChange(this.value)">' + shiftOpts + '</select>' +
               '<button type="button" class="btn btn-primary btn-sm" onclick="attSubmitClock(true)">Clock In (GPS)</button>' +
               '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Detail</button>' +
             '</div>';
@@ -42313,9 +42398,10 @@ function closeOtModal() {
       var ok = await attSaveSettings(cfg);
       if (ok) {
         toast("Pengaturan lokasi & shift berhasil disimpan");
-        attPopulateShiftSelect($("attShiftSelect"), "");
+        attPopulateShiftSelect($("attShiftSelect"), (attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.shift_name : "", true);
         attRenderGpsPreview();
         attRenderSettingsForm();
+        loadAttendanceHomeWidget();
       }
     }
 
@@ -42332,8 +42418,8 @@ function closeOtModal() {
       attUpdateUiPermissions();
       attStartLiveClock();
       await attLoadSettings(!!force);
-      attPopulateShiftSelect($("attShiftSelect"), "");
       attActiveRecord = await attFindActiveRecordForMe();
+      attPopulateShiftSelect($("attShiftSelect"), (attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.shift_name : "", true);
       attRenderHero();
       attRenderGpsPreview();
       await Promise.all([
