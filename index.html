@@ -8950,13 +8950,14 @@
             </div>
             <div style="display:flex;gap:0.45rem;flex-wrap:wrap">
               <button class="btn btn-ghost btn-sm" type="button" onclick="loadAttendancePage(true)">Refresh</button>
+              <button class="btn btn-ghost btn-sm" type="button" onclick="attOpenReqModal()">+ Ajukan Lupa Absen</button>
               <button class="btn btn-primary btn-sm" type="button" onclick="openAbsenceModal()">+ Ajukan Cuti/Ijin</button>
             </div>
           </div>
 
           <div class="mod-tabs" id="attPageTabs" role="tablist">
             <button type="button" class="mod-tab active" data-atab="mine" onclick="setAttTab('mine')">Absen &amp; Ijin Saya</button>
-            <button type="button" class="mod-tab" data-atab="admin" id="attTabAdmin" style="display:none" onclick="setAttTab('admin')">Rekap Karyawan (Admin)</button>
+            <button type="button" class="mod-tab" data-atab="admin" id="attTabAdmin" style="display:none" onclick="setAttTab('admin')">Rekap Karyawan (Admin) <span id="attTabReqBadge" style="display:none;margin-left:0.3rem;padding:0.08rem 0.45rem;border-radius:999px;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:700">0</span></button>
             <button type="button" class="mod-tab" data-atab="settings" id="attTabSettings" style="display:none" onclick="setAttTab('settings')">Pengaturan Lokasi &amp; Shift</button>
           </div>
 
@@ -9003,7 +9004,12 @@
                   <button type="button" class="btn btn-ghost btn-sm" onclick="attRefreshGpsPreview(true)">Cek GPS</button>
                 </div>
                 <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-                  <button type="button" class="btn btn-primary" id="attClockBtn" style="flex:1;min-height:42px;font-weight:700" onclick="attSubmitClock()">Clock In (Masuk)</button>
+                  <button type="button" class="btn btn-primary" id="attBtnClockIn" style="flex:1;min-width:135px;min-height:42px;font-weight:700" onclick="attSubmitClock(false,'in')">Clock In (Masuk)</button>
+                  <button type="button" class="btn btn-primary" id="attBtnClockOut" style="flex:1;min-width:135px;min-height:42px;font-weight:700;background:#d97706;border-color:#d97706" onclick="attSubmitClock(false,'out')">Clock Out (Pulang)</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.55rem;padding-top:0.45rem;border-top:1px dashed #e2e8f0">
+                  <span style="font-size:0.73rem;color:var(--text-muted)">Lupa Clock In atau Clock Out?</span>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="attOpenReqModal()">Ajukan Koreksi Absensi</button>
                 </div>
               </div>
             </div>
@@ -9027,6 +9033,32 @@
                 </table>
               </div>
               <div id="attMyPager" class="pg-bar"></div>
+            </div>
+
+            <div class="card" style="margin-bottom:0.9rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0">Pengajuan Lupa Clock In / Clock Out Saya</h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Ajukan koreksi jam masuk/pulang yang terlewat untuk disetujui Admin.</p>
+                </div>
+                <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+                  <select id="attMyReqFilter" onchange="renderAttendanceMyRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.42rem 0.65rem;font-size:0.8rem">
+                    <option value="">Semua status</option>
+                    <option value="pending">Menunggu Admin</option>
+                    <option value="approved">Disetujui</option>
+                    <option value="rejected">Ditolak</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" type="button" onclick="attOpenReqModal()">+ Ajukan Lupa Absen</button>
+                </div>
+              </div>
+              <div id="attMyReqCards" class="mobile-cards mobile-only"></div>
+              <div class="table-wrap desk-only-table">
+                <table>
+                  <thead><tr><th>Tanggal</th><th>Jenis</th><th>Shift &amp; Jam Diajukan</th><th>Alasan</th><th>Status &amp; Info Admin</th></tr></thead>
+                  <tbody id="attMyReqBody"><tr><td colspan="5" class="empty">Belum ada pengajuan lupa absen</td></tr></tbody>
+                </table>
+              </div>
+              <div id="attMyReqPager" class="pg-bar"></div>
             </div>
 
             <div class="card">
@@ -9067,6 +9099,34 @@
               <div class="kpi"><div class="label">Terlambat</div><div class="value" id="attKpiLate" style="color:#d97706">—</div></div>
               <div class="kpi"><div class="label">Belum Absen</div><div class="value" id="attKpiMissing" style="color:#dc2626">—</div></div>
             </div>
+            <div class="card" id="attAdmReqCard" style="margin-bottom:0.85rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0;display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap">
+                    <span>Persetujuan Pengajuan Lupa Clock In / Out</span>
+                    <span id="attAdmReqBadge" class="badge-st" style="display:none;background:#fef3c7;color:#92400e">0 Menunggu</span>
+                  </h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Setujui untuk otomatis melengkapi jam absensi karyawan di rekap harian.</p>
+                </div>
+                <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+                  <select id="attAdmReqFilter" onchange="renderAttendanceAdminRequests()" style="border:1px solid var(--border);border-radius:10px;padding:0.42rem 0.65rem;font-size:0.8rem">
+                    <option value="pending" selected>Menunggu Persetujuan</option>
+                    <option value="">Semua Status</option>
+                    <option value="approved">Disetujui</option>
+                    <option value="rejected">Ditolak</option>
+                  </select>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="loadAttendanceAdminRequests()">Refresh</button>
+                </div>
+              </div>
+              <div id="attAdmReqCards" class="mobile-cards mobile-only"></div>
+              <div class="table-wrap desk-only-table">
+                <table>
+                  <thead><tr><th>Karyawan</th><th>Tanggal</th><th>Jenis</th><th>Shift &amp; Jam Diajukan</th><th>Alasan</th><th>Status</th><th>Aksi Admin</th></tr></thead>
+                  <tbody id="attAdmReqBody"><tr><td colspan="7" class="empty">Tidak ada pengajuan</td></tr></tbody>
+                </table>
+              </div>
+              <div id="attAdmReqPager" class="pg-bar"></div>
+            </div>
             <div class="toolbar" style="flex-wrap:wrap">
               <input type="date" id="attAdmDate" onchange="loadAttendanceAdmin()" />
               <select id="attAdmCompany" onchange="renderAttendanceAdmin()"><option value="">Semua perusahaan</option></select>
@@ -9076,6 +9136,7 @@
                 <option value="hadir">Tepat Waktu</option>
                 <option value="terlambat">Terlambat</option>
                 <option value="pulang_awal">Pulang Lebih Awal</option>
+                <option value="lupa_in">Lupa Clock In</option>
                 <option value="no_out">Belum Clock Out</option>
                 <option value="out_radius">Di Luar Radius</option>
                 <option value="belum_absen">Belum Absen</option>
@@ -10686,6 +10747,94 @@
       <div class="sheet-foot">
         <button type="button" class="btn btn-ghost" onclick="attCloseMapPicker()">Batal</button>
         <button type="button" class="btn btn-primary" id="attMapConfirmBtn" onclick="attConfirmMapPicker()">Gunakan Lokasi Ini</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attReqModal" class="modal-bg" style="z-index:100188">
+    <div class="modal modal-sheet" style="max-width:480px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div>
+          <h2 style="margin:0">Pengajuan Lupa Clock In / Clock Out</h2>
+          <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)">Ajukan koreksi jam absensi agar dilengkapi Admin.</p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="attCloseReqModal()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <div id="attReqExistingInfo" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:10px;padding:0.55rem 0.7rem;font-size:0.78rem;margin-bottom:0.65rem;line-height:1.4"></div>
+        <div class="att-form-row">
+          <div class="field" style="margin:0">
+            <label>Tanggal Absensi <span style="color:#dc2626">*</span></label>
+            <input id="attReqDate" type="date" onchange="attOnReqFieldsChange()" />
+          </div>
+          <div class="field" style="margin:0">
+            <label>Jenis Pengajuan <span style="color:#dc2626">*</span></label>
+            <select id="attReqType" onchange="attOnReqFieldsChange()">
+              <option value="lupa_in">Lupa Clock In (Jam Masuk)</option>
+              <option value="lupa_out">Lupa Clock Out (Jam Pulang)</option>
+              <option value="lupa_both">Lupa Clock In &amp; Clock Out</option>
+            </select>
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="field" style="margin:0">
+            <label>Shift Kerja <span style="color:#dc2626">*</span></label>
+            <select id="attReqShift" onchange="attOnReqShiftChange()"></select>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Perusahaan / Lokasi</label>
+            <select id="attReqLoc"></select>
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="field" style="margin:0" id="attReqInWrap">
+            <label>Jam Masuk Aktual (WIB) <span style="color:#dc2626">*</span></label>
+            <input id="attReqInHm" type="time" />
+          </div>
+          <div class="field" style="margin:0" id="attReqOutWrap">
+            <label>Jam Pulang Aktual (WIB) <span style="color:#dc2626">*</span></label>
+            <input id="attReqOutHm" type="time" />
+          </div>
+        </div>
+        <div class="field" style="margin-top:0.55rem">
+          <label>Mode Kehadiran</label>
+          <select id="attReqMode">
+            <option value="wfo">WFO (Lokasi Kantor/Pabrik)</option>
+            <option value="dinas">Dinas Luar</option>
+            <option value="wfh">WFH / Remote</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Alasan / Keterangan <span style="color:#dc2626">* Wajib diisi</span></label>
+          <textarea id="attReqReason" rows="3" placeholder="Contoh: Lupa tekan Clock In saat tiba di pabrik jam 07:30 / HP mati saat pulang…"></textarea>
+        </div>
+        <div id="attReqErr" style="display:none;color:#dc2626;font-size:0.76rem;margin-top:0.35rem;font-weight:600"></div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="attCloseReqModal()">Batal</button>
+        <button type="button" class="btn btn-primary" id="attReqSubmitBtn" onclick="attSubmitCorrectionRequest()">Kirim Pengajuan</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attRejectReqModal" class="modal-bg" style="z-index:100192">
+    <div class="modal modal-sheet" style="max-width:420px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2>Tolak Pengajuan Absensi</h2>
+        <button type="button" class="ot-close-x" onclick="attCloseRejectReqModal()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <div id="attRejectReqSummary" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.6rem;line-height:1.4"></div>
+        <div class="field" style="margin:0">
+          <label>Alasan Penolakan (opsional)</label>
+          <textarea id="attRejectReasonInp" rows="3" placeholder="Tuliskan alasan penolakan agar diketahui karyawan…"></textarea>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" onclick="attCloseRejectReqModal()">Batal</button>
+        <button type="button" class="btn btn-danger" onclick="attConfirmRejectReq()">Tolak Pengajuan</button>
       </div>
     </div>
   </div>
@@ -38706,7 +38855,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-gmaps2";
+    var APP_BUILD_TAG = "2026.11.27-absensi-req";
     window.addEventListener("gmp-quota-exceeded", function() {
       var b = $("gmpQuotaBanner");
       if (b) b.style.display = "block";
@@ -40939,10 +41088,13 @@ function closeOtModal() {
     var attStorageMode = "unknown"; // "table" | "fallback" | "unknown"
     var attActiveTab = "mine";
     var attMyRows = [];
+    var attMyReqRows = [];
     var attActiveRecord = null;
     var attAdminRows = [];
     var attAdminMissing = [];
     var attAdminFiltered = [];
+    var attAdmReqRows = [];
+    var attRejectTargetReqId = "";
     var attLastGps = null;
     var attClockTimer = null;
     var attBusyClock = false;
@@ -41528,15 +41680,19 @@ function closeOtModal() {
     function attResetSessionState() {
       attActiveRecord = null;
       attMyRows = [];
+      attMyReqRows = [];
       attAdminRows = [];
       attAdminMissing = [];
       attAdminFiltered = [];
+      attAdmReqRows = [];
+      attRejectTargetReqId = "";
       attLastGps = null;
       attDraftShift = "";
       try { attStopCamera(); } catch (e) {}
       if ($("attHomeWidgetStaff")) { $("attHomeWidgetStaff").style.display = "none"; $("attHomeWidgetStaff").innerHTML = ""; }
       if ($("attHomeWidgetOp")) { $("attHomeWidgetOp").style.display = "none"; $("attHomeWidgetOp").innerHTML = ""; }
       if ($("attShiftSelect")) $("attShiftSelect").value = "";
+      if ($("attTabReqBadge")) $("attTabReqBadge").style.display = "none";
     }
 
     function attGetShiftsList() {
@@ -41732,22 +41888,29 @@ function closeOtModal() {
     }
 
     function attFormatRecBadge(r) {
-      if (!r || !r.clock_in_at) return '<span class="badge-st badge-partial">Belum Absen</span>';
+      if (!r || (!r.clock_in_at && !r.clock_out_at)) return '<span class="badge-st badge-partial">Belum Absen</span>';
       var out = "";
       var isEarly = r.status === "pulang_awal" || Number(r.early_out_minutes) > 0;
       var isLate = Number(r.late_minutes) > 0 || r.status === "terlambat";
-      if (isEarly) {
-        out += '<span class="badge-st" style="background:#ffe4e6;color:#9f1239">Pulang Lebih Awal' + (Number(r.early_out_minutes) > 0 ? ' (' + Number(r.early_out_minutes) + ' mnt)' : '') + '</span>';
-        if (isLate) {
-          out += ' <span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Telat ' + (Number(r.late_minutes) || 0) + ' mnt</span>';
+      if (!r.clock_in_at && r.clock_out_at) {
+        out += '<span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Lupa Clock In</span>';
+        if (isEarly) {
+          out += ' <span class="badge-st" style="background:#ffe4e6;color:#9f1239">Pulang Lebih Awal' + (Number(r.early_out_minutes) > 0 ? ' (' + Number(r.early_out_minutes) + ' mnt)' : '') + '</span>';
         }
-      } else if (isLate) {
-        out += '<span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Terlambat ' + (Number(r.late_minutes) || 0) + ' mnt</span>';
       } else {
-        out += '<span class="badge-st badge-done">Tepat Waktu</span>';
-      }
-      if (!r.clock_out_at) {
-        out += ' <span class="badge-st" style="background:#e0f2fe;color:#0369a1">Belum Pulang</span>';
+        if (isEarly) {
+          out += '<span class="badge-st" style="background:#ffe4e6;color:#9f1239">Pulang Lebih Awal' + (Number(r.early_out_minutes) > 0 ? ' (' + Number(r.early_out_minutes) + ' mnt)' : '') + '</span>';
+          if (isLate) {
+            out += ' <span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Telat ' + (Number(r.late_minutes) || 0) + ' mnt</span>';
+          }
+        } else if (isLate) {
+          out += '<span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Terlambat ' + (Number(r.late_minutes) || 0) + ' mnt</span>';
+        } else {
+          out += '<span class="badge-st badge-done">Tepat Waktu</span>';
+        }
+        if (!r.clock_out_at) {
+          out += ' <span class="badge-st" style="background:#e0f2fe;color:#0369a1">Belum Pulang</span>';
+        }
       }
       var locs = attGetLocationsList();
       var locObj = (r.location_id && locs.find(function(l) { return l.id === r.location_id; })) ||
@@ -41774,21 +41937,35 @@ function closeOtModal() {
     function attRenderHero() {
       var chip = $("attMyStatusChip");
       var sum = $("attMyTodaySummary");
-      var btn = $("attClockBtn");
+      var btnIn = $("attBtnClockIn");
+      var btnOut = $("attBtnClockOut");
       var shiftSel = $("attShiftSelect");
       var modeSel = $("attWorkMode");
       var locSel = $("attLocSelect");
       var r = attActiveRecord;
-      if (!r || !r.clock_in_at) {
-        if (chip) chip.textContent = "Belum Clock In hari ini";
-        if (sum) sum.textContent = "Pilih shift & mode kerja terlebih dahulu, lalu tekan Clock In untuk mencatat jam masuk + GPS.";
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = "Clock In (Masuk)";
-          btn.className = "btn btn-primary";
-          btn.style.background = "";
-          btn.style.borderColor = "";
-        }
+
+      var setInBtn = function(disabled, text, ghost) {
+        if (!btnIn) return;
+        btnIn.disabled = !!disabled;
+        btnIn.textContent = text;
+        btnIn.className = ghost ? "btn btn-ghost" : "btn btn-primary";
+        btnIn.style.background = "";
+        btnIn.style.borderColor = "";
+      };
+      var setOutBtn = function(disabled, text, ghost) {
+        if (!btnOut) return;
+        btnOut.disabled = !!disabled;
+        btnOut.textContent = text;
+        btnOut.className = ghost ? "btn btn-ghost" : "btn btn-primary";
+        btnOut.style.background = ghost ? "" : "#d97706";
+        btnOut.style.borderColor = ghost ? "" : "#d97706";
+      };
+
+      if (!r || (!r.clock_in_at && !r.clock_out_at)) {
+        if (chip) chip.textContent = "Belum Absen hari ini";
+        if (sum) sum.textContent = "Pilih shift & mode kerja, lalu tekan Clock In (Masuk) atau Clock Out (Pulang). Jika lupa absen, gunakan Ajukan Koreksi.";
+        setInBtn(false, "Clock In (Masuk)", false);
+        setOutBtn(false, "Clock Out (Pulang)", false);
         if (shiftSel) {
           shiftSel.disabled = false;
           attPopulateShiftSelect(shiftSel, attGetDraftShift(), true);
@@ -41802,6 +41979,7 @@ function closeOtModal() {
         }
         return;
       }
+
       if (shiftSel && r.shift_name) {
         attPopulateShiftSelect(shiftSel, r.shift_name, true);
         shiftSel.value = r.shift_name;
@@ -41811,38 +41989,40 @@ function closeOtModal() {
         attPopulateLocationSelect(r.location_id || "");
         locSel.disabled = true;
       }
-      var inTime = attWibParts(r.clock_in_at).hm;
+      if (shiftSel) shiftSel.disabled = true;
+
       var compInfo = r.company_name ? (" · " + r.company_name) : "";
-      if (!r.clock_out_at) {
+      if (r.clock_in_at && !r.clock_out_at) {
+        var inTime = attWibParts(r.clock_in_at).hm;
         if (chip) chip.textContent = (Number(r.late_minutes) > 0 ? "Masuk · Terlambat " + r.late_minutes + " mnt" : "Sudah Clock In (" + inTime + " WIB)");
         if (sum) {
           sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime + " WIB" +
             (r.clock_in_dist_m != null ? " (jarak " + r.clock_in_dist_m + " m)" : "") +
             " · Shift " + (r.shift_name || "—") + compInfo;
         }
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = "Clock Out (Pulang)";
-          btn.className = "btn btn-primary";
-          btn.style.background = "#d97706";
-          btn.style.borderColor = "#d97706";
+        setInBtn(true, "✓ Masuk " + inTime + " WIB", true);
+        setOutBtn(false, "Clock Out (Pulang)", false);
+        if (modeSel) modeSel.disabled = false;
+      } else if (!r.clock_in_at && r.clock_out_at) {
+        var outOnlyTime = attWibParts(r.clock_out_at).hm;
+        if (chip) chip.textContent = "Sudah Clock Out (" + outOnlyTime + " WIB) · Lupa Clock In";
+        if (sum) {
+          sum.textContent = "Tanggal " + r.att_date + " · Pulang " + outOnlyTime + " WIB · Shift " + (r.shift_name || "—") + compInfo +
+            ". Jam masuk belum tercatat — tekan 'Ajukan Koreksi Absensi' untuk melengkapi Clock In.";
         }
-        if (shiftSel) shiftSel.disabled = true;
+        setInBtn(true, "Lupa Clock In", true);
+        setOutBtn(true, "✓ Pulang " + outOnlyTime + " WIB", true);
+        if (modeSel) modeSel.disabled = true;
       } else {
+        var inTime2 = attWibParts(r.clock_in_at).hm;
         var outTime = attWibParts(r.clock_out_at).hm;
         var isEarly = r.status === "pulang_awal" || Number(r.early_out_minutes) > 0;
         if (chip) chip.textContent = isEarly ? ("Pulang Lebih Awal (" + (r.early_out_minutes || 0) + " mnt)") : "Selesai Kerja Hari Ini";
         if (sum) {
-          sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime + " WIB · Pulang " + outTime + " WIB · Shift " + (r.shift_name || "—") + compInfo;
+          sum.textContent = "Tanggal " + r.att_date + " · Masuk " + inTime2 + " WIB · Pulang " + outTime + " WIB · Shift " + (r.shift_name || "—") + compInfo;
         }
-        if (btn) {
-          btn.disabled = true;
-          btn.textContent = "Sudah Clock In & Out (" + inTime + " – " + outTime + ")";
-          btn.className = "btn btn-ghost";
-          btn.style.background = "";
-          btn.style.borderColor = "";
-        }
-        if (shiftSel) shiftSel.disabled = true;
+        setInBtn(true, "✓ Masuk " + inTime2 + " WIB", true);
+        setOutBtn(true, "✓ Pulang " + outTime + " WIB", true);
         if (modeSel) modeSel.disabled = true;
       }
     }
@@ -42148,25 +42328,54 @@ function closeOtModal() {
       if (r) r(reason);
     }
 
-    async function attSubmitClock(fromHome) {
+    async function attSubmitClock(fromHome, forceDir) {
       if (attBusyClock) return;
       if (!currentUser || !currentUser.email) return toast("Silakan login ulang terlebih dahulu.", true);
       attBusyClock = true;
-      var btn = $("attClockBtn");
-      var origText = btn ? btn.textContent : "";
-      if (btn && !fromHome) { btn.disabled = true; btn.textContent = "Mengambil GPS…"; }
+      var dir = (forceDir === "in" || forceDir === "out") ? forceDir : "";
+      var activeBtn = dir === "out" ? $("attBtnClockOut") : $("attBtnClockIn");
+      var otherBtn = dir === "out" ? $("attBtnClockIn") : $("attBtnClockOut");
+      var origText = activeBtn ? activeBtn.textContent : "";
+      if (!fromHome) {
+        if (activeBtn) { activeBtn.disabled = true; activeBtn.textContent = "Mengambil GPS…"; }
+        if (otherBtn) otherBtn.disabled = true;
+      }
       try {
         await attLoadSettings();
         var email = String(currentUser.email || "").trim().toLowerCase();
         var active = await attFindActiveRecordForMe();
         attActiveRecord = active;
-        var isOut = !!(active && active.clock_in_at && !active.clock_out_at);
-        if (active && active.clock_in_at && active.clock_out_at) {
-          toast("Anda sudah Clock In dan Clock Out untuk hari ini.");
-          return;
+        var hasPriorIn = !!(active && active.clock_in_at);
+        var hasPriorOut = !!(active && active.clock_out_at);
+
+        if (dir === "in") {
+          if (hasPriorIn) {
+            toast("Anda sudah melakukan Clock In hari ini.");
+            return;
+          }
+          if (hasPriorOut) {
+            toast("Anda sudah Clock Out hari ini. Gunakan 'Ajukan Koreksi Absensi' untuk melengkapi jam Clock In yang terlewat.", true);
+            return;
+          }
+        } else if (dir === "out") {
+          if (hasPriorOut) {
+            toast("Anda sudah melakukan Clock Out hari ini.");
+            return;
+          }
+        } else {
+          if (hasPriorIn && hasPriorOut) {
+            toast("Anda sudah Clock In dan Clock Out untuk hari ini.");
+            return;
+          }
+          if (!hasPriorIn && hasPriorOut) {
+            toast("Anda sudah Clock Out hari ini. Ajukan koreksi jika lupa Clock In.", true);
+            return;
+          }
         }
+
+        var isOut = dir ? (dir === "out") : (hasPriorIn && !hasPriorOut);
         var curDev = attGetDeviceId();
-        if (isOut) {
+        if (isOut && hasPriorIn) {
           if (String(active.user_email || "").trim().toLowerCase() !== email) {
             toast("Tidak bisa Clock Out: data Clock In ini milik akun berbeda (" + (active.user_email || "-") + ").", true);
             return;
@@ -42176,6 +42385,7 @@ function closeOtModal() {
             return;
           }
         }
+
         var visibleHomeShiftEl = null;
         document.querySelectorAll(".att-home-shift").forEach(function(el) {
           if (!visibleHomeShiftEl && el.offsetParent !== null) visibleHomeShiftEl = el;
@@ -42186,9 +42396,11 @@ function closeOtModal() {
         } else {
           shiftName = ($("attShiftSelect") && $("attShiftSelect").value) || attGetDraftShift() || "";
         }
-        var validShift = !isOut ? attGetShiftsList().find(function(s) { return s.name === shiftName; }) : null;
-        if (!isOut && (!shiftName || !validShift)) {
-          toast("Wajib pilih shift kerja terlebih dahulu sebelum Clock In!", true);
+
+        var needSelectShift = !hasPriorIn;
+        var validShift = needSelectShift ? attGetShiftsList().find(function(s) { return s.name === shiftName; }) : null;
+        if (needSelectShift && (!shiftName || !validShift)) {
+          toast("Wajib pilih shift kerja terlebih dahulu sebelum " + (isOut ? "Clock Out!" : "Clock In!"), true);
           var warnEl = fromHome ? (visibleHomeShiftEl || document.querySelector(".att-home-shift")) : $("attShiftSelect");
           if (warnEl) {
             warnEl.classList.add("att-shift-warn");
@@ -42197,23 +42409,25 @@ function closeOtModal() {
           }
           return;
         }
-        var shiftObj = isOut && active && active.shift_name ? attFindShift(active.shift_name) : validShift;
-        if (isOut && active && active.shift_start && active.shift_end) {
+
+        var shiftObj = (isOut && hasPriorIn && active.shift_name) ? attFindShift(active.shift_name) : validShift;
+        if (isOut && hasPriorIn && active.shift_start && active.shift_end) {
           shiftObj = Object.assign({}, shiftObj, { start: active.shift_start, end: active.shift_end });
         }
-        var workMode = isOut && active && active.work_mode
+        var workMode = (isOut && hasPriorIn && active.work_mode)
           ? active.work_mode
           : (($("attWorkMode") && $("attWorkMode").value) || "wfo");
         var notes = ($("attNotes") && $("attNotes").value || "").trim();
 
         var checkNowIso = new Date().toISOString();
         var checkWp = attWibParts(checkNowIso);
+        var baseAttDate = (hasPriorIn && active && active.att_date) ? active.att_date : checkWp.ymd;
         var earlyMins = 0;
         var earlyReason = "";
         if (isOut) {
-          earlyMins = attComputeEarlyOutMins(active.clock_in_at, checkNowIso, shiftObj, active.att_date);
+          earlyMins = attComputeEarlyOutMins(hasPriorIn ? active.clock_in_at : null, checkNowIso, shiftObj, baseAttDate);
           if (earlyMins > 0) {
-            if (btn && !fromHome) btn.textContent = "Alasan Pulang Awal…";
+            if (activeBtn && !fromHome) activeBtn.textContent = "Alasan Pulang Awal…";
             var gotReason = await attPromptEarlyOutModal({
               shiftName: shiftObj.name,
               schedEnd: shiftObj.end,
@@ -42226,14 +42440,14 @@ function closeOtModal() {
               return;
             }
             earlyReason = gotReason;
-            if (btn && !fromHome) btn.textContent = "Mengambil GPS…";
+            if (activeBtn && !fromHome) activeBtn.textContent = "Mengambil GPS…";
           }
         }
 
         var gps = await attGetGps();
         attRenderGpsPreview();
 
-        var selectedLocId = isOut && active && active.location_id
+        var selectedLocId = (isOut && hasPriorIn && active.location_id)
           ? active.location_id
           : (($("attLocSelect") && $("attLocSelect").value) || "");
         var targetLoc = attResolveTargetLocation(shiftObj, gps, selectedLocId);
@@ -42252,22 +42466,22 @@ function closeOtModal() {
 
         var photoUrl = null;
         if (attSettings.require_selfie !== false) {
-          if (btn && !fromHome) btn.textContent = "Menunggu Selfie…";
+          if (activeBtn && !fromHome) activeBtn.textContent = "Menunggu Selfie…";
           var captured = await attCaptureSelfieModal({
             isOut: isOut,
             userName: userName,
             gps: gps,
             distM: distM,
             shiftName: shiftObj.name + " · " + locLabel,
-            clockInPhoto: isOut && active ? active.clock_in_photo : null
+            clockInPhoto: (isOut && hasPriorIn && active) ? active.clock_in_photo : null
           });
           if (!captured) {
             toast("Absensi dibatalkan (foto selfie diperlukan).", true);
             return;
           }
-          if (btn && !fromHome) btn.textContent = "Mengupload Selfie…";
+          if (activeBtn && !fromHome) activeBtn.textContent = "Mengupload Selfie…";
           else toast("Mengupload selfie & menyimpan absensi…");
-          photoUrl = await attUploadSelfieToDrive(captured, isOut ? "out" : "in", isOut && active ? active.att_date : wp.ymd, email);
+          photoUrl = await attUploadSelfieToDrive(captured, isOut ? "out" : "in", (isOut && hasPriorIn && active) ? active.att_date : wp.ymd, email);
           nowIso = new Date().toISOString();
           wp = attWibParts(nowIso);
         }
@@ -42299,7 +42513,7 @@ function closeOtModal() {
             status: lateMins > 0 ? "terlambat" : "hadir",
             notes: notes
           };
-        } else {
+        } else if (hasPriorIn) {
           earlyMins = attComputeEarlyOutMins(active.clock_in_at, nowIso, shiftObj, active.att_date);
           var mergedNotes = active.notes || "";
           if (earlyMins > 0 && earlyReason) {
@@ -42324,14 +42538,50 @@ function closeOtModal() {
             status: earlyMins > 0 ? "pulang_awal" : (active.status || (Number(active.late_minutes) > 0 ? "terlambat" : "hadir")),
             notes: mergedNotes
           });
+        } else {
+          // Clock Out langsung tanpa Clock In (karyawan lupa Clock In)
+          earlyMins = attComputeEarlyOutMins(null, nowIso, shiftObj, wp.ymd);
+          var outOnlyParts = ["Clock Out tanpa Clock In (Lupa Clock In)"];
+          if (earlyMins > 0 && earlyReason) {
+            outOnlyParts.push("Pulang lebih awal (" + earlyMins + " mnt): " + earlyReason);
+            if (notes && notes !== earlyReason) outOnlyParts.push(notes);
+          } else if (notes) {
+            outOnlyParts.push("Pulang: " + notes);
+          }
+          payload = {
+            att_date: (active && active.att_date) ? active.att_date : wp.ymd,
+            user_email: email,
+            user_name: userName,
+            user_role: currentRole() || "",
+            location_id: (targetLoc && targetLoc.id) || "",
+            company_name: locLabel,
+            shift_name: shiftObj.name,
+            shift_start: shiftObj.start,
+            shift_end: shiftObj.end,
+            work_mode: workMode,
+            clock_in_at: null,
+            clock_out_at: nowIso,
+            clock_out_lat: gps.lat,
+            clock_out_lng: gps.lng,
+            clock_out_acc: gps.acc,
+            clock_out_dist_m: distM,
+            clock_out_photo: photoUrl || null,
+            clock_out_device_id: curDev || null,
+            late_minutes: 0,
+            early_out_minutes: earlyMins,
+            early_out_reason: earlyMins > 0 ? earlyReason : null,
+            status: earlyMins > 0 ? "pulang_awal" : "lupa_in",
+            notes: outOnlyParts.join(" | ")
+          };
         }
+
         var saved = await attUpsertRecord(payload, isOut ? "clock_out" : "clock_in");
         if (saved.error) {
           toast("Gagal simpan absensi: " + saved.error.message, true);
           return;
         }
         attActiveRecord = saved.data;
-        if (!isOut) attSetDraftShift("");
+        attSetDraftShift("");
         if ($("attNotes")) $("attNotes").value = "";
         attRenderHero();
         loadAttendanceHomeWidget();
@@ -42342,6 +42592,8 @@ function closeOtModal() {
         var distInfo = distM != null ? " · jarak " + distM + " m (" + locLabel + ")" : (" · " + locLabel);
         if (!isOut) {
           toast("Clock In berhasil pukul " + wp.hm + " WIB" + (payload.late_minutes > 0 ? " (terlambat " + payload.late_minutes + " mnt)" : "") + distInfo);
+        } else if (!hasPriorIn) {
+          toast("Clock Out berhasil pukul " + wp.hm + " WIB (tanpa Clock In). Silakan ajukan koreksi Lupa Clock In." + distInfo);
         } else {
           toast("Clock Out berhasil pukul " + wp.hm + " WIB" + (earlyMins > 0 ? " · Status: Pulang Lebih Awal (" + earlyMins + " mnt)" : "") + distInfo);
         }
@@ -42349,9 +42601,9 @@ function closeOtModal() {
         toast((e && e.message) || "Gagal mencatat absensi.", true);
       } finally {
         attBusyClock = false;
-        if (btn && (btn.textContent === "Mengambil GPS…" || btn.textContent === "Menunggu Selfie…" || btn.textContent === "Mengupload Selfie…" || btn.textContent === "Alasan Pulang Awal…")) {
-          btn.disabled = false;
-          btn.textContent = origText || "Clock In (Masuk)";
+        if (activeBtn && !fromHome) {
+          activeBtn.disabled = false;
+          activeBtn.textContent = origText || (dir === "out" ? "Clock Out (Pulang)" : "Clock In (Masuk)");
         }
         attRenderHero();
       }
@@ -42365,7 +42617,7 @@ function closeOtModal() {
         var rec = await attFindActiveRecordForMe();
         attActiveRecord = rec;
         var html = "";
-        if (!rec || !rec.clock_in_at) {
+        if (!rec || (!rec.clock_in_at && !rec.clock_out_at)) {
           var curDraft = attGetDraftShift();
           var shiftOpts = '<option value="">-- Wajib Pilih Shift --</option>' +
             attGetShiftsList().map(function(s) {
@@ -42375,15 +42627,17 @@ function closeOtModal() {
           html =
             '<div class="att-quick-left">' +
               '<div class="att-quick-dot warn">📍</div>' +
-              '<div><div style="font-weight:700;font-size:0.88rem">Belum Absen Masuk Hari Ini</div>' +
-              '<div style="font-size:0.75rem;color:var(--text-muted)">Pilih shift kerja Anda terlebih dahulu, lalu tekan Clock In (GPS).</div></div>' +
+              '<div><div style="font-weight:700;font-size:0.88rem">Belum Absen Hari Ini</div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">Pilih shift kerja terlebih dahulu, lalu tekan Clock In atau Clock Out (GPS).</div></div>' +
             '</div>' +
             '<div class="att-quick-actions">' +
               '<select class="att-home-shift" aria-label="Pilih Shift Kerja" onchange="attOnShiftChange(this.value)">' + shiftOpts + '</select>' +
-              '<button type="button" class="btn btn-primary btn-sm" onclick="attSubmitClock(true)">Clock In (GPS)</button>' +
+              '<button type="button" class="btn btn-primary btn-sm" onclick="attSubmitClock(true,\'in\')">Clock In (GPS)</button>' +
+              '<button type="button" class="btn btn-primary btn-sm" style="background:#d97706;border-color:#d97706" onclick="attSubmitClock(true,\'out\')">Clock Out (GPS)</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="attOpenReqModal()">Lupa Absen</button>' +
               '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Detail</button>' +
             '</div>';
-        } else if (!rec.clock_out_at) {
+        } else if (rec.clock_in_at && !rec.clock_out_at) {
           var inHm = attWibParts(rec.clock_in_at).hm;
           var lateTag = Number(rec.late_minutes) > 0 ? ' · <span style="color:#b45309;font-weight:700">Terlambat ' + rec.late_minutes + ' mnt</span>' : ' · <span style="color:#047857;font-weight:700">Tepat Waktu</span>';
           html =
@@ -42393,8 +42647,20 @@ function closeOtModal() {
               '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + (rec.company_name ? ' · ' + esc(rec.company_name) : '') + (rec.clock_in_dist_m != null ? ' · Jarak ' + rec.clock_in_dist_m + ' m' : '') + '</div></div>' +
             '</div>' +
             '<div class="att-quick-actions">' +
-              '<button type="button" class="btn btn-primary btn-sm" style="background:#d97706;border-color:#d97706" onclick="attSubmitClock(true)">Clock Out (GPS)</button>' +
+              '<button type="button" class="btn btn-primary btn-sm" style="background:#d97706;border-color:#d97706" onclick="attSubmitClock(true,\'out\')">Clock Out (GPS)</button>' +
               '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Riwayat</button>' +
+            '</div>';
+        } else if (!rec.clock_in_at && rec.clock_out_at) {
+          var outOnlyHm = attWibParts(rec.clock_out_at).hm;
+          html =
+            '<div class="att-quick-left">' +
+              '<div class="att-quick-dot warn">!</div>' +
+              '<div><div style="font-weight:700;font-size:0.88rem">Sudah Clock Out: ' + esc(outOnlyHm) + ' WIB · <span style="color:#b45309">Lupa Clock In</span></div>' +
+              '<div style="font-size:0.75rem;color:var(--text-muted)">' + esc(rec.shift_name || "") + (rec.company_name ? ' · ' + esc(rec.company_name) : '') + ' · Jam masuk belum tercatat</div></div>' +
+            '</div>' +
+            '<div class="att-quick-actions">' +
+              '<button type="button" class="btn btn-primary btn-sm" onclick="attOpenReqModal(\'lupa_in\',\'' + esc(rec.att_date || todayStr()) + '\')">Ajukan Lupa In</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" onclick="goPage(\'absences\')">Detail</button>' +
             '</div>';
         } else {
           var inHm2 = attWibParts(rec.clock_in_at).hm;
@@ -42440,6 +42706,7 @@ function closeOtModal() {
     function renderAttendanceMy() {
       var body = $("attMyBody");
       var cards = $("attMyCards");
+      var today = todayStr();
       if (body) {
         if (!attMyRows.length) {
           body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada riwayat absensi</td></tr>';
@@ -42453,13 +42720,19 @@ function closeOtModal() {
             var outDist = r.clock_out_dist_m != null ? ' <span style="font-size:0.72rem;color:var(--text-muted)">(' + r.clock_out_dist_m + ' m)</span>' : "";
             var inPic = r.clock_in_photo ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_in_photo) + '\',\'Selfie%20Masuk%20' + encodeURIComponent(r.att_date || "") + '\')">📷</button>' : "";
             var outPic = r.clock_out_photo ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.att_date || "") + '\')">📷</button>' : "";
+            var fixBtn = "";
+            if (!r.clock_in_at) {
+              fixBtn = ' <button type="button" class="att-photo-btn" style="border-color:#fcd34d;background:#fffbeb;color:#92400e" onclick="attOpenReqModal(\'lupa_in\',\'' + esc(r.att_date || "") + '\')">+ Ajukan Lupa In</button>';
+            } else if (!r.clock_out_at && String(r.att_date || "") < today) {
+              fixBtn = ' <button type="button" class="att-photo-btn" style="border-color:#fcd34d;background:#fffbeb;color:#92400e" onclick="attOpenReqModal(\'lupa_out\',\'' + esc(r.att_date || "") + '\')">+ Ajukan Lupa Out</button>';
+            }
             var subLoc = (r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase();
             return '<tr>' +
               '<td class="mono">' + esc(r.att_date) + '</td>' +
               '<td><div><strong>' + esc(r.shift_name || "—") + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(subLoc) + '</div></td>' +
               '<td class="mono">' + esc(inTxt) + inDist + inPic + '</td>' +
               '<td class="mono">' + esc(outTxt) + outDist + outPic + '</td>' +
-              '<td>' + attFormatRecBadge(r) + '</td>' +
+              '<td>' + attFormatRecBadge(r) + fixBtn + '</td>' +
               '<td style="font-size:0.78rem">' + esc(r.notes || "—") + '</td>' +
             '</tr>';
           }).join("");
@@ -42473,10 +42746,16 @@ function closeOtModal() {
               var outTxt = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "—";
               var pics = (r.clock_in_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_in_photo) + '\',\'Selfie%20Masuk%20' + encodeURIComponent(r.att_date || "") + '\')">📷 Masuk</button> ' : '') +
                 (r.clock_out_photo ? '<button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.clock_out_photo) + '\',\'Selfie%20Pulang%20' + encodeURIComponent(r.att_date || "") + '\')">📷 Pulang</button>' : '');
+              var fixBtnM = "";
+              if (!r.clock_in_at) {
+                fixBtnM = ' <button type="button" class="att-photo-btn" style="border-color:#fcd34d;background:#fffbeb;color:#92400e" onclick="attOpenReqModal(\'lupa_in\',\'' + esc(r.att_date || "") + '\')">+ Ajukan Lupa In</button>';
+              } else if (!r.clock_out_at && String(r.att_date || "") < today) {
+                fixBtnM = ' <button type="button" class="att-photo-btn" style="border-color:#fcd34d;background:#fffbeb;color:#92400e" onclick="attOpenReqModal(\'lupa_out\',\'' + esc(r.att_date || "") + '\')">+ Ajukan Lupa Out</button>';
+              }
               return '<div class="m-card">' +
                 '<div class="m-title">' + esc(r.att_date) + ' · ' + esc(r.shift_name || "—") + '</div>' +
                 '<div class="m-sub">Masuk ' + esc(inTxt) + ' · Pulang ' + esc(outTxt) + ' WIB (' + esc((r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase()) + ')</div>' +
-                '<div class="m-row">' + attFormatRecBadge(r) + (pics ? ' ' + pics : '') + '</div>' +
+                '<div class="m-row">' + attFormatRecBadge(r) + (pics ? ' ' + pics : '') + fixBtnM + '</div>' +
                 (r.notes ? '<div class="m-sub" style="margin-top:0.35rem">' + esc(r.notes) + '</div>' : '') +
               '</div>';
             }).join("");
@@ -42521,7 +42800,8 @@ function closeOtModal() {
 
       var pair = await Promise.all([
         attEnsureProfiles(),
-        attFetchLogs({ from: date, to: date })
+        attFetchLogs({ from: date, to: date }),
+        loadAttendanceAdminRequests()
       ]);
       var profiles = pair[0] || [];
       attAdminRows = pair[1] || [];
@@ -42607,6 +42887,8 @@ function closeOtModal() {
           list = list.filter(function(r) { return Number(r.late_minutes) > 0 || r.status === "terlambat"; });
         } else if (stF === "pulang_awal") {
           list = list.filter(function(r) { return Number(r.early_out_minutes) > 0 || r.status === "pulang_awal"; });
+        } else if (stF === "lupa_in") {
+          list = list.filter(function(r) { return !r.clock_in_at && !!r.clock_out_at; });
         } else if (stF === "no_out") {
           list = list.filter(function(r) { return !!r.clock_in_at && !r.clock_out_at; });
         } else if (stF === "out_radius") {
@@ -42741,15 +43023,17 @@ function closeOtModal() {
       var workMode = ($("attEdWorkMode") && $("attEdWorkMode").value) || "wfo";
       var notes = ($("attEdNotes") && $("attEdNotes").value || "").trim();
       if (!email || !date) return toast("Karyawan dan tanggal wajib diisi.", true);
-      if (!inHm) return toast("Jam Masuk wajib diisi.", true);
+      if (!inHm && !outHm) return toast("Minimal Jam Masuk atau Jam Pulang wajib diisi.", true);
 
       var shiftObj = attFindShift(shiftName);
       var locObj = attResolveTargetLocation(shiftObj, null, shiftObj.location_id || "");
-      var inIso = new Date(date + "T" + inHm + ":00+07:00").toISOString();
+      var inIso = inHm ? new Date(date + "T" + inHm + ":00+07:00").toISOString() : null;
       var outIso = null;
       if (outHm) {
         var outDate = date;
-        if (attParseHmMins(outHm) < attParseHmMins(inHm)) {
+        if (inHm && attParseHmMins(outHm) < attParseHmMins(inHm)) {
+          outDate = attNextDate(date);
+        } else if (!inHm && attParseHmMins(shiftObj.end) < attParseHmMins(shiftObj.start) && attParseHmMins(outHm) < 12 * 60) {
           outDate = attNextDate(date);
         }
         outIso = new Date(outDate + "T" + outHm + ":00+07:00").toISOString();
@@ -42757,9 +43041,11 @@ function closeOtModal() {
       var existingList = await attFetchLogs({ from: date, to: date, email: email });
       var existing = existingList[0] || {};
       var prof = (accountRows || []).find(function(p) { return String(p.email || "").toLowerCase() === email; });
-      var lateMins = attComputeLateMins(inIso, shiftObj);
+      var lateMins = inIso ? attComputeLateMins(inIso, shiftObj) : 0;
       var earlyMins = outIso ? attComputeEarlyOutMins(inIso, outIso, shiftObj, date) : 0;
-      var newStatus = earlyMins > 0 ? "pulang_awal" : (lateMins > 0 ? "terlambat" : "hadir");
+      var newStatus = !inIso && outIso
+        ? (earlyMins > 0 ? "pulang_awal" : "lupa_in")
+        : (earlyMins > 0 ? "pulang_awal" : (lateMins > 0 ? "terlambat" : "hadir"));
       var rec = Object.assign({}, existing, {
         att_date: date,
         user_email: email,
@@ -42813,7 +43099,11 @@ function closeOtModal() {
         var inCoord = (r.clock_in_lat != null && r.clock_in_lng != null) ? (r.clock_in_lat + ", " + r.clock_in_lng) : "";
         var outCoord = (r.clock_out_lat != null && r.clock_out_lng != null) ? (r.clock_out_lat + ", " + r.clock_out_lng) : "";
         var isEarly = r.status === "pulang_awal" || Number(r.early_out_minutes) > 0;
-        var stLabel = !r.clock_in_at ? "Belum Absen" : (isEarly ? "Pulang Lebih Awal" : (Number(r.late_minutes) > 0 ? "Terlambat" : "Tepat Waktu"));
+        var stLabel = (!r.clock_in_at && !r.clock_out_at)
+          ? "Belum Absen"
+          : (!r.clock_in_at && r.clock_out_at)
+            ? (isEarly ? "Lupa Clock In & Pulang Awal" : "Lupa Clock In")
+            : (isEarly ? "Pulang Lebih Awal" : (Number(r.late_minutes) > 0 ? "Terlambat" : "Tepat Waktu"));
         lines.push([
           r.att_date || "",
           r.user_name || "",
@@ -43344,6 +43634,501 @@ function closeOtModal() {
       }
     }
 
+    function attReqTypeLabel(t) {
+      if (t === "lupa_in") return "Lupa Clock In";
+      if (t === "lupa_out") return "Lupa Clock Out";
+      if (t === "lupa_both") return "Lupa Clock In & Out";
+      return t || "Koreksi Absensi";
+    }
+
+    function attReqStatusBadge(st) {
+      if (st === "approved") return '<span class="badge-st badge-done">Disetujui</span>';
+      if (st === "rejected") return '<span class="badge-st" style="background:#fee2e2;color:#991b1b">Ditolak</span>';
+      return '<span class="badge-st badge-partial" style="background:#fef3c7;color:#92400e">Menunggu Admin</span>';
+    }
+
+    async function attFetchRequests(opts) {
+      opts = opts || {};
+      if (!sb) return [];
+      var wantEmail = (opts.email || "").trim().toLowerCase();
+      var isAdmin = currentRole() === "admin";
+      if (!isAdmin) {
+        wantEmail = (currentUser && currentUser.email) ? String(currentUser.email).trim().toLowerCase() : "";
+        if (!wantEmail) return [];
+      }
+      try {
+        var res = await sb.from("audit_logs")
+          .select("id,created_at,user_email,user_name,user_role,action,ref_id,summary,after_data")
+          .eq("module", "attendance_request")
+          .order("created_at", { ascending: false })
+          .limit(800);
+        if (res.error) {
+          console.warn("attFetchRequests", res.error);
+          return [];
+        }
+        var latestByReq = {};
+        (res.data || []).forEach(function(item) {
+          var d = item && item.after_data;
+          if (!d || typeof d !== "object") return;
+          var rid = String(d.req_id || item.ref_id || "");
+          if (!rid || latestByReq[rid]) return;
+          latestByReq[rid] = Object.assign({ req_id: rid }, d);
+        });
+        var rows = Object.keys(latestByReq).map(function(k) { return latestByReq[k]; });
+        if (wantEmail) {
+          rows = rows.filter(function(r) { return String(r.user_email || "").trim().toLowerCase() === wantEmail; });
+        }
+        rows.sort(function(a, b) {
+          var pA = (a.status || "pending") === "pending" ? 0 : 1;
+          var pB = (b.status || "pending") === "pending" ? 0 : 1;
+          if (pA !== pB) return pA - pB;
+          return String(b.created_at || b.att_date || "").localeCompare(String(a.created_at || a.att_date || ""));
+        });
+        return rows;
+      } catch (e) {
+        console.warn("attFetchRequests err", e);
+        return [];
+      }
+    }
+
+    async function attSaveRequest(reqObj, actionName) {
+      if (!sb) return { error: { message: "Supabase belum siap" } };
+      var nowIso = new Date().toISOString();
+      var actorEmail = (currentUser && currentUser.email) || reqObj.user_email || "";
+      var actorName = (currentProfile && currentProfile.name) || actorEmail;
+      var payload = Object.assign({}, reqObj, { updated_at: nowIso });
+      var res = await sb.from("audit_logs").insert({
+        created_at: nowIso,
+        user_email: actorEmail,
+        user_name: actorName,
+        user_role: currentRole() || payload.user_role || "",
+        module: "attendance_request",
+        action: actionName || "submit_request",
+        ref_id: payload.req_id,
+        summary: (payload.user_name || payload.user_email) + " · " + attReqTypeLabel(payload.req_type) + " · " + payload.att_date + " (" + (payload.status || "pending") + ")",
+        after_data: payload
+      });
+      if (res.error) return { data: null, error: res.error };
+      return { data: payload, error: null };
+    }
+
+    function attOnReqShiftChange() {
+      var shName = ($("attReqShift") && $("attReqShift").value) || "";
+      var sh = shName ? attGetShiftsList().find(function(s) { return s.name === shName; }) : null;
+      if (sh && sh.location_id && $("attReqLoc")) {
+        var locs = attGetLocationsList();
+        if (locs.some(function(l) { return l.id === sh.location_id; })) {
+          $("attReqLoc").value = sh.location_id;
+        }
+      }
+      var reqType = ($("attReqType") && $("attReqType").value) || "lupa_in";
+      if (sh) {
+        if ((reqType === "lupa_in" || reqType === "lupa_both") && $("attReqInHm") && !$("attReqInHm").value) {
+          $("attReqInHm").value = sh.start || "07:30";
+        }
+        if ((reqType === "lupa_out" || reqType === "lupa_both") && $("attReqOutHm") && !$("attReqOutHm").value) {
+          $("attReqOutHm").value = sh.end || "15:15";
+        }
+      }
+    }
+
+    async function attOnReqFieldsChange() {
+      var tp = ($("attReqType") && $("attReqType").value) || "lupa_in";
+      if ($("attReqInWrap")) $("attReqInWrap").style.display = (tp === "lupa_in" || tp === "lupa_both") ? "" : "none";
+      if ($("attReqOutWrap")) $("attReqOutWrap").style.display = (tp === "lupa_out" || tp === "lupa_both") ? "" : "none";
+      var dt = ($("attReqDate") && $("attReqDate").value) || "";
+      var infoBox = $("attReqExistingInfo");
+      if (!dt || !currentUser || !currentUser.email) {
+        if (infoBox) infoBox.style.display = "none";
+        return;
+      }
+      var existing = (attMyRows || []).find(function(r) { return String(r.att_date || "") === dt; });
+      if (!existing) {
+        var fetched = await attFetchLogs({ from: dt, to: dt, email: currentUser.email });
+        existing = fetched && fetched[0] ? fetched[0] : null;
+      }
+      if (existing) {
+        if (existing.shift_name && $("attReqShift")) {
+          attPopulateShiftSelect($("attReqShift"), existing.shift_name, true);
+          $("attReqShift").value = existing.shift_name;
+        }
+        if (existing.location_id && $("attReqLoc")) $("attReqLoc").value = existing.location_id;
+        if (existing.work_mode && $("attReqMode")) $("attReqMode").value = existing.work_mode;
+        if (infoBox) {
+          var inS = existing.clock_in_at ? (attWibParts(existing.clock_in_at).hm + " WIB") : "Belum ada";
+          var outS = existing.clock_out_at ? (attWibParts(existing.clock_out_at).hm + " WIB") : "Belum ada";
+          infoBox.innerHTML = "Catatan tanggal <b>" + esc(dt) + "</b> (" + esc(existing.shift_name || "-") + "): Masuk <b>" + esc(inS) + "</b> · Pulang <b>" + esc(outS) + "</b>.";
+          infoBox.style.display = "block";
+        }
+      } else if (infoBox) {
+        infoBox.style.display = "none";
+      }
+      attOnReqShiftChange();
+    }
+
+    async function attOpenReqModal(presetType, presetDate) {
+      if (!currentUser || !currentUser.email) return toast("Silakan login terlebih dahulu.", true);
+      await attLoadSettings();
+      var today = todayStr();
+      var dtEl = $("attReqDate");
+      if (dtEl) {
+        dtEl.max = today;
+        dtEl.value = presetDate || today;
+      }
+      if ($("attReqType")) {
+        $("attReqType").value = (presetType === "lupa_out" || presetType === "lupa_both") ? presetType : "lupa_in";
+      }
+      var shPref = (attActiveRecord && attActiveRecord.shift_name) || attGetDraftShift() || "";
+      attPopulateShiftSelect($("attReqShift"), shPref, true);
+      var locSel = $("attReqLoc");
+      if (locSel) {
+        var locs = attGetLocationsList();
+        locSel.innerHTML = '<option value="">Otomatis (Sesuai Shift)</option>' +
+          locs.map(function(l) { return '<option value="' + esc(l.id) + '">' + esc(l.name) + '</option>'; }).join("");
+        if (attActiveRecord && attActiveRecord.location_id) locSel.value = attActiveRecord.location_id;
+      }
+      if ($("attReqMode")) $("attReqMode").value = ($("attWorkMode") && $("attWorkMode").value) || "wfo";
+      if ($("attReqInHm")) $("attReqInHm").value = "";
+      if ($("attReqOutHm")) $("attReqOutHm").value = "";
+      if ($("attReqReason")) $("attReqReason").value = "";
+      if ($("attReqErr")) $("attReqErr").style.display = "none";
+      await attOnReqFieldsChange();
+      if ($("attReqModal")) $("attReqModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function attCloseReqModal() {
+      if ($("attReqModal")) $("attReqModal").classList.remove("show");
+      if (!document.querySelector(".modal-bg.show")) document.body.classList.remove("modal-open");
+    }
+
+    async function attSubmitCorrectionRequest() {
+      if (!currentUser || !currentUser.email) return toast("Silakan login terlebih dahulu.", true);
+      var errEl = $("attReqErr");
+      var showErr = function(msg) {
+        if (errEl) { errEl.textContent = msg; errEl.style.display = "block"; }
+        else toast(msg, true);
+      };
+      if (errEl) errEl.style.display = "none";
+
+      var attDate = ($("attReqDate") && $("attReqDate").value) || "";
+      var reqType = ($("attReqType") && $("attReqType").value) || "lupa_in";
+      var shiftName = ($("attReqShift") && $("attReqShift").value) || "";
+      var locId = ($("attReqLoc") && $("attReqLoc").value) || "";
+      var workMode = ($("attReqMode") && $("attReqMode").value) || "wfo";
+      var inHm = ($("attReqInHm") && $("attReqInHm").value) || "";
+      var outHm = ($("attReqOutHm") && $("attReqOutHm").value) || "";
+      var reason = ($("attReqReason") && $("attReqReason").value || "").trim();
+
+      if (!attDate) return showErr("Tanggal absensi wajib diisi.");
+      if (attDate > todayStr()) return showErr("Tanggal pengajuan tidak boleh melebihi hari ini.");
+      var validShift = attGetShiftsList().find(function(s) { return s.name === shiftName; });
+      if (!shiftName || !validShift) return showErr("Wajib pilih shift kerja terlebih dahulu.");
+      if ((reqType === "lupa_in" || reqType === "lupa_both") && !inHm) return showErr("Jam Masuk aktual wajib diisi.");
+      if ((reqType === "lupa_out" || reqType === "lupa_both") && !outHm) return showErr("Jam Pulang aktual wajib diisi.");
+      if (reason.length < 5) return showErr("Alasan wajib diisi minimal 5 karakter.");
+
+      var email = String(currentUser.email || "").trim().toLowerCase();
+      var myReqs = await attFetchRequests({ email: email });
+      var dup = myReqs.find(function(q) {
+        return q.att_date === attDate && (q.status || "pending") === "pending" && q.req_type === reqType;
+      });
+      if (dup) return showErr("Anda sudah memiliki pengajuan yang masih menunggu Admin untuk tanggal dan jenis yang sama.");
+
+      var btn = $("attReqSubmitBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "Mengirim…"; }
+      try {
+        var locObj = attResolveTargetLocation(validShift, null, locId || validShift.location_id || "");
+        var userName = (currentProfile && currentProfile.name) || email.split("@")[0] || email;
+        var reqObj = {
+          req_id: "attreq-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+          att_date: attDate,
+          user_email: email,
+          user_name: userName,
+          user_role: currentRole() || "",
+          req_type: reqType,
+          shift_name: validShift.name,
+          shift_start: validShift.start,
+          shift_end: validShift.end,
+          location_id: (locObj && locObj.id) || "",
+          company_name: (locObj && locObj.name) || "",
+          work_mode: workMode,
+          req_in_hm: (reqType === "lupa_in" || reqType === "lupa_both") ? inHm : "",
+          req_out_hm: (reqType === "lupa_out" || reqType === "lupa_both") ? outHm : "",
+          reason: reason,
+          status: "pending",
+          created_at: new Date().toISOString(),
+          reviewed_by: null,
+          reviewed_by_name: null,
+          reviewed_at: null,
+          review_note: ""
+        };
+        var saved = await attSaveRequest(reqObj, "submit_request");
+        if (saved.error) return showErr("Gagal mengirim pengajuan: " + saved.error.message);
+        attCloseReqModal();
+        toast("Pengajuan lupa absen berhasil dikirim ke Admin.");
+        await loadAttendanceMyRequests();
+        if (currentRole() === "admin") await loadAttendanceAdminRequests();
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Kirim Pengajuan"; }
+      }
+    }
+
+    async function loadAttendanceMyRequests() {
+      if (!sb || !currentUser || !currentUser.email) return;
+      attMyReqRows = await attFetchRequests({ email: currentUser.email });
+      renderAttendanceMyRequests();
+    }
+
+    function renderAttendanceMyRequests() {
+      var body = $("attMyReqBody");
+      var cards = $("attMyReqCards");
+      var stF = ($("attMyReqFilter") && $("attMyReqFilter").value) || "";
+      var list = attMyReqRows.slice();
+      if (stF) list = list.filter(function(r) { return (r.status || "pending") === stF; });
+
+      var fmtTimes = function(r) {
+        var parts = [];
+        if (r.req_in_hm) parts.push("Masuk " + r.req_in_hm);
+        if (r.req_out_hm) parts.push("Pulang " + r.req_out_hm);
+        return parts.join(" · ") + " WIB";
+      };
+
+      if (body) {
+        if (!list.length) {
+          body.innerHTML = '<tr><td colspan="5" class="empty">Belum ada pengajuan lupa absen</td></tr>';
+          pageOf("attMyReq", [], "attMyReqPager");
+        } else {
+          var pageList = pageOf("attMyReq", list, "attMyReqPager");
+          body.innerHTML = pageList.map(function(r) {
+            var revInfo = r.reviewed_by
+              ? '<div style="font-size:0.71rem;color:var(--text-muted);margin-top:0.2rem">oleh ' + esc(r.reviewed_by_name || r.reviewed_by) + (r.review_note ? ' · ' + esc(r.review_note) : '') + '</div>'
+              : '';
+            return '<tr>' +
+              '<td class="mono">' + esc(r.att_date) + '</td>' +
+              '<td><strong>' + esc(attReqTypeLabel(r.req_type)) + '</strong></td>' +
+              '<td><div>' + esc(r.shift_name || "—") + ' <span class="mono">(' + esc(fmtTimes(r)) + ')</span></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc((r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase()) + '</div></td>' +
+              '<td style="font-size:0.78rem;max-width:220px">' + esc(r.reason || "—") + '</td>' +
+              '<td>' + attReqStatusBadge(r.status) + revInfo + '</td>' +
+            '</tr>';
+          }).join("");
+        }
+      }
+      if (cards) {
+        cards.innerHTML = !list.length
+          ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada pengajuan lupa absen</div></div>'
+          : list.slice(0, 25).map(function(r) {
+              var revM = r.reviewed_by ? '<div class="m-sub" style="margin-top:0.25rem">Diproses oleh ' + esc(r.reviewed_by_name || r.reviewed_by) + (r.review_note ? ' · ' + esc(r.review_note) : '') + '</div>' : '';
+              return '<div class="m-card">' +
+                '<div class="m-title">' + esc(r.att_date) + ' · ' + esc(attReqTypeLabel(r.req_type)) + '</div>' +
+                '<div class="m-sub">' + esc(r.shift_name || "—") + ' · ' + esc(fmtTimes(r)) + (r.company_name ? ' · ' + esc(r.company_name) : '') + '</div>' +
+                '<div class="m-sub">' + esc(r.reason || "") + '</div>' +
+                '<div class="m-row">' + attReqStatusBadge(r.status) + '</div>' + revM +
+              '</div>';
+            }).join("");
+      }
+    }
+
+    async function loadAttendanceAdminRequests() {
+      if (currentRole() !== "admin") return;
+      attAdmReqRows = await attFetchRequests({});
+      renderAttendanceAdminRequests();
+      return attAdmReqRows;
+    }
+
+    function renderAttendanceAdminRequests() {
+      if (currentRole() !== "admin") return;
+      var pendingCount = attAdmReqRows.filter(function(r) { return (r.status || "pending") === "pending"; }).length;
+      var tabBadge = $("attTabReqBadge");
+      if (tabBadge) {
+        tabBadge.textContent = String(pendingCount);
+        tabBadge.style.display = pendingCount > 0 ? "inline-block" : "none";
+      }
+      var cardBadge = $("attAdmReqBadge");
+      if (cardBadge) {
+        cardBadge.textContent = pendingCount + " Menunggu";
+        cardBadge.style.display = pendingCount > 0 ? "inline-flex" : "none";
+      }
+
+      var stF = ($("attAdmReqFilter") && $("attAdmReqFilter").value) || "";
+      var list = attAdmReqRows.slice();
+      if (stF) list = list.filter(function(r) { return (r.status || "pending") === stF; });
+
+      var fmtTimes = function(r) {
+        var parts = [];
+        if (r.req_in_hm) parts.push("Masuk " + r.req_in_hm);
+        if (r.req_out_hm) parts.push("Pulang " + r.req_out_hm);
+        return parts.join(" · ") + " WIB";
+      };
+
+      var body = $("attAdmReqBody");
+      var cards = $("attAdmReqCards");
+      if (body) {
+        if (!list.length) {
+          body.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada pengajuan pada filter ini</td></tr>';
+          pageOf("attAdmReq", [], "attAdmReqPager");
+        } else {
+          var pageList = pageOf("attAdmReq", list, "attAdmReqPager");
+          body.innerHTML = pageList.map(function(r) {
+            var isPend = (r.status || "pending") === "pending";
+            var actionHtml = isPend
+              ? '<div style="display:flex;gap:0.35rem;flex-wrap:wrap">' +
+                  '<button type="button" class="btn btn-sm btn-primary" onclick="attReviewRequest(\'' + encodeURIComponent(r.req_id) + '\',\'approved\')">Setujui &amp; Terapkan</button>' +
+                  '<button type="button" class="btn btn-sm btn-danger" onclick="attOpenRejectReqModal(\'' + encodeURIComponent(r.req_id) + '\')">Tolak</button>' +
+                '</div>'
+              : '<span style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.reviewed_by_name || r.reviewed_by || "Selesai") + (r.review_note ? '<br>' + esc(r.review_note) : '') + '</span>';
+            return '<tr>' +
+              '<td><div><strong>' + esc(r.user_name || r.user_email) + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.user_email) + (r.user_role ? ' · ' + esc(r.user_role) : '') + '</div></td>' +
+              '<td class="mono">' + esc(r.att_date) + '</td>' +
+              '<td><strong>' + esc(attReqTypeLabel(r.req_type)) + '</strong></td>' +
+              '<td><div>' + esc(r.shift_name || "—") + '</div><div class="mono" style="font-size:0.76rem;color:#065f46;font-weight:700">' + esc(fmtTimes(r)) + '</div><div style="font-size:0.71rem;color:var(--text-muted)">' + esc((r.company_name ? r.company_name + " · " : "") + (r.work_mode || "wfo").toUpperCase()) + '</div></td>' +
+              '<td style="font-size:0.78rem;max-width:210px">' + esc(r.reason || "—") + '</td>' +
+              '<td>' + attReqStatusBadge(r.status) + '</td>' +
+              '<td>' + actionHtml + '</td>' +
+            '</tr>';
+          }).join("");
+        }
+      }
+      if (cards) {
+        cards.innerHTML = !list.length
+          ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Tidak ada pengajuan</div></div>'
+          : list.slice(0, 30).map(function(r) {
+              var isPend = (r.status || "pending") === "pending";
+              var btns = isPend
+                ? '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem">' +
+                    '<button type="button" class="btn btn-sm btn-primary" onclick="attReviewRequest(\'' + encodeURIComponent(r.req_id) + '\',\'approved\')">Setujui &amp; Terapkan</button>' +
+                    '<button type="button" class="btn btn-sm btn-danger" onclick="attOpenRejectReqModal(\'' + encodeURIComponent(r.req_id) + '\')">Tolak</button>' +
+                  '</div>'
+                : '<div class="m-sub" style="margin-top:0.25rem">Diproses: ' + esc(r.reviewed_by_name || r.reviewed_by || "Admin") + (r.review_note ? ' · ' + esc(r.review_note) : '') + '</div>';
+              return '<div class="m-card">' +
+                '<div class="m-title">' + esc(r.user_name || r.user_email) + ' · ' + esc(r.att_date) + '</div>' +
+                '<div class="m-sub"><b>' + esc(attReqTypeLabel(r.req_type)) + '</b> · ' + esc(r.shift_name || "—") + ' (' + esc(fmtTimes(r)) + ')</div>' +
+                '<div class="m-sub">' + esc(r.reason || "") + '</div>' +
+                '<div class="m-row">' + attReqStatusBadge(r.status) + '</div>' + btns +
+              '</div>';
+            }).join("");
+      }
+    }
+
+    function attOpenRejectReqModal(encodedReqId) {
+      if (currentRole() !== "admin") return toast("Hanya Admin.", true);
+      var reqId = encodedReqId ? decodeURIComponent(encodedReqId) : "";
+      var req = attAdmReqRows.find(function(r) { return r.req_id === reqId; });
+      if (!req) return toast("Data pengajuan tidak ditemukan.", true);
+      attRejectTargetReqId = reqId;
+      if ($("attRejectReqSummary")) {
+        $("attRejectReqSummary").innerHTML = "<b>" + esc(req.user_name || req.user_email) + "</b> · " + esc(req.att_date) + " · " + esc(attReqTypeLabel(req.req_type));
+      }
+      if ($("attRejectReasonInp")) $("attRejectReasonInp").value = "";
+      if ($("attRejectReqModal")) $("attRejectReqModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function attCloseRejectReqModal() {
+      attRejectTargetReqId = "";
+      if ($("attRejectReqModal")) $("attRejectReqModal").classList.remove("show");
+      if (!document.querySelector(".modal-bg.show")) document.body.classList.remove("modal-open");
+    }
+
+    async function attConfirmRejectReq() {
+      if (!attRejectTargetReqId) return;
+      var rid = attRejectTargetReqId;
+      var note = ($("attRejectReasonInp") && $("attRejectReasonInp").value || "").trim();
+      attCloseRejectReqModal();
+      await attReviewRequest(encodeURIComponent(rid), "rejected", note);
+    }
+
+    async function attReviewRequest(encodedReqId, decision, rejectNote) {
+      if (currentRole() !== "admin") return toast("Hanya Admin yang dapat memproses pengajuan.", true);
+      var reqId = encodedReqId ? decodeURIComponent(encodedReqId) : "";
+      var req = attAdmReqRows.find(function(r) { return r.req_id === reqId; });
+      if (!req) return toast("Data pengajuan tidak ditemukan.", true);
+      if ((req.status || "pending") !== "pending") return toast("Pengajuan ini sudah diproses sebelumnya.");
+
+      var reviewerEmail = (currentUser && currentUser.email) || "admin";
+      var reviewerName = (currentProfile && currentProfile.name) || reviewerEmail;
+      var nowIso = new Date().toISOString();
+
+      if (decision === "approved") {
+        await attLoadSettings();
+        var targetEmail = String(req.user_email || "").trim().toLowerCase();
+        var existingList = await attFetchLogs({ from: req.att_date, to: req.att_date, email: targetEmail });
+        var existing = existingList[0] || {};
+        var profiles = await attEnsureProfiles();
+        var prof = (profiles || []).find(function(p) { return String(p.email || "").toLowerCase() === targetEmail; });
+        var shiftObj = attFindShift(req.shift_name || existing.shift_name || "");
+        var locObj = attResolveTargetLocation(shiftObj, null, req.location_id || existing.location_id || shiftObj.location_id || "");
+
+        var inIso = existing.clock_in_at || null;
+        if ((req.req_type === "lupa_in" || req.req_type === "lupa_both") && req.req_in_hm) {
+          inIso = new Date(req.att_date + "T" + req.req_in_hm + ":00+07:00").toISOString();
+        }
+        var outIso = existing.clock_out_at || null;
+        if ((req.req_type === "lupa_out" || req.req_type === "lupa_both") && req.req_out_hm) {
+          var outDate = req.att_date;
+          var outMins = attParseHmMins(req.req_out_hm);
+          if (inIso && outMins < attWibParts(inIso).mins) {
+            outDate = attNextDate(req.att_date);
+          } else if (!inIso && attParseHmMins(shiftObj.end) < attParseHmMins(shiftObj.start) && outMins < 12 * 60) {
+            outDate = attNextDate(req.att_date);
+          }
+          outIso = new Date(outDate + "T" + req.req_out_hm + ":00+07:00").toISOString();
+        }
+
+        var lateMins = inIso ? attComputeLateMins(inIso, shiftObj) : 0;
+        var earlyMins = outIso ? attComputeEarlyOutMins(inIso, outIso, shiftObj, req.att_date) : 0;
+        var newStatus = !inIso && outIso
+          ? (earlyMins > 0 ? "pulang_awal" : "lupa_in")
+          : (earlyMins > 0 ? "pulang_awal" : (lateMins > 0 ? "terlambat" : "hadir"));
+
+        var notePiece = "Pengajuan " + attReqTypeLabel(req.req_type) + " disetujui (" + (req.reason || "-") + ")";
+        var mergedNotes = existing.notes ? (existing.notes + " | " + notePiece) : notePiece;
+
+        var rec = Object.assign({}, existing, {
+          att_date: req.att_date,
+          user_email: targetEmail,
+          user_name: (prof && prof.name) || req.user_name || existing.user_name || targetEmail,
+          user_role: (prof && prof.role) || req.user_role || existing.user_role || "",
+          location_id: existing.location_id || (locObj && locObj.id) || "",
+          company_name: existing.company_name || (locObj && locObj.name) || "",
+          shift_name: shiftObj.name,
+          shift_start: shiftObj.start,
+          shift_end: shiftObj.end,
+          work_mode: req.work_mode || existing.work_mode || "wfo",
+          clock_in_at: inIso,
+          clock_out_at: outIso,
+          late_minutes: lateMins,
+          early_out_minutes: earlyMins,
+          status: newStatus,
+          notes: mergedNotes,
+          corrected_by: reviewerEmail,
+          corrected_at: nowIso
+        });
+        var up = await attUpsertRecord(rec, "request_approved");
+        if (up.error) return toast("Gagal memperbarui data absensi: " + up.error.message, true);
+      }
+
+      var updatedReq = Object.assign({}, req, {
+        status: decision,
+        reviewed_by: reviewerEmail,
+        reviewed_by_name: reviewerName,
+        reviewed_at: nowIso,
+        review_note: decision === "rejected" ? (rejectNote || "Ditolak Admin") : "Disetujui & diterapkan ke rekap"
+      });
+      var savedReq = await attSaveRequest(updatedReq, decision === "approved" ? "approve_request" : "reject_request");
+      if (savedReq.error) return toast("Gagal menyimpan status pengajuan: " + savedReq.error.message, true);
+
+      toast(decision === "approved" ? "Pengajuan disetujui & jam absensi diperbarui." : "Pengajuan ditolak.");
+      await loadAttendanceAdminRequests();
+      await loadAttendanceAdmin();
+      if (currentUser && currentUser.email && String(req.user_email || "").toLowerCase() === currentUser.email.toLowerCase()) {
+        attActiveRecord = await attFindActiveRecordForMe();
+        attRenderHero();
+        await Promise.all([loadAttendanceMy(), loadAttendanceMyRequests()]);
+        loadAttendanceHomeWidget();
+      }
+    }
+
     async function attCopySetupSql() {
       try {
         await navigator.clipboard.writeText(ATT_SETUP_SQL);
@@ -43358,14 +44143,19 @@ function closeOtModal() {
       attStartLiveClock();
       await attLoadSettings(!!force);
       attActiveRecord = await attFindActiveRecordForMe();
-      attPopulateShiftSelect($("attShiftSelect"), (attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.shift_name : "", true);
-      attPopulateLocationSelect((attActiveRecord && attActiveRecord.clock_in_at) ? attActiveRecord.location_id : undefined);
+      attPopulateShiftSelect($("attShiftSelect"), (attActiveRecord && (attActiveRecord.clock_in_at || attActiveRecord.clock_out_at)) ? attActiveRecord.shift_name : "", true);
+      attPopulateLocationSelect((attActiveRecord && (attActiveRecord.clock_in_at || attActiveRecord.clock_out_at)) ? attActiveRecord.location_id : undefined);
       attRenderHero();
       attRenderGpsPreview();
-      await Promise.all([
+      var tasks = [
         loadAttendanceMy(),
+        loadAttendanceMyRequests(),
         loadAbsences()
-      ]);
+      ];
+      if (currentRole() === "admin") {
+        tasks.push(loadAttendanceAdminRequests());
+      }
+      await Promise.all(tasks);
       if (currentRole() === "admin") {
         if (attActiveTab === "admin") await loadAttendanceAdmin();
         if (attActiveTab === "settings") attRenderSettingsForm();
