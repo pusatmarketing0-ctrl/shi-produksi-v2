@@ -2989,6 +2989,68 @@
       padding-left: 0.85rem;
       padding-right: 0.85rem;
     }
+
+    /* ===== Karyawan (Non-Produksi) clean layout ===== */
+    body.role-karyawan #page-home .page-head { display: none; }
+    body.role-karyawan #homeStaff,
+    body.role-karyawan #homeOperator { display: none !important; }
+    body.role-karyawan #homeKaryawan { display: block !important; }
+    body.role-karyawan .main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding-left: 0.85rem;
+      padding-right: 0.85rem;
+    }
+    .kar-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
+    .kar-act-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.75rem 0.5rem;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s, background 0.15s;
+    }
+    .kar-act-btn:hover { border-color: #99f6e4; background: #f0fdfa; }
+    .kar-act-btn:active { transform: scale(0.98); }
+    .kar-act-ico {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+    }
+    .kar-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.55rem;
+      margin-bottom: 0.85rem;
+    }
+    @media (max-width: 560px) {
+      .kar-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    .kar-kpi {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.65rem 0.75rem;
+    }
+    .kar-kpi .val { font-size: 1.25rem; font-weight: 800; color: #0f172a; line-height: 1.2; }
+    .kar-kpi .lbl { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; font-weight: 600; }
     body.role-operator .op-section-title {
       font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
       letter-spacing: 0.05em; color: var(--text-muted);
@@ -5260,6 +5322,9 @@
     body.role-operator #otLinesTable .ot-col-harga,
     body.role-operator #otLinesTable .ot-col-hpp,
     body.role-operator #otLinesTable .ot-col-sub,
+    body.role-karyawan #otLinesTable .ot-col-harga,
+    body.role-karyawan #otLinesTable .ot-col-hpp,
+    body.role-karyawan #otLinesTable .ot-col-sub,
     body.role-gudang #otLinesTable .ot-col-harga,
     body.role-gudang #otLinesTable .ot-col-hpp,
     body.role-gudang #otLinesTable .ot-col-sub,
@@ -8469,6 +8534,64 @@
               <div id="opPendingList" class="mobile-cards"></div>
             </div>
           </div>
+          <!-- Karyawan (Non-Produksi) home -->
+          <div id="homeKaryawan" style="display:none">
+            <div id="attHomeWidgetKaryawan" class="att-quick-bar" style="display:none"></div>
+            <div class="card" style="margin-bottom:0.85rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0;font-size:0.95rem">Menu Cepat Karyawan</h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)" id="karHomeSubtitle">Absensi harian &amp; pengajuan ijin/koreksi</p>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="loadKaryawanHome()">Refresh</button>
+              </div>
+              <div class="kar-actions-grid">
+                <button type="button" class="kar-act-btn" onclick="attOpenReqModal()">
+                  <span class="kar-act-ico" style="background:#fef3c7;color:#92400e">🕒</span>
+                  <span>Lupa Absen</span>
+                </button>
+                <button type="button" class="kar-act-btn" onclick="openAbsenceModal()">
+                  <span class="kar-act-ico" style="background:#dbeafe;color:#1d4ed8">📝</span>
+                  <span>Ijin / Cuti</span>
+                </button>
+                <button type="button" class="kar-act-btn" onclick="goPage('absences')">
+                  <span class="kar-act-ico" style="background:#d1fae5;color:#047857">📋</span>
+                  <span>Riwayat Lengkap</span>
+                </button>
+              </div>
+            </div>
+            <div class="card" style="margin-bottom:0.85rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem">
+                <div>
+                  <h3 style="margin:0;font-size:0.95rem">Ringkasan Bulan Ini</h3>
+                  <p style="margin:0.15rem 0 0;font-size:0.76rem;color:var(--text-muted)" id="karMonthLabel">Rekap pribadi</p>
+                </div>
+                <span class="pill" id="karPendingBadge" style="display:none;background:#fef3c7;color:#92400e;border-color:#fde68a">0 pending</span>
+              </div>
+              <div class="kar-kpi-grid">
+                <div class="kar-kpi" style="background:#f0fdf4;border-color:#bbf7d0">
+                  <div class="val" id="karStatHadir" style="color:#047857">0</div>
+                  <div class="lbl">Hadir</div>
+                </div>
+                <div class="kar-kpi" style="background:#fffbeb;border-color:#fde68a">
+                  <div class="val" id="karStatLate" style="color:#b45309">0</div>
+                  <div class="lbl">Terlambat</div>
+                </div>
+                <div class="kar-kpi" style="background:#eff6ff;border-color:#bfdbfe">
+                  <div class="val" id="karStatLeave" style="color:#1d4ed8">0</div>
+                  <div class="lbl">Ijin / Cuti</div>
+                </div>
+                <div class="kar-kpi">
+                  <div class="val" id="karStatPending">0</div>
+                  <div class="lbl">Menunggu ACC</div>
+                </div>
+              </div>
+              <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.45rem">Absensi Terakhir</div>
+              <div id="karRecentList" class="mobile-cards">
+                <div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Memuat riwayat…</div></div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section id="page-products" class="page" hidden>
@@ -8618,6 +8741,7 @@
               <option value="ppic">ppic</option>
               <option value="korlap">korlap</option>
               <option value="operator">operator</option>
+              <option value="karyawan">karyawan (Non-Produksi)</option>
               <option value="marketing">marketing</option>
               <option value="trading">trading (CV Trading)</option>
               <option value="purchasing">purchasing</option>
@@ -11561,6 +11685,7 @@
         <div class="field"><label>Role</label>
           <select id="accEditRole">
             <option value="operator">operator</option>
+            <option value="karyawan">karyawan (Non-Produksi)</option>
             <option value="korlap">korlap</option>
             <option value="ppic">ppic</option>
             <option value="marketing">marketing</option>
@@ -16077,6 +16202,20 @@ function fillOperatorList(selectedEmail) {
           ]}
         ]
       },
+      karyawan: {
+        tabs: [
+          { page: "home", label: "Home", ico: "ico-home" },
+          { page: "absences", label: "Absensi", ico: "ico-leave" },
+          { page: "improvements", label: "Usulan", ico: "ico-idea" }
+        ],
+        more: [
+          { group: "Menu Karyawan", items: [
+            { page: "home", label: "Beranda & Absen", ico: "ico-home" },
+            { page: "absences", label: "Absensi & Ijin", ico: "ico-leave" },
+            { page: "improvements", label: "Ide & Improvement", ico: "ico-idea" }
+          ]}
+        ]
+      },
       gudang: {
         tabs: [
           { page: "home", label: "Home", ico: "ico-home" },
@@ -16451,15 +16590,22 @@ function fillOperatorList(selectedEmail) {
       try { buildMobileNav(); } catch (eMn) { console.warn(eMn); }
       if (role === "operator") {
         if ($("homeStaff")) $("homeStaff").style.display = "none";
+        if ($("homeKaryawan")) $("homeKaryawan").style.display = "none";
         if ($("homeOperator")) $("homeOperator").style.display = "block";
         // operator: hanya home, laporan, cuti — sembunyikan aksi plan
         document.querySelectorAll(
           '[onclick*="openPlanModal"], [onclick*="openPlanImportPage"], [onclick*="openPlanPaste"], [onclick*="openPlanMass"], [onclick*="openKorlapAssign"], [onclick*="openPlanProduct"]'
         ).forEach(function(el) { el.style.display = "none"; });
         try { loadOperatorHome(); } catch (e) { console.warn(e); }
+      } else if (role === "karyawan") {
+        if ($("homeStaff")) $("homeStaff").style.display = "none";
+        if ($("homeOperator")) $("homeOperator").style.display = "none";
+        if ($("homeKaryawan")) $("homeKaryawan").style.display = "block";
+        try { if (typeof loadKaryawanHome === "function") loadKaryawanHome(); } catch (eK) { console.warn(eK); }
       } else {
         if ($("homeStaff")) $("homeStaff").style.display = "block";
         if ($("homeOperator")) $("homeOperator").style.display = "none";
+        if ($("homeKaryawan")) $("homeKaryawan").style.display = "none";
         if (homeTitle && homeText) {
           if (role === "korlap") {
             homeTitle.textContent = "Mode korlap";
@@ -16473,9 +16619,9 @@ function fillOperatorList(selectedEmail) {
           }
         }
       }
-      // hide + buat plan for pure operator
+      // hide + buat plan for operator & karyawan
       document.querySelectorAll('[onclick="openPlanChooser()"]').forEach(btn => {
-        btn.style.display = (role === "operator") ? "none" : "";
+        btn.style.display = (role === "operator" || role === "karyawan") ? "none" : "";
       });
     }
 
@@ -18545,6 +18691,7 @@ function fillOperatorList(selectedEmail) {
       toast("Pengajuan terkirim");
       closeAbsenceModal();
       await loadAbsences();
+      try { if (currentRole() === "karyawan" && typeof loadKaryawanHome === "function") loadKaryawanHome(); } catch (eKh) {}
     });
 
     // ===== Ranking =====
@@ -24317,6 +24464,7 @@ function fillOperatorList(selectedEmail) {
           else if (pid === "page-delivery") { if (typeof loadDeliveries === "function") loadDeliveries(); }
           else if (pid === "page-home") {
             if (currentRole() === "operator") { if (typeof loadOperatorHome === "function") loadOperatorHome(); }
+            else if (currentRole() === "karyawan") { if (typeof loadKaryawanHome === "function") loadKaryawanHome(); }
             else loadHomeDaily();
           }
           else if (pid === "page-marketing") {
@@ -24470,6 +24618,12 @@ function fillOperatorList(selectedEmail) {
         if (gud) gud.style.display = "none";
         if (sub) sub.textContent = "Dashboard QC — inspeksi bahan setelah gudang terima.";
         if (act) act.innerHTML = '<button type="button" class="btn btn-primary" onclick="goPage(\'qc\')">Buka inbox QC</button>';
+      } else if (role === "karyawan") {
+        if (ops) ops.style.display = "none";
+        if (pur) pur.style.display = "none";
+        if (gud) gud.style.display = "none";
+        if (sub) sub.textContent = "Portal absensi & pengajuan ijin karyawan.";
+        if (act) act.innerHTML = "";
       } else {
         if (sub) sub.textContent = "Ringkasan operasional dari Supabase.";
         if (act) act.innerHTML = "";
@@ -32747,12 +32901,18 @@ function fillOperatorList(selectedEmail) {
       try { if (window.__bindSidebarToggle) window.__bindSidebarToggle(); } catch (e) {} } catch (eR) {}
       try { bindAllThousandInputs(); } catch (eT) {}
       try {
-        await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats(), loadBom(true)]);
-        try { loadInboxNotifs(); } catch (eIn) {}
-        try { loadSidebarBadges(); } catch (eSb) {}
-        try { setupRealtime(); } catch (eRt) {}
-        try { fillRouteProductSelect(); } catch (e2) {}
-        try { if (currentRole() === "admin") loadImprovements(); } catch (eImp0) {}
+        if (currentRole() === "karyawan") {
+          try { loadInboxNotifs(); } catch (eInK) {}
+          try { loadSidebarBadges(); } catch (eSbK) {}
+          try { setupRealtime(); } catch (eRtK) {}
+        } else {
+          await Promise.all([loadProducts(), loadMachines(), loadRoutes(), loadPlans(), loadOrdersForPlan(), loadCustomers(), loadOperators(), loadHomeStats(), loadBom(true)]);
+          try { loadInboxNotifs(); } catch (eIn) {}
+          try { loadSidebarBadges(); } catch (eSb) {}
+          try { setupRealtime(); } catch (eRt) {}
+          try { fillRouteProductSelect(); } catch (e2) {}
+          try { if (currentRole() === "admin") loadImprovements(); } catch (eImp0) {}
+        }
       } catch (e) {
         toast(e.message || "Gagal muat master (cek schema.sql & role)", true);
       }
@@ -32760,6 +32920,8 @@ function fillOperatorList(selectedEmail) {
       try {
         if (currentRole() === "operator") {
           if (typeof loadOperatorHome === "function") await loadOperatorHome();
+        } else if (currentRole() === "karyawan") {
+          if (typeof loadKaryawanHome === "function") await loadKaryawanHome();
         } else {
           await loadHomeDaily();
         }
@@ -33945,7 +34107,7 @@ function fillOperatorList(selectedEmail) {
       _sisaSoInFlight = (async function() {
       try {
       var role = currentRole();
-      if (role === "operator" || role === "gudang") {
+      if (role === "operator" || role === "gudang" || role === "karyawan") {
         if ($("homeSisaSoCard")) $("homeSisaSoCard").style.display = "none";
         return;
       }
@@ -37009,6 +37171,9 @@ var id = await newPickId();
       if (currentRole() === "operator" && (page === "plans" || page === "plan-import" || page === "operasional" || page === "products" || page === "machines" || page === "routes" || page === "bom" || page === "purchasing" || page === "accounts")) {
         page = "home";
       }
+      if (currentRole() === "karyawan" && ["home", "absences", "improvements"].indexOf(page) < 0) {
+        page = "home";
+      }
       if (currentRole() === "gudang" && page === "purchasing") page = "gudang";
       if (currentRole() === "purchasing" && page === "gudang") page = "purchasing";
       if (currentRole() === "operator" && page === "delivery") page = "home";
@@ -37080,6 +37245,7 @@ var id = await newPickId();
         if (_shouldFetch("home", 15000)) {
           try {
             if (currentRole() === "operator") loadOperatorHome();
+            else if (currentRole() === "karyawan") { if (typeof loadKaryawanHome === "function") loadKaryawanHome(); }
             else loadHomeDaily();
           } catch (eHd) { console.warn(eHd); }
         }
@@ -39308,7 +39474,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-pager-fix";
+    var APP_BUILD_TAG = "2026.11.27-role-karyawan";
     window.addEventListener("gmp-quota-exceeded", function() {
       var b = $("gmpQuotaBanner");
       if (b) b.style.display = "block";
@@ -42171,6 +42337,7 @@ function closeOtModal() {
       try { attStopCamera(); } catch (e) {}
       if ($("attHomeWidgetStaff")) { $("attHomeWidgetStaff").style.display = "none"; $("attHomeWidgetStaff").innerHTML = ""; }
       if ($("attHomeWidgetOp")) { $("attHomeWidgetOp").style.display = "none"; $("attHomeWidgetOp").innerHTML = ""; }
+      if ($("attHomeWidgetKaryawan")) { $("attHomeWidgetKaryawan").style.display = "none"; $("attHomeWidgetKaryawan").innerHTML = ""; }
       if ($("attShiftSelect")) $("attShiftSelect").value = "";
       if ($("attTabReqBadge")) $("attTabReqBadge").style.display = "none";
     }
@@ -43109,6 +43276,9 @@ function closeOtModal() {
         if ($("attNotes")) $("attNotes").value = "";
         attRenderHero();
         loadAttendanceHomeWidget();
+        if (currentRole() === "karyawan" && typeof loadKaryawanHome === "function") {
+          loadKaryawanHome();
+        }
         if (currentPageId() === "page-absences") {
           await loadAttendanceMy();
           if (currentRole() === "admin" && attActiveTab === "admin") await loadAttendanceAdmin();
@@ -43138,7 +43308,7 @@ function closeOtModal() {
     }
 
     async function loadAttendanceHomeWidget() {
-      var hosts = [$("attHomeWidgetStaff"), $("attHomeWidgetOp")].filter(Boolean);
+      var hosts = [$("attHomeWidgetStaff"), $("attHomeWidgetOp"), $("attHomeWidgetKaryawan")].filter(Boolean);
       if (!hosts.length || !sb || !currentUser) return;
       try {
         await attLoadSettings();
@@ -43272,6 +43442,71 @@ function closeOtModal() {
         });
       } catch (e) {
         console.warn("loadAttendanceHomeWidget", e);
+      }
+    }
+
+    async function loadKaryawanHome() {
+      if (!sb || !currentUser || !currentUser.email) return;
+      try {
+        attStartLiveClock();
+        await loadAttendanceHomeWidget();
+        var wp = attWibParts();
+        var monthPrefix = wp.ymd.slice(0, 7);
+        var monthStart = monthPrefix + "-01";
+        var monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        var mIdx = Math.max(0, Math.min(11, parseInt(wp.ymd.slice(5, 7), 10) - 1));
+        if ($("karMonthLabel")) $("karMonthLabel").textContent = monthNames[mIdx] + " " + wp.ymd.slice(0, 4);
+        var email = String(currentUser.email || "").trim().toLowerCase();
+        var pair = await Promise.all([
+          attFetchLogs({ from: monthStart, to: wp.ymd, email: email }),
+          attFetchRequests({ email: email }),
+          sb.from("absences").select("id,absence_date,type,status,reason").eq("operator_email", email).gte("absence_date", monthStart).order("absence_date", { ascending: false }).limit(50)
+        ]);
+        var logs = pair[0] || [];
+        var reqs = pair[1] || [];
+        var absList = (pair[2] && !pair[2].error && pair[2].data) ? pair[2].data : [];
+
+        var hadirCnt = logs.filter(function(r) { return !!(r.clock_in_at || r.clock_out_at); }).length;
+        var lateCnt = logs.filter(function(r) { return Number(r.late_minutes) > 0; }).length;
+        var leaveCnt = absList.length;
+        var reqPendCnt = reqs.filter(function(r) { return (r.status || "pending") === "pending"; }).length;
+        var absPendCnt = absList.filter(function(a) { return (a.status || "pending") === "pending"; }).length;
+        var totalPend = reqPendCnt + absPendCnt;
+
+        if ($("karStatHadir")) $("karStatHadir").textContent = String(hadirCnt);
+        if ($("karStatLate")) $("karStatLate").textContent = String(lateCnt);
+        if ($("karStatLeave")) $("karStatLeave").textContent = String(leaveCnt);
+        if ($("karStatPending")) $("karStatPending").textContent = String(totalPend);
+        var pb = $("karPendingBadge");
+        if (pb) {
+          pb.style.display = totalPend > 0 ? "" : "none";
+          pb.textContent = totalPend + " pending";
+        }
+
+        var recentEl = $("karRecentList");
+        if (recentEl) {
+          if (!logs.length) {
+            recentEl.innerHTML = '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada riwayat absensi bulan ini</div></div>';
+          } else {
+            recentEl.innerHTML = logs.slice(0, 5).map(function(r) {
+              var inTxt = r.clock_in_at ? attWibParts(r.clock_in_at).hm : "—";
+              var outTxt = r.clock_out_at ? attWibParts(r.clock_out_at).hm : "—";
+              var fixBtn = "";
+              if (!r.clock_in_at) {
+                fixBtn = ' <button type="button" class="att-photo-btn" style="border-color:#fcd34d;background:#fffbeb;color:#92400e" onclick="attOpenReqModal(\'lupa_in\',\'' + esc(r.att_date || "") + '\')">+ Ajukan Lupa In</button>';
+              } else if (!r.clock_out_at && String(r.att_date || "") < wp.ymd) {
+                fixBtn = ' <button type="button" class="att-photo-btn" style="border-color:#fcd34d;background:#fffbeb;color:#92400e" onclick="attOpenReqModal(\'lupa_out\',\'' + esc(r.att_date || "") + '\')">+ Ajukan Lupa Out</button>';
+              }
+              return '<div class="m-card">' +
+                '<div class="m-title">' + esc(r.att_date) + ' · ' + esc(r.shift_name || "—") + '</div>' +
+                '<div class="m-sub">Masuk ' + esc(inTxt) + ' · Pulang ' + esc(outTxt) + ' WIB' + (r.company_name ? ' · ' + esc(r.company_name) : '') + '</div>' +
+                '<div class="m-row">' + attFormatRecBadge(r) + fixBtn + '</div>' +
+              '</div>';
+            }).join("");
+          }
+        }
+      } catch (e) {
+        console.warn("loadKaryawanHome", e);
       }
     }
 
@@ -44533,6 +44768,7 @@ function closeOtModal() {
         attCloseReqModal();
         toast("Pengajuan koreksi & foto bukti berhasil dikirim ke Admin.");
         await loadAttendanceMyRequests();
+        if (currentRole() === "karyawan" && typeof loadKaryawanHome === "function") loadKaryawanHome();
         if (currentRole() === "admin") await loadAttendanceAdminRequests();
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = "Kirim Pengajuan"; }
