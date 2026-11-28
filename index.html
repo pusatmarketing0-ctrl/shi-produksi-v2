@@ -7948,6 +7948,33 @@
       font-size: 0.9rem;
       flex-shrink: 0;
     }
+    .att-bulk-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 11px;
+      padding: 0.55rem 0.75rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.79rem;
+      color: #065f46;
+    }
+    .att-bulk-btns {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .att-chk {
+      width: 17px;
+      height: 17px;
+      accent-color: #059669;
+      cursor: pointer;
+      vertical-align: middle;
+    }
     .att-kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
@@ -9360,10 +9387,18 @@
                   <option value="rejected">Rejected</option>
                 </select>
               </div>
+              <div id="absBulkBar" class="att-bulk-bar">
+                <div style="font-weight:600" id="absBulkLabel">Pilih pengajuan cuti/ijin atau ACC semua yang masih pending</div>
+                <div class="att-bulk-btns">
+                  <button type="button" class="btn btn-ghost btn-sm" id="absSelAllBtn" onclick="absToggleSelectAllBtn()">Pilih Semua Pending</button>
+                  <button type="button" class="btn btn-primary btn-sm" id="absBulkAccSelBtn" style="display:none" onclick="attOpenBulkModal('abs','selected')">✓ ACC Terpilih (0)</button>
+                  <button type="button" class="btn btn-primary btn-sm" id="absBulkAccAllBtn" style="background:#047857;border-color:#047857" onclick="attOpenBulkModal('abs','all')">✓ ACC Semua Pending</button>
+                </div>
+              </div>
               <div id="absCards" class="mobile-cards mobile-only"></div>
               <div class="table-wrap desk-only-table">
                 <table>
-                  <thead><tr><th>Tanggal</th><th>Karyawan</th><th>Jenis</th><th>Alasan</th><th>Status</th><th></th></tr></thead>
+                  <thead><tr><th id="absCheckAllTh" style="width:34px;text-align:center;display:none"><input type="checkbox" class="att-chk" id="absCheckAll" title="Pilih semua pending" onchange="absToggleAllPending(this.checked)" /></th><th>Tanggal</th><th>Karyawan</th><th>Jenis</th><th>Alasan</th><th>Status</th><th></th></tr></thead>
                   <tbody id="absBody"></tbody>
                 </table>
               </div>
@@ -9399,11 +9434,20 @@
                   <button type="button" class="btn btn-ghost btn-sm" onclick="loadAttendanceAdminRequests()">Refresh</button>
                 </div>
               </div>
+              <div id="attAdmBulkBar" class="att-bulk-bar">
+                <div style="font-weight:600" id="attAdmBulkLabel">Pilih baris atau tekan ACC Semua Pending untuk menyetujui sekaligus</div>
+                <div class="att-bulk-btns">
+                  <button type="button" class="btn btn-ghost btn-sm" id="attAdmSelAllBtn" onclick="attToggleSelectAllAdmBtn()">Pilih Semua Pending</button>
+                  <button type="button" class="btn btn-primary btn-sm" id="attAdmBulkAccSelBtn" style="display:none" onclick="attOpenBulkModal('req','selected')">✓ ACC Terpilih (0)</button>
+                  <button type="button" class="btn btn-primary btn-sm" id="attAdmBulkAccAllBtn" style="background:#047857;border-color:#047857" onclick="attOpenBulkModal('req','all')">✓ ACC Semua Pending</button>
+                  <button type="button" class="btn btn-danger btn-sm" id="attAdmBulkRejSelBtn" style="display:none" onclick="attOpenBulkModal('req','reject_selected')">Tolak Terpilih (0)</button>
+                </div>
+              </div>
               <div id="attAdmReqCards" class="mobile-cards mobile-only"></div>
               <div class="table-wrap desk-only-table">
                 <table>
-                  <thead><tr><th>Karyawan</th><th>Tanggal</th><th>Jenis</th><th>Shift &amp; Jam Diajukan</th><th>Alasan</th><th>Status</th><th>Aksi Admin</th></tr></thead>
-                  <tbody id="attAdmReqBody"><tr><td colspan="7" class="empty">Tidak ada pengajuan</td></tr></tbody>
+                  <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" class="att-chk" id="attAdmReqCheckAll" title="Pilih semua yang menunggu" onchange="attToggleAllAdmReqs(this.checked)" /></th><th>Karyawan</th><th>Tanggal</th><th>Jenis</th><th>Shift &amp; Jam Diajukan</th><th>Alasan</th><th>Status</th><th>Aksi Admin</th></tr></thead>
+                  <tbody id="attAdmReqBody"><tr><td colspan="8" class="empty">Tidak ada pengajuan</td></tr></tbody>
                 </table>
               </div>
               <div id="attAdmReqPager" class="pg-bar"></div>
@@ -11133,6 +11177,30 @@
       <div class="sheet-foot">
         <button type="button" class="btn btn-ghost" onclick="attCloseRejectReqModal()">Batal</button>
         <button type="button" class="btn btn-danger" onclick="attConfirmRejectReq()">Tolak Pengajuan</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attBulkAccModal" class="modal-bg" style="z-index:100194">
+    <div class="modal modal-sheet" style="max-width:460px">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div>
+          <h2 id="attBulkModalTitle" style="margin:0">Konfirmasi ACC Massal</h2>
+          <p id="attBulkModalSub" style="margin:0.15rem 0 0;font-size:0.78rem;color:var(--text-muted)"></p>
+        </div>
+        <button type="button" class="ot-close-x" onclick="attCloseBulkModal()" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <div id="attBulkModalPreview" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.6rem 0.75rem;font-size:0.78rem;color:#334155;line-height:1.5;max-height:190px;overflow-y:auto"></div>
+        <div class="field" id="attBulkRejReasonWrap" style="display:none;margin:0.65rem 0 0">
+          <label>Alasan Penolakan Massal (opsional)</label>
+          <textarea id="attBulkRejReasonInp" rows="2" placeholder="Tuliskan alasan penolakan untuk pengajuan yang dipilih…"></textarea>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" class="btn btn-ghost" id="attBulkCancelBtn" onclick="attCloseBulkModal()">Batal</button>
+        <button type="button" class="btn btn-primary" id="attBulkConfirmBtn" onclick="attConfirmBulkAction()">Ya, Proses Sekarang</button>
       </div>
     </div>
   </div>
@@ -18319,23 +18387,87 @@ function fillOperatorList(selectedEmail) {
       } else absenceRows = data || [];
       renderAbsences();
     }
+    var absSelectedIds = {};
+    function absRowKey(a) {
+      return String((a && (a.id != null ? a.id : a.absence_id)) || "");
+    }
+    function absToggleSelect(encodedId, checked) {
+      var id = encodedId ? decodeURIComponent(encodedId) : "";
+      if (!id) return;
+      if (checked) absSelectedIds[id] = true;
+      else delete absSelectedIds[id];
+      renderAbsences();
+    }
+    function absToggleAllPending(checked) {
+      var pending = (absenceRows || []).filter(function(a) { return (a.status || "pending") === "pending" && absRowKey(a); });
+      if (checked) {
+        pending.forEach(function(a) { absSelectedIds[absRowKey(a)] = true; });
+      } else {
+        absSelectedIds = {};
+      }
+      renderAbsences();
+    }
+    function absToggleSelectAllBtn() {
+      var pending = (absenceRows || []).filter(function(a) { return (a.status || "pending") === "pending" && absRowKey(a); });
+      var allPicked = pending.length > 0 && pending.every(function(a) { return !!absSelectedIds[absRowKey(a)]; });
+      absToggleAllPending(!allPicked);
+    }
     function renderAbsences() {
       const body = $("absBody");
       const cards = $("absCards");
       const staff = ["admin","ppic","korlap"].includes(currentRole());
+      var pendingAll = (absenceRows || []).filter(function(a) { return (a.status || "pending") === "pending" && absRowKey(a); });
+      var pendingMap = {};
+      pendingAll.forEach(function(a) { pendingMap[absRowKey(a)] = true; });
+      Object.keys(absSelectedIds).forEach(function(k) { if (!pendingMap[k]) delete absSelectedIds[k]; });
+      var selCount = Object.keys(absSelectedIds).length;
+
+      if ($("absCheckAllTh")) $("absCheckAllTh").style.display = staff ? "" : "none";
+      if ($("absCheckAll")) {
+        $("absCheckAll").checked = pendingAll.length > 0 && selCount === pendingAll.length;
+        $("absCheckAll").indeterminate = selCount > 0 && selCount < pendingAll.length;
+      }
+      if ($("absBulkBar")) {
+        if (staff && pendingAll.length > 0) {
+          $("absBulkBar").style.display = "flex";
+          if ($("absBulkLabel")) {
+            $("absBulkLabel").textContent = selCount > 0
+              ? (selCount + " pengajuan dipilih dari " + pendingAll.length + " pending")
+              : (pendingAll.length + " pengajuan cuti/ijin menunggu persetujuan");
+          }
+          if ($("absSelAllBtn")) {
+            $("absSelAllBtn").textContent = selCount === pendingAll.length ? "Batal Pilih Semua" : ("Pilih Semua Pending (" + pendingAll.length + ")");
+          }
+          if ($("absBulkAccSelBtn")) {
+            $("absBulkAccSelBtn").style.display = selCount > 0 ? "" : "none";
+            $("absBulkAccSelBtn").textContent = "✓ ACC Terpilih (" + selCount + ")";
+          }
+          if ($("absBulkAccAllBtn")) {
+            $("absBulkAccAllBtn").textContent = "✓ ACC Semua Pending (" + pendingAll.length + ")";
+          }
+        } else {
+          $("absBulkBar").style.display = "none";
+        }
+      }
+
       if (body) {
         if (!absenceRows.length) {
-          body.innerHTML = '<tr><td colspan="6" class="empty">Belum ada data</td></tr>';
+          body.innerHTML = '<tr><td colspan="' + (staff ? 7 : 6) + '" class="empty">Belum ada data</td></tr>';
           pageOf("abs", [], "absPager");
         } else {
           var pageList = pageOf("abs", absenceRows, "absPager");
           body.innerHTML = pageList.map(a => {
-          return '<tr><td class="mono">' + esc(a.absence_date) + '</td><td>' + esc(a.operator_email || a.operator_name || "") +
+          var rk = absRowKey(a);
+          var isPend = (a.status || "pending") === "pending";
+          var chkTd = staff
+            ? '<td style="text-align:center">' + (isPend && rk ? '<input type="checkbox" class="att-chk" ' + (absSelectedIds[rk] ? 'checked ' : '') + 'onchange="absToggleSelect(\'' + encodeURIComponent(rk) + '\',this.checked)" />' : '—') + '</td>'
+            : '';
+          return '<tr>' + chkTd + '<td class="mono">' + esc(a.absence_date) + '</td><td>' + esc(a.operator_email || a.operator_name || "") +
             '</td><td>' + esc(a.type || a.absence_type || "") + '</td><td>' + esc(a.reason || "") +
             '</td><td>' + statusPill(a.status || "pending") + '</td><td>' +
-            (staff && (a.status || "pending") === "pending" ?
-              '<button class="btn btn-sm btn-primary" data-aid="' + encodeURIComponent(a.id || a.absence_id || "") + '" data-st="approved">Setuju</button> ' +
-              '<button class="btn btn-sm btn-danger" data-aid="' + encodeURIComponent(a.id || a.absence_id || "") + '" data-st="rejected">Tolak</button>' : "") +
+            (staff && isPend ?
+              '<button class="btn btn-sm btn-primary" data-aid="' + encodeURIComponent(rk) + '" data-st="approved">Setuju</button> ' +
+              '<button class="btn btn-sm btn-danger" data-aid="' + encodeURIComponent(rk) + '" data-st="rejected">Tolak</button>' : "") +
             '</td></tr>';
           }).join("");
           body.querySelectorAll("[data-aid]").forEach(btn => {
@@ -18346,21 +18478,40 @@ function fillOperatorList(selectedEmail) {
       if (cards) {
         cards.innerHTML = !absenceRows.length
           ? '<div class="m-card"><div class="m-sub" style="margin:0;text-align:center">Belum ada data</div></div>'
-          : absenceRows.map(a =>
-            '<div class="m-card"><div class="m-title">' + esc(a.absence_date) + ' · ' + esc(a.type || a.absence_type || "") +
-            '</div><div class="m-sub">' + esc(a.operator_email || "") + '</div><div class="m-row">' + statusPill(a.status || "pending") +
-            '</div></div>').join("");
+          : absenceRows.map(a => {
+            var rk = absRowKey(a);
+            var isPend = (a.status || "pending") === "pending";
+            var chkM = (staff && isPend && rk)
+              ? '<label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.75rem;font-weight:600;color:#065f46;cursor:pointer"><input type="checkbox" class="att-chk" ' + (absSelectedIds[rk] ? 'checked ' : '') + 'onchange="absToggleSelect(\'' + encodeURIComponent(rk) + '\',this.checked)" /> Pilih</label>'
+              : '';
+            var btnsM = (staff && isPend && rk)
+              ? '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem">' +
+                  '<button type="button" class="btn btn-sm btn-primary" onclick="setAbsenceStatus(\'' + encodeURIComponent(rk).replace(/'/g, "%27") + '\',\'approved\',true)">Setuju</button>' +
+                  '<button type="button" class="btn btn-sm btn-danger" onclick="setAbsenceStatus(\'' + encodeURIComponent(rk).replace(/'/g, "%27") + '\',\'rejected\',true)">Tolak</button>' +
+                '</div>'
+              : '';
+            return '<div class="m-card"><div class="m-title">' + esc(a.absence_date) + ' · ' + esc(a.type || a.absence_type || "") +
+              '</div><div class="m-sub">' + esc(a.operator_email || "") + (a.reason ? ' · ' + esc(a.reason) : '') + '</div><div class="m-row" style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem">' + statusPill(a.status || "pending") + chkM +
+              '</div>' + btnsM + '</div>';
+          }).join("");
       }
     }
-    async function setAbsenceStatus(id, status) {
-      if (!id) return;
+    async function setAbsenceStatus(id, status, decodeFirst, skipReload) {
+      if (decodeFirst && id) id = decodeURIComponent(id);
+      if (!id) return false;
       const { error } = await sb.from("absences").update({ status: status, updated_at: new Date().toISOString() }).eq("id", id);
       if (error) {
         const r2 = await sb.from("absences").update({ status: status }).eq("absence_id", id);
-        if (r2.error) return toast(r2.error.message, true);
+        if (r2.error) {
+          if (!skipReload) toast(r2.error.message, true);
+          return false;
+        }
       }
-      toast("Status diubah: " + status);
-      await loadAbsences();
+      if (!skipReload) {
+        toast("Status diubah: " + status);
+        await loadAbsences();
+      }
+      return true;
     }
     document.getElementById("btnSaveAbsence") && (document.getElementById("btnSaveAbsence").onclick = async () => {
       const absence_date = $("absDate").value;
@@ -39153,7 +39304,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-koreksi-foto";
+    var APP_BUILD_TAG = "2026.11.27-absensi-acc-masal";
     window.addEventListener("gmp-quota-exceeded", function() {
       var b = $("gmpQuotaBanner");
       if (b) b.style.display = "block";
@@ -41392,6 +41543,8 @@ function closeOtModal() {
     var attAdminMissing = [];
     var attAdminFiltered = [];
     var attAdmReqRows = [];
+    var attAdmSelectedReqIds = {};
+    var attBulkState = null;
     var attRejectTargetReqId = "";
     var attReqPhotoDataUrl = "";
     var attLastGps = null;
@@ -42005,6 +42158,8 @@ function closeOtModal() {
       attAdminMissing = [];
       attAdminFiltered = [];
       attAdmReqRows = [];
+      attAdmSelectedReqIds = {};
+      attBulkState = null;
       attRejectTargetReqId = "";
       attReqPhotoDataUrl = "";
       attLastGps = null;
@@ -44446,9 +44601,39 @@ function closeOtModal() {
       return attAdmReqRows;
     }
 
+    function attToggleAdmReqSelect(encodedReqId, checked) {
+      var rid = encodedReqId ? decodeURIComponent(encodedReqId) : "";
+      if (!rid) return;
+      if (checked) attAdmSelectedReqIds[rid] = true;
+      else delete attAdmSelectedReqIds[rid];
+      renderAttendanceAdminRequests();
+    }
+
+    function attToggleAllAdmReqs(checked) {
+      var pending = (attAdmReqRows || []).filter(function(r) { return (r.status || "pending") === "pending"; });
+      if (checked) {
+        pending.forEach(function(r) { if (r.req_id) attAdmSelectedReqIds[r.req_id] = true; });
+      } else {
+        attAdmSelectedReqIds = {};
+      }
+      renderAttendanceAdminRequests();
+    }
+
+    function attToggleSelectAllAdmBtn() {
+      var pending = (attAdmReqRows || []).filter(function(r) { return (r.status || "pending") === "pending"; });
+      var allPicked = pending.length > 0 && pending.every(function(r) { return !!attAdmSelectedReqIds[r.req_id]; });
+      attToggleAllAdmReqs(!allPicked);
+    }
+
     function renderAttendanceAdminRequests() {
       if (currentRole() !== "admin") return;
-      var pendingCount = attAdmReqRows.filter(function(r) { return (r.status || "pending") === "pending"; }).length;
+      var pendingList = attAdmReqRows.filter(function(r) { return (r.status || "pending") === "pending"; });
+      var pendingCount = pendingList.length;
+      var pendingMap = {};
+      pendingList.forEach(function(r) { if (r.req_id) pendingMap[r.req_id] = true; });
+      Object.keys(attAdmSelectedReqIds).forEach(function(k) { if (!pendingMap[k]) delete attAdmSelectedReqIds[k]; });
+      var selCount = Object.keys(attAdmSelectedReqIds).length;
+
       var tabBadge = $("attTabReqBadge");
       if (tabBadge) {
         tabBadge.textContent = String(pendingCount);
@@ -44458,6 +44643,37 @@ function closeOtModal() {
       if (cardBadge) {
         cardBadge.textContent = pendingCount + " Menunggu";
         cardBadge.style.display = pendingCount > 0 ? "inline-flex" : "none";
+      }
+
+      if ($("attAdmReqCheckAll")) {
+        $("attAdmReqCheckAll").checked = pendingCount > 0 && selCount === pendingCount;
+        $("attAdmReqCheckAll").indeterminate = selCount > 0 && selCount < pendingCount;
+      }
+      if ($("attAdmBulkBar")) {
+        if (pendingCount > 0) {
+          $("attAdmBulkBar").style.display = "flex";
+          if ($("attAdmBulkLabel")) {
+            $("attAdmBulkLabel").textContent = selCount > 0
+              ? (selCount + " pengajuan dipilih dari " + pendingCount + " menunggu")
+              : (pendingCount + " pengajuan menunggu persetujuan Admin");
+          }
+          if ($("attAdmSelAllBtn")) {
+            $("attAdmSelAllBtn").textContent = selCount === pendingCount ? "Batal Pilih Semua" : ("Pilih Semua Pending (" + pendingCount + ")");
+          }
+          if ($("attAdmBulkAccSelBtn")) {
+            $("attAdmBulkAccSelBtn").style.display = selCount > 0 ? "" : "none";
+            $("attAdmBulkAccSelBtn").textContent = "✓ ACC Terpilih (" + selCount + ")";
+          }
+          if ($("attAdmBulkAccAllBtn")) {
+            $("attAdmBulkAccAllBtn").textContent = "✓ ACC Semua Pending (" + pendingCount + ")";
+          }
+          if ($("attAdmBulkRejSelBtn")) {
+            $("attAdmBulkRejSelBtn").style.display = selCount > 0 ? "" : "none";
+            $("attAdmBulkRejSelBtn").textContent = "Tolak Terpilih (" + selCount + ")";
+          }
+        } else {
+          $("attAdmBulkBar").style.display = "none";
+        }
       }
 
       var stF = ($("attAdmReqFilter") && $("attAdmReqFilter").value) || "";
@@ -44475,12 +44691,15 @@ function closeOtModal() {
       var cards = $("attAdmReqCards");
       if (body) {
         if (!list.length) {
-          body.innerHTML = '<tr><td colspan="7" class="empty">Tidak ada pengajuan pada filter ini</td></tr>';
+          body.innerHTML = '<tr><td colspan="8" class="empty">Tidak ada pengajuan pada filter ini</td></tr>';
           pageOf("attAdmReq", [], "attAdmReqPager");
         } else {
           var pageList = pageOf("attAdmReq", list, "attAdmReqPager");
           body.innerHTML = pageList.map(function(r) {
             var isPend = (r.status || "pending") === "pending";
+            var chkTd = '<td style="text-align:center">' +
+              (isPend ? '<input type="checkbox" class="att-chk" ' + (attAdmSelectedReqIds[r.req_id] ? 'checked ' : '') + 'onchange="attToggleAdmReqSelect(\'' + encodeURIComponent(r.req_id) + '\',this.checked)" />' : '—') +
+              '</td>';
             var actionHtml = isPend
               ? '<div style="display:flex;gap:0.35rem;flex-wrap:wrap">' +
                   '<button type="button" class="btn btn-sm btn-primary" onclick="attReviewRequest(\'' + encodeURIComponent(r.req_id) + '\',\'approved\')">Setujui &amp; Terapkan</button>' +
@@ -44491,6 +44710,7 @@ function closeOtModal() {
               ? '<div style="margin-top:0.25rem"><button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.photo_url) + '\',\'Bukti%20Koreksi%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Lihat Bukti</button></div>'
               : '';
             return '<tr>' +
+              chkTd +
               '<td><div><strong>' + esc(r.user_name || r.user_email) + '</strong></div><div style="font-size:0.72rem;color:var(--text-muted)">' + esc(r.user_email) + (r.user_role ? ' · ' + esc(r.user_role) : '') + '</div></td>' +
               '<td class="mono">' + esc(r.att_date) + '</td>' +
               '<td><strong>' + esc(attReqTypeLabel(r.req_type)) + '</strong></td>' +
@@ -44508,6 +44728,9 @@ function closeOtModal() {
           : list.slice(0, 30).map(function(r) {
               var isPend = (r.status || "pending") === "pending";
               var picMAdm = r.photo_url ? ' <button type="button" class="att-photo-btn" onclick="attViewPhoto(\'' + encodeURIComponent(r.photo_url) + '\',\'Bukti%20Koreksi%20' + encodeURIComponent(r.user_name || r.user_email || "") + '\')">📷 Lihat Bukti</button>' : '';
+              var chkM = isPend
+                ? '<label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.75rem;font-weight:600;color:#065f46;cursor:pointer"><input type="checkbox" class="att-chk" ' + (attAdmSelectedReqIds[r.req_id] ? 'checked ' : '') + 'onchange="attToggleAdmReqSelect(\'' + encodeURIComponent(r.req_id) + '\',this.checked)" /> Pilih</label>'
+                : '';
               var btns = isPend
                 ? '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem">' +
                     '<button type="button" class="btn btn-sm btn-primary" onclick="attReviewRequest(\'' + encodeURIComponent(r.req_id) + '\',\'approved\')">Setujui &amp; Terapkan</button>' +
@@ -44518,9 +44741,132 @@ function closeOtModal() {
                 '<div class="m-title">' + esc(r.user_name || r.user_email) + ' · ' + esc(r.att_date) + '</div>' +
                 '<div class="m-sub"><b>' + esc(attReqTypeLabel(r.req_type)) + '</b> · ' + esc(r.shift_name || "—") + ' (' + esc(fmtTimes(r)) + ')</div>' +
                 '<div class="m-sub">' + esc(r.reason || "") + '</div>' +
-                '<div class="m-row">' + attReqStatusBadge(r.status) + picMAdm + '</div>' + btns +
+                '<div class="m-row" style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap"><div>' + attReqStatusBadge(r.status) + picMAdm + '</div>' + chkM + '</div>' + btns +
               '</div>';
             }).join("");
+      }
+    }
+
+    function attOpenBulkModal(scope, mode) {
+      var isReq = scope === "req";
+      if (isReq && currentRole() !== "admin") return toast("Hanya Admin.", true);
+      if (!isReq && !["admin","ppic","korlap"].includes(currentRole())) return toast("Tidak memiliki akses persetujuan.", true);
+
+      var items = [];
+      if (isReq) {
+        var pendingReqs = (attAdmReqRows || []).filter(function(r) { return (r.status || "pending") === "pending"; });
+        items = mode === "all"
+          ? pendingReqs
+          : pendingReqs.filter(function(r) { return !!attAdmSelectedReqIds[r.req_id]; });
+      } else {
+        var pendingAbs = (absenceRows || []).filter(function(a) { return (a.status || "pending") === "pending" && absRowKey(a); });
+        items = mode === "all"
+          ? pendingAbs
+          : pendingAbs.filter(function(a) { return !!absSelectedIds[absRowKey(a)]; });
+      }
+      if (!items.length) return toast("Belum ada pengajuan pending yang dipilih.", true);
+
+      var isReject = mode === "reject_selected";
+      attBulkState = { scope: scope, mode: mode, isReject: isReject, items: items };
+
+      if ($("attBulkModalTitle")) {
+        $("attBulkModalTitle").textContent = isReject
+          ? ("Tolak " + items.length + " Pengajuan Terpilih")
+          : ("ACC Massal (" + items.length + " Pengajuan)");
+      }
+      if ($("attBulkModalSub")) {
+        $("attBulkModalSub").textContent = isReq
+          ? (isReject ? "Pengajuan lupa absen terpilih akan ditolak sekaligus." : "Semua pengajuan terpilih akan disetujui & diterapkan ke rekap harian.")
+          : ("Semua pengajuan cuti/ijin terpilih akan disetujui sekaligus.");
+      }
+      if ($("attBulkModalPreview")) {
+        var sampleLines = items.slice(0, 8).map(function(it, idx) {
+          if (isReq) {
+            return (idx + 1) + ". <b>" + esc(it.user_name || it.user_email) + "</b> · " + esc(it.att_date) + " · " + esc(attReqTypeLabel(it.req_type));
+          }
+          return (idx + 1) + ". <b>" + esc(it.operator_email || it.operator_name || "-") + "</b> · " + esc(it.absence_date) + " · " + esc(it.type || it.absence_type || "ijin");
+        });
+        if (items.length > 8) sampleLines.push("<i>… dan " + (items.length - 8) + " pengajuan lainnya</i>");
+        $("attBulkModalPreview").innerHTML = sampleLines.join("<br>");
+      }
+      if ($("attBulkRejReasonWrap")) $("attBulkRejReasonWrap").style.display = isReject ? "" : "none";
+      if ($("attBulkRejReasonInp")) $("attBulkRejReasonInp").value = "";
+
+      var okBtn = $("attBulkConfirmBtn");
+      if (okBtn) {
+        okBtn.disabled = false;
+        okBtn.className = isReject ? "btn btn-danger" : "btn btn-primary";
+        okBtn.textContent = isReject ? ("Tolak " + items.length + " Pengajuan") : ("Ya, ACC " + items.length + " Pengajuan");
+      }
+      if ($("attBulkCancelBtn")) $("attBulkCancelBtn").disabled = false;
+      if ($("attBulkAccModal")) $("attBulkAccModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function attCloseBulkModal() {
+      attBulkState = null;
+      if ($("attBulkAccModal")) $("attBulkAccModal").classList.remove("show");
+      if (!document.querySelector(".modal-bg.show")) document.body.classList.remove("modal-open");
+    }
+
+    async function attConfirmBulkAction() {
+      if (!attBulkState || !attBulkState.items || !attBulkState.items.length) return;
+      var state = attBulkState;
+      var items = state.items.slice();
+      var rejNote = ($("attBulkRejReasonInp") && $("attBulkRejReasonInp").value || "").trim();
+      var okBtn = $("attBulkConfirmBtn");
+      var cancelBtn = $("attBulkCancelBtn");
+      if (okBtn) okBtn.disabled = true;
+      if (cancelBtn) cancelBtn.disabled = true;
+
+      var okCount = 0;
+      var failCount = 0;
+      try {
+        if (state.scope === "req") {
+          await attLoadSettings();
+          var profiles = await attEnsureProfiles();
+          for (var i = 0; i < items.length; i++) {
+            if (okBtn) okBtn.textContent = "Memproses " + (i + 1) + "/" + items.length + "…";
+            var res = await attApplySingleRequestDecision(
+              items[i],
+              state.isReject ? "rejected" : "approved",
+              rejNote,
+              { skipReload: true, profiles: profiles }
+            );
+            if (res && res.ok) okCount++;
+            else failCount++;
+          }
+          attAdmSelectedReqIds = {};
+          attCloseBulkModal();
+          await loadAttendanceAdminRequests();
+          await loadAttendanceAdmin();
+          if (currentUser && currentUser.email) {
+            attActiveRecord = await attFindActiveRecordForMe();
+            attRenderHero();
+            await Promise.all([loadAttendanceMy(), loadAttendanceMyRequests()]);
+            loadAttendanceHomeWidget();
+          }
+          toast(
+            (state.isReject ? "Tolak massal: " : "ACC massal selesai: ") +
+            okCount + " berhasil" + (failCount ? (", " + failCount + " gagal") : "."),
+            failCount > 0 && okCount === 0
+          );
+        } else {
+          for (var j = 0; j < items.length; j++) {
+            if (okBtn) okBtn.textContent = "Memproses " + (j + 1) + "/" + items.length + "…";
+            var rk = absRowKey(items[j]);
+            var done = await setAbsenceStatus(rk, "approved", false, true);
+            if (done) okCount++;
+            else failCount++;
+          }
+          absSelectedIds = {};
+          attCloseBulkModal();
+          await loadAbsences();
+          toast("ACC massal Cuti/Ijin selesai: " + okCount + " berhasil" + (failCount ? (", " + failCount + " gagal") : "."), failCount > 0 && okCount === 0);
+        }
+      } finally {
+        if (okBtn) { okBtn.disabled = false; okBtn.textContent = "Ya, Proses Sekarang"; }
+        if (cancelBtn) cancelBtn.disabled = false;
       }
     }
 
@@ -44552,23 +44898,19 @@ function closeOtModal() {
       await attReviewRequest(encodeURIComponent(rid), "rejected", note);
     }
 
-    async function attReviewRequest(encodedReqId, decision, rejectNote) {
-      if (currentRole() !== "admin") return toast("Hanya Admin yang dapat memproses pengajuan.", true);
-      var reqId = encodedReqId ? decodeURIComponent(encodedReqId) : "";
-      var req = attAdmReqRows.find(function(r) { return r.req_id === reqId; });
-      if (!req) return toast("Data pengajuan tidak ditemukan.", true);
-      if ((req.status || "pending") !== "pending") return toast("Pengajuan ini sudah diproses sebelumnya.");
-
+    async function attApplySingleRequestDecision(req, decision, rejectNote, opts) {
+      opts = opts || {};
+      if (!req || (req.status || "pending") !== "pending") return { ok: false, error: "Sudah diproses" };
       var reviewerEmail = (currentUser && currentUser.email) || "admin";
       var reviewerName = (currentProfile && currentProfile.name) || reviewerEmail;
       var nowIso = new Date().toISOString();
 
       if (decision === "approved") {
-        await attLoadSettings();
+        if (!opts.skipSettingsLoad) await attLoadSettings();
         var targetEmail = String(req.user_email || "").trim().toLowerCase();
         var existingList = await attFetchLogs({ from: req.att_date, to: req.att_date, email: targetEmail });
         var existing = existingList[0] || {};
-        var profiles = await attEnsureProfiles();
+        var profiles = opts.profiles || await attEnsureProfiles();
         var prof = (profiles || []).find(function(p) { return String(p.email || "").toLowerCase() === targetEmail; });
         var shiftObj = attFindShift(req.shift_name || existing.shift_name || "");
         var locObj = attResolveTargetLocation(shiftObj, null, req.location_id || existing.location_id || shiftObj.location_id || "");
@@ -44621,7 +44963,7 @@ function closeOtModal() {
           corrected_at: nowIso
         });
         var up = await attUpsertRecord(rec, "request_approved");
-        if (up.error) return toast("Gagal memperbarui data absensi: " + up.error.message, true);
+        if (up.error) return { ok: false, error: "Gagal memperbarui data absensi: " + up.error.message };
       }
 
       var updatedReq = Object.assign({}, req, {
@@ -44632,7 +44974,19 @@ function closeOtModal() {
         review_note: decision === "rejected" ? (rejectNote || "Ditolak Admin") : "Disetujui & diterapkan ke rekap"
       });
       var savedReq = await attSaveRequest(updatedReq, decision === "approved" ? "approve_request" : "reject_request");
-      if (savedReq.error) return toast("Gagal menyimpan status pengajuan: " + savedReq.error.message, true);
+      if (savedReq.error) return { ok: false, error: "Gagal menyimpan status pengajuan: " + savedReq.error.message };
+      return { ok: true };
+    }
+
+    async function attReviewRequest(encodedReqId, decision, rejectNote) {
+      if (currentRole() !== "admin") return toast("Hanya Admin yang dapat memproses pengajuan.", true);
+      var reqId = encodedReqId ? decodeURIComponent(encodedReqId) : "";
+      var req = attAdmReqRows.find(function(r) { return r.req_id === reqId; });
+      if (!req) return toast("Data pengajuan tidak ditemukan.", true);
+      if ((req.status || "pending") !== "pending") return toast("Pengajuan ini sudah diproses sebelumnya.");
+
+      var res = await attApplySingleRequestDecision(req, decision, rejectNote, {});
+      if (!res.ok) return toast(res.error || "Gagal memproses pengajuan.", true);
 
       toast(decision === "approved" ? "Pengajuan disetujui & jam absensi diperbarui." : "Pengajuan ditolak.");
       await loadAttendanceAdminRequests();
