@@ -29461,7 +29461,11 @@ function fillOperatorList(selectedEmail) {
         wip: function() { renderWipStock(); },
         audit: function() { renderAuditLogs(); },
         customers: function() { try { renderCustomers(); } catch (e) {} },
-        vendors: function() { try { renderVendors(); } catch (e) {} }
+        vendors: function() { try { renderVendors(); } catch (e) {} },
+        attMy: function() { if (typeof renderAttendanceMy === "function") renderAttendanceMy(); },
+        attMyReq: function() { if (typeof renderAttendanceMyRequests === "function") renderAttendanceMyRequests(); },
+        attAdm: function() { if (typeof renderAttendanceAdmin === "function") renderAttendanceAdmin(); },
+        attAdmReq: function() { if (typeof renderAttendanceAdminRequests === "function") renderAttendanceAdminRequests(); }
       };
       if (map[key]) map[key]();
       else console.warn("setListPage: no renderer for", key);
@@ -39304,7 +39308,7 @@ function closeOtModal() {
         };
       }
     }
-    var APP_BUILD_TAG = "2026.11.27-absensi-acc-masal";
+    var APP_BUILD_TAG = "2026.11.27-absensi-pager-fix";
     window.addEventListener("gmp-quota-exceeded", function() {
       var b = $("gmpQuotaBanner");
       if (b) b.style.display = "block";
